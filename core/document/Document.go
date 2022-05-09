@@ -1,7 +1,5 @@
 package document
 
-import "errors"
-
 // Document Documents are the unit of indexing and search. A Document is a set of fields. Each field has a name
 // and a textual value. A field may be stored with the document, in which case it is returned with search
 // hits on the document. Thus each document should typically contain one or more stored fields which
@@ -64,11 +62,11 @@ func (d *Document) RemoveFields(name string) {
 	d.fields = tmp
 }
 
-// Returns an array of byte arrays for of the fields that have the name specified as the method parameter.
+// GetBinaryValues Returns an array of byte arrays for of the fields that have the name specified as the method parameter.
 // This method returns an empty array when there are no matching fields. It never returns null.
 // Params: name – the name of the field
 // Returns: a BytesRef[] of binary field values
-func (d *Document) getBinaryValues(name string) [][]byte {
+func (d *Document) GetBinaryValues(name string) [][]byte {
 	ret := make([][]byte, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
@@ -80,12 +78,12 @@ func (d *Document) getBinaryValues(name string) [][]byte {
 	return ret
 }
 
-// Returns an array of bytes for the first (or only) field that has the name specified as the method
+// GetBinaryValue Returns an array of bytes for the first (or only) field that has the name specified as the method
 // parameter. This method will return null if no binary fields with the specified name are available.
 // There may be non-binary fields with the same name.
 // Params: name – the name of the field.
 // Returns: a BytesRef containing the binary field value or null
-func (d *Document) getBinaryValue(name string) ([]byte, error) {
+func (d *Document) GetBinaryValue(name string) ([]byte, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
 			if field.FieldType() == FVBinary {
@@ -93,25 +91,25 @@ func (d *Document) getBinaryValue(name string) ([]byte, error) {
 			}
 		}
 	}
-	return nil, errors.New("not binary value")
+	return nil, ErrFieldValueTypeNotFit
 }
 
-// Returns a field with the given name if any exist in this document, or null. If multiple fields exists
+// GetField Returns a field with the given name if any exist in this document, or null. If multiple fields exists
 // with this name, this method returns the first value added.
-func (d *Document) getField(name string) (IndexAbleField, error) {
+func (d *Document) GetField(name string) (IndexAbleField, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
 			return field, nil
 		}
 	}
-	return nil, errors.New("not found")
+	return nil, FrrFieldNotFound
 }
 
-// Returns an array of IndexableFields with the given name. This method returns an empty array when
+// GetFields Returns an array of IndexAbleFields with the given name. This method returns an empty array when
 // there are no matching fields. It never returns null.
 // Params: name – the name of the field
 // Returns: a Field[] array
-func (d *Document) getFields(name string) []IndexAbleField {
+func (d *Document) GetFields(name string) []IndexAbleField {
 	ret := make([]IndexAbleField, 0)
 	for i, field := range d.fields {
 		if field.Name() == name {
@@ -123,12 +121,12 @@ func (d *Document) getFields(name string) []IndexAbleField {
 	return ret
 }
 
-// Returns an array of values of the field specified as the method parameter. This method returns
+// GetValues Returns an array of values of the field specified as the method parameter. This method returns
 // an empty array when there are no matching fields. It never returns null. For a numeric StoredField
 // it returns the string value of the number. If you want the actual numeric field instances back, use getFields.
 // Params: name – the name of the field
 // Returns: a String[] of field values
-func (d *Document) getValues(name string) []string {
+func (d *Document) GetValues(name string) []string {
 	ret := make([]string, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
@@ -140,11 +138,11 @@ func (d *Document) getValues(name string) []string {
 	return ret
 }
 
-// Returns the string value of the field with the given name if any exist in this document, or null.
+// Get Returns the string value of the field with the given name if any exist in this document, or null.
 // If multiple fields exist with this name, this method returns the first value added. If only binary
 // fields with this name exist, returns null. For a numeric StoredField it returns the string value of
 // the number. If you want the actual numeric field instance back, use getField.
-func (d *Document) get(name string) (string, error) {
+func (d *Document) Get(name string) (string, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
 			if field.FieldType() == FVString {
@@ -152,7 +150,7 @@ func (d *Document) get(name string) (string, error) {
 			}
 		}
 	}
-	return "", errors.New("not string value")
+	return "", ErrFieldValueTypeNotFit
 }
 
 // Removes all the fields from document.
