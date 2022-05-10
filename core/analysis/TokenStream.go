@@ -5,6 +5,7 @@ package analysis
 // * Tokenizer, a TokenStream whose input is a Reader; and
 // * TokenFilter, a TokenStream whose input is another TokenStream.
 type TokenStream interface {
+
 	// IncrementToken Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
 	// Implementing classes must implement this method and update the appropriate AttributeImpls with the
 	// attributes of the next token.
@@ -22,7 +23,7 @@ type TokenStream interface {
 	// attributes in incrementToken().
 	//
 	// Returns: false for end of stream; true otherwise
-	IncrementToken() bool
+	IncrementToken() (bool, error)
 
 	// End This method is called by the consumer after the last token has been consumed, after incrementToken()
 	// returned false (using the new TokenStream API). Streams implementing the old API should upgrade to use

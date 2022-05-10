@@ -3,7 +3,9 @@ package document
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core/analysis/tokenattributes"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/util"
 	"io"
 )
 
@@ -63,4 +65,40 @@ func (f *Field) Value() interface{} {
 }
 
 type StringTokenStream struct {
+	source    *util.AttributeSource
+	attribute *tokenattributes.PackedTokenAttributeImpl
+	used      bool
+	value     string
+}
+
+func (s *StringTokenStream) IncrementToken() (bool, error) {
+	if s.used {
+		return false, nil
+	}
+
+	s.source.Clear()
+
+	s.attribute.Append(s.value)
+	if err := s.attribute.SetOffset(0, len(s.value)); err != nil {
+		return false, err
+	}
+	s.used = true
+	return true, nil
+}
+
+func (s *StringTokenStream) End() error {
+	finalOffset := len(s.value)
+	return s.attribute.SetOffset(finalOffset, finalOffset)
+}
+
+func (s *StringTokenStream) Reset() error {
+	s.used = false
+	return nil
+}
+
+func (s *StringTokenStream) Close() error {
+	return nil
+}
+
+type BinaryTokenStream struct {
 }
