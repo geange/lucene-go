@@ -1,6 +1,7 @@
 package util
 
 import (
+	"reflect"
 	"sync"
 )
 
@@ -10,30 +11,54 @@ import (
 // which then checks if an instance of that type is already present. If yes, it returns the instance,
 // otherwise it creates a new instance and returns it.
 type AttributeSource struct {
-	attributes sync.Map
-	list       []AttributeImpl
+	attributes     sync.Map
+	attributeImpls sync.Map
+	list           []AttributeImpl
+	factory        AttributeFactory
+}
+
+func NewAttributeSource() *AttributeSource {
+	source := &AttributeSource{
+		attributes:     sync.Map{},
+		attributeImpls: sync.Map{},
+		list:           make([]AttributeImpl, 0),
+		factory:        DEFAULT_ATTRIBUTE_FACTORY,
+	}
+	return source
 }
 
 func (a *AttributeSource) Get(name string) (AttributeImpl, bool) {
-
 	v, ok := a.attributes.Load(name)
+	if !ok {
+		impl, err := a.factory.CreateAttributeInstance(name)
+		if err != nil {
+			return nil, false
+		}
+		a.Add(impl)
+		return impl, true
+	}
 	return v.(AttributeImpl), ok
 }
 
 func (a *AttributeSource) Add(item AttributeImpl) {
-	isDuplicate := true
 	for _, name := range item.Interfaces() {
 		if _, ok := a.attributes.Load(name); !ok {
-			isDuplicate = false
 			a.attributes.Store(name, item)
 		}
 	}
 
-	if !isDuplicate {
+	rType := reflect.TypeOf(item)
+	if _, ok := a.attributeImpls.Load(rType); !ok {
+		a.attributeImpls.Store(rType, item)
 		a.list = append(a.list, item)
 	}
 }
 
-func (a *AttributeSource) Clear() {
-
+func (a *AttributeSource) Clear() error {
+	for _, impl := range a.list {
+		if err := impl.Clear(); err != nil {
+			return err
+		}
+	}
+	return nil
 }

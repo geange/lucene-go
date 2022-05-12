@@ -28,7 +28,27 @@ func (f *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 	if !f.FieldType().Tokenized() {
 		switch f.FType() {
 		case FVString:
+			stream, ok := reuse.(*StringTokenStream)
+			if !ok {
+				var err error
+				stream, err = NewStringTokenStream(util.NewAttributeSource())
+				if err != nil {
+					return nil, err
+				}
+			}
+			stream.SetValue(f.Value().(string))
+			return stream, nil
 		case FVBinary:
+			stream, ok := reuse.(*BinaryTokenStream)
+			if !ok {
+				var err error
+				stream, err = NewBinaryTokenStream(util.NewAttributeSource())
+				if err != nil {
+					return nil, err
+				}
+			}
+			stream.SetValue(f.Value().([]byte))
+			return stream, nil
 		default:
 			return nil, errors.New("Non-Tokenized Fields must have a String value")
 		}
@@ -64,11 +84,39 @@ func (f *Field) Value() interface{} {
 	return f.fieldsData
 }
 
+var (
+	_ analysis.TokenStream = &StringTokenStream{}
+)
+
+func NewStringTokenStream(source *util.AttributeSource) (*StringTokenStream, error) {
+	stream := &StringTokenStream{
+		source:          source,
+		termAttribute:   nil,
+		offsetAttribute: nil,
+		used:            false,
+		value:           "",
+	}
+	termAttribute, ok := source.Get(tokenattributes.ClassCharTerm)
+	if !ok {
+		return nil, errors.New("PackedTokenAttribute not exist")
+	}
+	stream.termAttribute = termAttribute.(*tokenattributes.PackedTokenAttributeImpl)
+
+	offsetAttribute, ok := source.Get(tokenattributes.ClassOffset)
+	if !ok {
+		return nil, errors.New("PackedTokenAttribute not exist")
+	}
+	stream.offsetAttribute = offsetAttribute.(*tokenattributes.PackedTokenAttributeImpl)
+
+	return stream, nil
+}
+
 type StringTokenStream struct {
-	source    *util.AttributeSource
-	attribute *tokenattributes.PackedTokenAttributeImpl
-	used      bool
-	value     string
+	source          *util.AttributeSource
+	termAttribute   tokenattributes.CharTermAttribute
+	offsetAttribute tokenattributes.OffsetAttribute
+	used            bool
+	value           string
 }
 
 func (s *StringTokenStream) IncrementToken() (bool, error) {
@@ -76,10 +124,13 @@ func (s *StringTokenStream) IncrementToken() (bool, error) {
 		return false, nil
 	}
 
-	s.source.Clear()
+	err := s.source.Clear()
+	if err != nil {
+		return false, err
+	}
 
-	s.attribute.Append(s.value)
-	if err := s.attribute.SetOffset(0, len(s.value)); err != nil {
+	s.termAttribute.Append(s.value)
+	if err := s.offsetAttribute.SetOffset(0, len(s.value)); err != nil {
 		return false, err
 	}
 	s.used = true
@@ -88,7 +139,7 @@ func (s *StringTokenStream) IncrementToken() (bool, error) {
 
 func (s *StringTokenStream) End() error {
 	finalOffset := len(s.value)
-	return s.attribute.SetOffset(finalOffset, finalOffset)
+	return s.offsetAttribute.SetOffset(finalOffset, finalOffset)
 }
 
 func (s *StringTokenStream) Reset() error {
@@ -100,5 +151,67 @@ func (s *StringTokenStream) Close() error {
 	return nil
 }
 
+func (s *StringTokenStream) SetValue(value string) {
+	s.value = value
+}
+
+var (
+	_ analysis.TokenStream = &BinaryTokenStream{}
+)
+
+func NewBinaryTokenStream(source *util.AttributeSource) (*BinaryTokenStream, error) {
+	stream := &BinaryTokenStream{
+		source:   source,
+		bytesAtt: nil,
+		used:     true,
+		value:    nil,
+	}
+	att, ok := source.Get(tokenattributes.ClassBytesTerm)
+	if !ok {
+		return nil, errors.New("BytesTermAttribute not exist")
+	}
+	stream.bytesAtt = att.(*tokenattributes.BytesTermAttributeImpl)
+	return stream, nil
+}
+
 type BinaryTokenStream struct {
+	source   *util.AttributeSource
+	bytesAtt *tokenattributes.BytesTermAttributeImpl
+	used     bool
+	value    []byte
+}
+
+func (b *BinaryTokenStream) IncrementToken() (bool, error) {
+	if b.used {
+		return false, nil
+	}
+
+	err := b.source.Clear()
+	if err != nil {
+		return false, err
+	}
+
+	if err := b.bytesAtt.SetBytesRef(b.value); err != nil {
+		return false, err
+	}
+	b.used = true
+	return true, nil
+}
+
+func (b *BinaryTokenStream) End() error {
+	return b.source.Clear()
+}
+
+func (b *BinaryTokenStream) Reset() error {
+	b.used = false
+	return nil
+}
+
+func (b *BinaryTokenStream) Close() error {
+	b.value = nil
+	return nil
+}
+
+func (b *BinaryTokenStream) SetValue(value []byte) {
+	b.value = value
 }

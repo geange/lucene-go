@@ -12,10 +12,23 @@ var (
 	_ PositionLengthAttribute    = &PackedTokenAttributeImpl{}
 	_ OffsetAttribute            = &PackedTokenAttributeImpl{}
 	_ TermFrequencyAttribute     = &PackedTokenAttributeImpl{}
+	_ util.AttributeImpl         = &PackedTokenAttributeImpl{}
 )
 
+func NewPackedTokenAttributeImpl() *PackedTokenAttributeImpl {
+	return &PackedTokenAttributeImpl{
+		CharTermAttributeImpl: NewCharTermAttributeImpl(),
+		startOffset:           0,
+		endOffset:             0,
+		_type:                 DEFAULT_TYPE,
+		positionIncrement:     1,
+		positionLength:        1,
+		termFrequency:         1,
+	}
+}
+
 type PackedTokenAttributeImpl struct {
-	CharTermAttributeImpl
+	*CharTermAttributeImpl
 
 	startOffset       int
 	endOffset         int

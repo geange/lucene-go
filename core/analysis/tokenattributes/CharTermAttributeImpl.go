@@ -6,6 +6,10 @@ var (
 	_ CharTermAttribute = &CharTermAttributeImpl{}
 )
 
+func NewCharTermAttributeImpl() *CharTermAttributeImpl {
+	return &CharTermAttributeImpl{termBuffer: make([]rune, 0)}
+}
+
 type CharTermAttributeImpl struct {
 	termBuffer []rune
 }
@@ -30,21 +34,27 @@ func (c *CharTermAttributeImpl) Interfaces() []string {
 }
 
 func (c *CharTermAttributeImpl) Clear() error {
-	//TODO implement me
-	panic("implement me")
+	c.termBuffer = nil
+	return nil
 }
 
 func (c *CharTermAttributeImpl) End() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (c *CharTermAttributeImpl) CopyTo(target util.AttributeImpl) error {
-	//TODO implement me
-	panic("implement me")
+	impl, ok := target.(*CharTermAttributeImpl)
+	if ok {
+		termBuffer := make([]rune, len(c.termBuffer))
+		copy(termBuffer, c.termBuffer)
+		impl.termBuffer = termBuffer
+		return nil
+	}
+	return nil
 }
 
 func (c *CharTermAttributeImpl) Clone() util.AttributeImpl {
-	//TODO implement me
-	panic("implement me")
+	termBuffer := make([]rune, len(c.termBuffer))
+	copy(termBuffer, c.termBuffer)
+	return &CharTermAttributeImpl{termBuffer: termBuffer}
 }
