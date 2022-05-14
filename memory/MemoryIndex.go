@@ -2,6 +2,7 @@ package memory
 
 import (
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search/similarities"
 	"go.uber.org/atomic"
 )
@@ -85,4 +86,6 @@ type MemoryIndex struct {
 }
 
 type Info struct {
+	fieldInfo *index.FieldInfo
+	norm      int64
 }
