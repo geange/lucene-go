@@ -2,7 +2,7 @@ package document
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/analysis/tokenattributes"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util"
@@ -17,10 +17,10 @@ type Field struct {
 
 	// Pre-analyzed tokenStream for indexed fields; this is separate from fieldsData because
 	// you are allowed to have both; eg maybe field has a String value but you customize how it's tokenized
-	tokenStream analysis.TokenStream
+	tokenStream core.TokenStream
 }
 
-func (f *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStream) (analysis.TokenStream, error) {
+func (f *Field) TokenStream(analyzer core.Analyzer, reuse core.TokenStream) (core.TokenStream, error) {
 	if f.FieldType().IndexOptions() == index.INDEX_OPTIONS_NONE {
 		return nil, nil
 	}
@@ -85,7 +85,7 @@ func (f *Field) Value() interface{} {
 }
 
 var (
-	_ analysis.TokenStream = &StringTokenStream{}
+	_ core.TokenStream = &StringTokenStream{}
 )
 
 func NewStringTokenStream(source *util.AttributeSource) (*StringTokenStream, error) {
@@ -100,13 +100,13 @@ func NewStringTokenStream(source *util.AttributeSource) (*StringTokenStream, err
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.termAttribute = termAttribute.(*tokenattributes.PackedTokenAttributeImpl)
+	stream.termAttribute = termAttribute.(*core.PackedTokenAttributeImpl)
 
 	offsetAttribute, ok := source.Get(tokenattributes.ClassOffset)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.offsetAttribute = offsetAttribute.(*tokenattributes.PackedTokenAttributeImpl)
+	stream.offsetAttribute = offsetAttribute.(*core.PackedTokenAttributeImpl)
 
 	return stream, nil
 }
@@ -156,7 +156,7 @@ func (s *StringTokenStream) SetValue(value string) {
 }
 
 var (
-	_ analysis.TokenStream = &BinaryTokenStream{}
+	_ core.TokenStream = &BinaryTokenStream{}
 )
 
 func NewBinaryTokenStream(source *util.AttributeSource) (*BinaryTokenStream, error) {
@@ -170,13 +170,13 @@ func NewBinaryTokenStream(source *util.AttributeSource) (*BinaryTokenStream, err
 	if !ok {
 		return nil, errors.New("BytesTermAttribute not exist")
 	}
-	stream.bytesAtt = att.(*tokenattributes.BytesTermAttributeImpl)
+	stream.bytesAtt = att.(*core.BytesTermAttributeImpl)
 	return stream, nil
 }
 
 type BinaryTokenStream struct {
 	source   *util.AttributeSource
-	bytesAtt *tokenattributes.BytesTermAttributeImpl
+	bytesAtt *core.BytesTermAttributeImpl
 	used     bool
 	value    []byte
 }

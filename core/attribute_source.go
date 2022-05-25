@@ -1,9 +1,20 @@
-package util
+package core
 
 import (
 	"reflect"
 	"sync"
 )
+
+// AttributeImpl Base class for Attributes that can be added to a AttributeSource.
+// Attributes are used to add data in a dynamic, yet type-safe way to a source of usually streamed objects,
+// e. g. a org.apache.lucene.analysis.TokenStream.
+type AttributeImpl interface {
+	Interfaces() []string
+	Clear() error
+	End() error
+	CopyTo(target AttributeImpl) error
+	Clone() AttributeImpl
+}
 
 // An AttributeSource contains a list of different AttributeImpls, and methods to add and get them.
 // There can only be a single instance of an attribute in the same AttributeSource instance. This is

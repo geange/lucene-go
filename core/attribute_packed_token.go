@@ -1,9 +1,7 @@
-package tokenattributes
+package core
 
 import (
 	"errors"
-
-	"github.com/geange/lucene-go/core/util"
 )
 
 var (
@@ -12,7 +10,7 @@ var (
 	_ PositionLengthAttribute    = &PackedTokenAttributeImpl{}
 	_ OffsetAttribute            = &PackedTokenAttributeImpl{}
 	_ TermFrequencyAttribute     = &PackedTokenAttributeImpl{}
-	_ util.AttributeImpl         = &PackedTokenAttributeImpl{}
+	_ AttributeImpl              = &PackedTokenAttributeImpl{}
 )
 
 func NewPackedTokenAttributeImpl() *PackedTokenAttributeImpl {
@@ -59,7 +57,7 @@ func (p *PackedTokenAttributeImpl) EndOffset() int {
 }
 
 func (p *PackedTokenAttributeImpl) SetOffset(startOffset, endOffset int) error {
-	if startOffset < 0 || startOffset < endOffset {
+	if startOffset < 0 || startOffset > endOffset {
 		return errors.New("startOffset must be non-negative, and endOffset must be >= startOffset")
 	}
 	p.startOffset = startOffset
@@ -123,7 +121,7 @@ func (p *PackedTokenAttributeImpl) End() error {
 	return nil
 }
 
-func (p *PackedTokenAttributeImpl) CopyTo(target util.AttributeImpl) error {
+func (p *PackedTokenAttributeImpl) CopyTo(target AttributeImpl) error {
 	if impl, ok := target.(*PackedTokenAttributeImpl); ok {
 		impl.startOffset = p.startOffset
 		impl.endOffset = p.endOffset
@@ -136,7 +134,7 @@ func (p *PackedTokenAttributeImpl) CopyTo(target util.AttributeImpl) error {
 	return errors.New("target is not PackedTokenAttributeImpl")
 }
 
-func (p *PackedTokenAttributeImpl) Clone() util.AttributeImpl {
+func (p *PackedTokenAttributeImpl) Clone() AttributeImpl {
 	return &PackedTokenAttributeImpl{
 		startOffset:       p.startOffset,
 		endOffset:         p.endOffset,

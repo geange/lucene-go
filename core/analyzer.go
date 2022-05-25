@@ -1,4 +1,4 @@
-package analysis
+package core
 
 import (
 	"io"

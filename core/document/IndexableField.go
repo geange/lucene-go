@@ -1,7 +1,7 @@
 package document
 
 import (
-	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/index"
 )
 
@@ -24,7 +24,7 @@ type IndexAbleField interface {
 	//			for the same field name. So it's the responsibility of the implementation to check.
 	// Returns: TokenStream value for indexing the document. Should always return a non-null value if the field
 	//			is to be indexed
-	TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStream) (analysis.TokenStream, error)
+	TokenStream(analyzer core.Analyzer, reuse core.TokenStream) (core.TokenStream, error)
 
 	// FType 获取Value的类型信息
 	FType() FieldValueType
