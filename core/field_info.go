@@ -1,4 +1,4 @@
-package index
+package core
 
 // FieldInfo Access to the Field Info file that describes document fields and whether or not they are indexed.
 // Each segment has a separate Field Info file. Objects of this class are thread-safe for multiple readers,

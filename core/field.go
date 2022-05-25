@@ -1,27 +1,24 @@
-package document
+package core
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core"
-	"github.com/geange/lucene-go/core/analysis/tokenattributes"
-	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util"
+
 	"io"
 )
 
 type Field struct {
-	_type      index.IndexAbleFieldType
+	_type      IndexAbleFieldType
 	_fType     FieldValueType
 	name       string
 	fieldsData interface{}
 
 	// Pre-analyzed tokenStream for indexed fields; this is separate from fieldsData because
 	// you are allowed to have both; eg maybe field has a String value but you customize how it's tokenized
-	tokenStream core.TokenStream
+	tokenStream TokenStream
 }
 
-func (f *Field) TokenStream(analyzer core.Analyzer, reuse core.TokenStream) (core.TokenStream, error) {
-	if f.FieldType().IndexOptions() == index.INDEX_OPTIONS_NONE {
+func (f *Field) TokenStream(analyzer Analyzer, reuse TokenStream) (TokenStream, error) {
+	if f.FieldType().IndexOptions() == INDEX_OPTIONS_NONE {
 		return nil, nil
 	}
 
@@ -31,7 +28,7 @@ func (f *Field) TokenStream(analyzer core.Analyzer, reuse core.TokenStream) (cor
 			stream, ok := reuse.(*StringTokenStream)
 			if !ok {
 				var err error
-				stream, err = NewStringTokenStream(util.NewAttributeSource())
+				stream, err = NewStringTokenStream(NewAttributeSource())
 				if err != nil {
 					return nil, err
 				}
@@ -42,7 +39,7 @@ func (f *Field) TokenStream(analyzer core.Analyzer, reuse core.TokenStream) (cor
 			stream, ok := reuse.(*BinaryTokenStream)
 			if !ok {
 				var err error
-				stream, err = NewBinaryTokenStream(util.NewAttributeSource())
+				stream, err = NewBinaryTokenStream(NewAttributeSource())
 				if err != nil {
 					return nil, err
 				}
@@ -72,7 +69,7 @@ func (f *Field) Name() string {
 	return f.name
 }
 
-func (f *Field) FieldType() index.IndexAbleFieldType {
+func (f *Field) FieldType() IndexAbleFieldType {
 	return f._type
 }
 
@@ -85,10 +82,10 @@ func (f *Field) Value() interface{} {
 }
 
 var (
-	_ core.TokenStream = &StringTokenStream{}
+	_ TokenStream = &StringTokenStream{}
 )
 
-func NewStringTokenStream(source *util.AttributeSource) (*StringTokenStream, error) {
+func NewStringTokenStream(source *AttributeSource) (*StringTokenStream, error) {
 	stream := &StringTokenStream{
 		source:          source,
 		termAttribute:   nil,
@@ -96,27 +93,31 @@ func NewStringTokenStream(source *util.AttributeSource) (*StringTokenStream, err
 		used:            false,
 		value:           "",
 	}
-	termAttribute, ok := source.Get(tokenattributes.ClassCharTerm)
+	termAttribute, ok := source.Get(ClassCharTerm)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.termAttribute = termAttribute.(*core.PackedTokenAttributeImpl)
+	stream.termAttribute = termAttribute.(*PackedTokenAttributeImpl)
 
-	offsetAttribute, ok := source.Get(tokenattributes.ClassOffset)
+	offsetAttribute, ok := source.Get(ClassOffset)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.offsetAttribute = offsetAttribute.(*core.PackedTokenAttributeImpl)
+	stream.offsetAttribute = offsetAttribute.(*PackedTokenAttributeImpl)
 
 	return stream, nil
 }
 
 type StringTokenStream struct {
-	source          *util.AttributeSource
-	termAttribute   tokenattributes.CharTermAttribute
-	offsetAttribute tokenattributes.OffsetAttribute
+	source          *AttributeSource
+	termAttribute   CharTermAttribute
+	offsetAttribute OffsetAttribute
 	used            bool
 	value           string
+}
+
+func (s *StringTokenStream) GetAttributeSource() *AttributeSource {
+	return s.source
 }
 
 func (s *StringTokenStream) IncrementToken() (bool, error) {
@@ -156,29 +157,33 @@ func (s *StringTokenStream) SetValue(value string) {
 }
 
 var (
-	_ core.TokenStream = &BinaryTokenStream{}
+	_ TokenStream = &BinaryTokenStream{}
 )
 
-func NewBinaryTokenStream(source *util.AttributeSource) (*BinaryTokenStream, error) {
+func NewBinaryTokenStream(source *AttributeSource) (*BinaryTokenStream, error) {
 	stream := &BinaryTokenStream{
 		source:   source,
 		bytesAtt: nil,
 		used:     true,
 		value:    nil,
 	}
-	att, ok := source.Get(tokenattributes.ClassBytesTerm)
+	att, ok := source.Get(ClassBytesTerm)
 	if !ok {
 		return nil, errors.New("BytesTermAttribute not exist")
 	}
-	stream.bytesAtt = att.(*core.BytesTermAttributeImpl)
+	stream.bytesAtt = att.(*BytesTermAttributeImpl)
 	return stream, nil
 }
 
 type BinaryTokenStream struct {
-	source   *util.AttributeSource
-	bytesAtt *core.BytesTermAttributeImpl
+	source   *AttributeSource
+	bytesAtt *BytesTermAttributeImpl
 	used     bool
 	value    []byte
+}
+
+func (b *BinaryTokenStream) GetAttributeSource() *AttributeSource {
+	return b.source
 }
 
 func (b *BinaryTokenStream) IncrementToken() (bool, error) {

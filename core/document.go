@@ -1,4 +1,4 @@
-package document
+package core
 
 // Document Documents are the unit of indexing and search. A Document is a set of fields. Each field has a name
 // and a textual value. A field may be stored with the document, in which case it is returned with search
@@ -70,7 +70,7 @@ func (d *Document) GetBinaryValues(name string) [][]byte {
 	ret := make([][]byte, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
-			if field.FieldType() == FVBinary {
+			if field.FType() == FVBinary {
 				ret = append(ret, field.Value().([]byte))
 			}
 		}
@@ -86,7 +86,7 @@ func (d *Document) GetBinaryValues(name string) [][]byte {
 func (d *Document) GetBinaryValue(name string) ([]byte, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			if field.FieldType() == FVBinary {
+			if field.FType() == FVBinary {
 				return field.Value().([]byte), nil
 			}
 		}
@@ -113,7 +113,7 @@ func (d *Document) GetFields(name string) []IndexAbleField {
 	ret := make([]IndexAbleField, 0)
 	for i, field := range d.fields {
 		if field.Name() == name {
-			if field.FieldType() == FVString {
+			if field.FType() == FVString {
 				ret = append(ret, d.fields[i])
 			}
 		}
@@ -130,7 +130,7 @@ func (d *Document) GetValues(name string) []string {
 	ret := make([]string, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
-			if field.FieldType() == FVString {
+			if field.FType() == FVString {
 				ret = append(ret, field.Value().(string))
 			}
 		}
@@ -145,7 +145,7 @@ func (d *Document) GetValues(name string) []string {
 func (d *Document) Get(name string) (string, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			if field.FieldType() == FVString {
+			if field.FType() == FVString {
 				return field.Value().(string), nil
 			}
 		}

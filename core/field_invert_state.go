@@ -1,4 +1,4 @@
-package index
+package core
 
 import (
 	"github.com/geange/lucene-go/core/analysis/tokenattributes"

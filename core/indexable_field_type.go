@@ -1,8 +1,8 @@
-package index
+package core
 
-// IndexAbleFieldType Describes the properties of a field.
+// IndexableFieldType Describes the properties of a field.
 // 描述一个field的属性
-type IndexAbleFieldType interface {
+type IndexableFieldType interface {
 	// Stored True if the field's value should be stored
 	Stored() bool
 

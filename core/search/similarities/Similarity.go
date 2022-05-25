@@ -1,7 +1,7 @@
 package similarities
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/search"
 )
 
@@ -53,7 +53,7 @@ type Similarity interface {
 	// 0 is not a legal norm, so 1 is the norm that produces the highest scores.
 	// Params: state – current processing state for this field
 	// Returns: computed norm value
-	ComputeNorm(state *index.FieldInvertState) int64
+	ComputeNorm(state *core.FieldInvertState) int64
 
 	// Scorer Compute any collection-level weight (e.g. IDF, average document length, etc) needed for scoring a query.
 	// Params: 	boost – a multiplicative factor to apply to the produces scores

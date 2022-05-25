@@ -1,4 +1,4 @@
-package index
+package core
 
 type DocValuesType int
 

@@ -1,8 +1,7 @@
 package memory
 
 import (
-	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/search/similarities"
 	"go.uber.org/atomic"
 )
@@ -82,10 +81,10 @@ type MemoryIndex struct {
 	bytesUsed        atomic.Int64
 	frozen           bool
 	normSimilarity   similarities.Similarity
-	defaultFieldType *document.FieldType
+	defaultFieldType *core.FieldType
 }
 
 type Info struct {
-	fieldInfo *index.FieldInfo
+	fieldInfo *core.FieldInfo
 	norm      int64
 }
