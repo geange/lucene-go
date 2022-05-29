@@ -27,7 +27,7 @@ func NewFieldType() *FieldType {
 	return defaultFieldType()
 }
 
-func NewFieldTypeV1(ref IndexAbleFieldType) *FieldType {
+func NewFieldTypeV1(ref IndexableFieldType) *FieldType {
 	fieldType := defaultFieldType()
 	fieldType.stored = ref.Stored()
 	fieldType.tokenized = ref.Tokenized()

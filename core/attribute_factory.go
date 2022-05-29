@@ -35,6 +35,8 @@ func (d DefaultAttributeFactory) CreateAttributeInstance(class string) (Attribut
 		return NewPackedTokenAttributeImpl(), nil
 	case ClassTermToBytesRef:
 		return NewPackedTokenAttributeImpl(), nil
+	case ClassPayload:
+		return NewPayloadAttributeImpl(), nil
 	default:
 		return nil, errors.New("attribute not exist")
 	}

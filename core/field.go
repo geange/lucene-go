@@ -7,7 +7,7 @@ import (
 )
 
 type Field struct {
-	_type      IndexAbleFieldType
+	_type      IndexableFieldType
 	_fType     FieldValueType
 	name       string
 	fieldsData interface{}
@@ -69,7 +69,7 @@ func (f *Field) Name() string {
 	return f.name
 }
 
-func (f *Field) FieldType() IndexAbleFieldType {
+func (f *Field) FieldType() IndexableFieldType {
 	return f._type
 }
 

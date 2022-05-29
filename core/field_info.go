@@ -4,8 +4,8 @@ package core
 // Each segment has a separate Field Info file. Objects of this class are thread-safe for multiple readers,
 // but only one thread can be adding documents at a time, with no other reader or writer threads accessing this object.
 type FieldInfo struct {
-	name          string
-	number        int
+	Name          string
+	Number        int
 	docValuesType DocValuesType
 
 	// True if any document indexed term vectors
@@ -30,6 +30,38 @@ type FieldInfo struct {
 
 	// whether this field is used as the soft-deletes field
 	softDeletesField bool
+}
+
+func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayloads bool,
+	indexOptions IndexOptions, docValues DocValuesType, dvGen int64, attributes map[string]string,
+	pointDimensionCount, pointIndexDimensionCount, pointNumBytes int, softDeletesField bool) *FieldInfo {
+
+	info := &FieldInfo{
+		Name:                     name,
+		Number:                   number,
+		docValuesType:            docValues,
+		storeTermVector:          storePayloads,
+		omitNorms:                false,
+		indexOptions:             indexOptions,
+		storePayloads:            false,
+		attributes:               attributes,
+		dvGen:                    dvGen,
+		pointDimensionCount:      pointDimensionCount,
+		pointIndexDimensionCount: pointIndexDimensionCount,
+		pointNumBytes:            pointNumBytes,
+		softDeletesField:         softDeletesField,
+	}
+
+	if info.indexOptions != INDEX_OPTIONS_NONE {
+		info.storeTermVector = storeTermVector
+		info.storePayloads = storePayloads
+		info.omitNorms = omitNorms
+	} else {
+		info.storeTermVector = false
+		info.storePayloads = false
+		info.omitNorms = false
+	}
+	return info
 }
 
 // Performs internal consistency checks. Always returns nil (or throws IllegalStateException)

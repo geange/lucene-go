@@ -1,9 +1,9 @@
 package core
 
-// IndexAbleField Represents a single field for indexing. IndexWriter consumes
-// []IndexAbleField as a document.
+// IndexableField Represents a single field for indexing. IndexWriter consumes
+// []IndexableField as a document.
 // IndexAbleField代表一个可以被索引的field，每一个Document都是由多个IndexAbleField组成
-type IndexAbleField interface {
+type IndexableField interface {
 	// Name 获取Field name
 	Name() string
 

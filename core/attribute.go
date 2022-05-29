@@ -5,6 +5,7 @@ const (
 	ClassCharTerm          = "CharTerm"
 	ClassOffset            = "Offset"
 	ClassPositionIncrement = "PositionIncrement"
+	ClassPayload           = "Payload"
 	ClassPositionLength    = "PositionLength"
 	ClassTermFrequency     = "TermFrequency"
 	ClassTermToBytesRef    = "TermToBytesRef"
