@@ -1,4 +1,4 @@
-package core
+package util
 
 const (
 	INT_BLOCK_SHIFT = 13
@@ -13,28 +13,31 @@ type IntBlockPool struct {
 	buffers [][]int
 
 	// index into the buffers array pointing to the current buffer used as the head
+	// 一级索引
 	bufferUpto int
 
 	// Pointer to the current position in head buffer
+	// 二级索引
 	intUpto int
 
 	// Current head buffer
+	// 当前的数组
 	buffer []int
 
 	// Current head offset
 	intOffset int
 
-	allocator *Allocator
+	allocator *IntsAllocator
 }
 
 func NewIntBlockPool() *IntBlockPool {
 	return &IntBlockPool{
-		buffers:    make([][]int, 10),
+		buffers:    make([][]int, 0, 10),
 		bufferUpto: -1,
 		intUpto:    INT_BLOCK_SIZE,
 		buffer:     make([]int, 0),
 		intOffset:  -INT_BLOCK_SIZE,
-		allocator:  nil,
+		allocator:  NewIntsAllocator(INT_BLOCK_SIZE, &DirectIntsAllocator{}),
 	}
 }
 
@@ -89,7 +92,7 @@ func (i *IntBlockPool) Reset(zeroFillBuffers, reuseFirst bool) {
 // buffer immediately.
 func (i *IntBlockPool) NextBuffer() {
 	i.buffers = append(i.buffers, i.allocator.GetIntBlock())
-	i.buffer = i.buffers[i.bufferUpto]
+	i.buffer = i.buffers[i.bufferUpto+1]
 	i.bufferUpto++
 	i.intUpto = 0
 	i.intOffset += INT_BLOCK_SIZE
@@ -184,27 +187,33 @@ func (s *SliceWriter) GetCurrentOffset() int {
 	return s.offset
 }
 
-// Allocator Abstract class for allocating and freeing int blocks.
-type Allocator struct {
+// IntsAllocator Abstract class for allocating and freeing int blocks.
+type IntsAllocator struct {
 	blockSize int
-	ext       AllocatorExt
+	ext       IntArrayAllocatorExt
 }
 
-func NewAllocator(blockSize int, ext AllocatorExt) *Allocator {
-	return &Allocator{
+func NewIntsAllocator(blockSize int, ext IntArrayAllocatorExt) *IntsAllocator {
+	return &IntsAllocator{
 		blockSize: blockSize,
 		ext:       ext,
 	}
 }
 
-func (a *Allocator) RecycleIntBlocks(blocks [][]int, start, end int) {
+func (a *IntsAllocator) RecycleIntBlocks(blocks [][]int, start, end int) {
 	a.ext.RecycleIntBlocks(blocks, start, end)
 }
 
-func (a *Allocator) GetIntBlock() []int {
+func (a *IntsAllocator) GetIntBlock() []int {
 	return make([]int, a.blockSize)
 }
 
-type AllocatorExt interface {
+type IntArrayAllocatorExt interface {
 	RecycleIntBlocks(blocks [][]int, start, end int)
+}
+
+type DirectIntsAllocator struct {
+}
+
+func (d *DirectIntsAllocator) RecycleIntBlocks(blocks [][]int, start, end int) {
 }

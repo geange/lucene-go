@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"fmt"
+
 	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/util"
 	"go.uber.org/atomic"
@@ -81,8 +82,8 @@ type MemoryIndex struct {
 	storePayloads bool
 
 	byteBlockPool     *core.ByteBlockPool
-	intBlockPool      *core.IntBlockPool
-	postingsWriter    *core.SliceWriter
+	intBlockPool      *util.IntBlockPool
+	postingsWriter    *util.SliceWriter
 	payloadsBytesRefs *core.BytesRefArray //non null only when storePayloads
 
 	bytesUsed        *atomic.Int64
