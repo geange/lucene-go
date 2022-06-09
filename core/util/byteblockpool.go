@@ -238,7 +238,7 @@ func (r *ByteBlockPool) Append(bytes *BytesRef) {
 
 	for bytesLeft > 0 {
 		bufferLeft := BYTE_BLOCK_SIZE - r.byteUpto
-		if bytesLeft < bytesLeft {
+		if bytesLeft < bufferLeft {
 			// fits within current buffer
 			copy(r.buffer[r.byteUpto:], bytes.Bytes[offset:offset+bytesLeft])
 			r.byteUpto += bytesLeft
@@ -261,8 +261,8 @@ type BytesAllocator struct {
 	ext       BytesAllocatorExt
 }
 
-func NewByteArrayAllocator(blockSize int, ext IntArrayAllocatorExt) *IntsAllocator {
-	return &IntsAllocator{
+func NewBytesAllocator(blockSize int, ext BytesAllocatorExt) *BytesAllocator {
+	return &BytesAllocator{
 		blockSize: blockSize,
 		ext:       ext,
 	}

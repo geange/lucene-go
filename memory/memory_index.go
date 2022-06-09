@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/util"
@@ -81,10 +82,10 @@ type MemoryIndex struct {
 	storeOffsets  bool
 	storePayloads bool
 
-	byteBlockPool     *core.ByteBlockPool
+	byteBlockPool     *util.ByteBlockPool
 	intBlockPool      *util.IntBlockPool
 	postingsWriter    *util.SliceWriter
-	payloadsBytesRefs *core.BytesRefArray //non null only when storePayloads
+	payloadsBytesRefs *util.BytesRefArray //non null only when storePayloads
 
 	bytesUsed        *atomic.Int64
 	frozen           bool
@@ -218,7 +219,7 @@ func (m *MemoryIndex) getInfo(fieldName string, fieldType core.IndexableFieldTyp
 
 	info, ok := m.fields[fieldName]
 	if !ok {
-		info = NewInfo(m.createFieldInfo(fieldName, len(m.fields), fieldType))
+		info = NewInfo(m.createFieldInfo(fieldName, len(m.fields), fieldType), m.byteBlockPool)
 		m.fields[fieldName] = info
 	}
 
@@ -372,7 +373,7 @@ type Info struct {
 	// TODO
 	// Term strings and their positions for this field: Map <String termText, ArrayIntList positions>
 	// private BytesRefHash terms;
-	terms *core.BytesRefHash
+	terms *util.BytesRefHash
 	// private SliceByteStartArray sliceArray;
 	sliceArray *sliceByteStartArray
 
@@ -407,18 +408,38 @@ type Info struct {
 	pointValuesCount int
 }
 
-func NewInfo(fieldInfo *core.FieldInfo) *Info {
+func NewInfo(fieldInfo *core.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
 	panic("")
 }
 
 type BinaryDocValuesProducer struct {
+	dvBytesValuesSet *util.BytesRefHash
+	bytesIds         []int
+}
+
+func NewBinaryDocValuesProducer() *BinaryDocValuesProducer {
+	return &BinaryDocValuesProducer{}
+}
+
+func (r *BinaryDocValuesProducer) prepareForUsage() {
+	r.bytesIds = r.dvBytesValuesSet.Sort()
 }
 
 type NumericDocValuesProducer struct {
+	dvLongValues []int
+	count        int
+}
+
+func NewNumericDocValuesProducer() *NumericDocValuesProducer {
+	return &NumericDocValuesProducer{}
+}
+
+func (r *NumericDocValuesProducer) prepareForUsage() {
+	sort.Ints(r.dvLongValues[0:r.count])
 }
 
 type sliceByteStartArray struct {
-	*core.DirectBytesStartArray
+	*util.DirectBytesStartArray
 
 	start []int // the start offset in the IntBlockPool per term
 	end   []int // the end pointer in the IntBlockPool for the postings slice per term
@@ -427,7 +448,7 @@ type sliceByteStartArray struct {
 
 func newSliceByteStartArray(initSize int) *sliceByteStartArray {
 	return &sliceByteStartArray{
-		DirectBytesStartArray: core.NewDirectBytesStartArray(initSize),
+		DirectBytesStartArray: util.NewDirectBytesStartArray(initSize),
 		start:                 nil,
 		end:                   nil,
 		freq:                  nil,

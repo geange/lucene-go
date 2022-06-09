@@ -39,3 +39,12 @@ func NewBytesRefV1(bytes []byte) *BytesRef {
 func NewBytesRefV2() {
 
 }
+
+type BytesRefIterator interface {
+	// Next Increments the iteration to the next BytesRef in the iterator. Returns the resulting BytesRef or
+	// null if the end of the iterator is reached. The returned BytesRef may be re-used across calls to next.
+	// After this method returns null, do not call it again: the results are undefined.
+	// Returns: the next BytesRef in the iterator or null if the end of the iterator is reached.
+	// Throws: 	IOException – If there is a low-level I/O error.
+	Next() (*BytesRef, error)
+}
