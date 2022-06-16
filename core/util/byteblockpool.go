@@ -199,6 +199,23 @@ func (r *ByteBlockPool) SetBytesRefV2(term *BytesRef, textStart int) {
 	}
 }
 
+func (r *ByteBlockPool) get(textStart int) []byte {
+	bytes := r.buffers[textStart>>BYTE_BLOCK_SHIFT]
+
+	pos := textStart & BYTE_BLOCK_MASK
+
+	if (bytes[pos] & 0x80) == 0 {
+		// length is 1 byte
+		size := int(bytes[pos])
+		offset := pos + 1
+		return bytes[offset : offset+size]
+	} else {
+		size := int((bytes[pos] & 0x7f) + (bytes[pos+1]&0xff)<<7)
+		offset := pos + 2
+		return bytes[offset : offset+size]
+	}
+}
+
 // ReadBytes Reads bytes out of the pool starting at the given offset with the given length into the given byte array at offset off.
 // Note: this method allows to copy across block boundaries.
 func (r *ByteBlockPool) ReadBytes(offset int, bytes []byte, bytesOffset, bytesLength int) {
@@ -285,6 +302,10 @@ type BytesAllocatorExt interface {
 }
 
 type DirectBytesAllocator struct {
+}
+
+func NewDirectBytesAllocator() *DirectBytesAllocator {
+	return &DirectBytesAllocator{}
 }
 
 func (d *DirectBytesAllocator) RecycleByteBlocks(blocks [][]byte, start, end int) {}

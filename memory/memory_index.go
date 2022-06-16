@@ -317,7 +317,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream core.TokenStream, posit
 			if payload == nil || len(payload) == 0 {
 				pIndex = -1
 			} else {
-				pIndex = m.payloadsBytesRefs.Append(payload)
+				pIndex = m.payloadsBytesRefs.Append(util.NewBytesRefV1(payload))
 			}
 			m.postingsWriter.WriteInt(pIndex)
 		}
