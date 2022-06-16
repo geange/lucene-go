@@ -1,10 +1,5 @@
 package core
 
-import (
-	"github.com/geange/lucene-go/core/analysis/tokenattributes"
-	"github.com/geange/lucene-go/core/util"
-)
-
 // FieldInvertState This class tracks the number and position / offset parameters of terms being added to the index.
 // The information collected in this class is also used to calculate the normalization factor for a field.
 type FieldInvertState struct {
@@ -20,13 +15,13 @@ type FieldInvertState struct {
 	// we must track these across field instances (multi-valued case)
 	lastStartOffset int
 	lastPosition    int
-	attributeSource *util.AttributeSource
+	attributeSource *AttributeSource
 
-	offsetAttribute   tokenattributes.OffsetAttribute
-	posIncrAttribute  tokenattributes.PositionIncrementAttribute
-	payloadAttribute  tokenattributes.PayloadAttribute
-	termAttribute     tokenattributes.TermToBytesRefAttribute
-	termFreqAttribute tokenattributes.TermFrequencyAttribute
+	offsetAttribute   OffsetAttribute
+	posIncrAttribute  PositionIncrementAttribute
+	payloadAttribute  PayloadAttribute
+	termAttribute     TermToBytesRefAttribute
+	termFreqAttribute TermFrequencyAttribute
 }
 
 // GetPosition Get the last processed term position.
@@ -75,7 +70,7 @@ func (f *FieldInvertState) GetUniqueTermCount() int {
 }
 
 // GetAttributeSource Returns the AttributeSource from the TokenStream that provided the indexed tokens for this field.
-func (f *FieldInvertState) GetAttributeSource() *util.AttributeSource {
+func (f *FieldInvertState) GetAttributeSource() *AttributeSource {
 	return f.attributeSource
 }
 
