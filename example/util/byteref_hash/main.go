@@ -27,5 +27,4 @@ func main() {
 
 	fmt.Println(string(hash.Get(id)))
 	fmt.Println(string(hash.Get(id2)))
-
 }

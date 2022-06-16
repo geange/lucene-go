@@ -295,7 +295,10 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream core.TokenStream, posit
 		}
 
 		pos += posIncr
-		ord := info.terms.Add(termAtt.(core.TermToBytesRefAttribute).GetBytesRef())
+		ord, err := info.terms.Add(termAtt.(core.TermToBytesRefAttribute).GetBytesRef())
+		if err != nil {
+			return err
+		}
 		if ord < 0 {
 			ord = (-ord) - 1
 			m.postingsWriter.Reset(info.sliceArray.end[ord])
