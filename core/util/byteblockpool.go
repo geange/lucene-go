@@ -199,6 +199,25 @@ func (r *ByteBlockPool) SetBytesRefV2(term *BytesRef, textStart int) {
 	}
 }
 
+func (r *ByteBlockPool) GetBytes(textStart int) []byte {
+	bytes := r.buffers[textStart>>BYTE_BLOCK_SHIFT]
+
+	pos := textStart & BYTE_BLOCK_MASK
+
+	length, offset := 0, 0
+
+	if (bytes[pos] & 0x80) == 0 {
+		// length is 1 byte
+		length = int(bytes[pos])
+		offset = pos + 1
+	} else {
+		length = int((bytes[pos] & 0x7f) + (bytes[pos+1]&0xff)<<7)
+		offset = pos + 2
+	}
+
+	return bytes[offset : offset+length]
+}
+
 func (r *ByteBlockPool) get(textStart int) []byte {
 	bytes := r.buffers[textStart>>BYTE_BLOCK_SHIFT]
 

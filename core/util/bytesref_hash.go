@@ -82,9 +82,8 @@ func (r *BytesRefHash) Size() int {
 // Params: 	bytesID – the id
 //			ref – the BytesRef to populate
 // Returns: the given BytesRef instance populated with the bytes for the given bytesID
-func (r *BytesRefHash) Get(bytesID int, ref *BytesRef) *BytesRef {
-	r.pool.SetBytesRefV2(ref, r.bytesStart[bytesID])
-	return ref
+func (r *BytesRefHash) Get(bytesID int) []byte {
+	return r.pool.GetBytes(r.bytesStart[bytesID])
 }
 
 // Compact Returns the ids array in arbitrary order. Valid ids start at offset of 0 and end at a limit of size() - 1
