@@ -320,7 +320,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream core.TokenStream, posit
 			if payload == nil || len(payload) == 0 {
 				pIndex = -1
 			} else {
-				pIndex = m.payloadsBytesRefs.Append(util.NewBytesRefV1(payload))
+				pIndex = m.payloadsBytesRefs.Append(payload)
 			}
 			m.postingsWriter.WriteInt(pIndex)
 		}
@@ -358,7 +358,14 @@ func (m *MemoryIndex) storeDocValues(info *Info, docValuesType core.DocValuesTyp
 }
 
 func (m *MemoryIndex) createFieldInfo(fieldName string, ord int, fieldType core.IndexableFieldType) *core.FieldInfo {
-	panic("")
+	indexOptions := core.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+	if m.storeOffsets {
+		indexOptions = core.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+	}
+
+	return core.NewFieldInfo(fieldName, ord, fieldType.StoreTermVectors(), fieldType.OmitNorms(), m.storePayloads,
+		indexOptions, fieldType.DocValuesType(), -1, map[string]string{},
+		fieldType.PointDimensionCount(), fieldType.PointIndexDimensionCount(), fieldType.PointNumBytes(), false)
 }
 
 func (m *MemoryIndex) storePointValues(info *Info, pointValue []byte) error {
@@ -412,7 +419,21 @@ type Info struct {
 }
 
 func NewInfo(fieldInfo *core.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
-	panic("")
+	sliceArray := newSliceByteStartArray(util.DEFAULT_CAPACITY)
+
+	info := Info{
+		fieldInfo:       fieldInfo,
+		terms:           util.NewBytesRefHashV1(byteBlockPool, util.DEFAULT_CAPACITY, sliceArray),
+		sliceArray:      sliceArray,
+		sortedTerms:     make([]int, 0),
+		binaryProducer:  NewBinaryDocValuesProducer(),
+		numericProducer: NewNumericDocValuesProducer(),
+		pointValues:     make([][]byte, 0),
+		minPackedValue:  make([]byte, 0),
+		maxPackedValue:  make([]byte, 0),
+	}
+
+	return &info
 }
 
 type BinaryDocValuesProducer struct {

@@ -8,9 +8,9 @@ import (
 func main() {
 	pool := util.NewByteBlockPool(util.NewBytesAllocator(util.BYTE_BLOCK_SIZE, &util.DirectBytesAllocator{}))
 	pool.NewSlice(2)
-	pool.Append(util.NewBytesRef([]byte("abcdefg"), 0, 7))
+	pool.Append([]byte("abcdefg"))
 
-	pool.Append(util.NewBytesRef([]byte("abcdefg"), 0, 7))
+	pool.Append([]byte("abcdefg"))
 
 	fmt.Println(pool)
 }

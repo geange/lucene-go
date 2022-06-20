@@ -176,7 +176,7 @@ func (r *ByteBlockPool) SetBytesRefV1(builder *BytesRefBuilder, result *BytesRef
 	} else {
 		// uncommon case: the slice spans at least 2 blocks, so we must copy the bytes:
 		builder.Grow(length)
-		result.Bytes = builder.Get().Bytes
+		result.Bytes = builder.Get()
 		result.Offset = 0
 		r.ReadBytes(offset, result.Bytes, 0, length)
 	}
@@ -268,21 +268,21 @@ func (r *ByteBlockPool) SetRawBytesRef(ref *BytesRef, offset int) {
 }
 
 // Append Appends the bytes in the provided BytesRef at the current position.
-func (r *ByteBlockPool) Append(bytes *BytesRef) {
-	bytesLeft := bytes.Length
-	offset := bytes.Offset
+func (r *ByteBlockPool) Append(bytes []byte) {
+	bytesLeft := len(bytes)
+	offset := 0
 
 	for bytesLeft > 0 {
 		bufferLeft := BYTE_BLOCK_SIZE - r.byteUpto
 		if bytesLeft < bufferLeft {
 			// fits within current buffer
-			copy(r.buffer[r.byteUpto:], bytes.Bytes[offset:offset+bytesLeft])
+			copy(r.buffer[r.byteUpto:], bytes[offset:offset+bytesLeft])
 			r.byteUpto += bytesLeft
 			break
 		} else {
 			// fill up this buffer and move to next one
 			if bufferLeft > 0 {
-				copy(r.buffer[r.byteUpto:], bytes.Bytes[offset:offset+bufferLeft])
+				copy(r.buffer[r.byteUpto:], bytes[offset:offset+bufferLeft])
 			}
 			r.NextBuffer()
 			bytesLeft -= bufferLeft

@@ -30,8 +30,11 @@ type BytesRefHash struct {
 	lastCount       int
 	ids             []int
 	bytesStartArray BytesStartArray
-	bytesUsed       *atomic.Int64
 }
+
+const (
+	DEFAULT_CAPACITY = 16
+)
 
 func NewBytesRefHash(pool *ByteBlockPool) *BytesRefHash {
 	return NewBytesRefHashV1(pool, 16, NewDirectBytesStartArray(16))
@@ -49,8 +52,6 @@ func NewBytesRefHashV1(pool *ByteBlockPool, capacity int, bytesStartArray BytesS
 	}
 	hash.bytesStartArray = bytesStartArray
 	hash.bytesStart = bytesStartArray.Init()
-	hash.bytesUsed = bytesStartArray.BytesUsed()
-	hash.bytesUsed.Add(int64(hash.hashSize * 8))
 	return hash
 }
 
@@ -67,7 +68,6 @@ func newBytesRefHash() *BytesRefHash {
 		lastCount:        -1,
 		ids:              make([]int, 0),
 		bytesStartArray:  nil,
-		bytesUsed:        atomic.NewInt64(0),
 	}
 }
 

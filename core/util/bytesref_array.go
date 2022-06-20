@@ -34,14 +34,14 @@ func newBytesRefArray() *BytesRefArray {
 	}
 }
 
-func (r *BytesRefArray) Append(bytes *BytesRef) int {
+func (r *BytesRefArray) Append(bytes []byte) int {
 	if r.lastElement >= len(r.offsets) {
 		r.offsets = append(r.offsets, 0)
 	}
 	r.pool.Append(bytes)
 	r.offsets[r.lastElement] = r.currentOffset
 	r.lastElement++
-	r.currentOffset += bytes.Length
+	r.currentOffset += len(bytes)
 	return r.lastElement - 1
 }
 
@@ -58,7 +58,7 @@ func (r *BytesRefArray) Size() int {
 	return r.lastElement
 }
 
-func (r *BytesRefArray) Get(spare *BytesRefBuilder, index int) *BytesRef {
+func (r *BytesRefArray) Get(spare *BytesRefBuilder, index int) []byte {
 	offset := r.offsets[index]
 	length := func() int {
 		if index == r.lastElement-1 {
