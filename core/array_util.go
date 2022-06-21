@@ -7,10 +7,9 @@ var (
 type ArrayUtilImpl struct {
 }
 
-//func (a *ArrayUtilImpl) Grow(minTargetSize, bytesPerElement int) int {
-//	if minTargetSize <= 0 {
-//		return 0
-//	}
-//
-//	if
-//}
+func Grow[T any](array []T, minSize int) []T {
+	if len(array) < minSize {
+		return append(array, make([]T, minSize-len(array))...)
+	}
+	return array
+}

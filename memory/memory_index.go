@@ -436,6 +436,28 @@ func NewInfo(fieldInfo *core.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info
 	return &info
 }
 
+func (r *Info) freeze() {
+
+}
+
+// Sorts hashed terms into ascending order, reusing memory along the way. Note that sorting is lazily
+// delayed until required (often it's not required at all). If a sorted view is required then
+// hashing + sort + binary search is still faster and smaller than TreeMap usage (which would be an
+// alternative and somewhat more elegant approach, apart from more sophisticated Tries / prefix trees).
+func (r *Info) sortTerms() {
+	if len(r.sortedTerms) == 0 {
+		r.sortedTerms = r.terms.Sort()
+	}
+}
+
+func (r *Info) prepareDocValuesAndPointValues() {
+
+}
+
+func (r *Info) getNormDocValues() core.NumericDocValues {
+	return nil
+}
+
 type BinaryDocValuesProducer struct {
 	dvBytesValuesSet *util.BytesRefHash
 	bytesIds         []int
