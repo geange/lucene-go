@@ -38,6 +38,21 @@ type Automaton struct {
 	deterministic bool
 }
 
+func NewAutomaton() *Automaton {
+	return NewAutomatonV1(2, 2)
+}
+
+func NewAutomatonV1(numStates, numTransitions int) *Automaton {
+	return &Automaton{
+		curState:      -1,
+		deterministic: true,
+
+		states:      make([]int, numStates*2),
+		isAccept:    bitset.New(uint(numStates)),
+		transitions: make([]int, numTransitions*3),
+	}
+}
+
 // CreateState Create a new state.
 func (r *Automaton) CreateState() int {
 	r.growStates()
