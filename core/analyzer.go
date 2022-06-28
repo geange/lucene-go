@@ -1,6 +1,8 @@
 package core
 
 import (
+	"bytes"
+	"github.com/geange/lucene-go/core/util"
 	"io"
 )
 
@@ -23,21 +25,6 @@ type Analyzer interface {
 	TokenStreamByReader(fieldName string, reader io.Reader) (TokenStream, error)
 	TokenStreamByString(fieldName string, text string) (TokenStream, error)
 
-	AnalyzerExt
-}
-
-//func NewTokenStream[T io.Reader | string](fieldName string, data T) (TokenStream, error) {
-//	switch data.(type) {
-//	case io.Reader:
-//		panic("")
-//	case string:
-//		panic("")
-//	default:
-//		return nil, errors.New("")
-//	}
-//}
-
-type AnalyzerExt interface {
 	// GetPositionIncrementGap Invoked before indexing a IndexableField instance if terms have already been
 	// added to that field. This allows custom analyzers to place an automatic position increment gap between
 	// IndexbleField instances using the same field name. The default value position increment gap is 0.
@@ -60,11 +47,102 @@ type AnalyzerExt interface {
 	GetReuseStrategy() ReuseStrategy
 
 	// SetVersion Set the version of Lucene this analyzer should mimic the behavior for analysis.
-	SetVersion(v *Version)
+	SetVersion(v *util.Version)
 
 	// GetVersion Return the version of Lucene this analyzer will mimic the behavior of for analysis.
-	GetVersion() *Version
+	GetVersion() *util.Version
+}
+
+type AnalyzerPLG interface {
+	CreateComponents(fieldName string) *TokenStreamComponents
+}
+
+type AnalyzerImp struct {
+	AnalyzerPLG
+
+	reuseStrategy ReuseStrategy
+	version       *util.Version
+}
+
+func (r *AnalyzerImp) Close() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *AnalyzerImp) TokenStreamByString(fieldName string, text string) (TokenStream, error) {
+	components := r.reuseStrategy.GetReusableComponents(r, fieldName)
+
+	if components == nil {
+		components = r.CreateComponents(fieldName)
+		r.reuseStrategy.SetReusableComponents(r, fieldName, components)
+	}
+
+	if components.reusableStringReader == nil {
+		components.reusableStringReader = bytes.NewBufferString(text)
+	}
+
+	strReader := components.reusableStringReader
+
+	components.setReader(strReader)
+	return components.GetTokenStream(), nil
+}
+
+func (r *AnalyzerImp) initReader(fieldName string, reader io.Reader) io.Reader {
+	return reader
+}
+
+func (r *AnalyzerImp) TokenStreamByReader(fieldName string, reader io.Reader) (TokenStream, error) {
+	components := r.reuseStrategy.GetReusableComponents(r, fieldName)
+	if components == nil {
+		components = r.CreateComponents(fieldName)
+		r.reuseStrategy.SetReusableComponents(r, fieldName, components)
+	}
+	components.setReader(reader)
+	return components.GetTokenStream(), nil
+}
+
+func (r *AnalyzerImp) GetPositionIncrementGap(fieldName string) int {
+	return 0
+}
+
+func (r *AnalyzerImp) GetOffsetGap(fieldName string) int {
+	return 1
+}
+
+func (r *AnalyzerImp) GetReuseStrategy() ReuseStrategy {
+	return r.reuseStrategy
+}
+
+func (r *AnalyzerImp) SetVersion(v *util.Version) {
+	r.version = v
+}
+
+func (r *AnalyzerImp) GetVersion() *util.Version {
+	return r.version
 }
 
 type ReuseStrategy interface {
+	// GetReusableComponents Gets the reusable TokenStreamComponents for the field with the given name.
+	// Params: 	analyzer – Analyzer from which to get the reused components. Use getStoredValue(Analyzer)
+	//			and setStoredValue(Analyzer, Object) to access the data on the Analyzer.
+	//			fieldName – Name of the field whose reusable TokenStreamComponents are to be retrieved
+	// Returns: Reusable TokenStreamComponents for the field, or null if there was no previous components
+	//			for the field
+	GetReusableComponents(analyzer Analyzer, fieldName string) *TokenStreamComponents
+
+	SetReusableComponents(analyzer Analyzer, fieldName string, components *TokenStreamComponents)
+}
+
+type TokenStreamComponents struct {
+	source               func(reader io.Reader)
+	sink                 TokenStream
+	reusableStringReader *bytes.Buffer
+}
+
+func (r *TokenStreamComponents) setReader(reader io.Reader) {
+	r.source(reader)
+}
+
+func (r *TokenStreamComponents) GetTokenStream() TokenStream {
+	return r.sink
 }

@@ -1,5 +1,13 @@
 package core
 
+type Relation int
+
+const (
+	CELL_INSIDE_QUERY  = Relation(iota) // Return this if the cell is fully contained by the query
+	CELL_OUTSIDE_QUERY                  // Return this if the cell and query do not overlap
+	CELL_CROSSES_QUERY                  // Return this if the cell partially overlaps the query
+)
+
 // PointValues Access to indexed numeric values.
 // Points represent numeric values and are indexed differently than ordinary text. Instead of an inverted index,
 // points are indexed with datastructures such as KD-trees . These structures are optimized for operations such
@@ -39,5 +47,17 @@ package core
 // Advanced usage
 // Custom structures can be created on top of single- or multi- dimensional basic types, on top of BinaryPoint
 // for more flexibility, or via custom Field subclasses.
-type PointValues struct {
+type PointValues interface {
+}
+
+// IntersectVisitor We recurse the BKD tree, using a provided instance of this to guide the recursion.
+type IntersectVisitor interface {
+	// VisitByDocID Called for all documents in a leaf cell that's fully contained by the query. The consumer
+	// should blindly accept the docID.
+	VisitByDocID(docID int) error
+
+	// Visit Called for all documents in a leaf cell that crosses the query. The consumer should scrutinize the
+	// packedValue to decide whether to accept it. In the 1D case, values are visited in increasing order,
+	// and in the case of ties, in increasing docID order.
+	Visit(docID int, packedValue []byte) error
 }
