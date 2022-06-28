@@ -427,7 +427,7 @@ func (r *minMaxDestSorter) swapOne(i, j int) {
 }
 
 // InitTransition Initialize the provided Transition to iterate through all transitions leaving the specified
-// state. You must call getNextTransition to get each transition. Returns the number of transitions leaving
+// state. You must call GetNextTransition to get each transition. Returns the number of transitions leaving
 // this state.
 func (r *Automaton) InitTransition(state int, t *Transition) int {
 	t.Source = state

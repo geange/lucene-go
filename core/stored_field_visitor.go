@@ -17,21 +17,21 @@ type StoredFieldVisitor interface {
 	StringField(fieldInfo *FieldInfo, value []byte) error
 
 	// IntField Process a int numeric field.
-	IntField(fieldInfo *FieldInfo, value []byte) error
+	IntField(fieldInfo *FieldInfo, value int) error
 
 	// LongField Process a long numeric field.
-	LongField(fieldInfo *FieldInfo, value []byte) error
+	//LongField(fieldInfo *FieldInfo, value int64) error
 
 	// FloatField Process a float numeric field.
-	FloatField(fieldInfo *FieldInfo, value []byte) error
+	FloatField(fieldInfo *FieldInfo, value float64) error
 
 	// DoubleField Process a double numeric field.
-	DoubleField(fieldInfo *FieldInfo, value []byte) error
+	//DoubleField(fieldInfo *FieldInfo, value []byte) error
 
 	// NeedsField Hook before processing a field. Before a field is processed, this method is invoked so that
 	// subclasses can return a StoredFieldVisitor.Status representing whether they need that particular field
 	// or not, or to stop processing entirely.
-	NeedsField(fieldInfo *FieldInfo) (StoredFieldVisitorStatus, error)
+	NeedsField(fieldInfo *FieldInfo) StoredFieldVisitorStatus
 }
 
 type StoredFieldVisitorStatus int

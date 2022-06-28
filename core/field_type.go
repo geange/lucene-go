@@ -143,6 +143,11 @@ func (f *FieldType) OmitNorms() bool {
 	return f.omitNorms
 }
 
+func (f *FieldType) SetOmitNorms(value bool) error {
+	f.omitNorms = value
+	return nil
+}
+
 func (f *FieldType) IndexOptions() IndexOptions {
 	return f.indexOptions
 }

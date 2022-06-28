@@ -35,4 +35,5 @@ const (
 	FVString
 	FVReader
 	FVNumeric
+	FVTokenStream
 )

@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-
 	"io"
 )
 
@@ -10,11 +9,91 @@ type Field struct {
 	_type      IndexableFieldType
 	_fType     FieldValueType
 	name       string
-	fieldsData interface{}
+	fieldsData any
 
 	// Pre-analyzed tokenStream for indexed fields; this is separate from fieldsData because
 	// you are allowed to have both; eg maybe field has a String value but you customize how it's tokenized
 	tokenStream TokenStream
+}
+
+// NewFieldV1 Expert: creates a field with no initial value. Intended only for custom Field subclasses.
+// Params: 	name – field name
+//			type – field type
+// Throws: 	IllegalArgumentException – if either the name or type is null.
+func NewFieldV1(name string, _type IndexableFieldType) *Field {
+	return &Field{
+		_type: _type,
+		name:  name,
+	}
+}
+
+func NewFieldWithAny(name string, _type IndexableFieldType, data any) *Field {
+	field := &Field{
+		_type:      _type,
+		name:       name,
+		fieldsData: data,
+	}
+	switch data.(type) {
+	case int, float64:
+		field._fType = FVNumeric
+	case string:
+		field._fType = FVString
+	case []byte:
+		field._fType = FVBinary
+	}
+	return field
+}
+
+// NewFieldV2 Create field with Reader value.
+// Params: 	name – field name
+//			reader – reader value
+//			type – field type
+// Throws: 	IllegalArgumentException – if either the name or type is null, or if the field's type is stored(), or if tokenized() is false.
+//			NullPointerException – if the reader is null
+func NewFieldV2(name string, reader io.Reader, _type IndexableFieldType) *Field {
+	return &Field{
+		_type:       _type,
+		_fType:      FVReader,
+		name:        name,
+		fieldsData:  reader,
+		tokenStream: nil,
+	}
+}
+
+func NewFieldV3(name string, tokenStream TokenStream, _type IndexableFieldType) *Field {
+	return &Field{
+		_type:       _type,
+		_fType:      FVTokenStream,
+		name:        name,
+		fieldsData:  nil,
+		tokenStream: tokenStream,
+	}
+}
+
+// NewFieldV4 Create field with binary value.
+// NOTE: the provided byte[] is not copied so be sure not to change it until you're done with this field.
+// Params: 	name – field name
+//			value – byte array pointing to binary content (not copied)
+//			type – field type
+// Throws: 	IllegalArgumentException – if the field name, value or type is null, or the field's type is indexed().
+func NewFieldV4(name string, value []byte, _type IndexableFieldType) *Field {
+	return &Field{
+		_type:       _type,
+		_fType:      FVBinary,
+		name:        name,
+		fieldsData:  value,
+		tokenStream: nil,
+	}
+}
+
+func NewFieldV5(name string, value string, _type IndexableFieldType) *Field {
+	return &Field{
+		_type:       _type,
+		_fType:      FVString,
+		name:        name,
+		fieldsData:  value,
+		tokenStream: nil,
+	}
 }
 
 func (f *Field) TokenStream(analyzer Analyzer, reuse TokenStream) (TokenStream, error) {
