@@ -14,7 +14,7 @@ const (
 // as range, distance, nearest-neighbor, and point-in-polygon queries.
 // Basic Point Types
 // Basic point types in Java and Lucene
-// Java type 	Lucene class
+// Java types 	Lucene class
 // int 			IntPoint
 // long 		LongPoint
 // float 		FloatPoint

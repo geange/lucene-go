@@ -1,4 +1,4 @@
-package core
+package types
 
 // IndexableFieldType Describes the properties of a field.
 // 描述一个field的属性
@@ -50,8 +50,8 @@ type IndexableFieldType interface {
 	// PointNumBytes The number of bytes in each dimension's values.
 	PointNumBytes() int
 
-	// GetAttributes Attributes for the field type. Attributes are not thread-safe, user must not add
-	// attributes while other threads are indexing documents with this field type.
+	// GetAttributes Attributes for the field types. Attributes are not thread-safe, user must not add
+	// attributes while other threads are indexing documents with this field types.
 	//Returns: Map
 	GetAttributes() map[string]string
 }

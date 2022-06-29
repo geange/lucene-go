@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 )
@@ -22,8 +23,8 @@ import (
 type Analyzer interface {
 	io.Closer
 
-	TokenStreamByReader(fieldName string, reader io.Reader) (TokenStream, error)
-	TokenStreamByString(fieldName string, text string) (TokenStream, error)
+	TokenStreamByReader(fieldName string, reader io.Reader) (analysis.TokenStream, error)
+	TokenStreamByString(fieldName string, text string) (analysis.TokenStream, error)
 
 	// GetPositionIncrementGap Invoked before indexing a IndexableField instance if terms have already been
 	// added to that field. This allows custom analyzers to place an automatic position increment gap between
@@ -69,7 +70,7 @@ func (r *AnalyzerImp) Close() error {
 	panic("implement me")
 }
 
-func (r *AnalyzerImp) TokenStreamByString(fieldName string, text string) (TokenStream, error) {
+func (r *AnalyzerImp) TokenStreamByString(fieldName string, text string) (analysis.TokenStream, error) {
 	components := r.reuseStrategy.GetReusableComponents(r, fieldName)
 
 	if components == nil {
@@ -91,7 +92,7 @@ func (r *AnalyzerImp) initReader(fieldName string, reader io.Reader) io.Reader {
 	return reader
 }
 
-func (r *AnalyzerImp) TokenStreamByReader(fieldName string, reader io.Reader) (TokenStream, error) {
+func (r *AnalyzerImp) TokenStreamByReader(fieldName string, reader io.Reader) (analysis.TokenStream, error) {
 	components := r.reuseStrategy.GetReusableComponents(r, fieldName)
 	if components == nil {
 		components = r.CreateComponents(fieldName)
@@ -135,7 +136,7 @@ type ReuseStrategy interface {
 
 type TokenStreamComponents struct {
 	source               func(reader io.Reader)
-	sink                 TokenStream
+	sink                 analysis.TokenStream
 	reusableStringReader *bytes.Buffer
 }
 
@@ -143,6 +144,6 @@ func (r *TokenStreamComponents) setReader(reader io.Reader) {
 	r.source(reader)
 }
 
-func (r *TokenStreamComponents) GetTokenStream() TokenStream {
+func (r *TokenStreamComponents) GetTokenStream() analysis.TokenStream {
 	return r.sink
 }

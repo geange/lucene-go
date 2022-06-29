@@ -1,5 +1,7 @@
 package core
 
+import "github.com/geange/lucene-go/core/index"
+
 // StoredFieldVisitor Expert: provides a low-level means of accessing the stored field values in an index.
 // See IndexReader.document(int, StoredFieldVisitor).
 // NOTE: a StoredFieldVisitor implementation should not try to load or visit other stored documents in the
@@ -11,19 +13,19 @@ type StoredFieldVisitor interface {
 
 	// BinaryField Process a binary field.
 	// Params: value – newly allocated byte array with the binary contents.
-	BinaryField(fieldInfo *FieldInfo, value []byte) error
+	BinaryField(fieldInfo *index.FieldInfo, value []byte) error
 
 	// StringField Process a string field; the provided byte[] value is a UTF-8 encoded string value.
-	StringField(fieldInfo *FieldInfo, value []byte) error
+	StringField(fieldInfo *index.FieldInfo, value []byte) error
 
 	// IntField Process a int numeric field.
-	IntField(fieldInfo *FieldInfo, value int) error
+	IntField(fieldInfo *index.FieldInfo, value int) error
 
 	// LongField Process a long numeric field.
 	//LongField(fieldInfo *FieldInfo, value int64) error
 
 	// FloatField Process a float numeric field.
-	FloatField(fieldInfo *FieldInfo, value float64) error
+	FloatField(fieldInfo *index.FieldInfo, value float64) error
 
 	// DoubleField Process a double numeric field.
 	//DoubleField(fieldInfo *FieldInfo, value []byte) error
@@ -31,7 +33,7 @@ type StoredFieldVisitor interface {
 	// NeedsField Hook before processing a field. Before a field is processed, this method is invoked so that
 	// subclasses can return a StoredFieldVisitor.Status representing whether they need that particular field
 	// or not, or to stop processing entirely.
-	NeedsField(fieldInfo *FieldInfo) StoredFieldVisitorStatus
+	NeedsField(fieldInfo *index.FieldInfo) StoredFieldVisitorStatus
 }
 
 type StoredFieldVisitorStatus int

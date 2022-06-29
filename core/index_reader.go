@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/geange/lucene-go/core/document"
 	"go.uber.org/atomic"
 	"io"
 	"sync"
@@ -40,16 +41,16 @@ type IndexReader interface {
 	// TODO: we need a separate StoredField, so that the
 	// Document returned here contains that class not
 	// IndexableField
-	Document(docID int) (*Document, error)
+	Document(docID int) (*document.Document, error)
 
 	// DocumentV1 Expert: visits the fields of a stored document, for custom processing/loading of each field.
 	// If you simply want to load all fields, use document(int). If you want to load a subset,
 	// use DocumentStoredFieldVisitor.
-	DocumentV1(docID int, visitor StoredFieldVisitor) (*Document, error)
+	DocumentV1(docID int, visitor StoredFieldVisitor) (*document.Document, error)
 
 	// DocumentV2 Like document(int) but only loads the specified fields. Note that this is simply sugar for
 	// DocumentStoredFieldVisitor.DocumentStoredFieldVisitor(Set).
-	DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*Document, error)
+	DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error)
 
 	// HasDeletions Returns true if any documents have been deleted. Implementers should consider overriding
 	// this method if maxDoc() or numDocs() are not constant-time operations.
@@ -113,7 +114,7 @@ type IndexReaderPLG interface {
 
 	MaxDoc() int
 
-	DocumentV1(docID int, visitor StoredFieldVisitor) (*Document, error)
+	DocumentV1(docID int, visitor StoredFieldVisitor) (*document.Document, error)
 
 	GetContext() IndexReaderContext
 
@@ -155,8 +156,8 @@ func (r *IndexReaderImp) Close() error {
 	return r.DoClose()
 }
 
-func (r *IndexReaderImp) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*Document, error) {
-	visitor := NewDocumentStoredFieldVisitorV1(fieldsToLoad)
+func (r *IndexReaderImp) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
+	visitor := document.NewDocumentStoredFieldVisitorV1(fieldsToLoad)
 	_, err := r.DocumentV1(docID, visitor)
 	if err != nil {
 		return nil, err
@@ -203,8 +204,8 @@ func (r *IndexReaderImp) NumDeletedDocs() int {
 	return r.MaxDoc() - r.NumDocs()
 }
 
-func (r *IndexReaderImp) Document(docID int) (*Document, error) {
-	visitor := NewDocumentStoredFieldVisitor()
+func (r *IndexReaderImp) Document(docID int) (*document.Document, error) {
+	visitor := document.NewDocumentStoredFieldVisitor()
 	_, err := r.DocumentV1(docID, visitor)
 	if err != nil {
 		return nil, err

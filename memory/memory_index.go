@@ -3,6 +3,10 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"sort"
 
 	"github.com/geange/lucene-go/core"
@@ -90,7 +94,7 @@ type MemoryIndex struct {
 	bytesUsed        *atomic.Int64
 	frozen           bool
 	normSimilarity   core.Similarity
-	defaultFieldType *core.FieldType
+	defaultFieldType *document.FieldType
 }
 
 func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*MemoryIndex, error) {
@@ -106,12 +110,12 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 		bytesUsed:        atomic.NewInt64(0),
 		frozen:           false,
 		normSimilarity:   similarity,
-		defaultFieldType: core.NewFieldType(),
+		defaultFieldType: document.NewFieldType(),
 	}
 
-	options := core.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+	options := types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 	if !storeOffsets {
-		options = core.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+		options = types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 	}
 	if err = index.defaultFieldType.SetIndexOptions(options); err != nil {
 		return nil, err
@@ -120,7 +124,7 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 	return &index, nil
 }
 
-func fromDocument(document *core.Document, analyzer core.Analyzer,
+func fromDocument(document *document.Document, analyzer core.Analyzer,
 	storeOffsets, storePayloads bool, maxReusedBytes int64) (*MemoryIndex, error) {
 
 	index, err := NewMemoryIndex(storeOffsets, storePayloads, maxReusedBytes)
@@ -148,14 +152,14 @@ func fromDocument(document *core.Document, analyzer core.Analyzer,
 // values based on IndexableFieldType.docValuesType() if set.
 // Params: field – the field to add
 // analyzer – the analyzer to use for term analysis
-func (m *MemoryIndex) AddField(field core.IndexableField, analyzer core.Analyzer) error {
+func (m *MemoryIndex) AddField(field types.IndexableField, analyzer core.Analyzer) error {
 	info, err := m.getInfo(field.Name(), field.FieldType())
 	if err != nil {
 		return err
 	}
 
 	offsetGap, positionIncrementGap := 0, 0
-	var tokenStream core.TokenStream
+	var tokenStream analysis.TokenStream
 	if analyzer != nil {
 		offsetGap = analyzer.GetOffsetGap(field.Name())
 		tokenStream, err = field.TokenStream(analyzer, nil)
@@ -182,20 +186,20 @@ func (m *MemoryIndex) AddField(field core.IndexableField, analyzer core.Analyzer
 	docValuesType := field.FieldType().DocValuesType()
 
 	switch docValuesType {
-	case core.DOC_VALUES_TYPE_NONE:
+	case types.DOC_VALUES_TYPE_NONE:
 
-	case core.DOC_VALUES_TYPE_BINARY, core.DOC_VALUES_TYPE_SORTED, core.DOC_VALUES_TYPE_SORTED_SET:
+	case types.DOC_VALUES_TYPE_BINARY, types.DOC_VALUES_TYPE_SORTED, types.DOC_VALUES_TYPE_SORTED_SET:
 		err := m.storeDocValues(info, docValuesType, field.Value())
 		if err != nil {
 			return err
 		}
-	case core.DOC_VALUES_TYPE_NUMERIC, core.DOC_VALUES_TYPE_SORTED_NUMERIC:
+	case types.DOC_VALUES_TYPE_NUMERIC, types.DOC_VALUES_TYPE_SORTED_NUMERIC:
 		err := m.storeDocValues(info, docValuesType, field.Value())
 		if err != nil {
 			return err
 		}
 	default:
-		return errors.New("unknown doc values type")
+		return errors.New("unknown doc values types")
 	}
 
 	if field.FieldType().PointIndexDimensionCount() > 0 {
@@ -208,7 +212,7 @@ func (m *MemoryIndex) AddField(field core.IndexableField, analyzer core.Analyzer
 	return nil
 }
 
-func (m *MemoryIndex) getInfo(fieldName string, fieldType core.IndexableFieldType) (*Info, error) {
+func (m *MemoryIndex) getInfo(fieldName string, fieldType types.IndexableFieldType) (*Info, error) {
 	if m.frozen {
 		return nil, errors.New("cannot call addField() when MemoryIndex is frozen")
 	}
@@ -236,7 +240,7 @@ func (m *MemoryIndex) getInfo(fieldName string, fieldType core.IndexableFieldTyp
 	}
 
 	if fieldType.DocValuesType() != info.fieldInfo.GetDocValuesType() {
-		if fieldType.DocValuesType() != core.DOC_VALUES_TYPE_NONE {
+		if fieldType.DocValuesType() != types.DOC_VALUES_TYPE_NONE {
 			err := info.fieldInfo.SetDocValuesType(fieldType.DocValuesType())
 			if err != nil {
 				return nil, err
@@ -247,7 +251,7 @@ func (m *MemoryIndex) getInfo(fieldName string, fieldType core.IndexableFieldTyp
 	return info, nil
 }
 
-func (m *MemoryIndex) storeTerms(info *Info, tokenStream core.TokenStream, positionIncrementGap, offsetGap int) error {
+func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, positionIncrementGap, offsetGap int) error {
 	pos := -1
 	offset := 0
 	if info.numTokens > 0 {
@@ -340,11 +344,11 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream core.TokenStream, posit
 	return nil
 }
 
-func (m *MemoryIndex) storeDocValues(info *Info, docValuesType core.DocValuesType, docValuesValue interface{}) error {
+func (m *MemoryIndex) storeDocValues(info *Info, docValuesType types.DocValuesType, docValuesValue interface{}) error {
 	fieldName := info.fieldInfo.Name
 	existingDocValuesType := info.fieldInfo.GetDocValuesType()
-	if existingDocValuesType == core.DOC_VALUES_TYPE_NONE {
-		info.fieldInfo = core.NewFieldInfo(info.fieldInfo.Name, info.fieldInfo.Number, info.fieldInfo.HasVectors(),
+	if existingDocValuesType == types.DOC_VALUES_TYPE_NONE {
+		info.fieldInfo = index.NewFieldInfo(info.fieldInfo.Name, info.fieldInfo.Number, info.fieldInfo.HasVectors(),
 			info.fieldInfo.HasPayloads(), info.fieldInfo.HasPayloads(), info.fieldInfo.GetIndexOptions(), docValuesType,
 			-1, info.fieldInfo.Attributes(), info.fieldInfo.GetPointDimensionCount(), info.fieldInfo.GetPointIndexDimensionCount(),
 			info.fieldInfo.GetPointNumBytes(), info.fieldInfo.IsSoftDeletesField())
@@ -357,13 +361,13 @@ func (m *MemoryIndex) storeDocValues(info *Info, docValuesType core.DocValuesTyp
 	return nil
 }
 
-func (m *MemoryIndex) createFieldInfo(fieldName string, ord int, fieldType core.IndexableFieldType) *core.FieldInfo {
-	indexOptions := core.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+func (m *MemoryIndex) createFieldInfo(fieldName string, ord int, fieldType types.IndexableFieldType) *index.FieldInfo {
+	indexOptions := types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 	if m.storeOffsets {
-		indexOptions = core.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+		indexOptions = types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 	}
 
-	return core.NewFieldInfo(fieldName, ord, fieldType.StoreTermVectors(), fieldType.OmitNorms(), m.storePayloads,
+	return index.NewFieldInfo(fieldName, ord, fieldType.StoreTermVectors(), fieldType.OmitNorms(), m.storePayloads,
 		indexOptions, fieldType.DocValuesType(), -1, map[string]string{},
 		fieldType.PointDimensionCount(), fieldType.PointIndexDimensionCount(), fieldType.PointNumBytes(), false)
 }
@@ -377,7 +381,7 @@ func (m *MemoryIndex) storePointValues(info *Info, pointValue []byte) error {
 }
 
 type Info struct {
-	fieldInfo *core.FieldInfo
+	fieldInfo *index.FieldInfo
 	norm      int64
 
 	// TODO
@@ -418,7 +422,7 @@ type Info struct {
 	pointValuesCount int
 }
 
-func NewInfo(fieldInfo *core.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
+func NewInfo(fieldInfo *index.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
 	sliceArray := newSliceByteStartArray(util.DEFAULT_CAPACITY)
 
 	info := Info{

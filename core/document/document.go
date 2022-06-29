@@ -1,4 +1,9 @@
-package core
+package document
+
+import (
+	"github.com/geange/lucene-go/core"
+	"github.com/geange/lucene-go/core/types"
+)
 
 // Document Documents are the unit of indexing and search. A Document is a set of fields. Each field has a name
 // and a textual value. A field may be stored with the document, in which case it is returned with search
@@ -8,12 +13,12 @@ package core
 // Note that fields which are not stored are not available in documents retrieved from the index,
 // e.g. with ScoreDoc.doc or IndexReader.document(int).
 type Document struct {
-	fields []IndexableField
+	fields []types.IndexableField
 }
 
-func (d *Document) Iterator() func() IndexableField {
+func (d *Document) Iterator() func() types.IndexableField {
 	idx := 0
-	return func() IndexableField {
+	return func() types.IndexableField {
 		if idx >= len(d.fields) {
 			return nil
 		}
@@ -28,7 +33,7 @@ func (d *Document) Iterator() func() IndexableField {
 // Note that add like the removeField(s) methods only makes sense prior to adding a document to an index.
 // These methods cannot be used to change the content of an existing index! In order to achieve this,
 // a document has to be deleted from an index and a new changed version of that document has to be added.
-func (d *Document) Add(field IndexableField) {
+func (d *Document) Add(field types.IndexableField) {
 	d.fields = append(d.fields, field)
 }
 
@@ -53,7 +58,7 @@ func (d *Document) RemoveField(name string) {
 // index. These methods cannot be used to change the content of an existing index! In order to achieve this,
 // a document has to be deleted from an index and a new changed version of that document has to be added.
 func (d *Document) RemoveFields(name string) {
-	tmp := make([]IndexableField, 0, len(d.fields))
+	tmp := make([]types.IndexableField, 0, len(d.fields))
 	for i, field := range d.fields {
 		if field.Name() != name {
 			tmp = append(tmp, d.fields[i])
@@ -70,8 +75,9 @@ func (d *Document) GetBinaryValues(name string) [][]byte {
 	ret := make([][]byte, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
-			if field.FType() == FVBinary {
-				ret = append(ret, field.Value().([]byte))
+			data, ok := field.Value().([]byte)
+			if ok {
+				ret = append(ret, data)
 			}
 		}
 	}
@@ -86,34 +92,36 @@ func (d *Document) GetBinaryValues(name string) [][]byte {
 func (d *Document) GetBinaryValue(name string) ([]byte, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			if field.FType() == FVBinary {
-				return field.Value().([]byte), nil
+			data, ok := field.Value().([]byte)
+			if ok {
+				return data, nil
 			}
 		}
 	}
-	return nil, ErrFieldValueTypeNotFit
+	return nil, core.ErrFieldValueTypeNotFit
 }
 
 // GetField Returns a field with the given name if any exist in this document, or null. If multiple fields exists
 // with this name, this method returns the first value added.
-func (d *Document) GetField(name string) (IndexableField, error) {
+func (d *Document) GetField(name string) (types.IndexableField, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
 			return field, nil
 		}
 	}
-	return nil, FrrFieldNotFound
+	return nil, core.FrrFieldNotFound
 }
 
 // GetFields Returns an array of IndexAbleFields with the given name. This method returns an empty array when
 // there are no matching fields. It never returns null.
 // Params: name – the name of the field
 // Returns: a Field[] array
-func (d *Document) GetFields(name string) []IndexableField {
-	ret := make([]IndexableField, 0)
+func (d *Document) GetFields(name string) []types.IndexableField {
+	ret := make([]types.IndexableField, 0)
 	for i, field := range d.fields {
 		if field.Name() == name {
-			if field.FType() == FVString {
+			_, ok := field.Value().(string)
+			if ok {
 				ret = append(ret, d.fields[i])
 			}
 		}
@@ -130,8 +138,9 @@ func (d *Document) GetValues(name string) []string {
 	ret := make([]string, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
-			if field.FType() == FVString {
-				ret = append(ret, field.Value().(string))
+			value, ok := field.Value().(string)
+			if ok {
+				ret = append(ret, value)
 			}
 		}
 	}
@@ -145,12 +154,13 @@ func (d *Document) GetValues(name string) []string {
 func (d *Document) Get(name string) (string, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			if field.FType() == FVString {
-				return field.Value().(string), nil
+			value, ok := field.Value().(string)
+			if ok {
+				return value, nil
 			}
 		}
 	}
-	return "", ErrFieldValueTypeNotFit
+	return "", core.ErrFieldValueTypeNotFit
 }
 
 // Removes all the fields from document.

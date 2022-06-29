@@ -1,11 +1,13 @@
-package core
+package analysis
+
+import "github.com/geange/lucene-go/core"
 
 // A TokenStream enumerates the sequence of tokens, either from Fields of a Document or from query text.
 // This is an abstract class; concrete subclasses are:
 // * Tokenizer, a TokenStream whose input is a Reader; and
 // * TokenFilter, a TokenStream whose input is another TokenStream.
 type TokenStream interface {
-	GetAttributeSource() *AttributeSource
+	GetAttributeSource() *core.AttributeSource
 
 	// IncrementToken Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
 	// Implementing classes must implement this method and update the appropriate AttributeImpls with the

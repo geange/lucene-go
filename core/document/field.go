@@ -1,45 +1,39 @@
-package core
+package document
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core"
+	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 )
 
 type Field struct {
-	_type      IndexableFieldType
-	_fType     FieldValueType
+	_type      types.IndexableFieldType
 	name       string
 	fieldsData any
 
 	// Pre-analyzed tokenStream for indexed fields; this is separate from fieldsData because
 	// you are allowed to have both; eg maybe field has a String value but you customize how it's tokenized
-	tokenStream TokenStream
+	tokenStream analysis.TokenStream
 }
 
 // NewFieldV1 Expert: creates a field with no initial value. Intended only for custom Field subclasses.
 // Params: 	name – field name
-//			type – field type
-// Throws: 	IllegalArgumentException – if either the name or type is null.
-func NewFieldV1(name string, _type IndexableFieldType) *Field {
+//			types – field types
+// Throws: 	IllegalArgumentException – if either the name or types is null.
+func NewFieldV1(name string, _type types.IndexableFieldType) *Field {
 	return &Field{
 		_type: _type,
 		name:  name,
 	}
 }
 
-func NewFieldWithAny(name string, _type IndexableFieldType, data any) *Field {
+func NewFieldWithAny(name string, _type types.IndexableFieldType, data any) *Field {
 	field := &Field{
 		_type:      _type,
 		name:       name,
 		fieldsData: data,
-	}
-	switch data.(type) {
-	case int, float64:
-		field._fType = FVNumeric
-	case string:
-		field._fType = FVString
-	case []byte:
-		field._fType = FVBinary
 	}
 	return field
 }
@@ -47,23 +41,21 @@ func NewFieldWithAny(name string, _type IndexableFieldType, data any) *Field {
 // NewFieldV2 Create field with Reader value.
 // Params: 	name – field name
 //			reader – reader value
-//			type – field type
-// Throws: 	IllegalArgumentException – if either the name or type is null, or if the field's type is stored(), or if tokenized() is false.
+//			types – field types
+// Throws: 	IllegalArgumentException – if either the name or types is null, or if the field's types is stored(), or if tokenized() is false.
 //			NullPointerException – if the reader is null
-func NewFieldV2(name string, reader io.Reader, _type IndexableFieldType) *Field {
+func NewFieldV2(name string, reader io.Reader, _type types.IndexableFieldType) *Field {
 	return &Field{
 		_type:       _type,
-		_fType:      FVReader,
 		name:        name,
 		fieldsData:  reader,
 		tokenStream: nil,
 	}
 }
 
-func NewFieldV3(name string, tokenStream TokenStream, _type IndexableFieldType) *Field {
+func NewFieldV3(name string, tokenStream analysis.TokenStream, _type types.IndexableFieldType) *Field {
 	return &Field{
 		_type:       _type,
-		_fType:      FVTokenStream,
 		name:        name,
 		fieldsData:  nil,
 		tokenStream: tokenStream,
@@ -74,97 +66,99 @@ func NewFieldV3(name string, tokenStream TokenStream, _type IndexableFieldType) 
 // NOTE: the provided byte[] is not copied so be sure not to change it until you're done with this field.
 // Params: 	name – field name
 //			value – byte array pointing to binary content (not copied)
-//			type – field type
-// Throws: 	IllegalArgumentException – if the field name, value or type is null, or the field's type is indexed().
-func NewFieldV4(name string, value []byte, _type IndexableFieldType) *Field {
+//			types – field types
+// Throws: 	IllegalArgumentException – if the field name, value or types is null, or the field's types is indexed().
+func NewFieldV4(name string, value []byte, _type types.IndexableFieldType) *Field {
 	return &Field{
 		_type:       _type,
-		_fType:      FVBinary,
 		name:        name,
 		fieldsData:  value,
 		tokenStream: nil,
 	}
 }
 
-func NewFieldV5(name string, value string, _type IndexableFieldType) *Field {
+func NewFieldV5(name string, value string, _type types.IndexableFieldType) *Field {
 	return &Field{
 		_type:       _type,
-		_fType:      FVString,
 		name:        name,
 		fieldsData:  value,
 		tokenStream: nil,
 	}
 }
 
-func (f *Field) TokenStream(analyzer Analyzer, reuse TokenStream) (TokenStream, error) {
-	if f.FieldType().IndexOptions() == INDEX_OPTIONS_NONE {
+func (r *Field) TokenStream(analyzer core.Analyzer, reuse analysis.TokenStream) (analysis.TokenStream, error) {
+	if r.FieldType().IndexOptions() == types.INDEX_OPTIONS_NONE {
 		return nil, nil
 	}
 
-	if !f.FieldType().Tokenized() {
-		switch f.FType() {
-		case FVString:
+	if !r.FieldType().Tokenized() {
+		switch r.Value().(type) {
+		case string:
 			stream, ok := reuse.(*StringTokenStream)
 			if !ok {
 				var err error
-				stream, err = NewStringTokenStream(NewAttributeSource())
+				stream, err = NewStringTokenStream(core.NewAttributeSource())
 				if err != nil {
 					return nil, err
 				}
 			}
-			stream.SetValue(f.Value().(string))
+			stream.SetValue(r.Value().(string))
 			return stream, nil
-		case FVBinary:
+		case []byte:
 			stream, ok := reuse.(*BinaryTokenStream)
 			if !ok {
 				var err error
-				stream, err = NewBinaryTokenStream(NewAttributeSource())
+				stream, err = NewBinaryTokenStream(core.NewAttributeSource())
 				if err != nil {
 					return nil, err
 				}
 			}
-			stream.SetValue(f.Value().([]byte))
+			stream.SetValue(r.Value().([]byte))
 			return stream, nil
 		default:
 			return nil, errors.New("Non-Tokenized Fields must have a String value")
 		}
 	}
 
-	if f.tokenStream != nil {
-		return f.tokenStream, nil
+	if r.tokenStream != nil {
+		return r.tokenStream, nil
 	}
 
-	switch f.FType() {
-	case FVString:
-		return analyzer.TokenStreamByString(f.name, f.Value().(string))
-	case FVReader:
-		return analyzer.TokenStreamByReader(f.name, f.Value().(io.Reader))
+	switch r.Value().(type) {
+	case string:
+		return analyzer.TokenStreamByString(r.name, r.Value().(string))
+	case io.Reader:
+		return analyzer.TokenStreamByReader(r.name, r.Value().(io.Reader))
 	default:
 		return nil, errors.New("field must have either TokenStream, String, Reader or Number value")
 	}
 }
 
-func (f *Field) Name() string {
-	return f.name
+func (r *Field) Name() string {
+	return r.name
 }
 
-func (f *Field) FieldType() IndexableFieldType {
-	return f._type
+func (r *Field) FieldType() types.IndexableFieldType {
+	return r._type
 }
 
-func (f *Field) FType() FieldValueType {
-	return f._fType
+func (r *Field) Value() any {
+	return r.fieldsData
 }
 
-func (f *Field) Value() interface{} {
-	return f.fieldsData
+func (r *Field) SetFloat64(value float64) {
+	r.fieldsData = value
+}
+
+func (r *Field) SetIntValue(value int) {
+	r.fieldsData = value
 }
 
 var (
-	_ TokenStream = &StringTokenStream{}
+	_ analysis.TokenStream = &StringTokenStream{}
 )
 
-func NewStringTokenStream(source *AttributeSource) (*StringTokenStream, error) {
+func NewStringTokenStream(source *core.AttributeSource) (*StringTokenStream, error) {
 	stream := &StringTokenStream{
 		source:          source,
 		termAttribute:   nil,
@@ -172,30 +166,30 @@ func NewStringTokenStream(source *AttributeSource) (*StringTokenStream, error) {
 		used:            false,
 		value:           "",
 	}
-	termAttribute, ok := source.Get(ClassCharTerm)
+	termAttribute, ok := source.Get(core.ClassCharTerm)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.termAttribute = termAttribute.(*PackedTokenAttributeImpl)
+	stream.termAttribute = termAttribute.(*core.PackedTokenAttributeImpl)
 
-	offsetAttribute, ok := source.Get(ClassOffset)
+	offsetAttribute, ok := source.Get(core.ClassOffset)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.offsetAttribute = offsetAttribute.(*PackedTokenAttributeImpl)
+	stream.offsetAttribute = offsetAttribute.(*core.PackedTokenAttributeImpl)
 
 	return stream, nil
 }
 
 type StringTokenStream struct {
-	source          *AttributeSource
-	termAttribute   CharTermAttribute
-	offsetAttribute OffsetAttribute
+	source          *core.AttributeSource
+	termAttribute   core.CharTermAttribute
+	offsetAttribute core.OffsetAttribute
 	used            bool
 	value           string
 }
 
-func (s *StringTokenStream) GetAttributeSource() *AttributeSource {
+func (s *StringTokenStream) GetAttributeSource() *core.AttributeSource {
 	return s.source
 }
 
@@ -236,32 +230,32 @@ func (s *StringTokenStream) SetValue(value string) {
 }
 
 var (
-	_ TokenStream = &BinaryTokenStream{}
+	_ analysis.TokenStream = &BinaryTokenStream{}
 )
 
-func NewBinaryTokenStream(source *AttributeSource) (*BinaryTokenStream, error) {
+func NewBinaryTokenStream(source *core.AttributeSource) (*BinaryTokenStream, error) {
 	stream := &BinaryTokenStream{
 		source:   source,
 		bytesAtt: nil,
 		used:     true,
 		value:    nil,
 	}
-	att, ok := source.Get(ClassBytesTerm)
+	att, ok := source.Get(core.ClassBytesTerm)
 	if !ok {
 		return nil, errors.New("BytesTermAttribute not exist")
 	}
-	stream.bytesAtt = att.(*BytesTermAttributeImpl)
+	stream.bytesAtt = att.(*core.BytesTermAttributeImpl)
 	return stream, nil
 }
 
 type BinaryTokenStream struct {
-	source   *AttributeSource
-	bytesAtt *BytesTermAttributeImpl
+	source   *core.AttributeSource
+	bytesAtt *core.BytesTermAttributeImpl
 	used     bool
 	value    []byte
 }
 
-func (b *BinaryTokenStream) GetAttributeSource() *AttributeSource {
+func (b *BinaryTokenStream) GetAttributeSource() *core.AttributeSource {
 	return b.source
 }
 

@@ -1,4 +1,6 @@
-package core
+package index
+
+import "github.com/geange/lucene-go/core/types"
 
 // FieldInfo Access to the Field Info file that describes document fields and whether or not they are indexed.
 // Each segment has a separate Field Info file. Objects of this class are thread-safe for multiple readers,
@@ -6,7 +8,7 @@ package core
 type FieldInfo struct {
 	Name          string
 	Number        int
-	docValuesType DocValuesType
+	docValuesType types.DocValuesType
 
 	// True if any document indexed term vectors
 	storeTermVector bool
@@ -14,7 +16,7 @@ type FieldInfo struct {
 	// omit norms associated with indexed fields
 	omitNorms bool
 
-	indexOptions IndexOptions
+	indexOptions types.IndexOptions
 
 	// whether this field stores payloads together with term positions
 	storePayloads bool
@@ -33,7 +35,7 @@ type FieldInfo struct {
 }
 
 func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayloads bool,
-	indexOptions IndexOptions, docValues DocValuesType, dvGen int64, attributes map[string]string,
+	indexOptions types.IndexOptions, docValues types.DocValuesType, dvGen int64, attributes map[string]string,
 	pointDimensionCount, pointIndexDimensionCount, pointNumBytes int, softDeletesField bool) *FieldInfo {
 
 	info := &FieldInfo{
@@ -52,7 +54,7 @@ func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayl
 		softDeletesField:         softDeletesField,
 	}
 
-	if info.indexOptions != INDEX_OPTIONS_NONE {
+	if info.indexOptions != types.INDEX_OPTIONS_NONE {
 		info.storeTermVector = storeTermVector
 		info.storePayloads = storePayloads
 		info.omitNorms = omitNorms
@@ -90,23 +92,23 @@ func (f *FieldInfo) GetPointNumBytes() int {
 	return f.pointNumBytes
 }
 
-// SetDocValuesType Record that this field is indexed with docvalues, with the specified type
-func (f *FieldInfo) SetDocValuesType(_type DocValuesType) error {
+// SetDocValuesType Record that this field is indexed with docvalues, with the specified types
+func (f *FieldInfo) SetDocValuesType(_type types.DocValuesType) error {
 	panic("")
 }
 
 // GetIndexOptions Returns IndexOptions for the field, or IndexOptions.NONE if the field is not indexed
-func (f *FieldInfo) GetIndexOptions() IndexOptions {
+func (f *FieldInfo) GetIndexOptions() types.IndexOptions {
 	return f.indexOptions
 }
 
 // SetIndexOptions Record the IndexOptions to use with this field.
-func (f *FieldInfo) SetIndexOptions(newIndexOptions IndexOptions) error {
+func (f *FieldInfo) SetIndexOptions(newIndexOptions types.IndexOptions) error {
 	panic("")
 }
 
 // GetDocValuesType Returns DocValuesType of the docValues; this is DocValuesType.NONE if the field has no docvalues.
-func (f *FieldInfo) GetDocValuesType() DocValuesType {
+func (f *FieldInfo) GetDocValuesType() types.DocValuesType {
 	return f.docValuesType
 }
 
@@ -140,7 +142,7 @@ func (f *FieldInfo) SetOmitsNorms() error {
 
 // HasNorms Returns true if this field actually has any norms.
 func (f *FieldInfo) HasNorms() bool {
-	return f.indexOptions != INDEX_OPTIONS_NONE && f.omitNorms == false
+	return f.indexOptions != types.INDEX_OPTIONS_NONE && f.omitNorms == false
 }
 
 // HasPayloads Returns true if any payloads exist for this field.

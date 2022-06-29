@@ -3,7 +3,7 @@ package core
 // CompiledAutomaton Immutable class holding compiled details for a given Automaton. The Automaton is
 // deterministic, must not have dead states but is not necessarily minimal.
 type CompiledAutomaton struct {
-	// If simplify is true this will be the "simplified" type; else, this is NORMAL
+	// If simplify is true this will be the "simplified" types; else, this is NORMAL
 	_type int
 
 	// For CompiledAutomaton.AUTOMATON_TYPE.SINGLE this is the singleton term.

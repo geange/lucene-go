@@ -3,6 +3,7 @@ package util
 import (
 	"bufio"
 	"github.com/geange/lucene-go/core"
+	"github.com/geange/lucene-go/core/analysis"
 	"io"
 )
 
@@ -13,7 +14,7 @@ import (
 type CharTokenizer interface {
 	CharTokenizerExt
 
-	core.Tokenizer
+	analysis.Tokenizer
 }
 
 type CharTokenizerExt interface {
@@ -21,7 +22,7 @@ type CharTokenizerExt interface {
 }
 
 func NewCharTokenizerImpl(ext CharTokenizerExt, input io.Reader) *CharTokenizerImpl {
-	tokenizer := core.NewTokenizerImpl(core.NewAttributeSource())
+	tokenizer := analysis.NewTokenizerImpl(core.NewAttributeSource())
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 
@@ -42,7 +43,7 @@ func NewCharTokenizerImpl(ext CharTokenizerExt, input io.Reader) *CharTokenizerI
 type CharTokenizerImpl struct {
 	ext CharTokenizerExt
 
-	*core.TokenizerImpl
+	*analysis.TokenizerImpl
 
 	offset      int //
 	finalOffset int

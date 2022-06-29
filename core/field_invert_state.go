@@ -1,11 +1,13 @@
 package core
 
+import "github.com/geange/lucene-go/core/types"
+
 // FieldInvertState This class tracks the number and position / offset parameters of terms being added to the index.
 // The information collected in this class is also used to calculate the normalization factor for a field.
 type FieldInvertState struct {
 	indexCreatedVersionMajor int
 	name                     string
-	indexOptions             IndexOptions
+	indexOptions             types.IndexOptions
 	position                 int
 	length                   int
 	numOverlap               int
@@ -85,6 +87,6 @@ func (f *FieldInvertState) GetIndexCreatedVersionMajor() int {
 }
 
 // GetIndexOptions Get the index options for this field
-func (f *FieldInvertState) GetIndexOptions() IndexOptions {
+func (f *FieldInvertState) GetIndexOptions() types.IndexOptions {
 	return f.indexOptions
 }

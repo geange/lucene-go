@@ -6,7 +6,7 @@ import (
 )
 
 // AttributeImpl Base class for Attributes that can be added to a AttributeSource.
-// Attributes are used to add data in a dynamic, yet type-safe way to a source of usually streamed objects,
+// Attributes are used to add data in a dynamic, yet types-safe way to a source of usually streamed objects,
 // e. g. a org.apache.lucene.analysis.TokenStream.
 type AttributeImpl interface {
 	Interfaces() []string
@@ -18,8 +18,8 @@ type AttributeImpl interface {
 
 // An AttributeSource contains a list of different AttributeImpls, and methods to add and get them.
 // There can only be a single instance of an attribute in the same AttributeSource instance. This is
-// ensured by passing in the actual type of the Attribute (Class<Attribute>) to the addAttribute(Class),
-// which then checks if an instance of that type is already present. If yes, it returns the instance,
+// ensured by passing in the actual types of the Attribute (Class<Attribute>) to the addAttribute(Class),
+// which then checks if an instance of that types is already present. If yes, it returns the instance,
 // otherwise it creates a new instance and returns it.
 type AttributeSource struct {
 	attributes     sync.Map

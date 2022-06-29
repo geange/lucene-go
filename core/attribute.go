@@ -11,15 +11,15 @@ const (
 	ClassTermToBytesRef    = "TermToBytesRef"
 )
 
-// TypeAttribute A Token's lexical type. The Default value is "word".
+// TypeAttribute A Token's lexical types. The Default value is "word".
 type TypeAttribute interface {
 
-	// Type Returns this Token's lexical type. Defaults to "word".
+	// Type Returns this Token's lexical types. Defaults to "word".
 	//See Also: setType(String)
 	Type() string
 
-	// SetType Set the lexical type.
-	// See Also: type()
+	// SetType Set the lexical types.
+	// See Also: types()
 	SetType(_type string)
 }
 

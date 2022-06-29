@@ -1,8 +1,10 @@
-package core
+package document
 
 import (
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core"
+	"github.com/geange/lucene-go/core/types"
 )
 
 // FieldType Describes the properties of a field.
@@ -14,9 +16,9 @@ type FieldType struct {
 	storeTermVectorPositions bool
 	storeTermVectorPayloads  bool
 	omitNorms                bool
-	indexOptions             IndexOptions
+	indexOptions             types.IndexOptions
 	frozen                   bool
-	docValuesType            DocValuesType
+	docValuesType            types.DocValuesType
 	dimensionCount           int
 	indexDimensionCount      int
 	dimensionNumBytes        int
@@ -27,7 +29,7 @@ func NewFieldType() *FieldType {
 	return defaultFieldType()
 }
 
-func NewFieldTypeV1(ref IndexableFieldType) *FieldType {
+func NewFieldTypeV1(ref types.IndexableFieldType) *FieldType {
 	fieldType := defaultFieldType()
 	fieldType.stored = ref.Stored()
 	fieldType.tokenized = ref.Tokenized()
@@ -56,9 +58,9 @@ func defaultFieldType() *FieldType {
 		storeTermVectorPositions: false,
 		storeTermVectorPayloads:  false,
 		omitNorms:                false,
-		indexOptions:             INDEX_OPTIONS_NONE,
+		indexOptions:             types.INDEX_OPTIONS_NONE,
 		frozen:                   false,
-		docValuesType:            DOC_VALUES_TYPE_NONE,
+		docValuesType:            types.DOC_VALUES_TYPE_NONE,
 		dimensionCount:           0,
 		indexDimensionCount:      0,
 		dimensionNumBytes:        0,
@@ -148,11 +150,11 @@ func (f *FieldType) SetOmitNorms(value bool) error {
 	return nil
 }
 
-func (f *FieldType) IndexOptions() IndexOptions {
+func (f *FieldType) IndexOptions() types.IndexOptions {
 	return f.indexOptions
 }
 
-func (f *FieldType) SetIndexOptions(value IndexOptions) error {
+func (f *FieldType) SetIndexOptions(value types.IndexOptions) error {
 	err := f.checkIfFrozen()
 	if err != nil {
 		return err
@@ -162,11 +164,11 @@ func (f *FieldType) SetIndexOptions(value IndexOptions) error {
 	return nil
 }
 
-func (f *FieldType) DocValuesType() DocValuesType {
+func (f *FieldType) DocValuesType() types.DocValuesType {
 	return f.docValuesType
 }
 
-func (f *FieldType) SetDocValuesType(value DocValuesType) error {
+func (f *FieldType) SetDocValuesType(value types.DocValuesType) error {
 	err := f.checkIfFrozen()
 	if err != nil {
 		return err
@@ -185,8 +187,8 @@ func (f *FieldType) SetDimensionsV1(dimensionCount, indexDimensionCount, dimensi
 	if dimensionCount < 0 {
 		return errors.New("dimensionCount must be >= 0")
 	}
-	if dimensionCount > MAX_DIMENSIONS {
-		return fmt.Errorf("dimensionCount must be <= %d", MAX_DIMENSIONS)
+	if dimensionCount > core.MAX_DIMENSIONS {
+		return fmt.Errorf("dimensionCount must be <= %d", core.MAX_DIMENSIONS)
 	}
 	if indexDimensionCount < 0 {
 		return errors.New("indexDimensionCount must be >= 0")
@@ -194,14 +196,14 @@ func (f *FieldType) SetDimensionsV1(dimensionCount, indexDimensionCount, dimensi
 	if indexDimensionCount > dimensionCount {
 		return errors.New("indexDimensionCount must be <= dimensionCount")
 	}
-	if indexDimensionCount < MAX_INDEX_DIMENSIONS {
-		return fmt.Errorf("indexDimensionCount must be <= %d", MAX_INDEX_DIMENSIONS)
+	if indexDimensionCount < core.MAX_INDEX_DIMENSIONS {
+		return fmt.Errorf("indexDimensionCount must be <= %d", core.MAX_INDEX_DIMENSIONS)
 	}
 	if dimensionNumBytes < 0 {
 		return errors.New("dimensionNumBytes must be >= 0")
 	}
-	if dimensionNumBytes > MAX_NUM_BYTES {
-		return fmt.Errorf("dimensionNumBytes must be <= %d", MAX_NUM_BYTES)
+	if dimensionNumBytes > core.MAX_NUM_BYTES {
+		return fmt.Errorf("dimensionNumBytes must be <= %d", core.MAX_NUM_BYTES)
 	}
 	if dimensionCount == 0 {
 		if indexDimensionCount != 0 {
@@ -238,7 +240,7 @@ func (f *FieldType) PointNumBytes() int {
 // PutAttribute Puts an attribute value.
 // This is a key-value mapping for the field that the codec can use to store additional metadata.
 // If a value already exists for the field, it will be replaced with the new value. This method is not thread-safe,
-// user must not add attributes while other threads are indexing documents with this field type.
+// user must not add attributes while other threads are indexing documents with this field types.
 func (f *FieldType) PutAttribute(key, value string) {
 	err := f.checkIfFrozen()
 	if err != nil {
