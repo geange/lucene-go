@@ -36,7 +36,7 @@ func (r *DocumentStoredFieldVisitor) BinaryField(fieldInfo *index.FieldInfo, val
 }
 
 func (r *DocumentStoredFieldVisitor) StringField(fieldInfo *index.FieldInfo, value []byte) error {
-	ft := NewFieldTypeV1(TYPE_STORED)
+	ft := NewFieldTypeV1(TextFieldStored)
 	err := ft.SetStoreTermVectors(fieldInfo.HasVectors())
 	if err != nil {
 		return err

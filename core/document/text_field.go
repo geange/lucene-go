@@ -2,26 +2,39 @@ package document
 
 import (
 	"github.com/geange/lucene-go/core/types"
+	"io"
 )
 
 var (
-	TYPE_STORED     *FieldType
-	TYPE_NOT_STORED *FieldType
+	TextFieldStored    *FieldType
+	TextFieldNotStored *FieldType
 )
 
 func init() {
-	TYPE_STORED = NewFieldType()
-	TYPE_STORED.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
-	TYPE_STORED.SetTokenized(true)
-	TYPE_STORED.SetStored(true)
-	TYPE_STORED.Freeze()
+	TextFieldStored = NewFieldType()
+	TextFieldStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	TextFieldStored.SetTokenized(true)
+	TextFieldStored.SetStored(true)
+	TextFieldStored.Freeze()
 
-	TYPE_NOT_STORED = NewFieldType()
-	TYPE_NOT_STORED.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
-	TYPE_NOT_STORED.SetTokenized(true)
-	TYPE_NOT_STORED.Freeze()
+	TextFieldNotStored = NewFieldType()
+	TextFieldNotStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	TextFieldNotStored.SetTokenized(true)
+	TextFieldNotStored.Freeze()
 }
 
 type TextField struct {
 	*Field
+}
+
+func NewTextFieldByReader(name string, reader io.Reader) *TextField {
+	return &TextField{NewFieldV2(name, reader, TextFieldNotStored)}
+}
+
+func NewTextFieldByString(name string, value string, stored bool) *TextField {
+	_type := TextFieldStored
+	if !stored {
+		_type = TextFieldNotStored
+	}
+	return &TextField{NewFieldV5(name, value, _type)}
 }

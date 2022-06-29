@@ -1,13 +1,25 @@
 package document
 
+import "github.com/geange/lucene-go/core/types"
+
 var (
-	StringFieldType *FieldType
+	StringFieldTypeNotStored *FieldType
+	StringFieldTypeStored    *FieldType
 )
 
 func init() {
-	StringFieldType = NewFieldType()
-	StringFieldType.SetStored(true)
-	StringFieldType.Freeze()
+	StringFieldTypeNotStored = NewFieldType()
+	StringFieldTypeNotStored.SetOmitNorms(true)
+	StringFieldTypeNotStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS)
+	StringFieldTypeNotStored.SetTokenized(false)
+	StringFieldTypeNotStored.Freeze()
+
+	StringFieldTypeStored = NewFieldType()
+	StringFieldTypeStored.SetOmitNorms(true)
+	StringFieldTypeStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS)
+	StringFieldTypeStored.SetStored(true)
+	StringFieldTypeStored.SetTokenized(false)
+	StringFieldTypeStored.Freeze()
 }
 
 type StringField struct {
@@ -20,9 +32,9 @@ type StringField struct {
 //			stored – Store.YES if the content should also be stored
 // Throws: 	IllegalArgumentException – if the field name or value is null.
 func NewStringFieldByString(name string, value string, stored bool) *StringField {
-	_type := TYPE_STORED
+	_type := StringFieldTypeStored
 	if !stored {
-		_type = TYPE_NOT_STORED
+		_type = StringFieldTypeNotStored
 	}
 	return &StringField{NewFieldV5(name, value, _type)}
 }
@@ -35,9 +47,9 @@ func NewStringFieldByString(name string, value string, stored bool) *StringField
 //			stored – Store.YES if the content should also be stored
 // Throws: 	IllegalArgumentException – if the field name or value is null.
 func NewStringFieldByBytes(name string, value []byte, stored bool) *StringField {
-	_type := TYPE_STORED
+	_type := StringFieldTypeStored
 	if !stored {
-		_type = TYPE_NOT_STORED
+		_type = StringFieldTypeNotStored
 	}
 	return &StringField{NewFieldV4(name, value, _type)}
 }
