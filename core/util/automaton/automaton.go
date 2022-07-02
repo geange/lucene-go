@@ -1,8 +1,9 @@
-package core
+package automaton
 
 import (
 	"fmt"
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/util"
 	"sort"
 )
 
@@ -147,7 +148,7 @@ func (r *Automaton) Copy(other *Automaton) {
 
 	// Bulk copy and then fixup the state pointers:
 	stateOffset := r.GetNumStates()
-	r.states = Grow(r.states, r.nextState+other.nextState)
+	r.states = util.Grow(r.states, r.nextState+other.nextState)
 	copy(r.states[r.nextState:r.nextState+other.nextState], other.states)
 	for i := 0; i < other.nextState; i += 2 {
 		if r.states[r.nextState+i] != -1 {
@@ -173,7 +174,7 @@ func (r *Automaton) Copy(other *Automaton) {
 	}
 
 	// Bulk copy and then fixup dest for each transition:
-	r.transitions = Grow(r.transitions, r.nextTransition+other.nextTransition)
+	r.transitions = util.Grow(r.transitions, r.nextTransition+other.nextTransition)
 	copy(r.transitions[r.nextTransition:r.nextTransition+other.nextTransition], other.transitions)
 	for i := 0; i < other.nextTransition; i += 3 {
 		r.transitions[r.nextTransition+i] += stateOffset
@@ -303,13 +304,13 @@ func (r *Automaton) GetNumTransitionsWithState(state int) int {
 
 func (r *Automaton) growStates() {
 	if r.nextState+2 > len(r.states) {
-		r.states = Grow(r.states, r.nextState+2)
+		r.states = util.Grow(r.states, r.nextState+2)
 	}
 }
 
 func (r *Automaton) growTransitions() {
 	if r.nextTransition+3 > len(r.transitions) {
-		r.transitions = Grow(r.transitions, r.nextTransition+3)
+		r.transitions = util.Grow(r.transitions, r.nextTransition+3)
 	}
 }
 
@@ -593,28 +594,41 @@ func (r *Automaton) next(state, fromTransitionIndex, label int, transition *Tran
 	return destState
 }
 
-// AutomatonBuilder Records new states and transitions and then finish creates the Automaton. Use this
+// Builder Records new states and transitions and then finish creates the Automaton. Use this
 // when you cannot create the Automaton directly because it's too restrictive to have to add all transitions
 // leaving each state at once.
-type AutomatonBuilder struct {
+type Builder struct {
 	nextState      int
 	isAccept       *bitset.BitSet
 	transitions    []int
 	nextTransition int
 }
 
-func (r *AutomatonBuilder) CreateState() int {
+func NewNewBuilderDefault() *Builder {
+	return NewBuilder(16, 16)
+}
+
+func NewBuilder(numStates, numTransitions int) *Builder {
+	return &Builder{
+		nextState:      0,
+		isAccept:       bitset.New(uint(numStates)),
+		transitions:    make([]int, 4*numTransitions),
+		nextTransition: 0,
+	}
+}
+
+func (r *Builder) CreateState() int {
 	res := r.nextState
 	r.nextState++
 	return res
 }
 
-func (r *AutomatonBuilder) SetAccept(state int, accept bool) {
+func (r *Builder) SetAccept(state int, accept bool) {
 	r.isAccept.SetTo(uint(state), accept)
 }
 
 // CopyStates Copies over all states from other.
-func (r *AutomatonBuilder) CopyStates(other *Automaton) {
+func (r *Builder) CopyStates(other *Automaton) {
 	otherNumStates := other.GetNumStates()
 	for s := 0; s < otherNumStates; s++ {
 		newState := r.CreateState()

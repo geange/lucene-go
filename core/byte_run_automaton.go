@@ -1,11 +1,15 @@
 package core
 
+import (
+	"github.com/geange/lucene-go/core/util/automaton"
+)
+
 // ByteRunAutomaton Automaton representation for matching UTF-8 byte[].
 type ByteRunAutomaton struct {
 	*RunAutomaton
 }
 
-func NewByteRunAutomaton(a *Automaton) *ByteRunAutomaton {
+func NewByteRunAutomaton(a *automaton.Automaton) *ByteRunAutomaton {
 	return &ByteRunAutomaton{
 		NewRunAutomatonV1(a, 256, 10000),
 	}

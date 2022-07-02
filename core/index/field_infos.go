@@ -1,6 +1,4 @@
-package core
-
-import "github.com/geange/lucene-go/core/index"
+package index
 
 // FieldInfos Collection of FieldInfos (accessible by number or by name).
 type FieldInfos struct {
@@ -15,8 +13,8 @@ type FieldInfos struct {
 	softDeletesField bool
 
 	// used only by fieldInfo(int)
-	byNumber []index.FieldInfo
+	byNumber []FieldInfo
 
-	byName map[string]*index.FieldInfo
-	values []*index.FieldInfo // for an unmodifiable iterator
+	byName map[string]*FieldInfo
+	values []*FieldInfo // for an unmodifiable iterator
 }

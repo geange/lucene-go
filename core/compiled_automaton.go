@@ -1,5 +1,9 @@
 package core
 
+import (
+	"github.com/geange/lucene-go/core/util/automaton"
+)
+
 // CompiledAutomaton Immutable class holding compiled details for a given Automaton. The Automaton is
 // deterministic, must not have dead states but is not necessarily minimal.
 type CompiledAutomaton struct {
@@ -14,7 +18,7 @@ type CompiledAutomaton struct {
 
 	// Two dimensional array of transitions, indexed by state number for traversal. The state numbering is
 	// consistent with runAutomaton. Only valid for CompiledAutomaton.AUTOMATON_TYPE.NORMAL.
-	automaton *Automaton
+	automaton *automaton.Automaton
 
 	// Shared common suffix accepted by the automaton. Only valid for CompiledAutomaton.AUTOMATON_TYPE.NORMAL,
 	// and only when the automaton accepts an infinite language. This will be null if the common prefix is length 0.
@@ -27,7 +31,7 @@ type CompiledAutomaton struct {
 	// Which state, if any, accepts all suffixes, else -1.
 	sinkState bool
 
-	transition *Transition
+	transition *automaton.Transition
 }
 
 const (

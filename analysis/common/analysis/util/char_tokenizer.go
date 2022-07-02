@@ -2,8 +2,9 @@ package util
 
 import (
 	"bufio"
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/util"
 	"io"
 )
 
@@ -22,11 +23,11 @@ type CharTokenizerExt interface {
 }
 
 func NewCharTokenizerImpl(ext CharTokenizerExt, input io.Reader) *CharTokenizerImpl {
-	tokenizer := analysis.NewTokenizerImpl(core.NewAttributeSource())
+	tokenizer := analysis.NewTokenizerImpl(util.NewAttributeSource())
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 
-	attr := core.NewPackedTokenAttributeImpl()
+	attr := tokenattributes.NewPackedTokenAttributeImpl()
 
 	return &CharTokenizerImpl{
 		ext:           ext,
@@ -49,8 +50,8 @@ type CharTokenizerImpl struct {
 	finalOffset int
 	maxTokenLen int
 
-	termAtt   core.CharTermAttribute
-	offsetAtt core.OffsetAttribute
+	termAtt   tokenattributes.CharTermAttribute
+	offsetAtt tokenattributes.OffsetAttribute
 
 	reader *bufio.Reader
 }

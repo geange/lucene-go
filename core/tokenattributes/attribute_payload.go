@@ -1,4 +1,6 @@
-package core
+package tokenattributes
+
+import "github.com/geange/lucene-go/core/util"
 
 // PayloadAttributeImpl Default implementation of PayloadAttribute.
 type PayloadAttributeImpl struct {
@@ -22,7 +24,7 @@ func (p *PayloadAttributeImpl) End() error {
 	return p.Clear()
 }
 
-func (p *PayloadAttributeImpl) CopyTo(target AttributeImpl) error {
+func (p *PayloadAttributeImpl) CopyTo(target util.AttributeImpl) error {
 	attr, ok := target.(*PayloadAttributeImpl)
 	if ok {
 		if len(p.payload) > len(attr.payload) {
@@ -35,7 +37,7 @@ func (p *PayloadAttributeImpl) CopyTo(target AttributeImpl) error {
 	return nil
 }
 
-func (p *PayloadAttributeImpl) Clone() AttributeImpl {
+func (p *PayloadAttributeImpl) Clone() util.AttributeImpl {
 	attr := &PayloadAttributeImpl{payload: make([]byte, len(p.payload))}
 	copy(attr.payload, p.payload)
 	return attr

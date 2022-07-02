@@ -1,4 +1,4 @@
-package core
+package automaton
 
 // Transition Holds one transition from an Automaton. This is typically used temporarily when iterating
 // through transitions by invoking Automaton.initTransition and Automaton.getNextTransition.

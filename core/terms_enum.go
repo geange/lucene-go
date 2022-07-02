@@ -12,7 +12,7 @@ type TermsEnum interface {
 	util.BytesRefIterator
 
 	// Attributes Returns the related attributes.
-	Attributes() *AttributeSource
+	Attributes() *util.AttributeSource
 
 	// SeekExact Attempts to seek to the exact term, returning true if the term is found. If this returns false,
 	// the enum is unpositioned. For some codecs, seekExact may be substantially faster than seekCeil.

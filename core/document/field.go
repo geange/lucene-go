@@ -2,9 +2,10 @@ package document
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util"
 	"io"
 )
 
@@ -86,7 +87,7 @@ func NewFieldV5(name string, value string, _type types.IndexableFieldType) *Fiel
 	}
 }
 
-func (r *Field) TokenStream(analyzer core.Analyzer, reuse analysis.TokenStream) (analysis.TokenStream, error) {
+func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStream) (analysis.TokenStream, error) {
 	if r.FieldType().IndexOptions() == types.INDEX_OPTIONS_NONE {
 		return nil, nil
 	}
@@ -97,7 +98,7 @@ func (r *Field) TokenStream(analyzer core.Analyzer, reuse analysis.TokenStream) 
 			stream, ok := reuse.(*StringTokenStream)
 			if !ok {
 				var err error
-				stream, err = NewStringTokenStream(core.NewAttributeSource())
+				stream, err = NewStringTokenStream(util.NewAttributeSource())
 				if err != nil {
 					return nil, err
 				}
@@ -108,7 +109,7 @@ func (r *Field) TokenStream(analyzer core.Analyzer, reuse analysis.TokenStream) 
 			stream, ok := reuse.(*BinaryTokenStream)
 			if !ok {
 				var err error
-				stream, err = NewBinaryTokenStream(core.NewAttributeSource())
+				stream, err = NewBinaryTokenStream(util.NewAttributeSource())
 				if err != nil {
 					return nil, err
 				}
@@ -158,7 +159,7 @@ var (
 	_ analysis.TokenStream = &StringTokenStream{}
 )
 
-func NewStringTokenStream(source *core.AttributeSource) (*StringTokenStream, error) {
+func NewStringTokenStream(source *util.AttributeSource) (*StringTokenStream, error) {
 	stream := &StringTokenStream{
 		source:          source,
 		termAttribute:   nil,
@@ -166,30 +167,30 @@ func NewStringTokenStream(source *core.AttributeSource) (*StringTokenStream, err
 		used:            false,
 		value:           "",
 	}
-	termAttribute, ok := source.Get(core.ClassCharTerm)
+	termAttribute, ok := source.Get(tokenattributes.ClassCharTerm)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.termAttribute = termAttribute.(*core.PackedTokenAttributeImpl)
+	stream.termAttribute = termAttribute.(*tokenattributes.PackedTokenAttributeImpl)
 
-	offsetAttribute, ok := source.Get(core.ClassOffset)
+	offsetAttribute, ok := source.Get(tokenattributes.ClassOffset)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.offsetAttribute = offsetAttribute.(*core.PackedTokenAttributeImpl)
+	stream.offsetAttribute = offsetAttribute.(*tokenattributes.PackedTokenAttributeImpl)
 
 	return stream, nil
 }
 
 type StringTokenStream struct {
-	source          *core.AttributeSource
-	termAttribute   core.CharTermAttribute
-	offsetAttribute core.OffsetAttribute
+	source          *util.AttributeSource
+	termAttribute   tokenattributes.CharTermAttribute
+	offsetAttribute tokenattributes.OffsetAttribute
 	used            bool
 	value           string
 }
 
-func (s *StringTokenStream) GetAttributeSource() *core.AttributeSource {
+func (s *StringTokenStream) GetAttributeSource() *util.AttributeSource {
 	return s.source
 }
 
@@ -233,29 +234,29 @@ var (
 	_ analysis.TokenStream = &BinaryTokenStream{}
 )
 
-func NewBinaryTokenStream(source *core.AttributeSource) (*BinaryTokenStream, error) {
+func NewBinaryTokenStream(source *util.AttributeSource) (*BinaryTokenStream, error) {
 	stream := &BinaryTokenStream{
 		source:   source,
 		bytesAtt: nil,
 		used:     true,
 		value:    nil,
 	}
-	att, ok := source.Get(core.ClassBytesTerm)
+	att, ok := source.Get(tokenattributes.ClassBytesTerm)
 	if !ok {
 		return nil, errors.New("BytesTermAttribute not exist")
 	}
-	stream.bytesAtt = att.(*core.BytesTermAttributeImpl)
+	stream.bytesAtt = att.(*tokenattributes.BytesTermAttributeImpl)
 	return stream, nil
 }
 
 type BinaryTokenStream struct {
-	source   *core.AttributeSource
-	bytesAtt *core.BytesTermAttributeImpl
+	source   *util.AttributeSource
+	bytesAtt *tokenattributes.BytesTermAttributeImpl
 	used     bool
 	value    []byte
 }
 
-func (b *BinaryTokenStream) GetAttributeSource() *core.AttributeSource {
+func (b *BinaryTokenStream) GetAttributeSource() *util.AttributeSource {
 	return b.source
 }
 

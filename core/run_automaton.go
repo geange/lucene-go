@@ -1,8 +1,12 @@
 package core
 
+import (
+	"github.com/geange/lucene-go/core/util/automaton"
+)
+
 // RunAutomaton Finite-state automaton with fast run operation. The initial state is always 0.
 type RunAutomaton struct {
-	automaton    *Automaton
+	automaton    *automaton.Automaton
 	alphabetSize int
 	size         int
 	accept       []bool
@@ -18,7 +22,7 @@ type RunAutomaton struct {
 	classmap []int
 }
 
-func NewRunAutomatonV1(a *Automaton, alphabetSize, determinizeWorkLimit int) *RunAutomaton {
+func NewRunAutomatonV1(a *automaton.Automaton, alphabetSize, determinizeWorkLimit int) *RunAutomaton {
 	size := Max(1, a.GetNumStates())
 	points := a.getStartPoints()
 
@@ -36,7 +40,7 @@ func NewRunAutomatonV1(a *Automaton, alphabetSize, determinizeWorkLimit int) *Ru
 		r.transitions[i] = -1
 	}
 
-	transition := &Transition{}
+	transition := &automaton.Transition{}
 
 	for n := 0; n < size; n++ {
 		r.accept[n] = a.IsAccept(n)

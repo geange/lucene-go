@@ -1,7 +1,8 @@
-package core
+package tokenattributes
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/util"
 )
 
 type AttributeFactory interface {
@@ -9,7 +10,7 @@ type AttributeFactory interface {
 	// Throws:  UndeclaredThrowableException – A wrapper runtime exception thrown if the constructor of the
 	// 		    attribute class throws a checked exception. Note that attributes should not throw or declare checked
 	// 			exceptions; this may be verified and fail early in the future.
-	CreateAttributeInstance(class string) (AttributeImpl, error)
+	CreateAttributeInstance(class string) (util.AttributeImpl, error)
 }
 
 var (
@@ -19,7 +20,7 @@ var (
 type DefaultAttributeFactory struct {
 }
 
-func (d DefaultAttributeFactory) CreateAttributeInstance(class string) (AttributeImpl, error) {
+func (d DefaultAttributeFactory) CreateAttributeInstance(class string) (util.AttributeImpl, error) {
 	switch class {
 	case ClassBytesTerm:
 		return NewBytesTermAttributeImpl(), nil

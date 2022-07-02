@@ -6,6 +6,7 @@ import (
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
 	"sort"
 
@@ -124,7 +125,7 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 	return &index, nil
 }
 
-func fromDocument(document *document.Document, analyzer core.Analyzer,
+func fromDocument(document *document.Document, analyzer analysis.Analyzer,
 	storeOffsets, storePayloads bool, maxReusedBytes int64) (*MemoryIndex, error) {
 
 	index, err := NewMemoryIndex(storeOffsets, storePayloads, maxReusedBytes)
@@ -152,7 +153,7 @@ func fromDocument(document *document.Document, analyzer core.Analyzer,
 // values based on IndexableFieldType.docValuesType() if set.
 // Params: field – the field to add
 // analyzer – the analyzer to use for term analysis
-func (m *MemoryIndex) AddField(field types.IndexableField, analyzer core.Analyzer) error {
+func (m *MemoryIndex) AddField(field types.IndexableField, analyzer analysis.Analyzer) error {
 	info, err := m.getInfo(field.Name(), field.FieldType())
 	if err != nil {
 		return err
@@ -261,19 +262,19 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 
 	stream := tokenStream
 
-	termAtt, ok := stream.GetAttributeSource().Get(core.ClassTermToBytesRef)
+	termAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassTermToBytesRef)
 	if !ok {
 		return errors.New("TermToBytesRefAttribute not exist")
 	}
-	posIncrAttribute, ok := stream.GetAttributeSource().Get(core.ClassPositionIncrement)
+	posIncrAttribute, ok := stream.GetAttributeSource().Get(tokenattributes.ClassPositionIncrement)
 	if !ok {
 		return errors.New("PositionIncrementAttribute not exist")
 	}
-	offsetAtt, ok := stream.GetAttributeSource().Get(core.ClassOffset)
+	offsetAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassOffset)
 	if !ok {
 		return errors.New("OffsetAttribute not exist")
 	}
-	payloadAtt, ok := stream.GetAttributeSource().Get(core.ClassPayload)
+	payloadAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassPayload)
 	if !ok {
 		return errors.New("PayloadAttribute not exist")
 	}
@@ -293,13 +294,13 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 		}
 
 		info.numTokens++
-		posIncr := posIncrAttribute.(core.PositionIncrementAttribute).GetPositionIncrement()
+		posIncr := posIncrAttribute.(tokenattributes.PositionIncrementAttribute).GetPositionIncrement()
 		if posIncr == 0 {
 			info.numOverlapTokens++
 		}
 
 		pos += posIncr
-		ord, err := info.terms.Add(termAtt.(core.TermToBytesRefAttribute).GetBytesRef())
+		ord, err := info.terms.Add(termAtt.(tokenattributes.TermToBytesRefAttribute).GetBytesRef())
 		if err != nil {
 			return err
 		}
@@ -314,12 +315,12 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 		info.sumTotalTermFreq++
 		m.postingsWriter.WriteInt(pos)
 		if m.storeOffsets {
-			m.postingsWriter.WriteInt(offsetAtt.(core.OffsetAttribute).StartOffset() + offset)
-			m.postingsWriter.WriteInt(offsetAtt.(core.OffsetAttribute).EndOffset() + offset)
+			m.postingsWriter.WriteInt(offsetAtt.(tokenattributes.OffsetAttribute).StartOffset() + offset)
+			m.postingsWriter.WriteInt(offsetAtt.(tokenattributes.OffsetAttribute).EndOffset() + offset)
 		}
 
 		if m.storePayloads {
-			payload := payloadAtt.(core.PayloadAttribute).GetPayload()
+			payload := payloadAtt.(tokenattributes.PayloadAttribute).GetPayload()
 			pIndex := 0
 			if payload == nil || len(payload) == 0 {
 				pIndex = -1
@@ -338,7 +339,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 
 	if info.numTokens > 0 {
 		info.lastPosition = pos
-		info.lastOffset = offsetAtt.(core.OffsetAttribute).EndOffset() + offset
+		info.lastOffset = offsetAtt.(tokenattributes.OffsetAttribute).EndOffset() + offset
 	}
 
 	return nil

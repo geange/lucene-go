@@ -1,4 +1,4 @@
-package core
+package tokenattributes
 
 const (
 	ClassBytesTerm         = "BytesTerm"

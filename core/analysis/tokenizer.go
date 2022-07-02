@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core"
+	"github.com/geange/lucene-go/core/util"
 	"io"
 )
 
@@ -13,7 +13,7 @@ type Tokenizer interface {
 	SetReader(reader io.Reader) error
 }
 
-func NewTokenizerImpl(source *core.AttributeSource) *TokenizerImpl {
+func NewTokenizerImpl(source *util.AttributeSource) *TokenizerImpl {
 	return &TokenizerImpl{
 		source:       source,
 		Input:        nil,
@@ -22,7 +22,7 @@ func NewTokenizerImpl(source *core.AttributeSource) *TokenizerImpl {
 }
 
 type TokenizerImpl struct {
-	source *core.AttributeSource
+	source *util.AttributeSource
 
 	// The text source for this Tokenizer.
 	Input io.Reader
@@ -31,7 +31,7 @@ type TokenizerImpl struct {
 	inputPending io.Reader
 }
 
-func (t *TokenizerImpl) GetAttributeSource() *core.AttributeSource {
+func (t *TokenizerImpl) GetAttributeSource() *util.AttributeSource {
 	return t.source
 }
 
@@ -68,7 +68,7 @@ func (t *TokenizerImpl) Close() error {
 // Returns: corrected offset based on the input
 // See Also: CharFilter.correctOffset
 func (t *TokenizerImpl) CorrectOffset(currentOff int) int {
-	if charFilter, ok := t.Input.(core.CharFilter); ok {
+	if charFilter, ok := t.Input.(CharFilter); ok {
 		return charFilter.CorrectOffset(currentOff)
 	}
 	return currentOff

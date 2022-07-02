@@ -1,12 +1,15 @@
 package core
 
-import "github.com/geange/lucene-go/core/util"
+import (
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/util"
+)
 
 type LeafReader interface {
 	IndexReader
 
 	// GetFieldInfos Get the FieldInfos describing all fields in this reader. Note: Implementations should cache the FieldInfos instance returned by this method such that subsequent calls to this method return the same instance.
-	GetFieldInfos() *FieldInfos
+	GetFieldInfos() *index.FieldInfos
 
 	// GetLiveDocs Returns the Bits representing live (not deleted) docs. A set bit indicates the doc ID has
 	// not been deleted. If this method returns null it means there are no deleted documents

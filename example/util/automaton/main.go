@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core"
+	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 func main() {
 
-	automaton := core.NewAutomaton()
+	automaton := automaton.NewAutomaton()
 
 	state := automaton.CreateState()
 

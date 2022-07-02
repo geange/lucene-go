@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
 
@@ -67,7 +68,7 @@ func (b *BM25Similarity) GetDiscountOverlaps() bool {
 	return b.discountOverlaps
 }
 
-func (b *BM25Similarity) ComputeNorm(state *FieldInvertState) int64 {
+func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 	numTerms := 0
 	if state.GetIndexOptions() == types.INDEX_OPTIONS_DOCS && state.GetIndexCreatedVersionMajor() >= 8 {
 		numTerms = state.GetUniqueTermCount()

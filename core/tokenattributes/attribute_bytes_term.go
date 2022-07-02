@@ -1,7 +1,11 @@
-package core
+package tokenattributes
+
+import (
+	"github.com/geange/lucene-go/core/util"
+)
 
 var (
-	_ AttributeImpl           = &BytesTermAttributeImpl{}
+	_ util.AttributeImpl      = &BytesTermAttributeImpl{}
 	_ BytesTermAttribute      = &BytesTermAttributeImpl{}
 	_ TermToBytesRefAttribute = &BytesTermAttributeImpl{}
 )
@@ -40,7 +44,7 @@ func (b *BytesTermAttributeImpl) End() error {
 	return b.Clear()
 }
 
-func (b *BytesTermAttributeImpl) CopyTo(target AttributeImpl) error {
+func (b *BytesTermAttributeImpl) CopyTo(target util.AttributeImpl) error {
 	impl, ok := target.(*BytesTermAttributeImpl)
 	if ok {
 		bytes := make([]byte, len(b.bytes))
@@ -50,7 +54,7 @@ func (b *BytesTermAttributeImpl) CopyTo(target AttributeImpl) error {
 	return nil
 }
 
-func (b *BytesTermAttributeImpl) Clone() AttributeImpl {
+func (b *BytesTermAttributeImpl) Clone() util.AttributeImpl {
 	bytes := make([]byte, len(b.bytes))
 	copy(bytes, b.bytes)
 	return &BytesTermAttributeImpl{bytes: bytes}
