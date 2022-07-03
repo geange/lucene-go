@@ -13,16 +13,18 @@ type Tokenizer interface {
 	SetReader(reader io.Reader) error
 }
 
-func NewTokenizerImpl(source *util.AttributeSource) *TokenizerImpl {
-	return &TokenizerImpl{
+func NewTokenizerImpl(source *util.AttributeSource) *TokenizerIMP {
+	return &TokenizerIMP{
 		source:       source,
 		Input:        nil,
 		inputPending: nil,
 	}
 }
 
-type TokenizerImpl struct {
+type TokenizerIMP struct {
 	source *util.AttributeSource
+
+	sourceV1 *util.AttributeSourceV1
 
 	// The text source for this Tokenizer.
 	Input io.Reader
@@ -31,27 +33,31 @@ type TokenizerImpl struct {
 	inputPending io.Reader
 }
 
-func (t *TokenizerImpl) GetAttributeSource() *util.AttributeSource {
+func (t *TokenizerIMP) AttributeSource() *util.AttributeSourceV1 {
+	return t.sourceV1
+}
+
+func (t *TokenizerIMP) GetAttributeSource() *util.AttributeSource {
 	return t.source
 }
 
-func (t *TokenizerImpl) IncrementToken() (bool, error) {
+func (t *TokenizerIMP) IncrementToken() (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *TokenizerImpl) End() error {
+func (t *TokenizerIMP) End() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *TokenizerImpl) Reset() error {
+func (t *TokenizerIMP) Reset() error {
 	t.Input = t.inputPending
 	t.inputPending = nil
 	return nil
 }
 
-func (t *TokenizerImpl) Close() error {
+func (t *TokenizerIMP) Close() error {
 	//err := t.Input.Close()
 	//if err != nil {
 	//	return err
@@ -67,14 +73,14 @@ func (t *TokenizerImpl) Close() error {
 // Params: currentOff – offset as seen in the output
 // Returns: corrected offset based on the input
 // See Also: CharFilter.correctOffset
-func (t *TokenizerImpl) CorrectOffset(currentOff int) int {
+func (t *TokenizerIMP) CorrectOffset(currentOff int) int {
 	if charFilter, ok := t.Input.(CharFilter); ok {
 		return charFilter.CorrectOffset(currentOff)
 	}
 	return currentOff
 }
 
-func (t *TokenizerImpl) SetReader(reader io.Reader) error {
+func (t *TokenizerIMP) SetReader(reader io.Reader) error {
 	t.inputPending = reader
 	return nil
 }

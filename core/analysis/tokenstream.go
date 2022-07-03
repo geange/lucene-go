@@ -11,6 +11,8 @@ import (
 type TokenStream interface {
 	GetAttributeSource() *util.AttributeSource
 
+	AttributeSource() *util.AttributeSourceV1
+
 	// IncrementToken Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
 	// Implementing classes must implement this method and update the appropriate AttributeImpls with the
 	// attributes of the next token.

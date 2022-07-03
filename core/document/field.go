@@ -171,23 +171,28 @@ func NewStringTokenStream(source *util.AttributeSource) (*StringTokenStream, err
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.termAttribute = termAttribute.(*tokenattributes.PackedTokenAttributeImpl)
+	stream.termAttribute = termAttribute.(*tokenattributes.PackedTokenAttributeIMP)
 
 	offsetAttribute, ok := source.Get(tokenattributes.ClassOffset)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.offsetAttribute = offsetAttribute.(*tokenattributes.PackedTokenAttributeImpl)
+	stream.offsetAttribute = offsetAttribute.(*tokenattributes.PackedTokenAttributeIMP)
 
 	return stream, nil
 }
 
 type StringTokenStream struct {
 	source          *util.AttributeSource
+	sourceV1        *util.AttributeSourceV1
 	termAttribute   tokenattributes.CharTermAttribute
 	offsetAttribute tokenattributes.OffsetAttribute
 	used            bool
 	value           string
+}
+
+func (t *StringTokenStream) AttributeSource() *util.AttributeSourceV1 {
+	return t.sourceV1
 }
 
 func (s *StringTokenStream) GetAttributeSource() *util.AttributeSource {
@@ -251,46 +256,51 @@ func NewBinaryTokenStream(source *util.AttributeSource) (*BinaryTokenStream, err
 
 type BinaryTokenStream struct {
 	source   *util.AttributeSource
+	sourceV1 *util.AttributeSourceV1
 	bytesAtt *tokenattributes.BytesTermAttributeImpl
 	used     bool
 	value    []byte
 }
 
-func (b *BinaryTokenStream) GetAttributeSource() *util.AttributeSource {
-	return b.source
+func (r *BinaryTokenStream) AttributeSource() *util.AttributeSourceV1 {
+	return r.sourceV1
 }
 
-func (b *BinaryTokenStream) IncrementToken() (bool, error) {
-	if b.used {
+func (r *BinaryTokenStream) GetAttributeSource() *util.AttributeSource {
+	return r.source
+}
+
+func (r *BinaryTokenStream) IncrementToken() (bool, error) {
+	if r.used {
 		return false, nil
 	}
 
-	err := b.source.Clear()
+	err := r.source.Clear()
 	if err != nil {
 		return false, err
 	}
 
-	if err := b.bytesAtt.SetBytesRef(b.value); err != nil {
+	if err := r.bytesAtt.SetBytesRef(r.value); err != nil {
 		return false, err
 	}
-	b.used = true
+	r.used = true
 	return true, nil
 }
 
-func (b *BinaryTokenStream) End() error {
-	return b.source.Clear()
+func (r *BinaryTokenStream) End() error {
+	return r.source.Clear()
 }
 
-func (b *BinaryTokenStream) Reset() error {
-	b.used = false
+func (r *BinaryTokenStream) Reset() error {
+	r.used = false
 	return nil
 }
 
-func (b *BinaryTokenStream) Close() error {
-	b.value = nil
+func (r *BinaryTokenStream) Close() error {
+	r.value = nil
 	return nil
 }
 
-func (b *BinaryTokenStream) SetValue(value []byte) {
-	b.value = value
+func (r *BinaryTokenStream) SetValue(value []byte) {
+	r.value = value
 }

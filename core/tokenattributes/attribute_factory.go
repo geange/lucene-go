@@ -25,17 +25,17 @@ func (d DefaultAttributeFactory) CreateAttributeInstance(class string) (util.Att
 	case ClassBytesTerm:
 		return NewBytesTermAttributeImpl(), nil
 	case ClassCharTerm:
-		return NewPackedTokenAttributeImpl(), nil
+		return NewPackedTokenAttributeIMP(), nil
 	case ClassOffset:
-		return NewPackedTokenAttributeImpl(), nil
+		return NewPackedTokenAttributeIMP(), nil
 	case ClassPositionIncrement:
-		return NewPackedTokenAttributeImpl(), nil
+		return NewPackedTokenAttributeIMP(), nil
 	case ClassPositionLength:
-		return NewPackedTokenAttributeImpl(), nil
+		return NewPackedTokenAttributeIMP(), nil
 	case ClassTermFrequency:
-		return NewPackedTokenAttributeImpl(), nil
+		return NewPackedTokenAttributeIMP(), nil
 	case ClassTermToBytesRef:
-		return NewPackedTokenAttributeImpl(), nil
+		return NewPackedTokenAttributeIMP(), nil
 	case ClassPayload:
 		return NewPayloadAttributeImpl(), nil
 	default:

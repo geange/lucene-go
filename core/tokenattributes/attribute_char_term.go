@@ -5,28 +5,28 @@ import (
 )
 
 var (
-	_ CharTermAttribute = &CharTermAttributeImpl{}
+	_ CharTermAttribute = &CharTermAttributeIMP{}
 )
 
-func NewCharTermAttributeImpl() *CharTermAttributeImpl {
-	return &CharTermAttributeImpl{termBuffer: make([]rune, 0)}
+func NewCharTermAttributeImpl() *CharTermAttributeIMP {
+	return &CharTermAttributeIMP{termBuffer: make([]rune, 0)}
 }
 
-type CharTermAttributeImpl struct {
+type CharTermAttributeIMP struct {
 	termBuffer []rune
 }
 
-func (c *CharTermAttributeImpl) AppendRune(r rune) {
+func (c *CharTermAttributeIMP) AppendRune(r rune) {
 	c.termBuffer = append(c.termBuffer, r)
 }
 
-func (c *CharTermAttributeImpl) ResizeBuffer(newSize int) {
+func (c *CharTermAttributeIMP) ResizeBuffer(newSize int) {
 	if len(c.termBuffer) < newSize {
 		c.termBuffer = make([]rune, newSize)
 	}
 }
 
-func (c *CharTermAttributeImpl) SetLength(length int) {
+func (c *CharTermAttributeIMP) SetLength(length int) {
 	if len(c.termBuffer) < length {
 		c.termBuffer = c.termBuffer[:length]
 		return
@@ -34,36 +34,36 @@ func (c *CharTermAttributeImpl) SetLength(length int) {
 	c.ResizeBuffer(length)
 }
 
-func (c *CharTermAttributeImpl) Buffer() []rune {
+func (c *CharTermAttributeIMP) Buffer() []rune {
 	return c.termBuffer
 }
 
-func (c *CharTermAttributeImpl) Append(s string) {
+func (c *CharTermAttributeIMP) Append(s string) {
 	c.termBuffer = append(c.termBuffer, []rune(s)...)
 }
 
-func (c *CharTermAttributeImpl) SetEmpty() {
+func (c *CharTermAttributeIMP) SetEmpty() {
 	c.termBuffer = c.termBuffer[:0]
 }
 
-func (c *CharTermAttributeImpl) Interfaces() []string {
+func (c *CharTermAttributeIMP) Interfaces() []string {
 	return []string{
 		"CharTerm",
 		"TermToBytesRef",
 	}
 }
 
-func (c *CharTermAttributeImpl) Clear() error {
+func (c *CharTermAttributeIMP) Clear() error {
 	c.termBuffer = nil
 	return nil
 }
 
-func (c *CharTermAttributeImpl) End() error {
+func (c *CharTermAttributeIMP) End() error {
 	return nil
 }
 
-func (c *CharTermAttributeImpl) CopyTo(target util.AttributeImpl) error {
-	impl, ok := target.(*CharTermAttributeImpl)
+func (c *CharTermAttributeIMP) CopyTo(target util.AttributeImpl) error {
+	impl, ok := target.(*CharTermAttributeIMP)
 	if ok {
 		termBuffer := make([]rune, len(c.termBuffer))
 		copy(termBuffer, c.termBuffer)
@@ -73,8 +73,8 @@ func (c *CharTermAttributeImpl) CopyTo(target util.AttributeImpl) error {
 	return nil
 }
 
-func (c *CharTermAttributeImpl) Clone() util.AttributeImpl {
+func (c *CharTermAttributeIMP) Clone() util.AttributeImpl {
 	termBuffer := make([]rune, len(c.termBuffer))
 	copy(termBuffer, c.termBuffer)
-	return &CharTermAttributeImpl{termBuffer: termBuffer}
+	return &CharTermAttributeIMP{termBuffer: termBuffer}
 }

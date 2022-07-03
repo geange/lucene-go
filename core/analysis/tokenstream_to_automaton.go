@@ -51,7 +51,7 @@ func (r *TokenStreamToAutomaton) ToAutomaton(in TokenStream) (*automaton.Automat
 	builder := automaton.NewNewBuilderDefault()
 	builder.CreateState()
 
-	in.GetAttributeSource().Add(tokenattributes.NewPackedTokenAttributeImpl())
+	in.GetAttributeSource().Add(tokenattributes.NewPackedTokenAttributeIMP())
 
 	panic("")
 }
