@@ -1,7 +1,6 @@
-package util
+package tokenattributes
 
 import (
-	"github.com/geange/lucene-go/core/tokenattributes"
 	"reflect"
 	"sync"
 )
@@ -26,7 +25,7 @@ type AttributeSource struct {
 	attributes     sync.Map
 	attributeImpls sync.Map
 	list           []AttributeImpl
-	factory        tokenattributes.AttributeFactory
+	factory        AttributeFactory
 }
 
 func NewAttributeSource() *AttributeSource {
@@ -34,7 +33,7 @@ func NewAttributeSource() *AttributeSource {
 		attributes:     sync.Map{},
 		attributeImpls: sync.Map{},
 		list:           make([]AttributeImpl, 0),
-		factory:        tokenattributes.DEFAULT_ATTRIBUTE_FACTORY,
+		factory:        DEFAULT_ATTRIBUTE_FACTORY,
 	}
 	return source
 }

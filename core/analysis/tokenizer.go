@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/tokenattributes"
 	"io"
 )
 
@@ -13,7 +13,7 @@ type Tokenizer interface {
 	SetReader(reader io.Reader) error
 }
 
-func NewTokenizerImpl(source *util.AttributeSource) *TokenizerIMP {
+func NewTokenizerImpl(source *tokenattributes.AttributeSource) *TokenizerIMP {
 	return &TokenizerIMP{
 		source:       source,
 		Input:        nil,
@@ -22,9 +22,9 @@ func NewTokenizerImpl(source *util.AttributeSource) *TokenizerIMP {
 }
 
 type TokenizerIMP struct {
-	source *util.AttributeSource
+	source *tokenattributes.AttributeSource
 
-	sourceV1 *util.AttributeSourceV1
+	sourceV1 *tokenattributes.AttributeSourceV1
 
 	// The text source for this Tokenizer.
 	Input io.Reader
@@ -33,11 +33,11 @@ type TokenizerIMP struct {
 	inputPending io.Reader
 }
 
-func (t *TokenizerIMP) AttributeSource() *util.AttributeSourceV1 {
+func (t *TokenizerIMP) AttributeSource() *tokenattributes.AttributeSourceV1 {
 	return t.sourceV1
 }
 
-func (t *TokenizerIMP) GetAttributeSource() *util.AttributeSource {
+func (t *TokenizerIMP) GetAttributeSource() *tokenattributes.AttributeSource {
 	return t.source
 }
 

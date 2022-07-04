@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/tokenattributes"
-	"github.com/geange/lucene-go/core/util"
 	"io"
 )
 
@@ -23,7 +22,7 @@ type CharTokenizerExt interface {
 }
 
 func NewCharTokenizerImpl(ext CharTokenizerExt, input io.Reader) *CharTokenizerImpl {
-	tokenizer := analysis.NewTokenizerImpl(util.NewAttributeSource())
+	tokenizer := analysis.NewTokenizerImpl(tokenattributes.NewAttributeSource())
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 

@@ -2,7 +2,6 @@ package tokenattributes
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/util"
 )
 
 var (
@@ -11,7 +10,7 @@ var (
 	_ PositionLengthAttribute    = &PackedTokenAttributeIMP{}
 	_ OffsetAttribute            = &PackedTokenAttributeIMP{}
 	_ TermFrequencyAttribute     = &PackedTokenAttributeIMP{}
-	_ util.AttributeImpl         = &PackedTokenAttributeIMP{}
+	_ AttributeImpl              = &PackedTokenAttributeIMP{}
 )
 
 func NewPackedTokenAttributeIMP() *PackedTokenAttributeIMP {
@@ -114,7 +113,7 @@ func (p *PackedTokenAttributeIMP) Clear() error {
 	p.termFrequency = 1
 	p.startOffset, p.endOffset = 0, 0
 	p._type = "word"
-	return nil
+	return p.CharTermAttributeIMP.Clear()
 }
 
 func (p *PackedTokenAttributeIMP) End() error {
@@ -122,7 +121,7 @@ func (p *PackedTokenAttributeIMP) End() error {
 	return nil
 }
 
-func (p *PackedTokenAttributeIMP) CopyTo(target util.AttributeImpl) error {
+func (p *PackedTokenAttributeIMP) CopyTo(target AttributeImpl) error {
 	if impl, ok := target.(*PackedTokenAttributeIMP); ok {
 		impl.startOffset = p.startOffset
 		impl.endOffset = p.endOffset
@@ -135,7 +134,7 @@ func (p *PackedTokenAttributeIMP) CopyTo(target util.AttributeImpl) error {
 	return errors.New("target is not PackedTokenAttributeIMP")
 }
 
-func (p *PackedTokenAttributeIMP) Clone() util.AttributeImpl {
+func (p *PackedTokenAttributeIMP) Clone() AttributeImpl {
 	return &PackedTokenAttributeIMP{
 		startOffset:       p.startOffset,
 		endOffset:         p.endOffset,

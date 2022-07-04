@@ -3,7 +3,6 @@ package index
 import (
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 )
 
 // FieldInvertState This class tracks the number and position / offset parameters of terms being added to the index.
@@ -21,7 +20,7 @@ type FieldInvertState struct {
 	// we must track these across field instances (multi-valued case)
 	lastStartOffset int
 	lastPosition    int
-	attributeSource *util.AttributeSource
+	attributeSource *tokenattributes.AttributeSource
 
 	offsetAttribute   tokenattributes.OffsetAttribute
 	posIncrAttribute  tokenattributes.PositionIncrementAttribute
@@ -76,7 +75,7 @@ func (f *FieldInvertState) GetUniqueTermCount() int {
 }
 
 // GetAttributeSource Returns the AttributeSource from the TokenStream that provided the indexed tokens for this field.
-func (f *FieldInvertState) GetAttributeSource() *util.AttributeSource {
+func (f *FieldInvertState) GetAttributeSource() *tokenattributes.AttributeSource {
 	return f.attributeSource
 }
 

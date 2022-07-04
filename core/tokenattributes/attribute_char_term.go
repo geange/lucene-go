@@ -1,9 +1,5 @@
 package tokenattributes
 
-import (
-	"github.com/geange/lucene-go/core/util"
-)
-
 var (
 	_ CharTermAttribute = &CharTermAttributeIMP{}
 )
@@ -54,7 +50,7 @@ func (c *CharTermAttributeIMP) Interfaces() []string {
 }
 
 func (c *CharTermAttributeIMP) Clear() error {
-	c.termBuffer = nil
+	c.termBuffer = c.termBuffer[:0]
 	return nil
 }
 
@@ -62,7 +58,7 @@ func (c *CharTermAttributeIMP) End() error {
 	return nil
 }
 
-func (c *CharTermAttributeIMP) CopyTo(target util.AttributeImpl) error {
+func (c *CharTermAttributeIMP) CopyTo(target AttributeImpl) error {
 	impl, ok := target.(*CharTermAttributeIMP)
 	if ok {
 		termBuffer := make([]rune, len(c.termBuffer))
@@ -73,7 +69,7 @@ func (c *CharTermAttributeIMP) CopyTo(target util.AttributeImpl) error {
 	return nil
 }
 
-func (c *CharTermAttributeIMP) Clone() util.AttributeImpl {
+func (c *CharTermAttributeIMP) Clone() AttributeImpl {
 	termBuffer := make([]rune, len(c.termBuffer))
 	copy(termBuffer, c.termBuffer)
 	return &CharTermAttributeIMP{termBuffer: termBuffer}

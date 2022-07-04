@@ -1,6 +1,9 @@
 package core
 
-import "github.com/geange/lucene-go/core/util"
+import (
+	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/util"
+)
 
 // TermsEnum Iterator to seek (seekCeil(BytesRef), seekExact(BytesRef)) or step through (next terms to obtain
 // frequency information (docFreq), PostingsEnum or PostingsEnum for the current term (postings.
@@ -12,7 +15,7 @@ type TermsEnum interface {
 	util.BytesRefIterator
 
 	// Attributes Returns the related attributes.
-	Attributes() *util.AttributeSource
+	Attributes() *tokenattributes.AttributeSource
 
 	// SeekExact Attempts to seek to the exact term, returning true if the term is found. If this returns false,
 	// the enum is unpositioned. For some codecs, seekExact may be substantially faster than seekCeil.

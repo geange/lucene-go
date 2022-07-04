@@ -1,7 +1,14 @@
 package standard
 
-// TokenizerImpl This class implements Word Break rules from the Unicode Text Segmentation algorithm, as specified in Unicode Standard Annex #29 .
-//Tokens produced are of the following types:
+import (
+	"bufio"
+	"io"
+	"unicode"
+)
+
+// TokenizerImpl This class implements Word Break rules from the Unicode Text Segmentation algorithm, as
+// specified in Unicode Standard Annex #29 .
+// Tokens produced are of the following types:
 // * <ALPHANUM>: A sequence of alphabetic and numeric characters
 // * <NUM>: A number
 // * <SOUTHEAST_ASIAN>: A sequence of characters from South and Southeast Asian languages, including Thai, Lao, Myanmar, and Khmer
@@ -11,22 +18,40 @@ package standard
 // * <HANGUL>: A sequence of Hangul characters
 // * <EMOJI>: A sequence of Emoji characters
 type TokenizerImpl struct {
+	reader io.RuneReader
+	Slow   int
+	Fast   int
 
-	// initial size of the lookahead buffer
-	ZZ_BUFFERSIZE int
+	buff []rune
 }
 
-const (
-	// YYEOF This character denotes the end of file
-	YYEOF = -1
+func (r *TokenizerImpl) SetReader(reader io.Reader) {
+	r.reader = bufio.NewReader(reader)
+	r.Slow, r.Fast = 0, 0
+	r.buff = r.buff[:0]
+}
 
-	// YYINITIAL lexical states
-	YYINITIAL = 0
-)
+func (r *TokenizerImpl) GetNextToken() (string, error) {
+	if r.Slow < r.Fast {
+		r.Slow = r.Fast
+		r.buff = r.buff[:0]
+	}
 
-var (
-	// ZZ_LEXSTATE ZZ_LEXSTATE[l] is the state in the DFA for the lexical state l ZZ_LEXSTATE[l+1] is the state
-	// in the DFA for the lexical state l at the beginning of a line l is of the form l = 2*k, k a non negative
-	// integer
-	ZZ_LEXSTATE = []int{0, 0}
-)
+	for {
+		char, n, err := r.reader.ReadRune()
+		if err != nil {
+			return "", err
+		}
+
+		if !unicode.IsSpace(char) {
+			r.Fast += n
+			r.buff = append(r.buff, char)
+		} else {
+			r.Fast += n
+			r.Fast++
+			break
+		}
+	}
+
+	return string(r.buff), nil
+}

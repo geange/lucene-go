@@ -25,7 +25,7 @@ func (r *Analyzer) GetMaxTokenLength() int {
 }
 
 func (r *Analyzer) CreateComponents(_ string) *analysis.TokenStreamComponents {
-	src := NewTokenizer()
+	src := NewTokenizer(nil)
 	src.setMaxTokenLength(r.maxTokenLength)
 	tok := analysis.NewLowerCaseFilter(src)
 	return analysis.NewTokenStreamComponents(func(reader io.Reader) {
