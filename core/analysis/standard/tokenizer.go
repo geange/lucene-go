@@ -9,37 +9,45 @@ type Tokenizer struct {
 	scanner *TokenizerImpl
 }
 
-func (t *Tokenizer) GetAttributeSource() *util.AttributeSource {
+func NewTokenizer() *Tokenizer {
+	panic("")
+}
+
+func (r *Tokenizer) GetAttributeSource() *util.AttributeSource {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *Tokenizer) AttributeSource() *util.AttributeSourceV1 {
+func (r *Tokenizer) AttributeSource() *util.AttributeSourceV1 {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *Tokenizer) IncrementToken() (bool, error) {
+func (r *Tokenizer) IncrementToken() (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *Tokenizer) End() error {
+func (r *Tokenizer) End() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *Tokenizer) Reset() error {
+func (r *Tokenizer) Reset() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *Tokenizer) Close() error {
+func (r *Tokenizer) Close() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *Tokenizer) SetReader(reader io.Reader) error {
+func (r *Tokenizer) SetReader(reader io.Reader) error {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (r *Tokenizer) setMaxTokenLength(length int) {
+	panic("")
 }

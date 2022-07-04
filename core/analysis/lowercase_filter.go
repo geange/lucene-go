@@ -12,6 +12,10 @@ type LowerCaseFilter struct {
 	termAtt tokenattributes.CharTermAttribute
 }
 
+func NewLowerCaseFilter(in TokenStream) *LowerCaseFilter {
+	panic("")
+}
+
 func (r *LowerCaseFilter) IncrementToken() (bool, error) {
 	if ok, err := r.IncrementToken(); err != nil {
 		return false, err

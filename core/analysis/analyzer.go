@@ -138,6 +138,10 @@ type TokenStreamComponents struct {
 	reusableStringReader *bytes.Buffer
 }
 
+func NewTokenStreamComponents(source func(reader io.Reader), result TokenStream) *TokenStreamComponents {
+	panic("")
+}
+
 func (r *TokenStreamComponents) setReader(reader io.Reader) {
 	r.source(reader)
 }
