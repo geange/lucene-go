@@ -13,6 +13,15 @@ var (
 	_ AttributeImpl              = &PackedTokenAttributeIMP{}
 )
 
+type PackedTokenAttribute interface {
+	TypeAttribute
+	PositionIncrementAttribute
+	PositionLengthAttribute
+	OffsetAttribute
+	TermFrequencyAttribute
+	AttributeImpl
+}
+
 func NewPackedTokenAttributeIMP() *PackedTokenAttributeIMP {
 	return &PackedTokenAttributeIMP{
 		CharTermAttributeIMP: NewCharTermAttributeImpl(),

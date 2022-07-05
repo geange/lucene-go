@@ -262,22 +262,26 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 
 	stream := tokenStream
 
-	termAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassTermToBytesRef)
-	if !ok {
-		return errors.New("TermToBytesRefAttribute not exist")
-	}
-	posIncrAttribute, ok := stream.GetAttributeSource().Get(tokenattributes.ClassPositionIncrement)
-	if !ok {
-		return errors.New("PositionIncrementAttribute not exist")
-	}
-	offsetAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassOffset)
-	if !ok {
-		return errors.New("OffsetAttribute not exist")
-	}
-	payloadAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassPayload)
-	if !ok {
-		return errors.New("PayloadAttribute not exist")
-	}
+	packedAttr := stream.AttributeSource().PackedTokenAttribute()
+	bytesAttr := stream.AttributeSource().BytesTermAttribute()
+	payloadAtt := stream.AttributeSource().PayloadAttribute()
+
+	//termAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassTermToBytesRef)
+	//if !ok {
+	//	return errors.New("TermToBytesRefAttribute not exist")
+	//}
+	//posIncrAttribute, ok := stream.GetAttributeSource().Get(tokenattributes.ClassPositionIncrement)
+	//if !ok {
+	//	return errors.New("PositionIncrementAttribute not exist")
+	//}
+	//offsetAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassOffset)
+	//if !ok {
+	//	return errors.New("OffsetAttribute not exist")
+	//}
+	//payloadAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassPayload)
+	//if !ok {
+	//	return errors.New("PayloadAttribute not exist")
+	//}
 
 	err := stream.Reset()
 	if err != nil {
@@ -294,13 +298,13 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 		}
 
 		info.numTokens++
-		posIncr := posIncrAttribute.(tokenattributes.PositionIncrementAttribute).GetPositionIncrement()
+		posIncr := packedAttr.GetPositionIncrement()
 		if posIncr == 0 {
 			info.numOverlapTokens++
 		}
 
 		pos += posIncr
-		ord, err := info.terms.Add(termAtt.(tokenattributes.TermToBytesRefAttribute).GetBytesRef())
+		ord, err := info.terms.Add(bytesAttr.GetBytesRef())
 		if err != nil {
 			return err
 		}
@@ -315,8 +319,8 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 		info.sumTotalTermFreq++
 		m.postingsWriter.WriteInt(pos)
 		if m.storeOffsets {
-			m.postingsWriter.WriteInt(offsetAtt.(tokenattributes.OffsetAttribute).StartOffset() + offset)
-			m.postingsWriter.WriteInt(offsetAtt.(tokenattributes.OffsetAttribute).EndOffset() + offset)
+			m.postingsWriter.WriteInt(packedAttr.StartOffset() + offset)
+			m.postingsWriter.WriteInt(packedAttr.EndOffset() + offset)
 		}
 
 		if m.storePayloads {
@@ -339,7 +343,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 
 	if info.numTokens > 0 {
 		info.lastPosition = pos
-		info.lastOffset = offsetAtt.(tokenattributes.OffsetAttribute).EndOffset() + offset
+		info.lastOffset = packedAttr.EndOffset() + offset
 	}
 
 	return nil
