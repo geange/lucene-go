@@ -1,4 +1,4 @@
-package core
+package index
 
 // DocIdSetIterator This abstract class defines methods to iterate over a set of non-decreasing doc ids.
 // Note that this class assumes it iterates on doc Ids, and therefore NO_MORE_DOCS is set to 2147483647

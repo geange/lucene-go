@@ -158,7 +158,7 @@ var (
 	_ analysis.TokenStream = &StringTokenStream{}
 )
 
-func NewStringTokenStream(source *tokenattributes.AttributeSource) (*StringTokenStream, error) {
+func NewStringTokenStream(source *tokenattributes.AttributeSourceV2) (*StringTokenStream, error) {
 	stream := &StringTokenStream{
 		source:          source,
 		termAttribute:   nil,
@@ -170,31 +170,31 @@ func NewStringTokenStream(source *tokenattributes.AttributeSource) (*StringToken
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.termAttribute = termAttribute.(*tokenattributes.PackedTokenAttributeIMP)
+	stream.termAttribute = termAttribute.(*tokenattributes.PackedTokenAttributeImp)
 
 	offsetAttribute, ok := source.Get(tokenattributes.ClassOffset)
 	if !ok {
 		return nil, errors.New("PackedTokenAttribute not exist")
 	}
-	stream.offsetAttribute = offsetAttribute.(*tokenattributes.PackedTokenAttributeIMP)
+	stream.offsetAttribute = offsetAttribute.(*tokenattributes.PackedTokenAttributeImp)
 
 	return stream, nil
 }
 
 type StringTokenStream struct {
-	source          *tokenattributes.AttributeSource
-	sourceV1        *tokenattributes.AttributeSourceV1
+	source          *tokenattributes.AttributeSourceV2
+	sourceV1        *tokenattributes.AttributeSource
 	termAttribute   tokenattributes.CharTermAttribute
 	offsetAttribute tokenattributes.OffsetAttribute
 	used            bool
 	value           string
 }
 
-func (t *StringTokenStream) AttributeSource() *tokenattributes.AttributeSourceV1 {
+func (t *StringTokenStream) AttributeSource() *tokenattributes.AttributeSource {
 	return t.sourceV1
 }
 
-func (s *StringTokenStream) GetAttributeSource() *tokenattributes.AttributeSource {
+func (s *StringTokenStream) GetAttributeSource() *tokenattributes.AttributeSourceV2 {
 	return s.source
 }
 
@@ -238,7 +238,7 @@ var (
 	_ analysis.TokenStream = &BinaryTokenStream{}
 )
 
-func NewBinaryTokenStream(source *tokenattributes.AttributeSource) (*BinaryTokenStream, error) {
+func NewBinaryTokenStream(source *tokenattributes.AttributeSourceV2) (*BinaryTokenStream, error) {
 	stream := &BinaryTokenStream{
 		source:   source,
 		bytesAtt: nil,
@@ -247,25 +247,25 @@ func NewBinaryTokenStream(source *tokenattributes.AttributeSource) (*BinaryToken
 	}
 	att, ok := source.Get(tokenattributes.ClassBytesTerm)
 	if !ok {
-		return nil, errors.New("BytesTermAttribute not exist")
+		return nil, errors.New("BytesTerm not exist")
 	}
 	stream.bytesAtt = att.(*tokenattributes.BytesTermAttributeImpl)
 	return stream, nil
 }
 
 type BinaryTokenStream struct {
-	source   *tokenattributes.AttributeSource
-	sourceV1 *tokenattributes.AttributeSourceV1
+	source   *tokenattributes.AttributeSourceV2
+	sourceV1 *tokenattributes.AttributeSource
 	bytesAtt *tokenattributes.BytesTermAttributeImpl
 	used     bool
 	value    []byte
 }
 
-func (r *BinaryTokenStream) AttributeSource() *tokenattributes.AttributeSourceV1 {
+func (r *BinaryTokenStream) AttributeSource() *tokenattributes.AttributeSource {
 	return r.sourceV1
 }
 
-func (r *BinaryTokenStream) GetAttributeSource() *tokenattributes.AttributeSource {
+func (r *BinaryTokenStream) GetAttributeSource() *tokenattributes.AttributeSourceV2 {
 	return r.source
 }
 

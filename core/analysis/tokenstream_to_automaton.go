@@ -1,7 +1,6 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
@@ -51,7 +50,7 @@ func (r *TokenStreamToAutomaton) ToAutomaton(in TokenStream) (*automaton.Automat
 	builder := automaton.NewNewBuilderDefault()
 	builder.CreateState()
 
-	in.GetAttributeSource().Add(tokenattributes.NewPackedTokenAttributeIMP())
+	//in.GetAttributeSource().Add(tokenattributes.NewPackedTokenAttributeImp())
 
 	panic("")
 }

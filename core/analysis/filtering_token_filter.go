@@ -18,7 +18,7 @@ type FilteringTokenFilterPLG interface {
 type FilteringTokenFilterIMP struct {
 	FilteringTokenFilterPLG
 
-	*TokenFilterIMP
+	*TokenFilterImp
 
 	posIncrAtt       tokenattributes.PositionIncrementAttribute
 	skippedPositions int

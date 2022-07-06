@@ -26,11 +26,11 @@ func NewCharTokenizerImpl(ext CharTokenizerExt, input io.Reader) *CharTokenizerI
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 
-	attr := tokenattributes.NewPackedTokenAttributeIMP()
+	attr := tokenattributes.NewPackedTokenAttributeImp()
 
 	return &CharTokenizerImpl{
 		ext:          ext,
-		TokenizerIMP: tokenizer,
+		TokenizerImp: tokenizer,
 		offset:       0,
 		finalOffset:  0,
 		maxTokenLen:  86400,
@@ -43,7 +43,7 @@ func NewCharTokenizerImpl(ext CharTokenizerExt, input io.Reader) *CharTokenizerI
 type CharTokenizerImpl struct {
 	ext CharTokenizerExt
 
-	*analysis.TokenizerIMP
+	*analysis.TokenizerImp
 
 	offset      int //
 	finalOffset int
@@ -98,7 +98,7 @@ func (c *CharTokenizerImpl) End() error {
 }
 
 func (c *CharTokenizerImpl) Reset() error {
-	err := c.TokenizerIMP.Reset()
+	err := c.TokenizerImp.Reset()
 	if err != nil {
 		return err
 	}

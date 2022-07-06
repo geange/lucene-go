@@ -20,7 +20,7 @@ type FieldInvertState struct {
 	// we must track these across field instances (multi-valued case)
 	lastStartOffset int
 	lastPosition    int
-	attributeSource *tokenattributes.AttributeSource
+	attributeSource *tokenattributes.AttributeSourceV2
 
 	offsetAttribute   tokenattributes.OffsetAttribute
 	posIncrAttribute  tokenattributes.PositionIncrementAttribute
@@ -74,8 +74,8 @@ func (f *FieldInvertState) GetUniqueTermCount() int {
 	return f.uniqueTermCount
 }
 
-// GetAttributeSource Returns the AttributeSource from the TokenStream that provided the indexed tokens for this field.
-func (f *FieldInvertState) GetAttributeSource() *tokenattributes.AttributeSource {
+// GetAttributeSource Returns the AttributeSourceV2 from the TokenStream that provided the indexed tokens for this field.
+func (f *FieldInvertState) GetAttributeSource() *tokenattributes.AttributeSourceV2 {
 	return f.attributeSource
 }
 

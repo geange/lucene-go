@@ -6,12 +6,31 @@ import (
 
 // A TokenStream enumerates the sequence of tokens, either from Fields of a Document or from query text.
 // This is an abstract class; concrete subclasses are:
-// * Tokenizer, a TokenStream whose input is a Reader; and
-// * TokenFilter, a TokenStream whose input is another TokenStream.
+// Tokenizer, a TokenStream whose input is a Reader; and
+// TokenFilter, a TokenStream whose input is another TokenStream.
+//
+// TokenStream extends AttributeSource, which provides access to all of the token Attributes for the TokenStream.
+// Note that only one instance per AttributeImpl is created and reused for every token. This approach reduces
+// object creation and allows local caching of references to the AttributeImpls. See incrementToken() for further details.
+// The workflow of the new TokenStream API is as follows:
+//
+// 1. Instantiation of TokenStream/TokenFilters which add/get attributes to/from the AttributeSource.
+// 2. The consumer calls reset().
+// 3. The consumer retrieves attributes from the stream and stores local references to all attributes it wants to access.
+// 4. The consumer calls incrementToken() until it returns false consuming the attributes after each call.
+// 5. The consumer calls end() so that any end-of-stream operations can be performed.
+// 6. The consumer calls close() to release any resource when finished using the TokenStream.
+//
+// To make sure that filters and consumers know which attributes are available, the attributes must be added during
+// instantiation. Filters and consumers are not required to check for availability of attributes in incrementToken().
+// You can find some example code for the new API in the analysis package level Javadoc.
+// Sometimes it is desirable to capture a current state of a TokenStream, e.g., for buffering purposes
+// (see CachingTokenFilter, TeeSinkTokenFilter). For this usecase AttributeSourceV2.captureState and
+// AttributeSourceV2.restoreState can be used.
+// The TokenStream-API in Lucene is based on the decorator pattern. Therefore all non-abstract subclasses must
+// be final or have at least a final implementation of incrementToken! This is checked when Java assertions are enabled.
 type TokenStream interface {
-	GetAttributeSource() *tokenattributes.AttributeSource
-
-	AttributeSource() *tokenattributes.AttributeSourceV1
+	AttributeSource() *tokenattributes.AttributeSource
 
 	// IncrementToken Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
 	// Implementing classes must implement this method and update the appropriate AttributeImpls with the

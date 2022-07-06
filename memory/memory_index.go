@@ -188,7 +188,7 @@ func (m *MemoryIndex) AddField(field types.IndexableField, analyzer analysis.Ana
 
 	switch docValuesType {
 	case types.DOC_VALUES_TYPE_NONE:
-
+		break
 	case types.DOC_VALUES_TYPE_BINARY, types.DOC_VALUES_TYPE_SORTED, types.DOC_VALUES_TYPE_SORTED_SET:
 		err := m.storeDocValues(info, docValuesType, field.Value())
 		if err != nil {
@@ -263,25 +263,8 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 	stream := tokenStream
 
 	packedAttr := stream.AttributeSource().PackedTokenAttribute()
-	bytesAttr := stream.AttributeSource().BytesTermAttribute()
-	payloadAtt := stream.AttributeSource().PayloadAttribute()
-
-	//termAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassTermToBytesRef)
-	//if !ok {
-	//	return errors.New("TermToBytesRefAttribute not exist")
-	//}
-	//posIncrAttribute, ok := stream.GetAttributeSource().Get(tokenattributes.ClassPositionIncrement)
-	//if !ok {
-	//	return errors.New("PositionIncrementAttribute not exist")
-	//}
-	//offsetAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassOffset)
-	//if !ok {
-	//	return errors.New("OffsetAttribute not exist")
-	//}
-	//payloadAtt, ok := stream.GetAttributeSource().Get(tokenattributes.ClassPayload)
-	//if !ok {
-	//	return errors.New("PayloadAttribute not exist")
-	//}
+	bytesAttr := stream.AttributeSource().BytesTerm()
+	payloadAtt := stream.AttributeSource().Payload()
 
 	err := stream.Reset()
 	if err != nil {
@@ -463,7 +446,7 @@ func (r *Info) prepareDocValuesAndPointValues() {
 
 }
 
-func (r *Info) getNormDocValues() core.NumericDocValues {
+func (r *Info) getNormDocValues() index.NumericDocValues {
 	return nil
 }
 

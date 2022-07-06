@@ -13,18 +13,18 @@ type Tokenizer interface {
 	SetReader(reader io.Reader) error
 }
 
-func NewTokenizerImpl(source *tokenattributes.AttributeSource) *TokenizerIMP {
-	return &TokenizerIMP{
+func NewTokenizerImpl(source *tokenattributes.AttributeSourceV2) *TokenizerImp {
+	return &TokenizerImp{
 		source:       source,
 		Input:        nil,
 		inputPending: nil,
 	}
 }
 
-type TokenizerIMP struct {
-	source *tokenattributes.AttributeSource
+type TokenizerImp struct {
+	source *tokenattributes.AttributeSourceV2
 
-	sourceV1 *tokenattributes.AttributeSourceV1
+	sourceV1 *tokenattributes.AttributeSource
 
 	// The text source for this Tokenizer.
 	Input io.Reader
@@ -33,31 +33,31 @@ type TokenizerIMP struct {
 	inputPending io.Reader
 }
 
-func (t *TokenizerIMP) AttributeSource() *tokenattributes.AttributeSourceV1 {
+func (t *TokenizerImp) AttributeSource() *tokenattributes.AttributeSource {
 	return t.sourceV1
 }
 
-func (t *TokenizerIMP) GetAttributeSource() *tokenattributes.AttributeSource {
+func (t *TokenizerImp) GetAttributeSource() *tokenattributes.AttributeSourceV2 {
 	return t.source
 }
 
-func (t *TokenizerIMP) IncrementToken() (bool, error) {
+func (t *TokenizerImp) IncrementToken() (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *TokenizerIMP) End() error {
+func (t *TokenizerImp) End() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *TokenizerIMP) Reset() error {
+func (t *TokenizerImp) Reset() error {
 	t.Input = t.inputPending
 	t.inputPending = nil
 	return nil
 }
 
-func (t *TokenizerIMP) Close() error {
+func (t *TokenizerImp) Close() error {
 	//err := t.Input.Close()
 	//if err != nil {
 	//	return err
@@ -73,14 +73,14 @@ func (t *TokenizerIMP) Close() error {
 // Params: currentOff – offset as seen in the output
 // Returns: corrected offset based on the input
 // See Also: CharFilter.correctOffset
-func (t *TokenizerIMP) CorrectOffset(currentOff int) int {
+func (t *TokenizerImp) CorrectOffset(currentOff int) int {
 	if charFilter, ok := t.Input.(CharFilter); ok {
 		return charFilter.CorrectOffset(currentOff)
 	}
 	return currentOff
 }
 
-func (t *TokenizerIMP) SetReader(reader io.Reader) error {
+func (t *TokenizerImp) SetReader(reader io.Reader) error {
 	t.inputPending = reader
 	return nil
 }

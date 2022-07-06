@@ -1,7 +1,7 @@
-package core
+package index
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -9,7 +9,7 @@ type LeafReader interface {
 	IndexReader
 
 	// GetFieldInfos Get the FieldInfos describing all fields in this reader. Note: Implementations should cache the FieldInfos instance returned by this method such that subsequent calls to this method return the same instance.
-	GetFieldInfos() *index.FieldInfos
+	GetFieldInfos() *FieldInfos
 
 	// GetLiveDocs Returns the Bits representing live (not deleted) docs. A set bit indicates the doc ID has
 	// not been deleted. If this method returns null it means there are no deleted documents
@@ -26,5 +26,5 @@ type LeafReader interface {
 	CheckIntegrity() error
 
 	// GetMetaData Return metadata about this leaf.
-	GetMetaData() *LeafMetaData
+	GetMetaData() *core.LeafMetaData
 }

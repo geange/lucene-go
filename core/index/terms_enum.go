@@ -1,6 +1,7 @@
-package core
+package index
 
 import (
+	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/util"
 )
@@ -15,7 +16,7 @@ type TermsEnum interface {
 	util.BytesRefIterator
 
 	// Attributes Returns the related attributes.
-	Attributes() *tokenattributes.AttributeSource
+	Attributes() *tokenattributes.AttributeSourceV2
 
 	// SeekExact Attempts to seek to the exact term, returning true if the term is found. If this returns false,
 	// the enum is unpositioned. For some codecs, seekExact may be substantially faster than seekCeil.
@@ -38,11 +39,11 @@ type TermsEnum interface {
 	// NOTE: Using this method with an incompatible TermState might leave this TermsEnum in undefined state.
 	// On a segment level TermState instances are compatible only iff the source and the target TermsEnum operate
 	// on the same field. If operating on segment level, TermState instances must not be used across segments.
-	// NOTE: A seek by TermState might not restore the AttributeSource's state. AttributeSource states must be
+	// NOTE: A seek by TermState might not restore the AttributeSourceV2's state. AttributeSourceV2 states must be
 	// maintained separately if this method is used.
 	// Params: 	term – the term the TermState corresponds to
 	//			state – the TermState
-	SeekExactExpert(term *util.BytesRef, state TermState) error
+	SeekExactExpert(term *util.BytesRef, state core.TermState) error
 
 	// Term Returns current term. Do not call this when the enum is unpositioned.
 	Term() (*util.BytesRef, error)
@@ -72,18 +73,18 @@ type TermsEnum interface {
 	// NOTE: the returned iterator may return deleted documents, so deleted documents have to be checked on top of the PostingsEnum.
 	// Params: 	reuse – pass a prior PostingsEnum for possible reuse
 	// 			flags – specifies which optional per-document values you require; see PostingsEnum.FREQS
-	Postings(reuse PostingsEnum, flags int) (PostingsEnum, error)
+	Postings(reuse core.PostingsEnum, flags int) (core.PostingsEnum, error)
 
 	// Impacts Return a ImpactsEnum.
 	// See Also: postings(PostingsEnum, int)
-	Impacts(flags int) (ImpactsEnum, error)
+	Impacts(flags int) (core.ImpactsEnum, error)
 
 	// TermState Expert: Returns the TermsEnums internal state to position the TermsEnum without re-seeking the
 	// term dictionary.
-	// NOTE: A seek by TermState might not capture the AttributeSource's state. Callers must maintain the
-	// AttributeSource states separately
+	// NOTE: A seek by TermState might not capture the AttributeSourceV2's state. Callers must maintain the
+	// AttributeSourceV2 states separately
 	// See Also: TermState, seekExact(BytesRef, TermState)
-	TermState() (TermState, error)
+	TermState() (core.TermState, error)
 }
 
 // SeekStatus Represents returned result from seekCeil.

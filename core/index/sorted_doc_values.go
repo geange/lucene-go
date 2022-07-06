@@ -1,4 +1,9 @@
-package core
+package index
+
+import (
+	"github.com/geange/lucene-go/core"
+	"github.com/geange/lucene-go/core/util/automaton"
+)
 
 // SortedDocValues A per-document byte[] with presorted values. This is fundamentally an iterator over the
 // int ord values per document, with random access APIs to resolve an int ord to BytesRef.
@@ -6,7 +11,7 @@ package core
 // unique values. A pointer to the dictionary value (ordinal) can be retrieved for each document. Ordinals
 // are dense and in increasing sorted order.
 type SortedDocValues interface {
-	BinaryDocValues
+	core.BinaryDocValues
 
 	// OrdValue Returns the ordinal for the current docID. It is illegal to call this method after
 	// advanceExact(int) returned false.
@@ -32,5 +37,5 @@ type SortedDocValues interface {
 	TermsEnum() (TermsEnum, error)
 
 	// Intersect Returns a TermsEnum over the values, filtered by a CompiledAutomaton The enum supports TermsEnum.ord().
-	Intersect(automaton *CompiledAutomaton) (TermsEnum, error)
+	Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error)
 }

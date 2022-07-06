@@ -6,7 +6,7 @@ import (
 )
 
 type Tokenizer struct {
-	source *tokenattributes.AttributeSourceV1
+	source *tokenattributes.AttributeSource
 
 	scanner *TokenizerImpl
 
@@ -25,11 +25,11 @@ func NewTokenizer(reader io.Reader) *Tokenizer {
 	return tokenizer
 }
 
-func (r *Tokenizer) GetAttributeSource() *tokenattributes.AttributeSource {
+func (r *Tokenizer) GetAttributeSource() *tokenattributes.AttributeSourceV2 {
 	return nil
 }
 
-func (r *Tokenizer) AttributeSource() *tokenattributes.AttributeSourceV1 {
+func (r *Tokenizer) AttributeSource() *tokenattributes.AttributeSource {
 	return r.source
 }
 
@@ -42,8 +42,8 @@ func (r *Tokenizer) IncrementToken() (bool, error) {
 		return false, err
 	}
 
-	r.source.PackedTokenAttribute().Append(text)
-	r.source.PackedTokenAttribute().SetOffset(r.scanner.Slow, r.scanner.Slow+len(text))
+	r.source.CharTerm().Append(text)
+	r.source.Offset().SetOffset(r.scanner.Slow, r.scanner.Slow+len(text))
 	return true, nil
 }
 

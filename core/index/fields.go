@@ -1,4 +1,4 @@
-package core
+package index
 
 // Fields Provides a Terms index for fields that have it, and lists which fields do. This is primarily an
 // internal/experimental API (see FieldsProducer), although it is also used to expose the set of term

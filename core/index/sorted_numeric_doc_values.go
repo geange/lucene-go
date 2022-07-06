@@ -1,4 +1,4 @@
-package core
+package index
 
 // SortedNumericDocValues A list of per-document numeric values, sorted according to Long.compare(long, long).
 type SortedNumericDocValues interface {

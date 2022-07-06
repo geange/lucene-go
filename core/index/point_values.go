@@ -1,4 +1,4 @@
-package core
+package index
 
 type Relation int
 

@@ -53,6 +53,33 @@ type Analyzer interface {
 	GetVersion() *util.Version
 }
 
+type AnalyzerDefault struct {
+	reuseStrategy ReuseStrategy
+	version       *util.Version
+}
+
+func NewAnalyzerDefault() *AnalyzerDefault {
+	return &AnalyzerDefault{
+		version: util.VersionLast,
+	}
+}
+
+func (*AnalyzerDefault) GetPositionIncrementGap(fieldName string) int {
+	return 0
+}
+
+func (*AnalyzerDefault) GetOffsetGap(fieldName string) int {
+	return 1
+}
+
+func (r *AnalyzerDefault) SetVersion(v *util.Version) {
+	r.version = v
+}
+
+func (r *AnalyzerDefault) GetVersion() *util.Version {
+	return r.version
+}
+
 type AnalyzerPLG interface {
 	CreateComponents(fieldName string) *TokenStreamComponents
 }

@@ -21,3 +21,17 @@ type Version struct {
 	//         major   minor    bugfix   prerelease
 	encodedValue int
 }
+
+func NewVersion(major, minor, bugfix int) *Version {
+	return &Version{
+		Major:        major,
+		Minor:        minor,
+		Bugfix:       bugfix,
+		Prerelease:   0,
+		encodedValue: 0,
+	}
+}
+
+var (
+	VersionLast = NewVersion(8, 11, 1)
+)

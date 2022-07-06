@@ -1,4 +1,4 @@
-package core
+package index
 
 type NumericDocValues interface {
 	DocValuesIterator

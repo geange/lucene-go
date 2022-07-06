@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// AttributeImpl Base class for Attributes that can be added to a AttributeSource.
+// AttributeImpl Base class for Attributes that can be added to a AttributeSourceV2.
 // Attributes are used to add data in a dynamic, yet types-safe way to a source of usually streamed objects,
 // e. g. a org.apache.lucene.analysis.TokenStream.
 type AttributeImpl interface {
@@ -16,20 +16,20 @@ type AttributeImpl interface {
 	Clone() AttributeImpl
 }
 
-// An AttributeSource contains a list of different AttributeImpls, and methods to add and get them.
-// There can only be a single instance of an attribute in the same AttributeSource instance. This is
+// An AttributeSourceV2 contains a list of different AttributeImpls, and methods to add and get them.
+// There can only be a single instance of an attribute in the same AttributeSourceV2 instance. This is
 // ensured by passing in the actual types of the Attribute (Class<Attribute>) to the addAttribute(Class),
 // which then checks if an instance of that types is already present. If yes, it returns the instance,
 // otherwise it creates a new instance and returns it.
-type AttributeSource struct {
+type AttributeSourceV2 struct {
 	attributes     sync.Map
 	attributeImpls sync.Map
 	list           []AttributeImpl
 	factory        AttributeFactory
 }
 
-func NewAttributeSource() *AttributeSource {
-	source := &AttributeSource{
+func NewAttributeSource() *AttributeSourceV2 {
+	source := &AttributeSourceV2{
 		attributes:     sync.Map{},
 		attributeImpls: sync.Map{},
 		list:           make([]AttributeImpl, 0),
@@ -38,7 +38,7 @@ func NewAttributeSource() *AttributeSource {
 	return source
 }
 
-func (a *AttributeSource) Get(name string) (AttributeImpl, bool) {
+func (a *AttributeSourceV2) Get(name string) (AttributeImpl, bool) {
 	v, ok := a.attributes.Load(name)
 	if !ok {
 		impl, err := a.factory.CreateAttributeInstance(name)
@@ -51,7 +51,7 @@ func (a *AttributeSource) Get(name string) (AttributeImpl, bool) {
 	return v.(AttributeImpl), ok
 }
 
-func (a *AttributeSource) Add(item AttributeImpl) {
+func (a *AttributeSourceV2) Add(item AttributeImpl) {
 	for _, name := range item.Interfaces() {
 		if _, ok := a.attributes.Load(name); !ok {
 			a.attributes.Store(name, item)
@@ -65,7 +65,7 @@ func (a *AttributeSource) Add(item AttributeImpl) {
 	}
 }
 
-func (a *AttributeSource) Clear() error {
+func (a *AttributeSourceV2) Clear() error {
 	for _, impl := range a.list {
 		if err := impl.Clear(); err != nil {
 			return err

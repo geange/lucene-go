@@ -1,6 +1,9 @@
-package core
+package index
 
-import "github.com/geange/lucene-go/core/util"
+import (
+	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/automaton"
+)
 
 type Terms interface {
 	// Iterator Returns an iterator that will step through all terms. This method will not return null.
@@ -13,7 +16,7 @@ type Terms interface {
 	// This is an expert low-level API and will only work for NORMAL compiled automata. To handle any compiled
 	// automata you should instead use CompiledAutomaton.getTermsEnum instead.
 	// NOTE: the returned TermsEnum cannot seek
-	Intersect(compiled *CompiledAutomaton, startTerm []byte) (TermsEnum, error)
+	Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error)
 
 	// Size Returns the number of terms for this field, or -1 if this measure isn't stored by the codec.
 	// Note that, just like other term measures, this measure does not take deleted documents into account.

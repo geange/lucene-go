@@ -7,7 +7,7 @@ import (
 
 // LowerCaseFilter Normalizes token text to lower case.
 type LowerCaseFilter struct {
-	*TokenFilterIMP
+	*TokenFilterImp
 
 	termAtt tokenattributes.CharTermAttribute
 }

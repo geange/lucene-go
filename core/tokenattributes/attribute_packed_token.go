@@ -5,12 +5,12 @@ import (
 )
 
 var (
-	_ TypeAttribute              = &PackedTokenAttributeIMP{}
-	_ PositionIncrementAttribute = &PackedTokenAttributeIMP{}
-	_ PositionLengthAttribute    = &PackedTokenAttributeIMP{}
-	_ OffsetAttribute            = &PackedTokenAttributeIMP{}
-	_ TermFrequencyAttribute     = &PackedTokenAttributeIMP{}
-	_ AttributeImpl              = &PackedTokenAttributeIMP{}
+	_ TypeAttribute              = &PackedTokenAttributeImp{}
+	_ PositionIncrementAttribute = &PackedTokenAttributeImp{}
+	_ PositionLengthAttribute    = &PackedTokenAttributeImp{}
+	_ OffsetAttribute            = &PackedTokenAttributeImp{}
+	_ TermFrequencyAttribute     = &PackedTokenAttributeImp{}
+	_ AttributeImpl              = &PackedTokenAttributeImp{}
 )
 
 type PackedTokenAttribute interface {
@@ -22,9 +22,9 @@ type PackedTokenAttribute interface {
 	AttributeImpl
 }
 
-func NewPackedTokenAttributeIMP() *PackedTokenAttributeIMP {
-	return &PackedTokenAttributeIMP{
-		CharTermAttributeIMP: NewCharTermAttributeImpl(),
+func NewPackedTokenAttributeImp() *PackedTokenAttributeImp {
+	return &PackedTokenAttributeImp{
+		CharTermAttributeImp: NewCharTermAttributeImpl(),
 		startOffset:          0,
 		endOffset:            0,
 		_type:                DEFAULT_TYPE,
@@ -34,8 +34,8 @@ func NewPackedTokenAttributeIMP() *PackedTokenAttributeIMP {
 	}
 }
 
-type PackedTokenAttributeIMP struct {
-	*CharTermAttributeIMP
+type PackedTokenAttributeImp struct {
+	*CharTermAttributeImp
 
 	startOffset       int
 	endOffset         int
@@ -45,7 +45,7 @@ type PackedTokenAttributeIMP struct {
 	termFrequency     int
 }
 
-func (p *PackedTokenAttributeIMP) SetTermFrequency(termFrequency int) error {
+func (p *PackedTokenAttributeImp) SetTermFrequency(termFrequency int) error {
 	if termFrequency < 1 {
 		return errors.New("term frequency must be 1 or greater")
 	}
@@ -53,19 +53,19 @@ func (p *PackedTokenAttributeIMP) SetTermFrequency(termFrequency int) error {
 	return nil
 }
 
-func (p *PackedTokenAttributeIMP) GetTermFrequency() int {
+func (p *PackedTokenAttributeImp) GetTermFrequency() int {
 	return p.termFrequency
 }
 
-func (p *PackedTokenAttributeIMP) StartOffset() int {
+func (p *PackedTokenAttributeImp) StartOffset() int {
 	return p.startOffset
 }
 
-func (p *PackedTokenAttributeIMP) EndOffset() int {
+func (p *PackedTokenAttributeImp) EndOffset() int {
 	return p.endOffset
 }
 
-func (p *PackedTokenAttributeIMP) SetOffset(startOffset, endOffset int) error {
+func (p *PackedTokenAttributeImp) SetOffset(startOffset, endOffset int) error {
 	if startOffset < 0 || startOffset > endOffset {
 		return errors.New("startOffset must be non-negative, and endOffset must be >= startOffset")
 	}
@@ -74,7 +74,7 @@ func (p *PackedTokenAttributeIMP) SetOffset(startOffset, endOffset int) error {
 	return nil
 }
 
-func (p *PackedTokenAttributeIMP) SetPositionLength(positionLength int) error {
+func (p *PackedTokenAttributeImp) SetPositionLength(positionLength int) error {
 	if positionLength < 1 {
 		return errors.New("position length must be 1 or greater")
 	}
@@ -82,11 +82,11 @@ func (p *PackedTokenAttributeIMP) SetPositionLength(positionLength int) error {
 	return nil
 }
 
-func (p *PackedTokenAttributeIMP) GetPositionLength() int {
+func (p *PackedTokenAttributeImp) GetPositionLength() int {
 	return p.positionLength
 }
 
-func (p *PackedTokenAttributeIMP) SetPositionIncrement(positionIncrement int) error {
+func (p *PackedTokenAttributeImp) SetPositionIncrement(positionIncrement int) error {
 	if positionIncrement < 0 {
 		return errors.New("increment must be zero or greater")
 	}
@@ -94,19 +94,19 @@ func (p *PackedTokenAttributeIMP) SetPositionIncrement(positionIncrement int) er
 	return nil
 }
 
-func (p *PackedTokenAttributeIMP) GetPositionIncrement() int {
+func (p *PackedTokenAttributeImp) GetPositionIncrement() int {
 	return p.positionIncrement
 }
 
-func (p *PackedTokenAttributeIMP) Type() string {
+func (p *PackedTokenAttributeImp) Type() string {
 	return p._type
 }
 
-func (p *PackedTokenAttributeIMP) SetType(_type string) {
+func (p *PackedTokenAttributeImp) SetType(_type string) {
 	p._type = _type
 }
 
-func (p *PackedTokenAttributeIMP) Interfaces() []string {
+func (p *PackedTokenAttributeImp) Interfaces() []string {
 	values := []string{
 		"Type",
 		"PositionIncrement",
@@ -114,24 +114,24 @@ func (p *PackedTokenAttributeIMP) Interfaces() []string {
 		"Offset",
 		"TermFrequency",
 	}
-	return append(p.CharTermAttributeIMP.Interfaces(), values...)
+	return append(p.CharTermAttributeImp.Interfaces(), values...)
 }
 
-func (p *PackedTokenAttributeIMP) Clear() error {
+func (p *PackedTokenAttributeImp) Clear() error {
 	p.positionIncrement, p.positionLength = 1, 1
 	p.termFrequency = 1
 	p.startOffset, p.endOffset = 0, 0
 	p._type = "word"
-	return p.CharTermAttributeIMP.Clear()
+	return p.CharTermAttributeImp.Clear()
 }
 
-func (p *PackedTokenAttributeIMP) End() error {
+func (p *PackedTokenAttributeImp) End() error {
 	p.positionIncrement = 0
 	return nil
 }
 
-func (p *PackedTokenAttributeIMP) CopyTo(target AttributeImpl) error {
-	if impl, ok := target.(*PackedTokenAttributeIMP); ok {
+func (p *PackedTokenAttributeImp) CopyTo(target AttributeImpl) error {
+	if impl, ok := target.(*PackedTokenAttributeImp); ok {
 		impl.startOffset = p.startOffset
 		impl.endOffset = p.endOffset
 		impl._type = p._type
@@ -140,11 +140,11 @@ func (p *PackedTokenAttributeIMP) CopyTo(target AttributeImpl) error {
 		impl.termFrequency = p.termFrequency
 		return nil
 	}
-	return errors.New("target is not PackedTokenAttributeIMP")
+	return errors.New("target is not PackedTokenAttributeImp")
 }
 
-func (p *PackedTokenAttributeIMP) Clone() AttributeImpl {
-	return &PackedTokenAttributeIMP{
+func (p *PackedTokenAttributeImp) Clone() AttributeImpl {
+	return &PackedTokenAttributeImp{
 		startOffset:       p.startOffset,
 		endOffset:         p.endOffset,
 		_type:             p._type,

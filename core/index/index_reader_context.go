@@ -1,4 +1,6 @@
-package core
+package index
+
+import "github.com/geange/lucene-go/core"
 
 // IndexReaderContext A struct like class that represents a hierarchical relationship between IndexReader instances.
 type IndexReaderContext interface {
@@ -20,7 +22,7 @@ type IndexReaderContext interface {
 
 type IndexReaderContextImp struct {
 	// The reader context for this reader's immediate parent, or null if none
-	Parent *CompositeReaderContext
+	Parent *core.CompositeReaderContext
 
 	// true if this context struct represents the top level reader within the hierarchical context
 	IsTopLevel bool
