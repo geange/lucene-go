@@ -4,7 +4,7 @@ import "github.com/geange/lucene-go/core/tokenattributes"
 
 // StopFilter Removes stop words from a token stream.
 type StopFilter struct {
-	*FilteringTokenFilterIMP
+	*FilteringTokenFilterImp
 
 	stopWords *CharArraySet
 	termAtt   tokenattributes.CharTermAttribute

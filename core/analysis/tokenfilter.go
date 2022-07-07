@@ -17,7 +17,7 @@ type TokenFilterImp struct {
 	input TokenStream
 }
 
-func NewTokenFilterIMP(input TokenStream) *TokenFilterImp {
+func NewTokenFilterImp(input TokenStream) *TokenFilterImp {
 	return &TokenFilterImp{
 		input: input,
 	}

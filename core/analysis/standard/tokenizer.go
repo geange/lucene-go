@@ -1,12 +1,12 @@
 package standard
 
 import (
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/analysis"
 	"io"
 )
 
 type Tokenizer struct {
-	source *tokenattributes.AttributeSource
+	*analysis.TokenizerImp
 
 	scanner *TokenizerImpl
 
@@ -16,25 +16,18 @@ type Tokenizer struct {
 
 func NewTokenizer(reader io.Reader) *Tokenizer {
 	tokenizer := &Tokenizer{
-		source:           tokenattributes.NewAttributeSourceV1(),
+		TokenizerImp:     analysis.NewTokenizerImpl(),
 		scanner:          &TokenizerImpl{},
 		skippedPositions: 0,
 		maxTokenLength:   0,
 	}
 	tokenizer.SetReader(reader)
+	tokenizer.Input = reader
 	return tokenizer
 }
 
-func (r *Tokenizer) GetAttributeSource() *tokenattributes.AttributeSourceV2 {
-	return nil
-}
-
-func (r *Tokenizer) AttributeSource() *tokenattributes.AttributeSource {
-	return r.source
-}
-
 func (r *Tokenizer) IncrementToken() (bool, error) {
-	r.source.Clear()
+	r.AttributeSource().Clear()
 	r.skippedPositions = 0
 
 	text, err := r.scanner.GetNextToken()
@@ -42,21 +35,9 @@ func (r *Tokenizer) IncrementToken() (bool, error) {
 		return false, err
 	}
 
-	r.source.CharTerm().Append(text)
-	r.source.Offset().SetOffset(r.scanner.Slow, r.scanner.Slow+len(text))
+	r.AttributeSource().CharTerm().Append(text)
+	r.AttributeSource().Offset().SetOffset(r.scanner.Slow, r.scanner.Slow+len(text))
 	return true, nil
-}
-
-func (r *Tokenizer) End() error {
-	return nil
-}
-
-func (r *Tokenizer) Reset() error {
-	return nil
-}
-
-func (r *Tokenizer) Close() error {
-	return nil
 }
 
 func (r *Tokenizer) SetReader(reader io.Reader) error {

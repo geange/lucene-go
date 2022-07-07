@@ -13,7 +13,11 @@ type LowerCaseFilter struct {
 }
 
 func NewLowerCaseFilter(in TokenStream) *LowerCaseFilter {
-	panic("")
+	filter := LowerCaseFilter{
+		TokenFilterImp: NewTokenFilterImp(in),
+		termAtt:        in.AttributeSource().CharTerm(),
+	}
+	return &filter
 }
 
 func (r *LowerCaseFilter) IncrementToken() (bool, error) {

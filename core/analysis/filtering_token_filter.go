@@ -8,15 +8,15 @@ import "github.com/geange/lucene-go/core/tokenattributes"
 type FilteringTokenFilter interface {
 	TokenFilter
 
-	FilteringTokenFilterPLG
+	FilteringTokenFilterPlg
 }
 
-type FilteringTokenFilterPLG interface {
+type FilteringTokenFilterPlg interface {
 	Accept() (bool, error)
 }
 
-type FilteringTokenFilterIMP struct {
-	FilteringTokenFilterPLG
+type FilteringTokenFilterImp struct {
+	FilteringTokenFilterPlg
 
 	*TokenFilterImp
 
@@ -24,7 +24,7 @@ type FilteringTokenFilterIMP struct {
 	skippedPositions int
 }
 
-func (r *FilteringTokenFilterIMP) IncrementToken() (bool, error) {
+func (r *FilteringTokenFilterImp) IncrementToken() (bool, error) {
 
 	r.skippedPositions = 0
 	for {
@@ -55,7 +55,7 @@ func (r *FilteringTokenFilterIMP) IncrementToken() (bool, error) {
 	return false, nil
 }
 
-func (r *FilteringTokenFilterIMP) Reset() error {
+func (r *FilteringTokenFilterImp) Reset() error {
 	err := r.input.Reset()
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (r *FilteringTokenFilterIMP) Reset() error {
 	return nil
 }
 
-func (r *FilteringTokenFilterIMP) End() error {
+func (r *FilteringTokenFilterImp) End() error {
 	err := r.input.End()
 	if err != nil {
 		return err

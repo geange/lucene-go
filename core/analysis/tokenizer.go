@@ -13,18 +13,15 @@ type Tokenizer interface {
 	SetReader(reader io.Reader) error
 }
 
-func NewTokenizerImpl(source *tokenattributes.AttributeSourceV2) *TokenizerImp {
+func NewTokenizerImpl() *TokenizerImp {
 	return &TokenizerImp{
-		source:       source,
 		Input:        nil,
 		inputPending: nil,
 	}
 }
 
 type TokenizerImp struct {
-	source *tokenattributes.AttributeSourceV2
-
-	sourceV1 *tokenattributes.AttributeSource
+	source *tokenattributes.AttributeSource
 
 	// The text source for this Tokenizer.
 	Input io.Reader
@@ -34,21 +31,11 @@ type TokenizerImp struct {
 }
 
 func (t *TokenizerImp) AttributeSource() *tokenattributes.AttributeSource {
-	return t.sourceV1
-}
-
-func (t *TokenizerImp) GetAttributeSource() *tokenattributes.AttributeSourceV2 {
 	return t.source
 }
 
-func (t *TokenizerImp) IncrementToken() (bool, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (t *TokenizerImp) End() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (t *TokenizerImp) Reset() error {
