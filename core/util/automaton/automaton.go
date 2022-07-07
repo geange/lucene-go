@@ -493,7 +493,7 @@ func (r *Automaton) getTransition(state, index int, t *Transition) {
 }
 
 // Returns sorted array of all interval start points.
-func (r *Automaton) getStartPoints() []int {
+func (r *Automaton) GetStartPoints() []int {
 	pointset := make(map[int]struct{})
 	pointset[0] = struct{}{}
 

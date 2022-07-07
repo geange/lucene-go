@@ -6,7 +6,7 @@ import (
 	"unicode"
 )
 
-// TokenizerImpl This class implements Word Break rules from the Unicode Text Segmentation algorithm, as
+// StandardTokenizerImpl This class implements Word Break rules from the Unicode Text Segmentation algorithm, as
 // specified in Unicode Standard Annex #29 .
 // Tokens produced are of the following types:
 // * <ALPHANUM>: A sequence of alphabetic and numeric characters
@@ -17,7 +17,7 @@ import (
 // * <KATAKANA>: A sequence of katakana characters
 // * <HANGUL>: A sequence of Hangul characters
 // * <EMOJI>: A sequence of Emoji characters
-type TokenizerImpl struct {
+type StandardTokenizerImpl struct {
 	reader io.RuneReader
 	Slow   int
 	Fast   int
@@ -25,13 +25,22 @@ type TokenizerImpl struct {
 	buff []rune
 }
 
-func (r *TokenizerImpl) SetReader(reader io.Reader) {
+func NewStandardTokenizerImpl() *StandardTokenizerImpl {
+	return &StandardTokenizerImpl{
+		reader: nil,
+		Slow:   0,
+		Fast:   0,
+		buff:   make([]rune, 0),
+	}
+}
+
+func (r *StandardTokenizerImpl) SetReader(reader io.Reader) {
 	r.reader = bufio.NewReader(reader)
 	r.Slow, r.Fast = 0, 0
 	r.buff = r.buff[:0]
 }
 
-func (r *TokenizerImpl) GetNextToken() (string, error) {
+func (r *StandardTokenizerImpl) GetNextToken() (string, error) {
 	if r.Slow < r.Fast {
 		r.Slow = r.Fast
 		r.buff = r.buff[:0]

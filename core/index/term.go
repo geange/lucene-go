@@ -1,4 +1,4 @@
-package core
+package index
 
 import "github.com/geange/lucene-go/core/util"
 

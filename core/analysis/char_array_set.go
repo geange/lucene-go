@@ -18,6 +18,13 @@ type CharArraySet struct {
 	values map[string]struct{}
 }
 
+func NewCharArraySet() *CharArraySet {
+	return &CharArraySet{
+		RWMutex: sync.RWMutex{},
+		values:  make(map[string]struct{}),
+	}
+}
+
 func (r *CharArraySet) Add(key any) {
 	r.RLock()
 	defer r.RUnlock()

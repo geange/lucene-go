@@ -16,12 +16,21 @@ type FilteringTokenFilterPlg interface {
 }
 
 type FilteringTokenFilterImp struct {
-	FilteringTokenFilterPlg
+	accept func() (bool, error)
 
 	*TokenFilterImp
 
 	posIncrAtt       tokenattributes.PositionIncrementAttribute
 	skippedPositions int
+}
+
+func NewFilteringTokenFilterImp(accept func() (bool, error), in TokenStream) *FilteringTokenFilterImp {
+	return &FilteringTokenFilterImp{
+		accept:           accept,
+		TokenFilterImp:   NewTokenFilterImp(in),
+		posIncrAtt:       in.AttributeSource().PositionIncrement(),
+		skippedPositions: 0,
+	}
 }
 
 func (r *FilteringTokenFilterImp) IncrementToken() (bool, error) {
@@ -37,7 +46,7 @@ func (r *FilteringTokenFilterImp) IncrementToken() (bool, error) {
 			break
 		}
 
-		ok, err = r.Accept()
+		ok, err = r.accept()
 		if err != nil {
 			return false, err
 		}

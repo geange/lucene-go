@@ -15,3 +15,16 @@ func (r *StopFilter) Accept() (bool, error) {
 
 	return !r.stopWords.Contain(bytes), nil
 }
+
+func NewStopFilter(in TokenStream, stopWords *CharArraySet) *StopFilter {
+	stopFilter := &StopFilter{
+		FilteringTokenFilterImp: nil,
+		stopWords:               stopWords,
+		termAtt:                 in.AttributeSource().CharTerm(),
+	}
+
+	stopFilter.FilteringTokenFilterImp =
+		NewFilteringTokenFilterImp(stopFilter.accept, in)
+
+	return stopFilter
+}

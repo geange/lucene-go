@@ -12,14 +12,15 @@ type TokenFilter interface {
 }
 
 type TokenFilterImp struct {
-	sourceV1 *tokenattributes.AttributeSource
+	source *tokenattributes.AttributeSource
 
 	input TokenStream
 }
 
 func NewTokenFilterImp(input TokenStream) *TokenFilterImp {
 	return &TokenFilterImp{
-		input: input,
+		source: input.AttributeSource(),
+		input:  input,
 	}
 }
 

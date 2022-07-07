@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/document"
 	"go.uber.org/atomic"
 	"io"
@@ -47,7 +46,7 @@ type IndexReader interface {
 	// DocumentV1 Expert: visits the fields of a stored document, for custom processing/loading of each field.
 	// If you simply want to load all fields, use document(int). If you want to load a subset,
 	// use DocumentStoredFieldVisitor.
-	DocumentV1(docID int, visitor core.StoredFieldVisitor) (*document.Document, error)
+	DocumentV1(docID int, visitor document.StoredFieldVisitor) (*document.Document, error)
 
 	// DocumentV2 Like document(int) but only loads the specified fields. Note that this is simply sugar for
 	// DocumentStoredFieldVisitor.DocumentStoredFieldVisitor(Set).
@@ -87,10 +86,10 @@ type IndexReader interface {
 	// DocFreq Returns the number of documents containing the term. This method returns 0 if the term or field
 	// does not exists. This method does not take into account deleted documents that have not yet been merged away.
 	// See Also: TermsEnum.docFreq()
-	DocFreq(term core.Term) (int, error)
+	DocFreq(term Term) (int, error)
 
 	// TotalTermFreq Returns the total number of occurrences of term across all documents (the sum of the freq() for each doc that has this term). Note that, like other term measures, this measure does not take deleted documents into account.
-	TotalTermFreq(term *core.Term) (int64, error)
+	TotalTermFreq(term *Term) (int64, error)
 
 	// GetSumDocFreq Returns the sum of TermsEnum.docFreq() for all terms in this field. Note that, just like
 	// other term measures, this measure does not take deleted documents into account.
@@ -115,7 +114,7 @@ type IndexReaderPLG interface {
 
 	MaxDoc() int
 
-	DocumentV1(docID int, visitor core.StoredFieldVisitor) (*document.Document, error)
+	DocumentV1(docID int, visitor document.StoredFieldVisitor) (*document.Document, error)
 
 	GetContext() IndexReaderContext
 
@@ -123,9 +122,9 @@ type IndexReaderPLG interface {
 
 	GetReaderCacheHelper() CacheHelper
 
-	DocFreq(term core.Term) (int, error)
+	DocFreq(term Term) (int, error)
 
-	TotalTermFreq(term *core.Term) (int64, error)
+	TotalTermFreq(term *Term) (int64, error)
 
 	GetSumDocFreq(field string) (int64, error)
 

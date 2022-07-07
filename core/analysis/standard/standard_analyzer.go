@@ -5,31 +5,39 @@ import (
 	"io"
 )
 
-type Analyzer struct {
-	*analysis.StopWordAnalyzerBaseIMP
+type StandardAnalyzer struct {
+	*analysis.StopWordAnalyzerBaseImp
 
 	maxTokenLength int
+}
+
+func NewAnalyzer(set *analysis.CharArraySet) *StandardAnalyzer {
+	return &StandardAnalyzer{
+		StopWordAnalyzerBaseImp: analysis.NewStopWordAnalyzerBaseImp(set),
+		maxTokenLength:          255,
+	}
 }
 
 // SetMaxTokenLength Set the max allowed token length. Tokens larger than this will be chopped up at this
 // token length and emitted as multiple tokens. If you need to skip such large tokens, you could increase
 // this max length, and then use LengthFilter to remove long tokens. The default is DEFAULT_MAX_TOKEN_LENGTH.
-func (r *Analyzer) SetMaxTokenLength(length int) {
+func (r *StandardAnalyzer) SetMaxTokenLength(length int) {
 	r.maxTokenLength = length
 }
 
 // GetMaxTokenLength Returns the current maximum token length
 // See Also: SetMaxTokenLength
-func (r *Analyzer) GetMaxTokenLength() int {
+func (r *StandardAnalyzer) GetMaxTokenLength() int {
 	return r.maxTokenLength
 }
 
-func (r *Analyzer) CreateComponents(_ string) *analysis.TokenStreamComponents {
-	src := NewTokenizer(nil)
+func (r *StandardAnalyzer) CreateComponents(_ string) *analysis.TokenStreamComponents {
+	src := NewTokenizer()
 	src.setMaxTokenLength(r.maxTokenLength)
-	tok := analysis.NewLowerCaseFilter(src)
+	tok1 := analysis.NewLowerCaseFilter(src)
+	tok2 := analysis.NewStopFilter(tok1, r.GetStopWordSet())
 	return analysis.NewTokenStreamComponents(func(reader io.Reader) {
 		src.setMaxTokenLength(r.maxTokenLength)
 		src.SetReader(reader)
-	}, tok)
+	}, tok2)
 }

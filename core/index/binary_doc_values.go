@@ -1,4 +1,4 @@
-package core
+package index
 
 // BinaryDocValues A per-document numeric value.
 type BinaryDocValues interface {

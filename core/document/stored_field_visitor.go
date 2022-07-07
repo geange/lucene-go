@@ -1,4 +1,4 @@
-package core
+package document
 
 import "github.com/geange/lucene-go/core/index"
 

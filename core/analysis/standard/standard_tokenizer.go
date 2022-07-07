@@ -5,28 +5,26 @@ import (
 	"io"
 )
 
-type Tokenizer struct {
+type StandardTokenizer struct {
 	*analysis.TokenizerImp
 
-	scanner *TokenizerImpl
+	scanner *StandardTokenizerImpl
 
 	skippedPositions int
 	maxTokenLength   int
 }
 
-func NewTokenizer(reader io.Reader) *Tokenizer {
-	tokenizer := &Tokenizer{
+func NewTokenizer() *StandardTokenizer {
+	tokenizer := &StandardTokenizer{
 		TokenizerImp:     analysis.NewTokenizerImpl(),
-		scanner:          &TokenizerImpl{},
+		scanner:          NewStandardTokenizerImpl(),
 		skippedPositions: 0,
 		maxTokenLength:   0,
 	}
-	tokenizer.SetReader(reader)
-	tokenizer.Input = reader
 	return tokenizer
 }
 
-func (r *Tokenizer) IncrementToken() (bool, error) {
+func (r *StandardTokenizer) IncrementToken() (bool, error) {
 	r.AttributeSource().Clear()
 	r.skippedPositions = 0
 
@@ -40,11 +38,11 @@ func (r *Tokenizer) IncrementToken() (bool, error) {
 	return true, nil
 }
 
-func (r *Tokenizer) SetReader(reader io.Reader) error {
+func (r *StandardTokenizer) SetReader(reader io.Reader) error {
 	r.scanner.SetReader(reader)
 	return nil
 }
 
-func (r *Tokenizer) setMaxTokenLength(length int) {
+func (r *StandardTokenizer) setMaxTokenLength(length int) {
 	r.maxTokenLength = length
 }

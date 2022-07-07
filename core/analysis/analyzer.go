@@ -89,6 +89,16 @@ type AnalyzerImp struct {
 
 	reuseStrategy ReuseStrategy
 	version       *util.Version
+
+	storedValue interface{}
+}
+
+func NewAnalyzerImp(plg AnalyzerPLG) *AnalyzerImp {
+	return &AnalyzerImp{
+		AnalyzerPLG:   plg,
+		reuseStrategy: &GlobalReuseStrategy{},
+		version:       util.VersionLast,
+	}
 }
 
 func (r *AnalyzerImp) Close() error {
@@ -159,6 +169,26 @@ type ReuseStrategy interface {
 	SetReusableComponents(analyzer Analyzer, fieldName string, components *TokenStreamComponents)
 }
 
+type GlobalReuseStrategy struct {
+}
+
+func (g *GlobalReuseStrategy) GetReusableComponents(analyzer Analyzer, fieldName string) *TokenStreamComponents {
+	switch analyzer.(type) {
+	case *AnalyzerImp:
+		if components, ok := analyzer.(*AnalyzerImp).storedValue.(*TokenStreamComponents); ok {
+			return components
+		}
+	}
+	return nil
+}
+
+func (g *GlobalReuseStrategy) SetReusableComponents(analyzer Analyzer, fieldName string, components *TokenStreamComponents) {
+	switch analyzer.(type) {
+	case *AnalyzerImp:
+		analyzer.(*AnalyzerImp).storedValue = components
+	}
+}
+
 type TokenStreamComponents struct {
 	source               func(reader io.Reader)
 	sink                 TokenStream
@@ -166,7 +196,10 @@ type TokenStreamComponents struct {
 }
 
 func NewTokenStreamComponents(source func(reader io.Reader), result TokenStream) *TokenStreamComponents {
-	panic("")
+	return &TokenStreamComponents{
+		source: source,
+		sink:   result,
+	}
 }
 
 func (r *TokenStreamComponents) setReader(reader io.Reader) {
@@ -175,4 +208,8 @@ func (r *TokenStreamComponents) setReader(reader io.Reader) {
 
 func (r *TokenStreamComponents) GetTokenStream() TokenStream {
 	return r.sink
+}
+
+func (r *TokenStreamComponents) GetSource() func(reader io.Reader) {
+	return r.source
 }

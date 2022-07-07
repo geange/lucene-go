@@ -1,7 +1,6 @@
 package document
 
 import (
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/index"
 )
 
@@ -31,7 +30,7 @@ func (r *DocumentStoredFieldVisitor) GetDocument() *Document {
 }
 
 func (r *DocumentStoredFieldVisitor) BinaryField(fieldInfo *index.FieldInfo, value []byte) error {
-	r.doc.Add(core.NewStoredFieldV3(fieldInfo.Name, value))
+	r.doc.Add(NewStoredFieldV3(fieldInfo.Name, value))
 	return nil
 }
 
@@ -49,25 +48,25 @@ func (r *DocumentStoredFieldVisitor) StringField(fieldInfo *index.FieldInfo, val
 	if err != nil {
 		return err
 	}
-	r.doc.Add(core.NewStoredFieldV5(fieldInfo.Name, string(value), ft))
+	r.doc.Add(NewStoredFieldV5(fieldInfo.Name, string(value), ft))
 
 	return nil
 }
 
 func (r *DocumentStoredFieldVisitor) IntField(fieldInfo *index.FieldInfo, value int) error {
-	r.doc.Add(core.NewStoredFieldWithInt(fieldInfo.Name, value, core.TYPE))
+	r.doc.Add(NewStoredFieldWithInt(fieldInfo.Name, value, TYPE))
 	return nil
 }
 
 func (r *DocumentStoredFieldVisitor) FloatField(fieldInfo *index.FieldInfo, value float64) error {
-	r.doc.Add(core.NewStoredFieldWithFloat(fieldInfo.Name, value, core.TYPE))
+	r.doc.Add(NewStoredFieldWithFloat(fieldInfo.Name, value, TYPE))
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) NeedsField(fieldInfo *index.FieldInfo) core.StoredFieldVisitorStatus {
+func (r *DocumentStoredFieldVisitor) NeedsField(fieldInfo *index.FieldInfo) StoredFieldVisitorStatus {
 	_, ok := r.fieldsToAdd[fieldInfo.Name]
 	if ok {
-		return core.SFV_STATUS_YES
+		return SFV_STATUS_YES
 	}
-	return core.SFV_STATUS_NO
+	return SFV_STATUS_NO
 }

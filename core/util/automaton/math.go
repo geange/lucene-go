@@ -1,4 +1,4 @@
-package core
+package automaton
 
 func Max[T int](a, b T) T {
 	if a > b {

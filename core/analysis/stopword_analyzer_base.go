@@ -6,16 +6,16 @@ type StopWordAnalyzerBase interface {
 	Analyzer
 }
 
-type StopWordAnalyzerBaseIMP struct {
+type StopWordAnalyzerBaseImp struct {
 	stopWords *CharArraySet
 }
 
-func NewStopWordAnalyzerBaseIMP(stopWords *CharArraySet) *StopWordAnalyzerBaseIMP {
-	return &StopWordAnalyzerBaseIMP{stopWords: stopWords}
+func NewStopWordAnalyzerBaseImp(stopWords *CharArraySet) *StopWordAnalyzerBaseImp {
+	return &StopWordAnalyzerBaseImp{stopWords: stopWords}
 }
 
 // GetStopWordSet Returns the analyzer's stopword set or an empty set if the analyzer has no stopwords
 // Returns: the analyzer's stopword set or an empty set if the analyzer has no stopwords
-func (r *StopWordAnalyzerBaseIMP) GetStopWordSet() *CharArraySet {
+func (r *StopWordAnalyzerBaseImp) GetStopWordSet() *CharArraySet {
 	return r.stopWords
 }

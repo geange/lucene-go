@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
@@ -11,7 +10,7 @@ import (
 // unique values. A pointer to the dictionary value (ordinal) can be retrieved for each document. Ordinals
 // are dense and in increasing sorted order.
 type SortedDocValues interface {
-	core.BinaryDocValues
+	BinaryDocValues
 
 	// OrdValue Returns the ordinal for the current docID. It is illegal to call this method after
 	// advanceExact(int) returned false.

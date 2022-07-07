@@ -43,7 +43,7 @@ type TermsEnum interface {
 	// maintained separately if this method is used.
 	// Params: 	term – the term the TermState corresponds to
 	//			state – the TermState
-	SeekExactExpert(term *util.BytesRef, state core.TermState) error
+	SeekExactExpert(term *util.BytesRef, state TermState) error
 
 	// Term Returns current term. Do not call this when the enum is unpositioned.
 	Term() (*util.BytesRef, error)
@@ -84,7 +84,7 @@ type TermsEnum interface {
 	// NOTE: A seek by TermState might not capture the AttributeSourceV2's state. Callers must maintain the
 	// AttributeSourceV2 states separately
 	// See Also: TermState, seekExact(BytesRef, TermState)
-	TermState() (core.TermState, error)
+	TermState() (TermState, error)
 }
 
 // SeekStatus Represents returned result from seekCeil.

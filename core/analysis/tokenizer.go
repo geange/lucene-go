@@ -15,6 +15,7 @@ type Tokenizer interface {
 
 func NewTokenizerImpl() *TokenizerImp {
 	return &TokenizerImp{
+		source:       tokenattributes.NewAttributeSourceV1(),
 		Input:        nil,
 		inputPending: nil,
 	}

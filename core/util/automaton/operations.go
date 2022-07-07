@@ -1,8 +1,4 @@
-package core
-
-import (
-	"github.com/geange/lucene-go/core/util/automaton"
-)
+package automaton
 
 // Determinize Determinizes the given automaton.
 // Worst case complexity: exponential in number of states.
@@ -11,6 +7,6 @@ import (
 //			CPU but allow more complex automatons. Use DEFAULT_DETERMINIZE_WORK_LIMIT as a decent default
 //			if you don't otherwise know what to specify.
 // Throws: TooComplexToDeterminizeException – if determinizing requires more than workLimit "effort"
-func Determinize(a *automaton.Automaton, workLimit int) *automaton.Automaton {
+func Determinize(a *Automaton, workLimit int) *Automaton {
 	return a
 }
