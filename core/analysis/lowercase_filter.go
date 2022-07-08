@@ -21,7 +21,7 @@ func NewLowerCaseFilter(in TokenStream) *LowerCaseFilter {
 }
 
 func (r *LowerCaseFilter) IncrementToken() (bool, error) {
-	if ok, err := r.IncrementToken(); err != nil {
+	if ok, err := r.Input.IncrementToken(); err != nil {
 		return false, err
 	} else if ok {
 		lower := strings.ToLower(string(r.termAtt.Buffer()))

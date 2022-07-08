@@ -14,18 +14,18 @@ type TokenFilter interface {
 type TokenFilterImp struct {
 	source *tokenattributes.AttributeSource
 
-	input TokenStream
+	Input TokenStream
 }
 
 func NewTokenFilterImp(input TokenStream) *TokenFilterImp {
 	return &TokenFilterImp{
 		source: input.AttributeSource(),
-		input:  input,
+		Input:  input,
 	}
 }
 
 func (t *TokenFilterImp) AttributeSource() *tokenattributes.AttributeSource {
-	return t.input.AttributeSource()
+	return t.Input.AttributeSource()
 }
 
 //func (t *TokenFilterImp) IncrementToken() (bool, error) {
@@ -33,13 +33,13 @@ func (t *TokenFilterImp) AttributeSource() *tokenattributes.AttributeSource {
 //}
 
 func (t *TokenFilterImp) End() error {
-	return t.input.End()
+	return t.Input.End()
 }
 
 func (t *TokenFilterImp) Reset() error {
-	return t.input.Reset()
+	return t.Input.Reset()
 }
 
 func (t *TokenFilterImp) Close() error {
-	return t.input.Close()
+	return t.Input.Close()
 }

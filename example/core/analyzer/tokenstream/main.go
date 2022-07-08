@@ -16,17 +16,17 @@ func main() {
 
 	imp := analysis.NewAnalyzerImp(analyzer)
 
-	tokenstream, err := imp.TokenStreamByString("xxxx", "aaaa bbbbb cccc dddd")
+	tokenstream, err := imp.TokenStreamByString("xxxx", "aaaa BBBFFDs cccc dddd")
 	if err != nil {
 		panic(err)
 	}
 
 	tokenstream.IncrementToken()
-	fmt.Println(tokenstream.AttributeSource().CharTerm().Buffer())
+	fmt.Println(string(tokenstream.AttributeSource().CharTerm().Buffer()))
 
 	tokenstream.IncrementToken()
-	fmt.Println(tokenstream.AttributeSource().CharTerm().Buffer())
+	fmt.Println(string(tokenstream.AttributeSource().CharTerm().Buffer()))
 
 	tokenstream.IncrementToken()
-	fmt.Println(tokenstream.AttributeSource().CharTerm().Buffer())
+	fmt.Println(string(tokenstream.AttributeSource().CharTerm().Buffer()))
 }

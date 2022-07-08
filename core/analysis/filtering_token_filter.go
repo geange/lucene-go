@@ -16,7 +16,7 @@ type FilteringTokenFilterPlg interface {
 }
 
 type FilteringTokenFilterImp struct {
-	accept func() (bool, error)
+	FilteringTokenFilterPlg
 
 	*TokenFilterImp
 
@@ -24,12 +24,12 @@ type FilteringTokenFilterImp struct {
 	skippedPositions int
 }
 
-func NewFilteringTokenFilterImp(accept func() (bool, error), in TokenStream) *FilteringTokenFilterImp {
+func NewFilteringTokenFilterImp(plg FilteringTokenFilterPlg, in TokenStream) *FilteringTokenFilterImp {
 	return &FilteringTokenFilterImp{
-		accept:           accept,
-		TokenFilterImp:   NewTokenFilterImp(in),
-		posIncrAtt:       in.AttributeSource().PositionIncrement(),
-		skippedPositions: 0,
+		FilteringTokenFilterPlg: plg,
+		TokenFilterImp:          NewTokenFilterImp(in),
+		posIncrAtt:              in.AttributeSource().PositionIncrement(),
+		skippedPositions:        0,
 	}
 }
 
@@ -37,7 +37,7 @@ func (r *FilteringTokenFilterImp) IncrementToken() (bool, error) {
 
 	r.skippedPositions = 0
 	for {
-		ok, err := r.input.IncrementToken()
+		ok, err := r.Input.IncrementToken()
 		if err != nil {
 			return false, err
 		}
@@ -46,7 +46,7 @@ func (r *FilteringTokenFilterImp) IncrementToken() (bool, error) {
 			break
 		}
 
-		ok, err = r.accept()
+		ok, err = r.Accept()
 		if err != nil {
 			return false, err
 		}
@@ -65,7 +65,7 @@ func (r *FilteringTokenFilterImp) IncrementToken() (bool, error) {
 }
 
 func (r *FilteringTokenFilterImp) Reset() error {
-	err := r.input.Reset()
+	err := r.Input.Reset()
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (r *FilteringTokenFilterImp) Reset() error {
 }
 
 func (r *FilteringTokenFilterImp) End() error {
-	err := r.input.End()
+	err := r.Input.End()
 	if err != nil {
 		return err
 	}

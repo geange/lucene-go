@@ -23,8 +23,8 @@ func NewStopFilter(in TokenStream, stopWords *CharArraySet) *StopFilter {
 		termAtt:                 in.AttributeSource().CharTerm(),
 	}
 
-	stopFilter.FilteringTokenFilterImp =
-		NewFilteringTokenFilterImp(stopFilter.accept, in)
+	impl := NewFilteringTokenFilterImp(stopFilter, in)
+	stopFilter.FilteringTokenFilterImp = impl
 
 	return stopFilter
 }
