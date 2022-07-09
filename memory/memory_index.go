@@ -98,6 +98,10 @@ type MemoryIndex struct {
 	defaultFieldType *document.FieldType
 }
 
+func NewNewMemoryIndexDefault() (*MemoryIndex, error) {
+	return NewMemoryIndex(false, false, 0)
+}
+
 func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*MemoryIndex, error) {
 	similarity, err := core.NewBM25Similarity()
 	if err != nil {
@@ -125,7 +129,7 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 	return &index, nil
 }
 
-func fromDocument(document *document.Document, analyzer analysis.Analyzer,
+func FromDocument(document *document.Document, analyzer analysis.Analyzer,
 	storeOffsets, storePayloads bool, maxReusedBytes int64) (*MemoryIndex, error) {
 
 	index, err := NewMemoryIndex(storeOffsets, storePayloads, maxReusedBytes)

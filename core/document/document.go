@@ -16,6 +16,10 @@ type Document struct {
 	fields []types.IndexableField
 }
 
+func NewDocument() *Document {
+	return &Document{fields: make([]types.IndexableField, 0)}
+}
+
 func (d *Document) Iterator() func() types.IndexableField {
 	idx := 0
 	return func() types.IndexableField {
