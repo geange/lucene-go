@@ -6,11 +6,11 @@ import (
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/search/similarities"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
 	"sort"
 
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/util"
 	"go.uber.org/atomic"
 )
@@ -94,7 +94,7 @@ type MemoryIndex struct {
 
 	bytesUsed        *atomic.Int64
 	frozen           bool
-	normSimilarity   core.Similarity
+	normSimilarity   similarities.Similarity
 	defaultFieldType *document.FieldType
 }
 
@@ -103,7 +103,7 @@ func NewNewMemoryIndexDefault() (*MemoryIndex, error) {
 }
 
 func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*MemoryIndex, error) {
-	similarity, err := core.NewBM25Similarity()
+	similarity, err := similarities.NewBM25Similarity()
 	if err != nil {
 		return nil, err
 	}

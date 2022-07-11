@@ -1,5 +1,10 @@
 package search
 
+import (
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/search/similarities"
+)
+
 // IndexSearcher Implements search over a single IndexReader.
 // Applications usually need only call the inherited search(Query, int) method. For performance reasons, if your
 // index is unchanging, you should share a single IndexSearcher instance across multiple searches instead of
@@ -19,4 +24,26 @@ package search
 // methods, concurrently. If your application requires external synchronization, you should not synchronize on
 // the IndexSearcher instance; use your own (non-Lucene) objects instead.
 type IndexSearcher struct {
+	reader index.IndexReader
+
+	// NOTE: these members might change in incompatible ways
+	// in the next release
+	readerContext index.IndexReaderContext
+	leafContexts  []index.LeafReaderContext
+
+	// used with executor - each slice holds a set of leafs executed within one thread
+	leafSlices []LeafSlice
+
+	// These are only used for multi-threaded search
+	//executor
+
+	// the default Similarity
+	defaultSimilarity similarities.Similarity
+
+	queryCache         QueryCache
+	queryCachingPolicy QueryCachingPolicy
+}
+
+type LeafSlice struct {
+	Leaves []index.LeafReaderContext
 }

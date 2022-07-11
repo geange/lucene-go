@@ -1,4 +1,4 @@
-package core
+package similarities
 
 import (
 	"github.com/geange/lucene-go/core/index"
