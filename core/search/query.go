@@ -21,7 +21,7 @@ import "github.com/geange/lucene-go/core/index"
 type Query interface {
 
 	// ToString Prints a query to a string, with field assumed to be the default field and omitted.
-	ToString(field string) string
+	//ToString(field string) string
 
 	// CreateWeight Expert: Constructs an appropriate Weight implementation for this query.
 	// Only implemented by primitive queries, which re-write to themselves.

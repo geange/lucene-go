@@ -30,4 +30,6 @@ type IndexReaderContextImp struct {
 
 	// the ord for this reader in the parent, 0 if parent is null
 	OrdInParent int
+
+	identity any
 }
