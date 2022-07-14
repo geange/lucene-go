@@ -27,7 +27,7 @@ type Query interface {
 	// Only implemented by primitive queries, which re-write to themselves.
 	// Params: 	scoreMode – How the produced scorers will be consumed.
 	//			boost – The boost that is propagated by the parent queries.
-	CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error)
+	CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error)
 
 	// Rewrite Expert: called to re-write queries into primitive queries. For example, a PrefixQuery will be
 	// rewritten into a BooleanQuery that consists of TermQuerys.

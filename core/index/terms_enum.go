@@ -16,17 +16,17 @@ type TermsEnum interface {
 	util.BytesRefIterator
 
 	// Attributes Returns the related attributes.
-	Attributes() *tokenattributes.AttributeSourceV2
+	Attributes() *tokenattributes.AttributeSource
 
 	// SeekExact Attempts to seek to the exact term, returning true if the term is found. If this returns false,
 	// the enum is unpositioned. For some codecs, seekExact may be substantially faster than seekCeil.
 	// Returns: true if the term is found; return false if the enum is unpositioned.
-	SeekExact(text *util.BytesRef) (bool, error)
+	SeekExact(text []byte) (bool, error)
 
 	// SeekCeil eeks to the specified term, if it exists, or to the next (ceiling) term. Returns SeekStatus to
 	// indicate whether exact term was found, a different term was found, or EOF was hit. The target term may be
 	// before or after the current term. If this returns SeekStatus.END, the enum is unpositioned.
-	SeekCeil(text *util.BytesRef) (SeekStatus, error)
+	SeekCeil(text []byte) (SeekStatus, error)
 
 	// SeekExactByOrd Seeks to the specified term by ordinal (position) as previously returned by ord. The
 	// target ord may be before or after the current ord, and must be within bounds.
@@ -73,7 +73,7 @@ type TermsEnum interface {
 	// NOTE: the returned iterator may return deleted documents, so deleted documents have to be checked on top of the PostingsEnum.
 	// Params: 	reuse – pass a prior PostingsEnum for possible reuse
 	// 			flags – specifies which optional per-document values you require; see PostingsEnum.FREQS
-	Postings(reuse core.PostingsEnum, flags int) (core.PostingsEnum, error)
+	Postings(reuse PostingsEnum, flags int) (PostingsEnum, error)
 
 	// Impacts Return a ImpactsEnum.
 	// See Also: postings(PostingsEnum, int)

@@ -3,11 +3,17 @@ package search
 import "github.com/geange/lucene-go/core/index"
 
 // Weight Expert: Calculate query weights and build query scorers.
+// 计算查询权重并构建查询记分器。
 // The purpose of Weight is to ensure searching does not modify a Query, so that a Query instance can be reused.
 // IndexSearcher dependent state of the query should reside in the Weight. LeafReader dependent state should
 // reside in the Scorer.
+// 权重的目的是确保搜索不会修改查询，以便可以重用查询实例。查询的IndexSearcher依赖状态应位于权重中。LeafReader 相关状态应位于记分器中。
+//
 // Since Weight creates Scorer instances for a given LeafReaderContext (scorer(LeafReaderContext)) callers must
 // maintain the relationship between the searcher's top-level IndexReaderContext and the context used to create
+//
+// 由于权重为给定的LeafReaderContext（Scorer（LeafReaderContext））创建记分器实例，因此调用程序必须保持搜索器的顶级索引
+// ReaderContext和用于创建记分器的上下文之间的关系。
 // a Scorer.
 // A Weight is used in the following way:
 // A Weight is constructed by a top-level query, given a IndexSearcher (Query.createWeight(IndexSearcher, ScoreMode, float)).

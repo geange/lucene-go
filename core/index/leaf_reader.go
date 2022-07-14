@@ -8,7 +8,18 @@ import (
 type LeafReader interface {
 	IndexReader
 
-	// GetFieldInfos Get the FieldInfos describing all fields in this reader. Note: Implementations should cache the FieldInfos instance returned by this method such that subsequent calls to this method return the same instance.
+	// Terms Returns the Terms index for this field, or null if it has none.
+	Terms(field string) (Terms, error)
+
+	// Postings Returns PostingsEnum for the specified term. This will return null if either the field or
+	// term does not exist.
+	// NOTE: The returned PostingsEnum may contain deleted docs.
+	// See Also: TermsEnum.postings(PostingsEnum)
+	Postings(term *Term, flags int) (PostingsEnum, error)
+
+	// GetFieldInfos Get the FieldInfos describing all fields in this reader. Note: Implementations
+	// should cache the FieldInfos instance returned by this method such that subsequent calls to
+	// this method return the same instance.
 	GetFieldInfos() *FieldInfos
 
 	// GetLiveDocs Returns the Bits representing live (not deleted) docs. A set bit indicates the doc ID has

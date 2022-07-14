@@ -16,6 +16,8 @@ type IndexReaderContext interface {
 
 	// Children Returns the context's children iff this context is a composite context otherwise null.
 	Children() []IndexReaderContext
+
+	Identity() string
 }
 
 type IndexReaderContextImp struct {
@@ -31,5 +33,5 @@ type IndexReaderContextImp struct {
 	// the ord for this reader in the parent, 0 if parent is null
 	OrdInParent int
 
-	identity any
+	identity string
 }

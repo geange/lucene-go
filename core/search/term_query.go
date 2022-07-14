@@ -8,17 +8,27 @@ import (
 // TermQuery A Query that matches documents containing a term. This may be combined with other terms with a BooleanQuery.
 type TermQuery struct {
 	term               *index.Term
-	perReaderTermState index.TermStates
+	perReaderTermState *index.TermStates
 }
 
 func (t *TermQuery) getTerm() *index.Term {
 	return t.term
 }
 
-func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
-	//context := searcher.GetTopReaderContext()
-	termState := t.perReaderTermState
-	// TODO: fix it
+func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+	context := searcher.GetTopReaderContext()
+
+	var termState *index.TermStates
+	var err error
+	if t.perReaderTermState == nil || !t.perReaderTermState.WasBuiltFor(context) {
+		termState, err = index.BuildTermStates(context, t.term, scoreMode.NeedsScores())
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		termState = t.perReaderTermState
+	}
+
 	return NewTermWeight(searcher, scoreMode, boost, termState), nil
 }
 
@@ -28,7 +38,9 @@ func (t *TermQuery) Rewrite(reader *index.IndexReader) (Query, error) {
 }
 
 func (t *TermQuery) Visit(visitor QueryVisitor) {
-	//if visitor.
+	if visitor.AcceptField(t.term.Field()) {
+		visitor.ConsumeTerms(t, t.term)
+	}
 }
 
 type TermWeight struct {
@@ -38,7 +50,7 @@ type TermWeight struct {
 	scoreMode  ScoreMode
 }
 
-func NewTermWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64, termStates index.TermStates) *TermWeight {
+func NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64, termStates *index.TermStates) *TermWeight {
 	panic("")
 }
 

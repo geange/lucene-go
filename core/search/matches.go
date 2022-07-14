@@ -3,6 +3,8 @@ package search
 // Matches Reports the positions and optionally offsets of all matching terms in a query for a single document
 // To obtain a MatchesIterator for a particular field, call GetMatches(String). Note that you can call
 // GetMatches(String) multiple times to retrieve new iterators, but it is not thread-safe.
+// 报告单个文档的查询中所有匹配项的位置和可选偏移量，以获取特定字段的匹配迭代器，称为getMatches（String）。
+// 注意，可以多次调用getMatches（String）来检索新的迭代器，但它不是线程安全的。
 type Matches interface {
 	Strings() []string
 
