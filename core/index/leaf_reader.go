@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -37,5 +36,5 @@ type LeafReader interface {
 	CheckIntegrity() error
 
 	// GetMetaData Return metadata about this leaf.
-	GetMetaData() *core.LeafMetaData
+	GetMetaData() *LeafMetaData
 }

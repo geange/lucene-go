@@ -1,4 +1,4 @@
-package core
+package index
 
 // ImpactsSource Source of Impacts.
 type ImpactsSource interface {

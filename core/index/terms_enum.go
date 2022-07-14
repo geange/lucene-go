@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/util"
 )
@@ -77,7 +76,7 @@ type TermsEnum interface {
 
 	// Impacts Return a ImpactsEnum.
 	// See Also: postings(PostingsEnum, int)
-	Impacts(flags int) (core.ImpactsEnum, error)
+	Impacts(flags int) (ImpactsEnum, error)
 
 	// TermState Expert: Returns the TermsEnums internal state to position the TermsEnum without re-seeking the
 	// term dictionary.

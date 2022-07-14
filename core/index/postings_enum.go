@@ -5,6 +5,8 @@ import "github.com/geange/lucene-go/core/util"
 // PostingsEnum Iterates through the postings. NOTE: you must first call nextDoc before using any of the
 // per-doc methods.
 type PostingsEnum interface {
+	DocIdSetIterator
+
 	// Freq Returns term frequency in the current document, or 1 if the field was indexed with IndexOptions.DOCS. Do not call this before nextDoc is first called, nor after nextDoc returns DocIdSetIterator.NO_MORE_DOCS.
 	// NOTE: if the PostingsEnum was obtain with NONE, the result of this method is undefined.
 	Freq() (int, error)

@@ -1,7 +1,6 @@
 package document
 
 import (
-	"github.com/geange/lucene-go/core"
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -102,7 +101,7 @@ func (d *Document) GetBinaryValue(name string) ([]byte, error) {
 			}
 		}
 	}
-	return nil, core.ErrFieldValueTypeNotFit
+	return nil, ErrFieldValueTypeNotFit
 }
 
 // GetField Returns a field with the given name if any exist in this document, or null. If multiple fields exists
@@ -113,7 +112,7 @@ func (d *Document) GetField(name string) (types.IndexableField, error) {
 			return field, nil
 		}
 	}
-	return nil, core.FrrFieldNotFound
+	return nil, FrrFieldNotFound
 }
 
 // GetFields Returns an array of IndexAbleFields with the given name. This method returns an empty array when
@@ -164,7 +163,7 @@ func (d *Document) Get(name string) (string, error) {
 			}
 		}
 	}
-	return "", core.ErrFieldValueTypeNotFit
+	return "", ErrFieldValueTypeNotFit
 }
 
 // Removes all the fields from document.

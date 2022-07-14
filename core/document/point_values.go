@@ -1,4 +1,4 @@
-package core
+package document
 
 const (
 	// MAX_NUM_BYTES Maximum number of bytes for each dimension
