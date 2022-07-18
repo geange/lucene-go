@@ -16,6 +16,9 @@ type LeafReader interface {
 	// See Also: TermsEnum.postings(PostingsEnum)
 	Postings(term *Term, flags int) (PostingsEnum, error)
 
+	// GetSortedSetDocValues Returns SortedSetDocValues for this field, or null if no SortedSetDocValues were indexed for this field. The returned instance should only be used by a single thread.
+	GetSortedSetDocValues(field string) (SortedSetDocValues, error)
+
 	// GetFieldInfos Get the FieldInfos describing all fields in this reader. Note: Implementations
 	// should cache the FieldInfos instance returned by this method such that subsequent calls to
 	// this method return the same instance.

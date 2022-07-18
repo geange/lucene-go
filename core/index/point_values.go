@@ -48,6 +48,32 @@ const (
 // Custom structures can be created on top of single- or multi- dimensional basic types, on top of BinaryPoint
 // for more flexibility, or via custom Field subclasses.
 type PointValues interface {
+	// Intersect Finds all documents and points matching the provided visitor. This method does not enforce live documents, so it's up to the caller to test whether each document is deleted, if necessary.
+	Intersect(visitor IntersectVisitor) error
+
+	// EstimatePointCount Estimate the number of points that would be visited by intersect with the given PointValues.IntersectVisitor. This should run many times faster than intersect(PointValues.IntersectVisitor).
+	EstimatePointCount(visitor IntersectVisitor) int64
+
+	// GetMinPackedValue Returns minimum value for each dimension, packed, or null if size is 0
+	GetMinPackedValue() ([]byte, error)
+
+	// GetMaxPackedValue Returns maximum value for each dimension, packed, or null if size is 0
+	GetMaxPackedValue() ([]byte, error)
+
+	// GetNumDimensions Returns how many dimensions are represented in the values
+	GetNumDimensions() (int, error)
+
+	// GetNumIndexDimensions Returns how many dimensions are used for the index
+	GetNumIndexDimensions() (int, error)
+
+	// GetBytesPerDimension Returns the number of bytes per dimension
+	GetBytesPerDimension() (int, error)
+
+	// Size Returns the total number of indexed points across all documents.
+	Size() int64
+
+	// GetDocCount Returns the total number of documents that have indexed at least one point.
+	GetDocCount() int
 }
 
 // IntersectVisitor We recurse the BKD tree, using a provided instance of this to guide the recursion.
