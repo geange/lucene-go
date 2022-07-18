@@ -16,8 +16,29 @@ type LeafReader interface {
 	// See Also: TermsEnum.postings(PostingsEnum)
 	Postings(term *Term, flags int) (PostingsEnum, error)
 
-	// GetSortedSetDocValues Returns SortedSetDocValues for this field, or null if no SortedSetDocValues were indexed for this field. The returned instance should only be used by a single thread.
+	// GetNumericDocValues Returns NumericDocValues for this field, or null if no numeric doc values were
+	// indexed for this field. The returned instance should only be used by a single thread.
+	GetNumericDocValues(field string) (NumericDocValues, error)
+
+	// GetBinaryDocValues Returns BinaryDocValues for this field, or null if no binary doc values were indexed
+	// for this field. The returned instance should only be used by a single thread.
+	GetBinaryDocValues(field string) (BinaryDocValues, error)
+
+	// GetSortedDocValues Returns SortedDocValues for this field, or null if no SortedDocValues were indexed
+	// for this field. The returned instance should only be used by a single thread.
+	GetSortedDocValues(field string) (SortedDocValues, error)
+
+	// GetSortedNumericDocValues Returns SortedNumericDocValues for this field, or null if no
+	// SortedNumericDocValues were indexed for this field. The returned instance should only be used by a single thread.
+	GetSortedNumericDocValues(field string) (SortedNumericDocValues, error)
+
+	// GetSortedSetDocValues Returns SortedSetDocValues for this field, or null if no SortedSetDocValues
+	// were indexed for this field. The returned instance should only be used by a single thread.
 	GetSortedSetDocValues(field string) (SortedSetDocValues, error)
+
+	// GetNormValues Returns NumericDocValues representing norms for this field, or null if no NumericDocValues
+	// were indexed. The returned instance should only be used by a single thread.
+	GetNormValues(field string) (NumericDocValues, error)
 
 	// GetFieldInfos Get the FieldInfos describing all fields in this reader. Note: Implementations
 	// should cache the FieldInfos instance returned by this method such that subsequent calls to

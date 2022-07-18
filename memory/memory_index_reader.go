@@ -126,6 +126,38 @@ func (m *MemoryIndexReader) Postings(term *index.Term, flags int) (index.Posting
 	panic("implement me")
 }
 
+func (m *MemoryIndexReader) GetNumericDocValues(field string) (index.NumericDocValues, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MemoryIndexReader) GetBinaryDocValues(field string) (index.BinaryDocValues, error) {
+	return m.getSortedDocValues(field, types.DOC_VALUES_TYPE_SORTED), nil
+}
+
+func (m *MemoryIndexReader) GetSortedDocValues(field string) (index.SortedDocValues, error) {
+	return m.getSortedDocValues(field, types.DOC_VALUES_TYPE_SORTED), nil
+}
+
+func (m *MemoryIndexReader) getSortedDocValues(field string, docValuesType types.DocValuesType) index.SortedDocValues {
+	info := m.getInfoForExpectedDocValuesType(field, types.DOC_VALUES_TYPE_SORTED_SET)
+	if info != nil {
+		value := info.binaryProducer.dvBytesValuesSet.Get(0)
+		return newInnerSortedDocValues(value)
+	}
+	return nil
+}
+
+func (m *MemoryIndexReader) GetSortedNumericDocValues(field string) (index.SortedNumericDocValues, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MemoryIndexReader) GetNormValues(field string) (index.NumericDocValues, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *MemoryIndexReader) GetSortedSetDocValues(field string) (index.SortedSetDocValues, error) {
 	info := m.getInfoForExpectedDocValuesType(field, types.DOC_VALUES_TYPE_SORTED_SET)
 	if info != nil {
@@ -135,7 +167,20 @@ func (m *MemoryIndexReader) GetSortedSetDocValues(field string) (index.SortedSet
 }
 
 func (m *MemoryIndexReader) getInfoForExpectedDocValuesType(fieldName string, expectedType types.DocValuesType) *Info {
-	panic("")
+	if expectedType == types.DOC_VALUES_TYPE_NONE {
+		return nil
+	}
+
+	v, found := m.fields.Get(fieldName)
+	if !found {
+		return nil
+	}
+
+	info := v.(*Info)
+	if info.fieldInfo.GetDocValuesType() != expectedType {
+		return nil
+	}
+	return info
 }
 
 func (m *MemoryIndexReader) GetFieldInfos() *index.FieldInfos {

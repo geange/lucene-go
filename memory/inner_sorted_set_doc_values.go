@@ -43,7 +43,12 @@ func (i *innerSortedSetDocValues) Cost() int64 {
 
 func (i *innerSortedSetDocValues) AdvanceExact(target int) (bool, error) {
 	i.ord = 0
-	return i.it.advance(target) == target, nil
+
+	advance, err := i.Advance(target)
+	if err != nil {
+		return false, err
+	}
+	return advance == target, nil
 }
 
 func (i *innerSortedSetDocValues) NextOrd() (int64, error) {
