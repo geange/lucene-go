@@ -46,5 +46,5 @@ type BytesRefIterator interface {
 	// After this method returns null, do not call it again: the results are undefined.
 	// Returns: the next BytesRef in the iterator or null if the end of the iterator is reached.
 	// Throws: 	IOException – If there is a low-level I/O error.
-	Next() (*BytesRef, error)
+	Next() ([]byte, error)
 }

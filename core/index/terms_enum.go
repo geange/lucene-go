@@ -5,9 +5,9 @@ import (
 	"github.com/geange/lucene-go/core/util"
 )
 
-// TermsEnum Iterator to seek (seekCeil(BytesRef), seekExact(BytesRef)) or step through (next terms to obtain
+// TermsEnum Iterator to seek (seekCeil(), seekExact()) or step through (next terms to obtain
 // frequency information (docFreq), PostingsEnum or PostingsEnum for the current term (postings.
-//Term enumerations are always ordered by BytesRef.compareTo, which is Unicode sort order if the terms are
+// Term enumerations are always ordered by .compareTo, which is Unicode sort order if the terms are
 // UTF-8 bytes. Each term in the enumeration is greater than the one before it.
 // The TermsEnum is unpositioned when you first obtain it and you must first successfully call next or one
 // of the seek methods.
@@ -42,10 +42,10 @@ type TermsEnum interface {
 	// maintained separately if this method is used.
 	// Params: 	term – the term the TermState corresponds to
 	//			state – the TermState
-	SeekExactExpert(term *util.BytesRef, state TermState) error
+	SeekExactExpert(term []byte, state TermState) error
 
 	// Term Returns current term. Do not call this when the enum is unpositioned.
-	Term() (*util.BytesRef, error)
+	Term() ([]byte, error)
 
 	// Ord Returns ordinal position for current term. This is an optional method (the codec may throw
 	// UnsupportedOperationException). Do not call this when the enum is unpositioned.
@@ -82,7 +82,7 @@ type TermsEnum interface {
 	// term dictionary.
 	// NOTE: A seek by TermState might not capture the AttributeSourceV2's state. Callers must maintain the
 	// AttributeSourceV2 states separately
-	// See Also: TermState, seekExact(BytesRef, TermState)
+	// See Also: TermState, seekExact(, TermState)
 	TermState() (TermState, error)
 }
 

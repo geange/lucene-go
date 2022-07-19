@@ -127,8 +127,11 @@ func (m *MemoryIndexReader) Postings(term *index.Term, flags int) (index.Posting
 }
 
 func (m *MemoryIndexReader) GetNumericDocValues(field string) (index.NumericDocValues, error) {
-	//TODO implement me
-	panic("implement me")
+	info := m.getInfoForExpectedDocValuesType(field, types.DOC_VALUES_TYPE_NUMERIC)
+	if info != nil {
+		return newInnerNumericDocValues(int64(info.numericProducer.dvLongValues[0])), nil
+	}
+	return nil, nil
 }
 
 func (m *MemoryIndexReader) GetBinaryDocValues(field string) (index.BinaryDocValues, error) {
@@ -149,8 +152,11 @@ func (m *MemoryIndexReader) getSortedDocValues(field string, docValuesType types
 }
 
 func (m *MemoryIndexReader) GetSortedNumericDocValues(field string) (index.SortedNumericDocValues, error) {
-	//TODO implement me
-	panic("implement me")
+	info := m.getInfoForExpectedDocValuesType(field, types.DOC_VALUES_TYPE_SORTED_NUMERIC)
+	if info != nil {
+		return newInnerSortedNumericDocValues(info.numericProducer.dvLongValues, info.numericProducer.count), nil
+	}
+	return nil, nil
 }
 
 func (m *MemoryIndexReader) GetNormValues(field string) (index.NumericDocValues, error) {

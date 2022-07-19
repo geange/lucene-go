@@ -381,7 +381,7 @@ type Info struct {
 	// private BytesRefHash terms;
 	terms *util.BytesRefHash
 	// private SliceByteStartArray sliceArray;
-	sliceArray *sliceByteStartArray
+	sliceArray *SliceByteStartArray
 
 	// Terms sorted ascending by term text; computed on demand
 	sortedTerms []int
@@ -415,7 +415,7 @@ type Info struct {
 }
 
 func NewInfo(fieldInfo *index.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
-	sliceArray := newSliceByteStartArray(util.DEFAULT_CAPACITY)
+	sliceArray := NewSliceByteStartArray(util.DEFAULT_CAPACITY)
 
 	info := Info{
 		fieldInfo:       fieldInfo,
@@ -478,21 +478,4 @@ func NewNumericDocValuesProducer() *NumericDocValuesProducer {
 
 func (r *NumericDocValuesProducer) prepareForUsage() {
 	sort.Ints(r.dvLongValues[0:r.count])
-}
-
-type sliceByteStartArray struct {
-	*util.DirectBytesStartArray
-
-	start []int // the start offset in the IntBlockPool per term
-	end   []int // the end pointer in the IntBlockPool for the postings slice per term
-	freq  []int // the term frequency
-}
-
-func newSliceByteStartArray(initSize int) *sliceByteStartArray {
-	return &sliceByteStartArray{
-		DirectBytesStartArray: util.NewDirectBytesStartArray(initSize),
-		start:                 nil,
-		end:                   nil,
-		freq:                  nil,
-	}
 }

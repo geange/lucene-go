@@ -74,7 +74,7 @@ func (r *BytesRefArray) Get(spare *BytesRefBuilder, index int) []byte {
 
 // Used only by sort below, to set a BytesRef with the specified slice, avoiding copying bytes in the common
 // case when the slice is contained in a single block in the byte block pool.
-func (r *BytesRefArray) setBytesRef(spare *BytesRefBuilder, result *BytesRef, index int) {
+func (r *BytesRefArray) setBytesRef(spare *BytesRefBuilder, result []byte, index int) {
 	offset := r.offsets[index]
 	length := 0
 	if index == r.lastElement-1 {
@@ -91,7 +91,7 @@ func (r *BytesRefArray) Iterator(_ *BytesRef) BytesRefIterator {
 		pos:   -1,
 		ord:   0,
 		spare: NewBytesRefBuilder(),
-		ref:   NewBytesRefDefault(),
+		ref:   []byte{},
 		array: r,
 	}
 }
@@ -101,11 +101,11 @@ type bytesRefIterator struct {
 	pos   int
 	ord   int
 	spare *BytesRefBuilder
-	ref   *BytesRef
+	ref   []byte
 	array *BytesRefArray
 }
 
-func (b *bytesRefIterator) Next() (*BytesRef, error) {
+func (b *bytesRefIterator) Next() ([]byte, error) {
 	b.pos++
 	if b.pos < b.size {
 		b.ord = b.pos

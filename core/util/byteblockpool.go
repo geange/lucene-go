@@ -163,23 +163,23 @@ func (r *ByteBlockPool) AllocSlice(slice []byte, upto int) int {
 // SetBytesRefV1 Fill the provided BytesRef with the bytes at the specified offset/length slice. This will
 // avoid copying the bytes, if the slice fits into a single block; otherwise, it uses the provided BytesRefBuilder
 // to copy bytes over.
-func (r *ByteBlockPool) SetBytesRefV1(builder *BytesRefBuilder, result *BytesRef, offset, length int) {
-	result.Length = length
-
-	bufferIndex := offset >> BYTE_BLOCK_SHIFT
-	buffer := r.buffers[bufferIndex]
-	pos := offset & BYTE_BLOCK_MASK
-	if pos+length <= BYTE_BLOCK_SIZE {
-		// common case where the slice lives in a single block: just reference the buffer directly without copying
-		result.Bytes = buffer
-		result.Offset = pos
-	} else {
-		// uncommon case: the slice spans at least 2 blocks, so we must copy the bytes:
-		builder.Grow(length)
-		result.Bytes = builder.Get()
-		result.Offset = 0
-		r.ReadBytes(offset, result.Bytes, 0, length)
-	}
+func (r *ByteBlockPool) SetBytesRefV1(builder *BytesRefBuilder, result []byte, offset, length int) {
+	//result.Length = length
+	//
+	//bufferIndex := offset >> BYTE_BLOCK_SHIFT
+	//buffer := r.buffers[bufferIndex]
+	//pos := offset & BYTE_BLOCK_MASK
+	//if pos+length <= BYTE_BLOCK_SIZE {
+	//	// common case where the slice lives in a single block: just reference the buffer directly without copying
+	//	result.Bytes = buffer
+	//	result.Offset = pos
+	//} else {
+	//	// uncommon case: the slice spans at least 2 blocks, so we must copy the bytes:
+	//	builder.Grow(length)
+	//	result.Bytes = builder.Get()
+	//	result.Offset = 0
+	//	r.ReadBytes(offset, result.Bytes, 0, length)
+	//}
 }
 
 // SetBytesRefV2 Fill in a BytesRef from term's length & bytes encoded in byte block
