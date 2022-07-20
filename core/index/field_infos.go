@@ -18,3 +18,7 @@ type FieldInfos struct {
 	byName map[string]*FieldInfo
 	values []*FieldInfo // for an unmodifiable iterator
 }
+
+func NewFieldInfos(infos []FieldInfo) *FieldInfos {
+	return nil
+}

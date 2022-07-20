@@ -62,3 +62,126 @@ type LeafReader interface {
 	// GetMetaData Return metadata about this leaf.
 	GetMetaData() *LeafMetaData
 }
+
+type LeafReaderNeedImp interface {
+	Terms(field string) (Terms, error)
+}
+
+type LeafReaderImp struct {
+	LeafReaderNeedImp
+
+	*IndexReaderImp
+
+	readerContext *LeafReaderContext
+}
+
+func NewLeafReaderImp(leafReaderNeedImp LeafReaderNeedImp,
+	indexReaderNeedImpl IndexReaderNeedImpl, readerContext *LeafReaderContext) *LeafReaderImp {
+	return &LeafReaderImp{
+
+		LeafReaderNeedImp: leafReaderNeedImp,
+		IndexReaderImp:    NewIndexReaderImp(indexReaderNeedImpl),
+		readerContext:     readerContext,
+	}
+}
+
+func (r *LeafReaderImp) Postings(term *Term, flags int) (PostingsEnum, error) {
+	terms, err := r.Terms(term.Field())
+	if err != nil {
+		return nil, err
+	}
+	if terms == nil {
+		return nil, nil
+	}
+	if terms != nil {
+		termsEnum, err := terms.Iterator()
+		if err != nil {
+			return nil, err
+		}
+
+		if ok, err := termsEnum.SeekExact(term.Bytes()); err == nil && ok {
+			return termsEnum.Postings(nil, flags)
+		}
+	}
+	return nil, nil
+}
+
+func (r *LeafReaderImp) GetContext() IndexReaderContext {
+	return r.readerContext
+}
+
+func (r *LeafReaderImp) DocFreq(term Term) (int, error) {
+	terms, err := r.Terms(term.Field())
+	if err != nil {
+		return 0, err
+	}
+	if terms == nil {
+		return 0, nil
+	}
+
+	termsEnum, err := terms.Iterator()
+	if err != nil {
+		return 0, err
+	}
+	if ok, err := termsEnum.SeekExact(term.Bytes()); err == nil && ok {
+		return termsEnum.DocFreq()
+	} else {
+		return 0, err
+	}
+}
+
+func (r *LeafReaderImp) TotalTermFreq(term *Term) (int64, error) {
+	terms, err := r.Terms(term.Field())
+	if err != nil {
+		return 0, err
+	}
+	if terms == nil {
+		return 0, nil
+	}
+
+	termsEnum, err := terms.Iterator()
+	if err != nil {
+		return 0, err
+	}
+	if ok, err := termsEnum.SeekExact(term.Bytes()); err == nil && ok {
+		return termsEnum.TotalTermFreq()
+	} else {
+		return 0, err
+	}
+}
+
+func (r *LeafReaderImp) GetSumDocFreq(field string) (int64, error) {
+	terms, err := r.Terms(field)
+	if err != nil {
+		return 0, err
+	}
+	if terms == nil {
+		return 0, nil
+	}
+
+	return terms.GetSumDocFreq()
+}
+
+func (r *LeafReaderImp) GetDocCount(field string) (int, error) {
+	terms, err := r.Terms(field)
+	if err != nil {
+		return 0, err
+	}
+	if terms == nil {
+		return 0, nil
+	}
+
+	return terms.GetDocCount()
+}
+
+func (r *LeafReaderImp) GetSumTotalTermFreq(field string) (int64, error) {
+	terms, err := r.Terms(field)
+	if err != nil {
+		return 0, err
+	}
+	if terms == nil {
+		return 0, nil
+	}
+
+	return terms.GetSumTotalTermFreq()
+}

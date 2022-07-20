@@ -1,33 +1,36 @@
 package memory
 
 import (
+	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 type MemoryFields struct {
-	fields map[string]Info
+	fields *treemap.Map
 }
 
-func NewMemoryFields(fields map[string]Info) *MemoryFields {
+func NewMemoryFields(fields *treemap.Map) *MemoryFields {
 	return &MemoryFields{fields: fields}
 }
 
 func (m *MemoryFields) Iterator() func() string {
-	keys := make([]string, 0, len(m.fields))
-	for k := range m.fields {
-		keys = append(keys, k)
-	}
-	i := 0
-	return func() string {
-		if i < len(keys) {
-			res := keys[i]
-			i++
-			return res
-		}
-		return ""
-	}
+	m.fields.Keys()
+	//keys := make([]string, 0, len(m.fields))
+	//for k := range m.fields {
+	//	keys = append(keys, k)
+	//}
+	//i := 0
+	//return func() string {
+	//	if i < len(keys) {
+	//		res := keys[i]
+	//		i++
+	//		return res
+	//	}
+	//	return ""
+	//}
+	panic("")
 }
 
 func (m *MemoryFields) Terms(field string) (index.Terms, error) {
@@ -103,5 +106,5 @@ func (t *terms) GetMax() (*util.BytesRef, error) {
 }
 
 func (m *MemoryFields) Size() int {
-	return len(m.fields)
+	return m.fields.Size()
 }

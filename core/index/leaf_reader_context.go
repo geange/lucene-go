@@ -14,6 +14,10 @@ type LeafReaderContext struct {
 	leaves []LeafReaderContext
 }
 
+func NewLeafReaderContext(leafReader LeafReader) *LeafReaderContext {
+	panic("")
+}
+
 func (l *LeafReaderContext) LeafReader() LeafReader {
 	return l.reader
 }
@@ -28,11 +32,9 @@ func (l *LeafReaderContext) Leaves() ([]LeafReaderContext, error) {
 }
 
 func (l *LeafReaderContext) Children() []IndexReaderContext {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (l *LeafReaderContext) Identity() string {
-	//TODO implement me
-	panic("implement me")
+	return l.identity
 }

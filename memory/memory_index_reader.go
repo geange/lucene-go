@@ -15,114 +15,67 @@ var _ index.LeafReader = &MemoryIndexReader{}
 // MemoryIndexReader Search support for Lucene framework integration; implements all methods required by the Lucene
 // IndexReader contracts.
 type MemoryIndexReader struct {
+	*index.LeafReaderImp
+
 	memoryFields *MemoryFields
 	fieldInfos   *index.FieldInfos
 
 	fields *treemap.Map
 }
 
-func (m *MemoryIndexReader) Close() error {
-	//TODO implement me
-	panic("implement me")
+func NewMemoryIndexReader(fields *treemap.Map) *MemoryIndexReader {
+	fieldInfosArr := make([]index.FieldInfo, fields.Size())
+	i := 0
+	it := fields.Iterator()
+
+	for it.Next() {
+		info := it.Value().(*Info)
+		info.prepareDocValuesAndPointValues()
+		fieldInfosArr[i] = *info.fieldInfo
+		i++
+	}
+
+	reader := &MemoryIndexReader{
+		LeafReaderImp: nil,
+		memoryFields:  NewMemoryFields(fields),
+		fieldInfos:    index.NewFieldInfos(fieldInfosArr),
+		fields:        fields,
+	}
+
+	reader.LeafReaderImp = index.NewLeafReaderImp(reader, reader, index.NewLeafReaderContext(reader))
+	return reader
 }
 
 func (m *MemoryIndexReader) GetTermVectors(docID int) (index.Fields, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) GetTermVector(docID int, field string) (index.Terms, error) {
-	//TODO implement me
-	panic("implement me")
+	if docID == 0 {
+		return m.memoryFields, nil
+	} else {
+		return nil, nil
+	}
 }
 
 func (m *MemoryIndexReader) NumDocs() int {
-	//TODO implement me
-	panic("implement me")
+	return 1
 }
 
 func (m *MemoryIndexReader) MaxDoc() int {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) NumDeletedDocs() int {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) Document(docID int) (*document.Document, error) {
-	//TODO implement me
-	panic("implement me")
+	return 1
 }
 
 func (m *MemoryIndexReader) DocumentV1(docID int, visitor document.StoredFieldVisitor) (*document.Document, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) HasDeletions() bool {
-	//TODO implement me
-	panic("implement me")
+	return nil, nil
 }
 
 func (m *MemoryIndexReader) DoClose() error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) GetContext() index.IndexReaderContext {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) Leaves() ([]index.LeafReaderContext, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (m *MemoryIndexReader) GetReaderCacheHelper() index.CacheHelper {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) DocFreq(term index.Term) (int, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) TotalTermFreq(term *index.Term) (int64, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) GetSumDocFreq(field string) (int64, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) GetDocCount(field string) (int, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MemoryIndexReader) GetSumTotalTermFreq(field string) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (m *MemoryIndexReader) Terms(field string) (index.Terms, error) {
 	return m.memoryFields.Terms(field)
-}
-
-func (m *MemoryIndexReader) Postings(term *index.Term, flags int) (index.PostingsEnum, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (m *MemoryIndexReader) GetNumericDocValues(field string) (index.NumericDocValues, error) {

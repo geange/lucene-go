@@ -107,7 +107,7 @@ type IndexReader interface {
 	GetSumTotalTermFreq(field string) (int64, error)
 }
 
-type IndexReaderPLG interface {
+type IndexReaderNeedImpl interface {
 	GetTermVectors(docID int) (Fields, error)
 
 	NumDocs() int
@@ -134,7 +134,7 @@ type IndexReaderPLG interface {
 }
 
 type IndexReaderImp struct {
-	IndexReaderPLG
+	IndexReaderNeedImpl
 
 	sync.Mutex
 	closed        bool
@@ -143,11 +143,11 @@ type IndexReaderImp struct {
 	parentReaders map[IndexReader]struct{}
 }
 
-func NewIndexReaderImp(indexReaderPLG IndexReaderPLG) *IndexReaderImp {
+func NewIndexReaderImp(needImpl IndexReaderNeedImpl) *IndexReaderImp {
 	return &IndexReaderImp{
-		IndexReaderPLG: indexReaderPLG,
-		refCount:       atomic.NewInt64(0),
-		parentReaders:  make(map[IndexReader]struct{}),
+		IndexReaderNeedImpl: needImpl,
+		refCount:            atomic.NewInt64(0),
+		parentReaders:       make(map[IndexReader]struct{}),
 	}
 }
 

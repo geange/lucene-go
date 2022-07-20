@@ -16,6 +16,15 @@ type MemoryTermsEnum struct {
 	atts     *tokenattributes.AttributeSource
 }
 
+func NewMemoryTermsEnum(info *Info) *MemoryTermsEnum {
+	return &MemoryTermsEnum{
+		info:     info,
+		termUpto: -1,
+		br:       nil,
+		atts:     tokenattributes.NewAttributeSourceV1(),
+	}
+}
+
 func (m *MemoryTermsEnum) binarySearch(b []byte, low, high int, hash *util.BytesRefHash, ords []int) int {
 	mid := 0
 	for low <= high {
