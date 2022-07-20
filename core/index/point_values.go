@@ -86,4 +86,10 @@ type IntersectVisitor interface {
 	// packedValue to decide whether to accept it. In the 1D case, values are visited in increasing order,
 	// and in the case of ties, in increasing docID order.
 	Visit(docID int, packedValue []byte) error
+
+	// Compare Called for non-leaf cells to test how the cell relates to the query, to determine how to further recurse down the tree.
+	Compare(minPackedValue, maxPackedValue []byte) Relation
+
+	// Grow Notifies the caller that this many documents are about to be visited
+	Grow(count int)
 }

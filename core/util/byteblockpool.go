@@ -182,23 +182,6 @@ func (r *ByteBlockPool) SetBytesRefV1(builder *BytesRefBuilder, result []byte, o
 	//}
 }
 
-// SetBytesRefV2 Fill in a BytesRef from term's length & bytes encoded in byte block
-func (r *ByteBlockPool) SetBytesRefV2(term *BytesRef, textStart int) {
-	bytes := r.buffers[textStart>>BYTE_BLOCK_SHIFT]
-	term.Bytes = bytes
-
-	pos := textStart & BYTE_BLOCK_MASK
-
-	if (bytes[pos] & 0x80) == 0 {
-		// length is 1 byte
-		term.Length = int(bytes[pos])
-		term.Offset = pos + 1
-	} else {
-		term.Length = int((bytes[pos] & 0x7f) + (bytes[pos+1]&0xff)<<7)
-		term.Offset = pos + 2
-	}
-}
-
 func (r *ByteBlockPool) GetBytes(textStart int) []byte {
 	bytes := r.buffers[textStart>>BYTE_BLOCK_SHIFT]
 

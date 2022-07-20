@@ -1,7 +1,5 @@
 package index
 
-import "github.com/geange/lucene-go/core/util"
-
 // PostingsEnum Iterates through the postings. NOTE: you must first call nextDoc before using any of the
 // per-doc methods.
 type PostingsEnum interface {
@@ -22,7 +20,7 @@ type PostingsEnum interface {
 
 	// GetPayload Returns the payload at this position, or null if no payload was indexed. You should not
 	// modify anything (neither members of the returned BytesRef nor bytes in the byte[]).
-	GetPayload() (*util.BytesRef, error)
+	GetPayload() ([]byte, error)
 }
 
 const (

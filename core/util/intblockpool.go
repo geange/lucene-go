@@ -217,3 +217,78 @@ type DirectIntsAllocator struct {
 
 func (d *DirectIntsAllocator) RecycleIntBlocks(blocks [][]int, start, end int) {
 }
+
+// SliceReader A IntBlockPool.SliceReader that can read int slices written by a IntBlockPool.SliceWriter
+type SliceReader struct {
+	pool         *IntBlockPool
+	upto         int
+	bufferUpto   int
+	bufferOffset int
+	buffer       []int
+	limit        int
+	level        int
+	end          int
+}
+
+func NewSliceReader(pool *IntBlockPool) *SliceReader {
+	return &SliceReader{pool: pool}
+}
+
+// Reset Resets the reader to a slice give the slices absolute start and end offset in the pool
+func (s *SliceReader) Reset(startOffset, endOffset int) {
+	s.bufferUpto = startOffset / INT_BLOCK_SIZE
+	s.bufferOffset = s.bufferUpto * INT_BLOCK_SIZE
+	s.end = endOffset
+	s.level = 0
+
+	s.buffer = s.pool.buffers[s.bufferUpto]
+	s.upto = startOffset & INT_BLOCK_MASK
+
+	firstSize := LEVEL_SIZE_ARRAY[0]
+	if startOffset+firstSize >= endOffset {
+		// There is only this one slice to read
+		s.limit = endOffset & INT_BLOCK_MASK
+	} else {
+		s.limit = s.upto + firstSize - 1
+	}
+}
+
+// EndOfSlice Returns true iff the current slice is fully read. If this method returns true readInt()
+// should not be called again on this slice.
+func (s *SliceReader) EndOfSlice() bool {
+	return s.upto+s.bufferOffset == s.end
+}
+
+// ReadInt Reads the next int from the current slice and returns it.
+// See Also: endOfSlice()
+func (s *SliceReader) ReadInt() int {
+	if s.upto == s.limit {
+		s.nextSlice()
+	}
+
+	upto := s.upto
+	s.upto++
+	return s.buffer[upto]
+}
+
+func (s *SliceReader) nextSlice() {
+	// Skip to our next slice
+	nextIndex := s.buffer[s.limit]
+	s.level = NEXT_LEVEL_ARRAY[s.level]
+	newSize := LEVEL_SIZE_ARRAY[s.level]
+
+	s.bufferUpto = nextIndex / INT_BLOCK_SIZE
+	s.bufferOffset = s.bufferUpto * INT_BLOCK_SIZE
+
+	s.buffer = s.pool.buffers[s.bufferUpto]
+	s.upto = nextIndex & INT_BLOCK_MASK
+
+	if nextIndex+newSize >= s.end {
+		// We are advancing to the final slice
+		s.limit = s.end - s.bufferOffset
+	} else {
+		// This is not the final slice (subtract 4 for the
+		// forwarding address at the end of this new slice)
+		s.limit = s.upto + newSize - 1
+	}
+}

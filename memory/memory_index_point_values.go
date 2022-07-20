@@ -15,46 +15,45 @@ func newMemoryIndexPointValues(info *Info) *MemoryIndexPointValues {
 }
 
 func (m *MemoryIndexPointValues) Intersect(visitor index.IntersectVisitor) error {
-	//TODO implement me
-	panic("implement me")
+	values := m.info.pointValues
+	visitor.Grow(m.info.pointValuesCount)
+	for i := 0; i < m.info.pointValuesCount; i++ {
+		err := visitor.Visit(0, values[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (m *MemoryIndexPointValues) EstimatePointCount(visitor index.IntersectVisitor) int64 {
-	//TODO implement me
-	panic("implement me")
+	return 1
 }
 
 func (m *MemoryIndexPointValues) GetMinPackedValue() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	return m.info.minPackedValue, nil
 }
 
 func (m *MemoryIndexPointValues) GetMaxPackedValue() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	return m.info.maxPackedValue, nil
 }
 
 func (m *MemoryIndexPointValues) GetNumDimensions() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return m.info.fieldInfo.GetPointIndexDimensionCount(), nil
 }
 
 func (m *MemoryIndexPointValues) GetNumIndexDimensions() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return m.info.fieldInfo.GetPointDimensionCount(), nil
 }
 
 func (m *MemoryIndexPointValues) GetBytesPerDimension() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return m.info.fieldInfo.GetPointNumBytes(), nil
 }
 
 func (m *MemoryIndexPointValues) Size() int64 {
-	//TODO implement me
-	panic("implement me")
+	return int64(m.info.pointValuesCount)
 }
 
 func (m *MemoryIndexPointValues) GetDocCount() int {
-	//TODO implement me
-	panic("implement me")
+	return 1
 }

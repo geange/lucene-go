@@ -6,5 +6,8 @@ import "github.com/geange/lucene-go/core/util"
 type LeafMetaData struct {
 	createdVersionMajor int
 	minVersion          *util.Version
-	// Sort sort
+}
+
+func NewLeafMetaData(createdVersionMajor int, minVersion *util.Version) *LeafMetaData {
+	return &LeafMetaData{createdVersionMajor: createdVersionMajor, minVersion: minVersion}
 }

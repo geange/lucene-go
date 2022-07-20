@@ -117,8 +117,7 @@ func (m *MemoryIndexReader) GetSumTotalTermFreq(field string) (int64, error) {
 }
 
 func (m *MemoryIndexReader) Terms(field string) (index.Terms, error) {
-	//TODO implement me
-	panic("implement me")
+	return m.memoryFields.Terms(field)
 }
 
 func (m *MemoryIndexReader) Postings(term *index.Term, flags int) (index.PostingsEnum, error) {
@@ -160,8 +159,22 @@ func (m *MemoryIndexReader) GetSortedNumericDocValues(field string) (index.Sorte
 }
 
 func (m *MemoryIndexReader) GetNormValues(field string) (index.NumericDocValues, error) {
-	//TODO implement me
-	panic("implement me")
+	v, _ := m.fields.Get(field)
+	info := v.(*Info)
+	if info == nil {
+		return nil, nil
+	}
+
+	info, ok := v.(*Info)
+	if !ok {
+		return nil, nil
+	}
+
+	if info.fieldInfo.OmitsNorms() {
+		return nil, nil
+	}
+
+	return info.getNormDocValues(), nil
 }
 
 func (m *MemoryIndexReader) GetSortedSetDocValues(field string) (index.SortedSetDocValues, error) {
@@ -207,13 +220,11 @@ func (m *MemoryIndexReader) GetPointValues(field string) (index.PointValues, err
 }
 
 func (m *MemoryIndexReader) CheckIntegrity() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (m *MemoryIndexReader) GetMetaData() *index.LeafMetaData {
-	//TODO implement me
-	panic("implement me")
+	return index.NewLeafMetaData(util.VersionLast.Major, util.VersionLast)
 }
 
 func sortedSetDocValues(values *util.BytesRefHash, bytesIds []int) index.SortedSetDocValues {
