@@ -20,7 +20,7 @@ type Terms interface {
 
 	// Size Returns the number of terms for this field, or -1 if this measure isn't stored by the codec.
 	// Note that, just like other term measures, this measure does not take deleted documents into account.
-	Size() (int64, error)
+	Size() (int, error)
 
 	// GetSumTotalTermFreq Returns the sum of TermsEnum.totalTermFreq for all terms in this field. Note that,
 	// just like other term measures, this measure does not take deleted documents into account.
@@ -49,9 +49,111 @@ type Terms interface {
 	// GetMin Returns the smallest term (in lexicographic order) in the field. Note that, just like other
 	// term measures, this measure does not take deleted documents into account. This returns null when
 	// there are no terms.
-	GetMin() (*util.BytesRef, error)
+	GetMin() ([]byte, error)
 
 	// GetMax Returns the largest term (in lexicographic order) in the field. Note that, just like other term
 	// measures, this measure does not take deleted documents into account. This returns null when there are no terms.
-	GetMax() (*util.BytesRef, error)
+	GetMax() ([]byte, error)
+}
+
+type TermsExtra interface {
+	Iterator() (TermsEnum, error)
+	Size() (int, error)
+}
+
+type TermsImp struct {
+	TermsExtra
+}
+
+func NewTermsImp(termsExtra TermsExtra) *TermsImp {
+	return &TermsImp{TermsExtra: termsExtra}
+}
+
+func (t *TermsImp) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error) {
+	// TODO: could we factor out a common interface b/w
+	// CompiledAutomaton and FST?  Then we could pass FST there too,
+	// and likely speed up resolving terms to deleted docs ... but
+	// AutomatonTermsEnum makes this tricky because of its on-the-fly cycle
+	// detection
+
+	// TODO: eventually we could support seekCeil/Exact on
+	// the returned enum, instead of only being able to seek
+	// at the start
+	panic("")
+}
+
+func (t *TermsImp) GetMin() ([]byte, error) {
+	iterator, err := t.Iterator()
+	if err != nil {
+		return nil, err
+	}
+	return iterator.Next()
+}
+
+func (t *TermsImp) GetMax() ([]byte, error) {
+	size, err := t.Size()
+	if err != nil {
+		return nil, err
+	}
+
+	if size == 0 {
+		return nil, nil
+	} else if size >= 0 {
+		iterator, err := t.Iterator()
+		if err != nil {
+			return nil, err
+		}
+		if err := iterator.SeekExactByOrd(int64(size - 1)); err != nil {
+			return nil, err
+		}
+		return iterator.Term()
+	}
+
+	// otherwise: binary search
+	iterator, err := t.Iterator()
+	if err != nil {
+		return nil, err
+	}
+	v, err := iterator.Next()
+	if err != nil {
+		return nil, err
+	}
+	if v == nil {
+		return nil, nil
+	}
+
+	scratch := util.NewBytesRefBuilder()
+	scratch.AppendByte(0)
+
+	for {
+		low := 0
+		high := 256
+
+		for low != high {
+			mid := (low + high) >> 1
+			scratch.SetByteAt(scratch.Length()-1, byte(mid))
+			status, err := iterator.SeekCeil(scratch.Get())
+			if err != nil {
+				return nil, err
+			}
+			if status == SEEK_STATUS_END {
+				// Scratch was too high
+				if mid == 0 {
+					scratch.SetLength(scratch.Length() - 1)
+					return scratch.Get(), nil
+				}
+			} else {
+				// Scratch was too low; there is at least one term
+				// still after it:
+				if low == mid {
+					break
+				}
+				low = mid
+			}
+		}
+
+		// Recurse to next digit:
+		scratch.SetLength(scratch.Length() + 1)
+		scratch.Grow(scratch.Length())
+	}
 }

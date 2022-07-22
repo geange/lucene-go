@@ -1,5 +1,7 @@
 package search
 
+var _ Matches = &NamedMatches{}
+
 // NamedMatches Utility class to help extract the set of sub queries that have matched from a larger query.
 // Individual subqueries may be wrapped using wrapQuery(String, Query), and the matching queries for a
 // particular document can then be pulled from the parent Query's Matches object by calling findNamedMatches(Matches)

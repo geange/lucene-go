@@ -25,21 +25,110 @@ type Weight interface {
 	//			doc – the document's id relative to the given context's reader
 	Matches(context *index.LeafReaderContext, doc int) (Matches, error)
 
-	Match(value interface{}, description string, details []Explanation) (*Explanation, error)
+	// Explain An explanation of the score computation for the named document.
+	// Params: 	context – the readers context to create the Explanation for.
+	//			doc – the document's id relative to the given context's reader
+	// Returns: an Explanation for the score
+	// Throws: 	IOException – if an IOException occurs
+	Explain(ctx *index.LeafReaderContext, doc int) (*Explanation, error)
 
-	NoMatch(value interface{}, description string, details []Explanation) (*Explanation, error)
+	// GetQuery The query that this concerns.
+	GetQuery() Query
 
-	// IsMatch Indicates whether or not this Explanation models a match.
-	IsMatch() bool
+	// Scorer Returns a Scorer which can iterate in order over all matching documents and assign them a score.
+	//NOTE: null can be returned if no documents will be scored by this query.
+	//NOTE: The returned Scorer does not have LeafReader.getLiveDocs() applied, they need to be checked on top.
+	//Params:
+	//context – the LeafReaderContext for which to return the Scorer.
+	//Returns:
+	//a Scorer which scores documents in/out-of order.
+	//Throws:
+	//IOException – if there is a low-level I/O error
+	Scorer(ctx *index.LeafReaderContext) (Scorer, error)
 
-	// GetValue The value assigned to this explanation node.
-	GetValue() any
+	// ScorerSupplier Optional method. Get a ScorerSupplier, which allows to know the cost of the Scorer before building it. The default implementation calls scorer and builds a ScorerSupplier wrapper around it.
+	//See Also:
+	//scorer
+	ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error)
 
-	// GetDescription A description of this explanation node.
-	GetDescription() string
+	// BulkScorer Optional method, to return a BulkScorer to score the query and send hits to a Collector. Only queries that have a different top-level approach need to override this; the default implementation pulls a normal Scorer and iterates and collects the resulting hits which are not marked as deleted.
+	// Params: 	context – the LeafReaderContext for which to return the Scorer.
+	// Returns: a BulkScorer which scores documents and passes them to a collector.
+	// Throws: 	IOException – if there is a low-level I/O error
+	BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error)
+}
 
-	//GetSummary() string
+type WeightExtra interface {
+	Scorer(ctx *index.LeafReaderContext) (Scorer, error)
+}
 
-	// GetDetails The sub-nodes of this explanation node.
-	GetDetails() []Explanation
+type WeightImp struct {
+	WeightExtra
+
+	parentQuery Query
+}
+
+func (r *WeightImp) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
+	scorerSupplier, err := r.ScorerSupplier(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if scorerSupplier == nil {
+		return nil, nil
+	}
+
+	scorer, err := scorerSupplier.Get(1)
+	if err != nil {
+		return nil, err
+	}
+	twoPhase := scorer.TwoPhaseIterator()
+	if twoPhase == nil {
+		advance, err := scorer.Iterator().Advance(doc)
+		if err != nil {
+			return nil, err
+		}
+		if advance != doc {
+			return nil, nil
+		}
+	} else {
+		advance, err := twoPhase.Approximation().Advance(doc)
+		if err != nil {
+			return nil, err
+		}
+
+		if ok, _ := twoPhase.Matches(); advance != doc || !ok {
+			return nil, nil
+		}
+	}
+	panic("")
+}
+
+func (r *WeightImp) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
+	scorer, err := r.Scorer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if scorer == nil {
+		return nil, nil
+	}
+
+	return &scorerSupplier{scorer: scorer}, nil
+}
+
+var _ ScorerSupplier = &scorerSupplier{}
+
+type scorerSupplier struct {
+	scorer Scorer
+}
+
+func (s *scorerSupplier) Get(leadCost int64) (Scorer, error) {
+	return s.scorer, nil
+}
+
+func (s *scorerSupplier) Cost() int64 {
+	return s.scorer.Iterator().Cost()
+}
+
+func (r *WeightImp) BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error) {
+	panic("")
 }

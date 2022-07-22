@@ -40,14 +40,47 @@ type IndexSearcher struct {
 	//executor
 
 	// the default Similarity
-	defaultSimilarity similarities.Similarity
+	similarity similarities.Similarity
 
 	queryCache         QueryCache
 	queryCachingPolicy QueryCachingPolicy
 }
 
+func NewIndexSearcher(r index.IndexReader) *IndexSearcher {
+	return newIndexSearcher(r.GetContext())
+}
+
+func newIndexSearcher(context index.IndexReaderContext) *IndexSearcher {
+	leaves, err := context.Leaves()
+	if err != nil {
+		return nil
+	}
+
+	return &IndexSearcher{
+		reader:             context.Reader(),
+		readerContext:      context,
+		leafContexts:       leaves,
+		leafSlices:         nil,
+		similarity:         nil,
+		queryCache:         nil,
+		queryCachingPolicy: nil,
+	}
+}
+
 func (r *IndexSearcher) GetTopReaderContext() index.IndexReaderContext {
 	return r.readerContext
+}
+
+func (r *IndexSearcher) SetSimilarity(similarity similarities.Similarity) {
+	r.similarity = similarity
+}
+
+func (r *IndexSearcher) SetQueryCache(queryCache QueryCache) {
+	r.queryCache = queryCache
+}
+
+func (r *IndexSearcher) Search(query Query, results Collector) {
+
 }
 
 type LeafSlice struct {

@@ -20,3 +20,42 @@ type Matches interface {
 type MatchesImp struct {
 	strs []string
 }
+
+var _ Matches = &matchWithNoTerms{}
+
+type matchWithNoTerms struct {
+}
+
+func (m *matchWithNoTerms) Strings() []string {
+	return nil
+}
+
+func (m *matchWithNoTerms) GetMatches(field string) (MatchesIterator, error) {
+	return nil, nil
+}
+
+func (m *matchWithNoTerms) GetSubMatches() []Matches {
+	return nil
+}
+
+var _ Matches = &matchForField{}
+
+type matchForField struct {
+	field  string
+	cached bool
+}
+
+func (m *matchForField) Strings() []string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *matchForField) GetMatches(field string) (MatchesIterator, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *matchForField) GetSubMatches() []Matches {
+	//TODO implement me
+	panic("implement me")
+}

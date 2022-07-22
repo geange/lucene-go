@@ -3,16 +3,17 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/search"
 	"github.com/geange/lucene-go/core/search/similarities"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
-	"sort"
-
 	"github.com/geange/lucene-go/core/util"
 	"go.uber.org/atomic"
+	"reflect"
 )
 
 // High-performance single-document main memory Apache Lucene fulltext search index.
@@ -30,13 +31,13 @@ import (
 //
 // Each instance can hold at most one Lucene "document", with a document containing zero or more "fields",
 // each field having a name and a fulltext value. The fulltext value is tokenized (split and transformed) into
-// zero or more index terms (aka words) on addField(), according to the policy implemented by an Analyzer.
+// zero or more index Terms (aka words) on addField(), according to the policy implemented by an Analyzer.
 // For example, Lucene analyzers can split on whitespace, normalize to lower case for case insensitivity,
-// ignore common terms with little discriminatory value such as "he", "in", "and" (stop words), reduce the terms
+// ignore common Terms with little discriminatory value such as "he", "in", "and" (stop words), reduce the Terms
 // to their natural linguistic root form such as "fishing" being reduced to "fish" (stemming), resolve
 // synonyms/inflexions/thesauri (upon indexing and/or querying), etc. For details, see Lucene Analyzer Intro.
 // Arbitrary Lucene queries can be run against this class - see Lucene Query Syntax as well as Query Parser Rules.
-// Note that a Lucene query selects on the field names and associated (indexed) tokenized terms, not on the
+// Note that a Lucene query selects on the field names and associated (indexed) tokenized Terms, not on the
 // original fulltext(s) - the latter are not stored but rather thrown away immediately after tokenization.
 // For some interesting background information on search technology, see Bob Wyman's Prospective Search,
 // Jim Gray's A Call to Arms - Custom subscriptions, and Tim Bray's On Search, the Series.
@@ -82,7 +83,7 @@ import (
 // '-server -agentlib:hprof=cpu=samples,depth=10' flags, then study the trace log and correlate its hotspot
 // trailer with its call stack headers (see hprof tracing ).
 type MemoryIndex struct {
-	fields map[string]*Info
+	fields *treemap.Map
 
 	storeOffsets  bool
 	storePayloads bool
@@ -109,7 +110,7 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 	}
 
 	index := MemoryIndex{
-		fields:           make(map[string]*Info),
+		fields:           treemap.NewWithStringComparator(),
 		storeOffsets:     storeOffsets,
 		storePayloads:    storePayloads,
 		bytesUsed:        atomic.NewInt64(0),
@@ -217,6 +218,57 @@ func (m *MemoryIndex) AddField(field types.IndexableField, analyzer analysis.Ana
 	return nil
 }
 
+// SetSimilarity Set the Similarity to be used for calculating field norms
+func (m *MemoryIndex) SetSimilarity(similarity similarities.Similarity) error {
+	if m.frozen {
+		return errors.New("cannot set Similarity when MemoryIndex is frozen")
+	}
+
+	if reflect.DeepEqual(m.normSimilarity, similarity) {
+		return nil
+	}
+
+	m.fields.Each(func(key interface{}, value interface{}) {
+		value.(*Info).norm = -1
+	})
+
+	return nil
+}
+
+func (m *MemoryIndex) CreateSearcher() *search.IndexSearcher {
+	reader := NewMemoryIndexReader(m.fields)
+	searcher := search.NewIndexSearcher(reader)
+	searcher.SetSimilarity(m.normSimilarity)
+	searcher.SetQueryCache(nil)
+	return searcher
+}
+
+// Freeze Prepares the MemoryIndex for querying in a non-lazy way.
+//After calling this you can query the MemoryIndex from multiple threads, but you cannot subsequently add new data.
+func (m *MemoryIndex) Freeze() {
+	m.frozen = true
+	m.fields.Each(func(key interface{}, value interface{}) {
+		value.(*Info).freeze()
+	})
+}
+
+// Search Convenience method that efficiently returns the relevance score by matching this index against the
+// given Lucene query expression.
+// Params: query – an arbitrary Lucene query to run against this index
+// Returns: the relevance score of the matchmaking; A number in the range [0.0 .. 1.0], with 0.0 indicating
+// 			no match. The higher the number the better the match.
+func (m *MemoryIndex) Search(query search.Query) float64 {
+	if query == nil {
+		return 0
+	}
+
+	searcher := m.CreateSearcher()
+	scores := make([]float64, 1)
+	searcher.Search(query, newSimpleCollector(scores))
+	score := scores[0]
+	return score
+}
+
 func (m *MemoryIndex) getInfo(fieldName string, fieldType types.IndexableFieldType) (*Info, error) {
 	if m.frozen {
 		return nil, errors.New("cannot call addField() when MemoryIndex is frozen")
@@ -226,10 +278,18 @@ func (m *MemoryIndex) getInfo(fieldName string, fieldType types.IndexableFieldTy
 		return nil, errors.New("fieldName must not be null")
 	}
 
-	info, ok := m.fields[fieldName]
+	var info *Info
+	v, ok := m.fields.Get(fieldName)
 	if !ok {
-		info = NewInfo(m.createFieldInfo(fieldName, len(m.fields), fieldType), m.byteBlockPool)
-		m.fields[fieldName] = info
+		info = NewInfo(m.createFieldInfo(fieldName, m.fields.Size(), fieldType), m.byteBlockPool)
+		m.fields.Put(fieldName, info)
+	} else {
+		info = v.(*Info)
+	}
+
+	if !ok {
+		info = NewInfo(m.createFieldInfo(fieldName, m.fields.Size(), fieldType), m.byteBlockPool)
+		m.fields.Put(fieldName, info)
 	}
 
 	if fieldType.PointDimensionCount() != info.fieldInfo.GetPointDimensionCount() {
@@ -370,112 +430,4 @@ func (m *MemoryIndex) storePointValues(info *Info, pointValue []byte) error {
 	}
 	info.pointValues = append(info.pointValues, pointValue)
 	return nil
-}
-
-type Info struct {
-	fieldInfo *index.FieldInfo
-	norm      int64
-
-	// TODO
-	// Term strings and their positions for this field: Map <String termText, ArrayIntList positions>
-	// private BytesRefHash terms;
-	terms *util.BytesRefHash
-	// private SliceByteStartArray sliceArray;
-	sliceArray *SliceByteStartArray
-
-	// Terms sorted ascending by term text; computed on demand
-	sortedTerms []int
-
-	// Number of added tokens for this field
-	numTokens int
-
-	// Number of overlapping tokens for this field
-	numOverlapTokens int
-
-	sumTotalTermFreq int64
-
-	maxTermFrequency int
-
-	// the last position encountered in this field for multi field support
-	lastPosition int
-
-	// the last offset encountered in this field for multi field support
-	lastOffset int
-
-	binaryProducer  *BinaryDocValuesProducer
-	numericProducer *NumericDocValuesProducer
-
-	preparedDocValuesAndPointValues bool
-
-	pointValues [][]byte
-
-	minPackedValue   []byte
-	maxPackedValue   []byte
-	pointValuesCount int
-}
-
-func NewInfo(fieldInfo *index.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
-	sliceArray := NewSliceByteStartArray(util.DEFAULT_CAPACITY)
-
-	info := Info{
-		fieldInfo:       fieldInfo,
-		terms:           util.NewBytesRefHashV1(byteBlockPool, util.DEFAULT_CAPACITY, sliceArray),
-		sliceArray:      sliceArray,
-		sortedTerms:     make([]int, 0),
-		binaryProducer:  NewBinaryDocValuesProducer(),
-		numericProducer: NewNumericDocValuesProducer(),
-		pointValues:     make([][]byte, 0),
-		minPackedValue:  make([]byte, 0),
-		maxPackedValue:  make([]byte, 0),
-	}
-
-	return &info
-}
-
-func (r *Info) freeze() {
-
-}
-
-// Sorts hashed terms into ascending order, reusing memory along the way. Note that sorting is lazily
-// delayed until required (often it's not required at all). If a sorted view is required then
-// hashing + sort + binary search is still faster and smaller than TreeMap usage (which would be an
-// alternative and somewhat more elegant approach, apart from more sophisticated Tries / prefix trees).
-func (r *Info) sortTerms() {
-	if len(r.sortedTerms) == 0 {
-		r.sortedTerms = r.terms.Sort()
-	}
-}
-
-func (r *Info) prepareDocValuesAndPointValues() {
-
-}
-
-func (r *Info) getNormDocValues() index.NumericDocValues {
-	return nil
-}
-
-type BinaryDocValuesProducer struct {
-	dvBytesValuesSet *util.BytesRefHash
-	bytesIds         []int
-}
-
-func NewBinaryDocValuesProducer() *BinaryDocValuesProducer {
-	return &BinaryDocValuesProducer{}
-}
-
-func (r *BinaryDocValuesProducer) prepareForUsage() {
-	r.bytesIds = r.dvBytesValuesSet.Sort()
-}
-
-type NumericDocValuesProducer struct {
-	dvLongValues []int
-	count        int
-}
-
-func NewNumericDocValuesProducer() *NumericDocValuesProducer {
-	return &NumericDocValuesProducer{}
-}
-
-func (r *NumericDocValuesProducer) prepareForUsage() {
-	sort.Ints(r.dvLongValues[0:r.count])
 }

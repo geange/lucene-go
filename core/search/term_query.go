@@ -32,9 +32,8 @@ func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, 
 	return NewTermWeight(searcher, scoreMode, boost, termState), nil
 }
 
-func (t *TermQuery) Rewrite(reader *index.IndexReader) (Query, error) {
-	//TODO implement me
-	panic("implement me")
+func (t *TermQuery) Rewrite(reader index.IndexReader) (Query, error) {
+	return t, nil
 }
 
 func (t *TermQuery) Visit(visitor QueryVisitor) {
@@ -43,48 +42,27 @@ func (t *TermQuery) Visit(visitor QueryVisitor) {
 	}
 }
 
+var _ Weight = &TermWeight{}
+
 type TermWeight struct {
+	*WeightImp
+
 	similarity similarities.Similarity
 	simScorer  similarities.SimScorer
 	termStates index.TermStates
 	scoreMode  ScoreMode
 }
 
+func (t TermWeight) Explain(ctx *index.LeafReaderContext, doc int) (*Explanation, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t TermWeight) GetQuery() Query {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64, termStates *index.TermStates) *TermWeight {
 	panic("")
-}
-
-func (t *TermWeight) Matches(context *index.LeafReaderContext, doc int) (Matches, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *TermWeight) Match(value interface{}, description string, details []Explanation) (*Explanation, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *TermWeight) NoMatch(value interface{}, description string, details []Explanation) (*Explanation, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *TermWeight) IsMatch() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *TermWeight) GetValue() any {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *TermWeight) GetDescription() string {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *TermWeight) GetDetails() []Explanation {
-	//TODO implement me
-	panic("implement me")
 }

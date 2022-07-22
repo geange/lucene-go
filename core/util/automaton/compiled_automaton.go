@@ -30,6 +30,10 @@ type CompiledAutomaton struct {
 	transition *Transition
 }
 
+func (r *CompiledAutomaton) Type() int {
+	return r._type
+}
+
 const (
 	AUTOMATON_TYPE_NONE   = iota // Automaton that accepts no strings.
 	AUTOMATON_TYPE_ALL           // Automaton that accepts all possible strings.

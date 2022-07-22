@@ -3,8 +3,6 @@ package memory
 import (
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util"
-	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 type MemoryFields struct {
@@ -17,92 +15,41 @@ func NewMemoryFields(fields *treemap.Map) *MemoryFields {
 
 func (m *MemoryFields) Iterator() func() string {
 	m.fields.Keys()
-	//keys := make([]string, 0, len(m.fields))
-	//for k := range m.fields {
-	//	keys = append(keys, k)
-	//}
-	//i := 0
-	//return func() string {
-	//	if i < len(keys) {
-	//		res := keys[i]
-	//		i++
-	//		return res
-	//	}
-	//	return ""
-	//}
-	panic("")
+	keys := make([]string, 0)
+
+	m.fields.Each(func(key interface{}, value interface{}) {
+		if value.(*Info).numTokens > 0 {
+			keys = append(keys, value.(string))
+		}
+	})
+
+	for _, v := range m.fields.Keys() {
+		keys = append(keys, v.(string))
+	}
+
+	i := 0
+
+	return func() string {
+		if i < len(keys) {
+			res := keys[i]
+			i++
+			return res
+		}
+		return ""
+	}
 }
 
 func (m *MemoryFields) Terms(field string) (index.Terms, error) {
-	//info, ok := m.fields[field]
-	//if !ok {
-	//	return nil, nil
-	//}
-	panic("")
-}
+	v, ok := m.fields.Get(field)
+	if !ok {
+		return nil, nil
+	}
+	info := v.(*Info)
+	if info.numTokens <= 0 {
+		return nil, nil
+	}
 
-type terms struct {
-	info *Info
-}
-
-func (t *terms) Iterator() (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) Size() (int64, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) GetSumTotalTermFreq() (int64, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) GetSumDocFreq() (int64, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) GetDocCount() (int, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) HasFreqs() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) HasOffsets() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) HasPositions() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) HasPayloads() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) GetMin() (*util.BytesRef, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *terms) GetMax() (*util.BytesRef, error) {
-	//TODO implement me
-	panic("implement me")
+	return NewTerms(info), nil
 }
 
 func (m *MemoryFields) Size() int {

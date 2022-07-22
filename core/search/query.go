@@ -31,7 +31,7 @@ type Query interface {
 
 	// Rewrite Expert: called to re-write queries into primitive queries. For example, a PrefixQuery will be
 	// rewritten into a BooleanQuery that consists of TermQuerys.
-	Rewrite(reader *index.IndexReader) (Query, error)
+	Rewrite(reader index.IndexReader) (Query, error)
 
 	// Visit Recurse through the query tree, visiting any child queries
 	// Params: visitor – a QueryVisitor to be called by each query in the tree

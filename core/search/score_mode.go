@@ -16,3 +16,20 @@ func (r *ScoreMode) NeedsScores() bool {
 func (r *ScoreMode) IsExhaustive() bool {
 	return r.isExhaustive
 }
+
+var (
+	// COMPLETE Produced scorers will allow visiting all matches and get their score.
+	COMPLETE = &ScoreMode{true, true}
+
+	// COMPLETE_NO_SCORES Produced scorers will allow visiting all matches but scores won't be available.
+	COMPLETE_NO_SCORES = &ScoreMode{true, false}
+
+	// TOP_SCORES Produced scorers will optionally allow skipping over non-competitive hits using the Scorer.setMinCompetitiveScore(float) API.
+	TOP_SCORES = &ScoreMode{false, true}
+
+	// TOP_DOCS ScoreMode for top field collectors that can provide their own iterators, to optionally allow to skip for non-competitive docs
+	TOP_DOCS = &ScoreMode{false, false}
+
+	// TOP_DOCS_WITH_SCORES ScoreMode for top field collectors that can provide their own iterators, to optionally allow to skip for non-competitive docs. This mode is used when there is a secondary sort by _score.
+	TOP_DOCS_WITH_SCORES = &ScoreMode{false, true}
+)
