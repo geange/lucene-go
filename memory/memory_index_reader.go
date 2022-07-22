@@ -24,7 +24,7 @@ type MemoryIndexReader struct {
 }
 
 func NewMemoryIndexReader(fields *treemap.Map) *MemoryIndexReader {
-	fieldInfosArr := make([]index.FieldInfo, fields.Size())
+	fieldInfosArr := make([]types.FieldInfo, fields.Size())
 	i := 0
 	it := fields.Iterator()
 

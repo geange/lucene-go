@@ -1,12 +1,10 @@
-package similarities
+package search
 
 import (
 	"fmt"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
-
-	"github.com/geange/lucene-go/core/search"
 )
 
 var (
@@ -92,19 +90,19 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 //			termStats – term-level statistics for the term
 // Returns: an Explain object that includes both an idf score factor and an explanation for the term.
 func (b *BM25Similarity) IdfExplain(
-	collectionStats *search.CollectionStatistics, termStats *search.TermStatistics) *search.Explanation {
+	collectionStats *CollectionStatistics, termStats *TermStatistics) *Explanation {
 
 	df := termStats.DocFreq()
 	docCount := collectionStats.DocCount()
 	idf := idf(df, docCount)
 
-	exp1 := search.NewExplanation(true, df,
+	exp1 := NewExplanation(true, df,
 		"n, number of documents containing term")
 
-	exp2 := search.NewExplanation(true, docCount,
+	exp2 := NewExplanation(true, docCount,
 		"N, total number of documents with field")
 
-	return search.NewExplanation(true, idf,
+	return NewExplanation(true, idf,
 		"idf, computed as log(1 + (N - n + 0.5) / (n + 0.5)) from:",
 		*exp1, *exp2)
 }
@@ -115,10 +113,10 @@ func (b *BM25Similarity) IdfExplain(
 //			termStats – term-level statistics for the terms in the phrase
 // Returns: an Explain object that includes both an idf score factor for the phrase and an explanation for each term.
 func (b *BM25Similarity) IdfExplainV1(
-	collectionStats *search.CollectionStatistics, termStats []search.TermStatistics) *search.Explanation {
+	collectionStats *CollectionStatistics, termStats []TermStatistics) *Explanation {
 
 	idf := 0.0
-	details := make([]search.Explanation, 0)
+	details := make([]Explanation, 0)
 	for _, stat := range termStats {
 		idfExplain := b.IdfExplain(collectionStats, &stat)
 		details = append(details, *idfExplain)
@@ -127,13 +125,13 @@ func (b *BM25Similarity) IdfExplainV1(
 			idf += v
 		}
 	}
-	return search.NewExplanation(true, idf, "idf, sum of:", details...)
+	return NewExplanation(true, idf, "idf, sum of:", details...)
 }
 
 func (b *BM25Similarity) Scorer(boost float64,
-	collectionStats *search.CollectionStatistics, termStats []search.TermStatistics) SimScorer {
+	collectionStats *CollectionStatistics, termStats []TermStatistics) SimScorer {
 
-	var idf *search.Explanation
+	var idf *Explanation
 	if len(termStats) == 1 {
 		idf = b.IdfExplain(collectionStats, &termStats[0])
 	} else {
@@ -163,16 +161,16 @@ func (b *BM25Similarity) GetB() float64 {
 }
 
 type BM25Scorer struct {
-	boost  float64             // query boost
-	k1     float64             // k1 value for scale factor
-	b      float64             // b value for length normalization impact
-	idf    *search.Explanation // BM25's idf
-	avgdl  float64             //The average document length.
-	cache  []float64           // precomputed norm[256] with k1 * ((1 - b) + b * dl / avgdl)
-	weight float64             // weight (idf * boost)
+	boost  float64      // query boost
+	k1     float64      // k1 value for scale factor
+	b      float64      // b value for length normalization impact
+	idf    *Explanation // BM25's idf
+	avgdl  float64      //The average document length.
+	cache  []float64    // precomputed norm[256] with k1 * ((1 - b) + b * dl / avgdl)
+	weight float64      // weight (idf * boost)
 }
 
-func NewBM25Scorer(boost, k1, b float64, idf *search.Explanation, avgdl float64, cache []float64) *BM25Scorer {
+func NewBM25Scorer(boost, k1, b float64, idf *Explanation, avgdl float64, cache []float64) *BM25Scorer {
 	return &BM25Scorer{
 		boost:  boost,
 		k1:     k1,
@@ -204,6 +202,6 @@ func idf(docFreq, docCount int64) float64 {
 }
 
 // The default implementation computes the average as sumTotalTermFreq / docCount
-func avgFieldLength(collectionStats *search.CollectionStatistics) float64 {
+func avgFieldLength(collectionStats *CollectionStatistics) float64 {
 	return float64(collectionStats.SumTotalTermFreq()) / float64(collectionStats.DocCount())
 }

@@ -68,9 +68,9 @@ func defaultFieldType() *FieldType {
 }
 
 func (f *FieldType) checkIfFrozen() error {
-	if f.frozen {
-		return errors.New("this FieldType is already frozen and cannot be changed")
-	}
+	//if f.frozen {
+	//	return errors.New("this FieldType is already frozen and cannot be changed")
+	//}
 	return nil
 }
 

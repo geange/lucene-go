@@ -4,6 +4,7 @@ import (
 	"github.com/geange/lucene-go/codecs"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ codecs.FieldsConsumer = &FSTTermsWriter{}
@@ -24,7 +25,7 @@ type FSTTermsWriter struct {
 }
 
 type FieldMetaData struct {
-	fieldInfo        *index.FieldInfo
+	fieldInfo        *types.FieldInfo
 	numTerms         int64
 	sumTotalTermFreq int64
 	sumDocFreq       int64

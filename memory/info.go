@@ -2,11 +2,12 @@ package memory
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
 type Info struct {
-	fieldInfo *index.FieldInfo
+	fieldInfo *types.FieldInfo
 	norm      int64
 
 	// TODO
@@ -47,7 +48,7 @@ type Info struct {
 	pointValuesCount int
 }
 
-func NewInfo(fieldInfo *index.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
+func NewInfo(fieldInfo *types.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
 	sliceArray := NewSliceByteStartArray(util.DEFAULT_CAPACITY)
 
 	info := Info{

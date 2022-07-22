@@ -6,9 +6,7 @@ import (
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search"
-	"github.com/geange/lucene-go/core/search/similarities"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
@@ -95,7 +93,7 @@ type MemoryIndex struct {
 
 	bytesUsed        *atomic.Int64
 	frozen           bool
-	normSimilarity   similarities.Similarity
+	normSimilarity   search.Similarity
 	defaultFieldType *document.FieldType
 }
 
@@ -104,7 +102,7 @@ func NewNewMemoryIndexDefault() (*MemoryIndex, error) {
 }
 
 func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*MemoryIndex, error) {
-	similarity, err := similarities.NewBM25Similarity()
+	similarity, err := search.NewBM25Similarity()
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +217,7 @@ func (m *MemoryIndex) AddField(field types.IndexableField, analyzer analysis.Ana
 }
 
 // SetSimilarity Set the Similarity to be used for calculating field norms
-func (m *MemoryIndex) SetSimilarity(similarity similarities.Similarity) error {
+func (m *MemoryIndex) SetSimilarity(similarity search.Similarity) error {
 	if m.frozen {
 		return errors.New("cannot set Similarity when MemoryIndex is frozen")
 	}
@@ -400,7 +398,7 @@ func (m *MemoryIndex) storeDocValues(info *Info, docValuesType types.DocValuesTy
 	fieldName := info.fieldInfo.Name
 	existingDocValuesType := info.fieldInfo.GetDocValuesType()
 	if existingDocValuesType == types.DOC_VALUES_TYPE_NONE {
-		info.fieldInfo = index.NewFieldInfo(info.fieldInfo.Name, info.fieldInfo.Number, info.fieldInfo.HasVectors(),
+		info.fieldInfo = types.NewFieldInfo(info.fieldInfo.Name, info.fieldInfo.Number, info.fieldInfo.HasVectors(),
 			info.fieldInfo.HasPayloads(), info.fieldInfo.HasPayloads(), info.fieldInfo.GetIndexOptions(), docValuesType,
 			-1, info.fieldInfo.Attributes(), info.fieldInfo.GetPointDimensionCount(), info.fieldInfo.GetPointIndexDimensionCount(),
 			info.fieldInfo.GetPointNumBytes(), info.fieldInfo.IsSoftDeletesField())
@@ -413,13 +411,13 @@ func (m *MemoryIndex) storeDocValues(info *Info, docValuesType types.DocValuesTy
 	return nil
 }
 
-func (m *MemoryIndex) createFieldInfo(fieldName string, ord int, fieldType types.IndexableFieldType) *index.FieldInfo {
+func (m *MemoryIndex) createFieldInfo(fieldName string, ord int, fieldType types.IndexableFieldType) *types.FieldInfo {
 	indexOptions := types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 	if m.storeOffsets {
 		indexOptions = types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 	}
 
-	return index.NewFieldInfo(fieldName, ord, fieldType.StoreTermVectors(), fieldType.OmitNorms(), m.storePayloads,
+	return types.NewFieldInfo(fieldName, ord, fieldType.StoreTermVectors(), fieldType.OmitNorms(), m.storePayloads,
 		indexOptions, fieldType.DocValuesType(), -1, map[string]string{},
 		fieldType.PointDimensionCount(), fieldType.PointIndexDimensionCount(), fieldType.PointNumBytes(), false)
 }

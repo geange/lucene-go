@@ -2,7 +2,6 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/search/similarities"
 )
 
 // TermQuery A Query that matches documents containing a term. This may be combined with other terms with a BooleanQuery.
@@ -47,8 +46,8 @@ var _ Weight = &TermWeight{}
 type TermWeight struct {
 	*WeightImp
 
-	similarity similarities.Similarity
-	simScorer  similarities.SimScorer
+	similarity Similarity
+	simScorer  SimScorer
 	termStates index.TermStates
 	scoreMode  ScoreMode
 }

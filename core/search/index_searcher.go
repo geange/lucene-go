@@ -2,7 +2,6 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/search/similarities"
 )
 
 // IndexSearcher Implements search over a single IndexReader.
@@ -40,7 +39,7 @@ type IndexSearcher struct {
 	//executor
 
 	// the default Similarity
-	similarity similarities.Similarity
+	similarity Similarity
 
 	queryCache         QueryCache
 	queryCachingPolicy QueryCachingPolicy
@@ -71,7 +70,7 @@ func (r *IndexSearcher) GetTopReaderContext() index.IndexReaderContext {
 	return r.readerContext
 }
 
-func (r *IndexSearcher) SetSimilarity(similarity similarities.Similarity) {
+func (r *IndexSearcher) SetSimilarity(similarity Similarity) {
 	r.similarity = similarity
 }
 

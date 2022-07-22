@@ -84,8 +84,12 @@ type AnalyzerPLG interface {
 	CreateComponents(fieldName string) *TokenStreamComponents
 }
 
+type AnalyzerExtra interface {
+	CreateComponents(fieldName string) *TokenStreamComponents
+}
+
 type AnalyzerImp struct {
-	AnalyzerPLG
+	AnalyzerExtra
 
 	reuseStrategy ReuseStrategy
 	version       *util.Version
@@ -93,9 +97,9 @@ type AnalyzerImp struct {
 	storedValue interface{}
 }
 
-func NewAnalyzerImp(plg AnalyzerPLG) *AnalyzerImp {
+func NewAnalyzerImp(plg AnalyzerExtra) *AnalyzerImp {
 	return &AnalyzerImp{
-		AnalyzerPLG:   plg,
+		AnalyzerExtra: plg,
 		reuseStrategy: &GlobalReuseStrategy{},
 		version:       util.VersionLast,
 	}

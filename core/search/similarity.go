@@ -1,8 +1,7 @@
-package similarities
+package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/search"
 )
 
 // Similarity defines the components of Lucene scoring.
@@ -60,7 +59,7 @@ type Similarity interface {
 	//			collectionStats – collection-level statistics, such as the number of tokens in the collection.
 	//			termStats – term-level statistics, such as the document frequency of a term across the collection.
 	// Returns: SimWeight object with the information this Similarity needs to score a query.
-	Scorer(boost float64, collectionStats *search.CollectionStatistics, termStats []search.TermStatistics) SimScorer
+	Scorer(boost float64, collectionStats *CollectionStatistics, termStats []TermStatistics) SimScorer
 }
 
 // SimScorer Stores the weight for a query across the indexed collection. This abstract implementation is empty;
