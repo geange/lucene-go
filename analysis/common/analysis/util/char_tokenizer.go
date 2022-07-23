@@ -22,7 +22,7 @@ type CharTokenizerExt interface {
 }
 
 func NewCharTokenizerImpl(ext CharTokenizerExt, input io.Reader) *CharTokenizerImpl {
-	tokenizer := analysis.NewTokenizerImpl(tokenattributes.NewAttributeSource())
+	tokenizer := analysis.NewTokenizerImpl()
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 

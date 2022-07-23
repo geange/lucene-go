@@ -6,16 +6,19 @@ import (
 )
 
 type StandardAnalyzer struct {
+	*analysis.AnalyzerImp
 	*analysis.StopWordAnalyzerBaseImp
 
 	maxTokenLength int
 }
 
 func NewAnalyzer(set *analysis.CharArraySet) *StandardAnalyzer {
-	return &StandardAnalyzer{
+	analyzer := &StandardAnalyzer{
 		StopWordAnalyzerBaseImp: analysis.NewStopWordAnalyzerBaseImp(set),
 		maxTokenLength:          255,
 	}
+	analyzer.AnalyzerImp = analysis.NewAnalyzerImp(analyzer)
+	return analyzer
 }
 
 // SetMaxTokenLength Set the max allowed token length. Tokens larger than this will be chopped up at this

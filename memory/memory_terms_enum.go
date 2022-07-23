@@ -21,7 +21,7 @@ func NewMemoryTermsEnum(info *Info) *MemoryTermsEnum {
 		info:     info,
 		termUpto: -1,
 		br:       nil,
-		atts:     tokenattributes.NewAttributeSourceV1(),
+		atts:     tokenattributes.NewAttributeSource(),
 	}
 }
 

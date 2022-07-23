@@ -333,8 +333,11 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 
 	stream := tokenStream
 
-	packedAttr := stream.AttributeSource().PackedTokenAttribute()
-	bytesAttr := stream.AttributeSource().BytesTerm()
+	termAtt := stream.AttributeSource().TermToBytesRef()
+	posIncrAttribute := stream.AttributeSource().PositionIncrement()
+	offsetAtt := stream.AttributeSource().Offset()
+	//packedAttr := stream.AttributeSource().PackedTokenAttribute()
+	//bytesAttr := stream.AttributeSource().BytesTerm()
 	payloadAtt := stream.AttributeSource().Payload()
 
 	err := stream.Reset()
@@ -352,13 +355,13 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 		}
 
 		info.numTokens++
-		posIncr := packedAttr.GetPositionIncrement()
+		posIncr := posIncrAttribute.GetPositionIncrement()
 		if posIncr == 0 {
 			info.numOverlapTokens++
 		}
 
 		pos += posIncr
-		ord, err := info.terms.Add(bytesAttr.GetBytesRef())
+		ord, err := info.terms.Add(termAtt.GetBytesRef())
 		if err != nil {
 			return err
 		}
@@ -373,8 +376,8 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 		info.sumTotalTermFreq++
 		m.postingsWriter.WriteInt(pos)
 		if m.storeOffsets {
-			m.postingsWriter.WriteInt(packedAttr.StartOffset() + offset)
-			m.postingsWriter.WriteInt(packedAttr.EndOffset() + offset)
+			m.postingsWriter.WriteInt(offsetAtt.StartOffset() + offset)
+			m.postingsWriter.WriteInt(offsetAtt.EndOffset() + offset)
 		}
 
 		if m.storePayloads {
@@ -397,7 +400,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 
 	if info.numTokens > 0 {
 		info.lastPosition = pos
-		info.lastOffset = packedAttr.EndOffset() + offset
+		info.lastOffset = offsetAtt.EndOffset() + offset
 	}
 
 	return nil

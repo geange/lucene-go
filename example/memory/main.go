@@ -23,9 +23,8 @@ func main() {
 	set.Add("\t")
 
 	analyzer := standard.NewAnalyzer(set)
-	imp := analysis.NewAnalyzerImp(analyzer)
 
-	err = index.AddField(document.NewTextFieldByString("name", "chenhualin hhhh", false), imp)
+	err = index.AddField(document.NewTextFieldByString("name", "chenhualin hhhh", false), analyzer)
 	if err != nil {
 		panic(err)
 	}
