@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	pool := util.NewIntBlockPool()
+	pool := util.NewIntBlockPool(nil)
 
 	writer := util.NewSliceWriter(pool)
 

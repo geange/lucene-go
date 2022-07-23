@@ -30,7 +30,7 @@ type ByteBlockPool struct {
 	// Current head offset
 	byteOffset int
 
-	allocator *BytesAllocator
+	allocator BytesAllocator
 
 	// An array holding the offset into the LEVEL_SIZE_ARRAY to quickly navigate to the next slice level.
 	NEXT_LEVEL_ARRAY []int
@@ -43,7 +43,7 @@ type ByteBlockPool struct {
 	FIRST_LEVEL_SIZE int
 }
 
-func NewByteBlockPool(allocator *BytesAllocator) *ByteBlockPool {
+func NewByteBlockPool(allocator BytesAllocator) *ByteBlockPool {
 	return &ByteBlockPool{
 		buffers:          make([][]byte, 0, 10),
 		bufferUpto:       -1,
@@ -274,33 +274,39 @@ func (r *ByteBlockPool) Append(bytes []byte) {
 	}
 }
 
-// BytesAllocator Abstract class for allocating and freeing int blocks.
-type BytesAllocator struct {
-	blockSize int
-	ext       BytesAllocatorExt
+type BytesAllocator interface {
+	RecycleByteBlocks(blocks [][]byte, start, end int)
+	RecycleByteBlocksV1(blocks [][]byte)
+	GetByteBlock() []byte
 }
 
-func NewBytesAllocator(blockSize int, ext BytesAllocatorExt) *BytesAllocator {
-	return &BytesAllocator{
-		blockSize: blockSize,
-		ext:       ext,
+type BytesAllocatorExtra interface {
+	RecycleByteBlocks(blocks [][]byte, start, end int)
+}
+
+// BytesAllocatorImp Abstract class for allocating and freeing int blocks.
+type BytesAllocatorImp struct {
+	blockSize int
+	BytesAllocatorExtra
+}
+
+func NewBytesAllocator(blockSize int, ext BytesAllocatorExtra) *BytesAllocatorImp {
+	return &BytesAllocatorImp{
+		blockSize:           blockSize,
+		BytesAllocatorExtra: ext,
 	}
 }
 
-func (r *BytesAllocator) RecycleByteBlocksV1(blocks [][]byte) {
-	r.ext.RecycleByteBlocks(blocks, 0, len(blocks))
+func (r *BytesAllocatorImp) RecycleByteBlocksV1(blocks [][]byte) {
+	r.RecycleByteBlocks(blocks, 0, len(blocks))
 }
 
-func (r *BytesAllocator) RecycleByteBlocks(blocks [][]byte, start, end int) {
-	r.ext.RecycleByteBlocks(blocks, start, end)
+func (r *BytesAllocatorImp) RecycleByteBlocks(blocks [][]byte, start, end int) {
+	r.RecycleByteBlocks(blocks, start, end)
 }
 
-func (r *BytesAllocator) GetByteBlock() []byte {
+func (r *BytesAllocatorImp) GetByteBlock() []byte {
 	return make([]byte, r.blockSize)
-}
-
-type BytesAllocatorExt interface {
-	RecycleByteBlocks(blocks [][]byte, start, end int)
 }
 
 type DirectBytesAllocator struct {

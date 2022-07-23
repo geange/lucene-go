@@ -1,35 +1,22 @@
 package util
 
-import "go.uber.org/atomic"
-
 type RecyclingByteBlockAllocator struct {
-	*BytesAllocator
+	*BytesAllocatorImp
 
 	freeByteBlocks          [][]byte
 	maxBufferedBlocks       int
 	freeBlocks              int
-	bytesUsed               *atomic.Int64
 	DEFAULT_BUFFERED_BLOCKS int
 }
 
-func NewRecyclingByteBlockAllocator(blockSize, maxBufferedBlocks int,
-	bytesUsed *atomic.Int64) *RecyclingByteBlockAllocator {
-
-	allocator := NewBytesAllocator(blockSize, nil)
-	res := NewRecyclingByteBlockAllocatorDefault(allocator)
-	res.maxBufferedBlocks = maxBufferedBlocks
-	res.bytesUsed = bytesUsed
-	return res
-}
-
-func NewRecyclingByteBlockAllocatorDefault(bytesAllocator *BytesAllocator) *RecyclingByteBlockAllocator {
+func NewRecyclingByteBlockAllocator(blockSize, maxBufferedBlocks int) *RecyclingByteBlockAllocator {
 	allocator := RecyclingByteBlockAllocator{
-		BytesAllocator:          bytesAllocator,
+		BytesAllocatorImp:       nil,
 		freeBlocks:              0,
-		bytesUsed:               atomic.NewInt64(0),
+		maxBufferedBlocks:       maxBufferedBlocks,
 		DEFAULT_BUFFERED_BLOCKS: 64,
 	}
-	bytesAllocator.ext = &allocator
+	allocator.BytesAllocatorImp = NewBytesAllocator(blockSize, &allocator)
 	return &allocator
 }
 

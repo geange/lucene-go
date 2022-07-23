@@ -125,6 +125,15 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 		return nil, err
 	}
 
+	maxBufferedByteBlocks := (int)((maxReusedBytes / 2) / util.BYTE_BLOCK_SIZE)
+	maxBufferedIntBlocks := (int(maxReusedBytes) - (maxBufferedByteBlocks * util.BYTE_BLOCK_SIZE)) / (util.INT_BLOCK_SIZE * 4)
+
+	allocator := util.NewRecyclingByteBlockAllocator(util.BYTE_BLOCK_SIZE, maxBufferedByteBlocks)
+	index.byteBlockPool = util.NewByteBlockPool(allocator)
+
+	intsAllocator := util.NewRecyclingIntBlockAllocator(util.INT_BLOCK_SIZE, maxBufferedIntBlocks)
+	index.intBlockPool = util.NewIntBlockPool(intsAllocator)
+
 	return &index, nil
 }
 
