@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"reflect"
 )
 
 // IndexSearcher Implements search over a single IndexReader.
@@ -78,8 +79,72 @@ func (r *IndexSearcher) SetQueryCache(queryCache QueryCache) {
 	r.queryCache = queryCache
 }
 
-func (r *IndexSearcher) Search(query Query, results Collector) {
+func (r *IndexSearcher) Search(query Query, results Collector) error {
+	var err error
+	query, err = r.Rewrite(query)
+	if err != nil {
+		return err
+	}
 
+	weight, err := r.createWeight(query, results.ScoreMode(), 1)
+	if err != nil {
+		return err
+	}
+
+	return r.Search3(r.leafContexts, weight, results)
+}
+
+func (r *IndexSearcher) Search3(leaves []*index.LeafReaderContext, weight Weight, collector Collector) error {
+
+	for _, ctx := range leaves {
+		leafCollector, err := collector.GetLeafCollector(ctx)
+		if err != nil {
+			continue
+		}
+
+		scorer, err := weight.BulkScorer(ctx)
+		if err != nil {
+			return err
+		}
+		if scorer != nil {
+			err := scorer.Score(leafCollector, ctx.LeafReader().GetLiveDocs())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *IndexSearcher) createWeight(query Query, scoreMode *ScoreMode, boost float64) (Weight, error) {
+	queryCache := r.queryCache
+	weight, err := query.CreateWeight(r, scoreMode, boost)
+	if err != nil {
+		return nil, err
+	}
+
+	if !scoreMode.NeedsScores() && queryCache != nil {
+		weight = queryCache.DoCache(weight, r.queryCachingPolicy)
+	}
+	return weight, nil
+}
+
+func (r *IndexSearcher) Rewrite(query Query) (Query, error) {
+	rewrittenQuery, err := query.Rewrite(r.reader)
+	if err != nil {
+		return nil, err
+	}
+
+	for !reflect.DeepEqual(rewrittenQuery, query) {
+		query = rewrittenQuery
+		rewrittenQuery, err = query.Rewrite(r.reader)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return query, nil
 }
 
 type LeafSlice struct {

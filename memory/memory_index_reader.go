@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"github.com/bits-and-blooms/bitset"
 	"github.com/emirpasic/gods/maps/treemap"
 	_ "github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/document"
@@ -159,7 +160,7 @@ func (m *MemoryIndexReader) GetFieldInfos() *index.FieldInfos {
 	return m.fieldInfos
 }
 
-func (m *MemoryIndexReader) GetLiveDocs() util.Bits {
+func (m *MemoryIndexReader) GetLiveDocs() *bitset.BitSet {
 	return nil
 }
 

@@ -1,7 +1,7 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/util"
+	"github.com/bits-and-blooms/bitset"
 )
 
 type LeafReader interface {
@@ -49,7 +49,7 @@ type LeafReader interface {
 	// not been deleted. If this method returns null it means there are no deleted documents
 	// (all documents are live). The returned instance has been safely published for use by multiple threads
 	// without additional synchronization.
-	GetLiveDocs() util.Bits
+	GetLiveDocs() *bitset.BitSet
 
 	// GetPointValues Returns the PointValues used for numeric or spatial searches for the given field, or null
 	// if there are no point fields.

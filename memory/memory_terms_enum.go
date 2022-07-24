@@ -17,6 +17,7 @@ type MemoryTermsEnum struct {
 }
 
 func NewMemoryTermsEnum(info *Info) *MemoryTermsEnum {
+	info.sortTerms()
 	return &MemoryTermsEnum{
 		info:     info,
 		termUpto: -1,
