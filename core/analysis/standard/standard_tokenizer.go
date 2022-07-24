@@ -30,9 +30,16 @@ func (r *StandardTokenizer) IncrementToken() (bool, error) {
 
 	text, err := r.scanner.GetNextToken()
 	if err != nil {
+		if err == io.EOF {
+			r.AttributeSource().Type().SetType("ALPHANUM")
+			r.AttributeSource().CharTerm().Append(text)
+			r.AttributeSource().Offset().SetOffset(r.scanner.Slow, r.scanner.Slow+len(text))
+			return false, nil
+		}
 		return false, err
 	}
 
+	r.AttributeSource().Type().SetType("ALPHANUM")
 	r.AttributeSource().CharTerm().Append(text)
 	r.AttributeSource().Offset().SetOffset(r.scanner.Slow, r.scanner.Slow+len(text))
 	return true, nil

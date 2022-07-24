@@ -30,7 +30,7 @@ type IndexSearcher struct {
 	// NOTE: these members might change in incompatible ways
 	// in the next release
 	readerContext index.IndexReaderContext
-	leafContexts  []index.LeafReaderContext
+	leafContexts  []*index.LeafReaderContext
 
 	// used with executor - each slice holds a set of leafs executed within one thread
 	leafSlices []LeafSlice

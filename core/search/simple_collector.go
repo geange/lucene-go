@@ -19,6 +19,10 @@ type SimpleCollectorImp struct {
 	SimpleCollectorExtra
 }
 
+func NewSimpleCollectorImp(extra SimpleCollectorExtra) *SimpleCollectorImp {
+	return &SimpleCollectorImp{SimpleCollectorExtra: extra}
+}
+
 func (s *SimpleCollectorImp) GetLeafCollector(context *index.LeafReaderContext) (LeafCollector, error) {
 	err := s.DoSetNextReader(context)
 	if err != nil {

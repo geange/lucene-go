@@ -19,7 +19,7 @@ func newSimpleCollector(scores []float64) *simpleCollector {
 		scorer:             nil,
 		scores:             scores,
 	}
-	collector.SimpleCollectorExtra = collector
+	collector.SimpleCollectorImp = search.NewSimpleCollectorImp(collector)
 	return collector
 }
 

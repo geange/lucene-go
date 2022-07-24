@@ -8,6 +8,10 @@ type Term struct {
 	bytes []byte
 }
 
+func NewTerm(field string, bytes []byte) *Term {
+	return &Term{field: field, bytes: bytes}
+}
+
 // Field Returns the field of this term. The field indicates the part of a document which this term came from.
 func (r *Term) Field() string {
 	return r.field

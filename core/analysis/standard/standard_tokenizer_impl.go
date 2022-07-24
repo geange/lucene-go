@@ -23,6 +23,8 @@ type StandardTokenizerImpl struct {
 	Fast   int
 
 	buff []rune
+
+	EOF bool
 }
 
 func NewStandardTokenizerImpl() *StandardTokenizerImpl {
@@ -38,9 +40,14 @@ func (r *StandardTokenizerImpl) SetReader(reader io.Reader) {
 	r.reader = bufio.NewReader(reader)
 	r.Slow, r.Fast = 0, 0
 	r.buff = r.buff[:0]
+	r.EOF = false
 }
 
 func (r *StandardTokenizerImpl) GetNextToken() (string, error) {
+	if r.EOF {
+		return "", io.EOF
+	}
+
 	if r.Slow < r.Fast {
 		r.Slow = r.Fast
 		r.buff = r.buff[:0]
@@ -49,6 +56,10 @@ func (r *StandardTokenizerImpl) GetNextToken() (string, error) {
 	for {
 		char, n, err := r.reader.ReadRune()
 		if err != nil {
+			if err == io.EOF {
+				r.EOF = true
+				return string(r.buff), nil
+			}
 			return "", err
 		}
 

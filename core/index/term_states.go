@@ -100,7 +100,7 @@ func (r *TermStates) AccumulateStatistics(docFreq int, totalTermFreq int64) {
 	r.totalTermFreq += totalTermFreq
 }
 
-func loadTermsEnum(ctx LeafReaderContext, term *Term) (TermsEnum, error) {
+func loadTermsEnum(ctx *LeafReaderContext, term *Term) (TermsEnum, error) {
 	terms, err := ctx.LeafReader().Terms(term.Field())
 	if err != nil {
 		return nil, err

@@ -74,7 +74,7 @@ type IndexReader interface {
 	// Leaves Returns the reader's leaves, or itself if this reader is atomic. This is a convenience method
 	// calling this.getContext().leaves().
 	// See Also: IndexReaderContext.leaves()
-	Leaves() ([]LeafReaderContext, error)
+	Leaves() ([]*LeafReaderContext, error)
 
 	// GetReaderCacheHelper Optional method: Return a IndexReader.CacheHelper that can be used to cache based
 	// on the content of this reader. Two readers that have different data or different sets of deleted
@@ -217,7 +217,7 @@ func (r *IndexReaderImp) HasDeletions() bool {
 	return r.NumDeletedDocs() > 0
 }
 
-func (r *IndexReaderImp) Leaves() ([]LeafReaderContext, error) {
+func (r *IndexReaderImp) Leaves() ([]*LeafReaderContext, error) {
 	return r.GetContext().Leaves()
 }
 

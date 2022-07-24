@@ -1,5 +1,7 @@
 package index
 
+import "github.com/google/uuid"
+
 // IndexReaderContext A struct like class that represents a hierarchical relationship between IndexReader instances.
 type IndexReaderContext interface {
 
@@ -12,7 +14,7 @@ type IndexReaderContext interface {
 	// using children().
 	// Throws: UnsupportedOperationException – if this is not a top-level context.
 	// See Also: children()
-	Leaves() ([]LeafReaderContext, error)
+	Leaves() ([]*LeafReaderContext, error)
 
 	// Children Returns the context's children iff this context is a composite context otherwise null.
 	Children() []IndexReaderContext
@@ -34,4 +36,14 @@ type IndexReaderContextImp struct {
 	OrdInParent int
 
 	identity string
+}
+
+func NewIndexReaderContextImp(parent *CompositeReaderContext, ordInParent, docBaseInParent int) *IndexReaderContextImp {
+	return &IndexReaderContextImp{
+		Parent:          parent,
+		IsTopLevel:      parent == nil,
+		DocBaseInParent: docBaseInParent,
+		OrdInParent:     ordInParent,
+		identity:        uuid.NewString(),
+	}
 }

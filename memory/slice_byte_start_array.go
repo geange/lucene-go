@@ -18,3 +18,33 @@ func NewSliceByteStartArray(initSize int) *SliceByteStartArray {
 		freq:                  nil,
 	}
 }
+
+func (s *SliceByteStartArray) Init() []int {
+	ord := s.DirectBytesStartArray.Init()
+	size := len(ord)
+
+	size = util.Oversize(size, 4)
+
+	s.start = make([]int, size)
+	s.end = make([]int, size)
+	s.freq = make([]int, size)
+	return ord
+}
+
+func (s *SliceByteStartArray) Grow() []int {
+	ord := s.DirectBytesStartArray.Grow()
+	size := len(ord)
+	if len(s.start) < size {
+		s.start = util.Grow(s.start, size)
+		s.end = util.Grow(s.end, size)
+		s.freq = util.Grow(s.freq, size)
+	}
+	return ord
+}
+
+func (s *SliceByteStartArray) Clear() []int {
+	s.start = nil
+	s.end = nil
+
+	return s.DirectBytesStartArray.Clear()
+}

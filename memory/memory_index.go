@@ -134,6 +134,8 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 	intsAllocator := util.NewRecyclingIntBlockAllocator(util.INT_BLOCK_SIZE, maxBufferedIntBlocks)
 	index.intBlockPool = util.NewIntBlockPool(intsAllocator)
 
+	index.postingsWriter = util.NewSliceWriter(index.intBlockPool)
+
 	return &index, nil
 }
 

@@ -10,7 +10,14 @@ type TermQuery struct {
 	perReaderTermState *index.TermStates
 }
 
-func (t *TermQuery) getTerm() *index.Term {
+func NewTermQuery(term *index.Term) *TermQuery {
+	return &TermQuery{
+		term:               term,
+		perReaderTermState: nil,
+	}
+}
+
+func (t *TermQuery) GetTerm() *index.Term {
 	return t.term
 }
 
