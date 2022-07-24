@@ -335,7 +335,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 
 	stream := tokenStream
 
-	termAtt := stream.AttributeSource().TermToBytesRef()
+	termAtt := stream.AttributeSource().CharTerm()
 	posIncrAttribute := stream.AttributeSource().PositionIncrement()
 	offsetAtt := stream.AttributeSource().Offset()
 	//packedAttr := stream.AttributeSource().PackedTokenAttribute()
@@ -363,7 +363,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 		}
 
 		pos += posIncr
-		ord, err := info.terms.Add(termAtt.GetBytesRef())
+		ord, err := info.terms.Add([]byte(string(termAtt.Buffer())))
 		if err != nil {
 			return err
 		}

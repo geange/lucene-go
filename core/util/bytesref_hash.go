@@ -110,7 +110,7 @@ func (r *BytesRefHash) Sort() []int {
 	compact := r.Compact()
 
 	sorter := &RadixSorter{
-		Ids:          compact,
+		Ids:          compact[0:r.count],
 		BytesRefHash: r,
 	}
 	sort.Sort(sorter)
@@ -124,7 +124,7 @@ type RadixSorter struct {
 }
 
 func (r *RadixSorter) Len() int {
-	return len(r.ids)
+	return len(r.Ids)
 }
 
 func (r *RadixSorter) Less(i, j int) bool {

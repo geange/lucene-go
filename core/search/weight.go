@@ -68,6 +68,10 @@ type WeightImp struct {
 	parentQuery Query
 }
 
+func newWeightImp(parentQuery Query) *WeightImp {
+	return &WeightImp{parentQuery: parentQuery}
+}
+
 func (r *WeightImp) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
 	scorerSupplier, err := r.ScorerSupplier(ctx)
 	if err != nil {

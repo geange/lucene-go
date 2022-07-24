@@ -38,3 +38,11 @@ func NewTextFieldByString(name string, value string, stored bool) *TextField {
 	}
 	return &TextField{NewFieldV5(name, value, _type)}
 }
+
+func NewTextFieldByBytes(name string, value []byte, stored bool) *TextField {
+	_type := TextFieldStored
+	if !stored {
+		_type = TextFieldNotStored
+	}
+	return &TextField{NewFieldV4(name, value, _type)}
+}

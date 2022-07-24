@@ -70,5 +70,6 @@ func (t TermWeight) GetQuery() Query {
 }
 
 func NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64, termStates *index.TermStates) *TermWeight {
-	panic("")
+	//newWeightImp()
+	panic("implement me")
 }
