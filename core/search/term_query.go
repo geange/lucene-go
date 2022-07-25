@@ -35,7 +35,7 @@ func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, 
 		termState = t.perReaderTermState
 	}
 
-	return NewTermWeight(searcher, scoreMode, boost, termState), nil
+	return t.NewTermWeight(searcher, scoreMode, boost, termState)
 }
 
 func (t *TermQuery) Rewrite(reader index.IndexReader) (Query, error) {
@@ -55,21 +55,75 @@ type TermWeight struct {
 
 	similarity Similarity
 	simScorer  SimScorer
-	termStates index.TermStates
-	scoreMode  ScoreMode
+	termStates *index.TermStates
+	scoreMode  *ScoreMode
+
+	*TermQuery
 }
 
-func (t TermWeight) Explain(ctx *index.LeafReaderContext, doc int) (*Explanation, error) {
+func (t *TermWeight) Explain(ctx *index.LeafReaderContext, doc int) (*Explanation, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t TermWeight) GetQuery() Query {
+func (t *TermWeight) GetQuery() Query {
 	//TODO implement me
 	panic("implement me")
 }
 
-func NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64, termStates *index.TermStates) *TermWeight {
-	//newWeightImp()
-	panic("implement me")
+func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
+	boost float64, termStates *index.TermStates) (*TermWeight, error) {
+	weight := &TermWeight{
+		similarity: searcher.GetSimilarity(),
+		termStates: termStates,
+		scoreMode:  scoreMode,
+	}
+
+	var collectionStats *CollectionStatistics
+	var termStats *TermStatistics
+	var err error
+	if scoreMode.NeedsScores() {
+		collectionStats, err = searcher.CollectionStatistics(t.term.Field())
+		if err != nil {
+			return nil, err
+		}
+
+		freq, err := termStates.DocFreq()
+		if err != nil {
+			return nil, err
+		}
+
+		if freq > 0 {
+			docFreq, err := termStates.DocFreq()
+			if err != nil {
+				return nil, err
+			}
+			totalTermFreq, err := termStates.TotalTermFreq()
+			if err != nil {
+				return nil, err
+			}
+
+			termStats, err = searcher.TermStatistics(t.term, docFreq, int(totalTermFreq))
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		var err error
+		collectionStats, err = NewCollectionStatistics(t.term.Field(), 1, 1, 1, 1)
+		if err != nil {
+			return nil, err
+		}
+		termStats, err = NewTermStatistics(t.term.Bytes(), 1, 1)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if termStats == nil {
+		weight.simScorer = nil
+	} else {
+		weight.simScorer = weight.similarity.Scorer(boost, collectionStats, []TermStatistics{*termStats})
+	}
+	return weight, nil
 }

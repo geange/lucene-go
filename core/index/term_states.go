@@ -1,5 +1,7 @@
 package index
 
+import "errors"
+
 // TermStates Maintains a IndexReader TermState view over IndexReader instances containing a single term.
 // The TermStates doesn't track if the given TermState objects are valid, neither if the TermState instances
 // refer to the same terms in the associated readers.
@@ -98,6 +100,26 @@ func (r *TermStates) AccumulateStatistics(docFreq int, totalTermFreq int64) {
 	//    assert docFreq <= totalTermFreq;
 	r.docFreq += docFreq
 	r.totalTermFreq += totalTermFreq
+}
+
+// DocFreq Returns the accumulated document frequency of all TermState instances passed to register(TermState, int, int, long).
+//Returns:
+//the accumulated document frequency of all TermState instances passed to register(TermState, int, int, long).
+func (r *TermStates) DocFreq() (int, error) {
+	if r.term != nil {
+		return 0, errors.New("cannot call docFreq() when needsStats=false")
+	}
+	return r.docFreq, nil
+}
+
+// TotalTermFreq Returns the accumulated term frequency of all TermState instances passed to register(TermState, int, int, long).
+//Returns:
+//the accumulated term frequency of all TermState instances passed to register(TermState, int, int, long).
+func (r TermStates) TotalTermFreq() (int64, error) {
+	if r.term != nil {
+		return 0, errors.New("cannot call totalTermFreq() when needsStats=false")
+	}
+	return r.totalTermFreq, nil
 }
 
 func loadTermsEnum(ctx *LeafReaderContext, term *Term) (TermsEnum, error) {

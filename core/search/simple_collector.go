@@ -16,6 +16,8 @@ type SimpleCollectorExtra interface {
 }
 
 type SimpleCollectorImp struct {
+	*LeafCollectorImp
+
 	SimpleCollectorExtra
 }
 

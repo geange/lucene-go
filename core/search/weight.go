@@ -1,6 +1,10 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"fmt"
+	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/index"
+)
 
 // Weight Expert: Calculate query weights and build query scorers.
 // 计算查询权重并构建查询记分器。
@@ -134,5 +138,131 @@ func (s *scorerSupplier) Cost() int64 {
 }
 
 func (r *WeightImp) BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error) {
+	scorer, err := r.Scorer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if scorer == nil {
+		return nil, nil
+	}
+
+	return NewDefaultBulkScorer(scorer), nil
+}
+
+var _ BulkScorer = &DefaultBulkScorer{}
+
+type DefaultBulkScorer struct {
+	scorer   Scorer
+	iterator index.DocIdSetIterator
+	twoPhase TwoPhaseIterator
+}
+
+func NewDefaultBulkScorer(scorer Scorer) *DefaultBulkScorer {
+	return &DefaultBulkScorer{
+		scorer:   scorer,
+		iterator: scorer.Iterator(),
+		twoPhase: scorer.TwoPhaseIterator(),
+	}
+}
+
+func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs *bitset.BitSet) (int, error) {
+	err := collector.SetScorer(d.scorer)
+	if err != nil {
+		return 0, err
+	}
+
+	scorerIterator := func() index.DocIdSetIterator {
+		if d.twoPhase == nil {
+			return d.iterator
+		}
+		return d.twoPhase.Approximation()
+	}()
+
+	competitiveIterator, err := collector.CompetitiveIterator()
+	if err != nil {
+		return 0, err
+	}
+
+	var filteredIterator index.DocIdSetIterator
+	if competitiveIterator == nil {
+		filteredIterator = scorerIterator
+	} else {
+		// Wrap CompetitiveIterator and ScorerIterator start with (i.e., calling nextDoc()) the last
+		// visited docID because ConjunctionDISI might have advanced to it in the previous
+		// scoreRange, but we didn't process due to the range limit of scoreRange.
+		if scorerIterator.DocID() != -1 {
+			scorerIterator = NewStartDISIWrapper(scorerIterator)
+		}
+
+		if competitiveIterator.DocID() != -1 {
+			competitiveIterator = NewStartDISIWrapper(competitiveIterator)
+		}
+
+		filteredIterator = IntersectIterators([]index.DocIdSetIterator{
+			scorerIterator,
+			competitiveIterator,
+		})
+	}
+
+	// TODO
+	fmt.Println(filteredIterator)
+
+	//min
+	//
+	//if (filteredIterator.DocID() == -1 && min == 0 && max == DocIdSetIterator.NO_MORE_DOCS) {
+	//	scoreAll(collector, filteredIterator, twoPhase, acceptDocs);
+	//	return index.;
+	//} else {
+	//	int doc = filteredIterator.docID();
+	//	if (doc < min) {
+	//		doc = filteredIterator.advance(min);
+	//	}
+	//	return scoreRange(collector, filteredIterator, twoPhase, acceptDocs, doc, max);
+	//}
 	panic("")
+}
+
+func (d *DefaultBulkScorer) Cost() int64 {
+	return d.iterator.Cost()
+}
+
+var _ index.DocIdSetIterator = &StartDISIWrapper{}
+
+type StartDISIWrapper struct {
+	in         index.DocIdSetIterator
+	startDocID int
+	docID      int
+}
+
+func NewStartDISIWrapper(in index.DocIdSetIterator) *StartDISIWrapper {
+	return &StartDISIWrapper{
+		in:         in,
+		startDocID: in.DocID(),
+	}
+}
+
+func (s *StartDISIWrapper) DocID() int {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *StartDISIWrapper) NextDoc() (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *StartDISIWrapper) Advance(target int) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *StartDISIWrapper) SlowAdvance(target int) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *StartDISIWrapper) Cost() int64 {
+	//TODO implement me
+	panic("implement me")
 }

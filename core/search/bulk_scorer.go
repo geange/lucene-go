@@ -9,5 +9,8 @@ type BulkScorer interface {
 	// Score Scores and collects all matching documents.
 	// Params: 	collector – The collector to which all matching documents are passed.
 	//			acceptDocs – Bits that represents the allowed documents to match, or null if they are all allowed to match.
-	Score(collector LeafCollector, acceptDocs *bitset.BitSet) error
+	Score(collector LeafCollector, acceptDocs *bitset.BitSet) (int, error)
+
+	// Cost Same as DocIdSetIterator.cost() for bulk scorers.
+	Cost() int64
 }
