@@ -1,14 +1,14 @@
 package search
 
-// Scorable Allows access to the score of a Query
+// Scorable Allows access to the Score of a Query
 type Scorable interface {
-	// Score Returns the score of the current document matching the query.
+	// Score Returns the Score of the current document matching the query.
 	Score() (float64, error)
 
-	// SmoothingScore Returns the smoothing score of the current document matching the query. This score
+	// SmoothingScore Returns the smoothing Score of the current document matching the query. This Score
 	// is used when the query/term does not appear in the document, and behaves like an idf. The smoothing
-	// score is particularly important when the Scorer returns a product of probabilities so that the
-	// document score does not go to zero when one probability is zero. This can return 0 or a smoothing score.
+	// Score is particularly important when the Scorer returns a product of probabilities so that the
+	// document Score does not go to zero when one probability is zero. This can return 0 or a smoothing Score.
 	//
 	// Smoothing scores are described in many papers, including: Metzler, D. and Croft, W. B. , "Combining
 	// the Language Model and Inference Network Approaches to Retrieval," Information Processing and Management
@@ -19,7 +19,7 @@ type Scorable interface {
 	DocID() int
 
 	// SetMinCompetitiveScore Optional method: Tell the scorer that its iterator may safely ignore all
-	// documents whose score is less than the given minScore. This is a no-op by default. This method
+	// documents whose Score is less than the given minScore. This is a no-op by default. This method
 	// may only be called from collectors that use ScoreMode.TOP_SCORES, and successive calls may
 	// only set increasing values of minScore.
 	SetMinCompetitiveScore(minScore float64) error

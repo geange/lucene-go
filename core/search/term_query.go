@@ -71,6 +71,66 @@ func (t *TermWeight) GetQuery() Query {
 	panic("implement me")
 }
 
+func (t *TermWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
+	termsEnum, err := t.getTermsEnum(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if termsEnum == nil {
+		return nil, nil
+	}
+
+	scorer, err := NewLeafSimScorer(t.simScorer, ctx.LeafReader(), t.term.Field(), t.scoreMode.NeedsScores())
+	if err != nil {
+		return nil, err
+	}
+
+	if t.scoreMode == TOP_SCORES {
+		impacts, err := termsEnum.Impacts(index.POSTINGS_ENUM_FREQS)
+		if err != nil {
+			return nil, err
+		}
+		return NewTermScorerWithImpacts(t, impacts, scorer), nil
+	} else {
+		flags := index.POSTINGS_ENUM_FREQS
+		if !t.scoreMode.NeedsScores() {
+			flags = index.POSTINGS_ENUM_NONE
+		}
+
+		postings, err := termsEnum.Postings(nil, flags)
+		if err != nil {
+			return nil, err
+		}
+		return NewTermScorerWithPostings(t, postings, scorer), nil
+	}
+}
+
+// Returns a TermsEnum positioned at this weights Term or null if the term does not exist in the given context
+func (t *TermWeight) getTermsEnum(context *index.LeafReaderContext) (index.TermsEnum, error) {
+	state, err := t.termStates.Get(context)
+	if err != nil {
+		return nil, err
+	}
+	if state == nil { // term is not present in that reader
+		return nil, nil
+	}
+	terms, err := context.LeafReader().Terms(t.term.Field())
+	if err != nil {
+		return nil, err
+	}
+	termsEnum, err := terms.Iterator()
+	if err != nil {
+		return nil, err
+	}
+
+	err = termsEnum.SeekExactExpert(t.term.Bytes(), state)
+	if err != nil {
+		return nil, err
+	}
+	return termsEnum, nil
+}
+
 func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 	boost float64, termStates *index.TermStates) (*TermWeight, error) {
 	weight := &TermWeight{
@@ -78,6 +138,8 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 		termStates: termStates,
 		scoreMode:  scoreMode,
 	}
+
+	weight.WeightImp = NewWeightImp(weight)
 
 	var collectionStats *CollectionStatistics
 	var termStats *TermStatistics

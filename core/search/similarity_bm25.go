@@ -78,7 +78,7 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 	return int64(numTerms)
 }
 
-// IdfExplain Computes a score factor for a simple term and returns an explanation for that score factor.
+// IdfExplain Computes a Score factor for a simple term and returns an explanation for that Score factor.
 // The default implementation uses:
 //     idf(docFreq, docCount);
 //
@@ -88,7 +88,7 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 // does not skew when fields are sparse.
 // Params:  collectionStats – collection-level statistics
 //			termStats – term-level statistics for the term
-// Returns: an Explain object that includes both an idf score factor and an explanation for the term.
+// Returns: an Explain object that includes both an idf Score factor and an explanation for the term.
 func (b *BM25Similarity) IdfExplain(
 	collectionStats *CollectionStatistics, termStats *TermStatistics) *Explanation {
 
@@ -107,11 +107,11 @@ func (b *BM25Similarity) IdfExplain(
 		*exp1, *exp2)
 }
 
-// IdfExplainV1 Computes a score factor for a phrase.
+// IdfExplainV1 Computes a Score factor for a phrase.
 // The default implementation sums the idf factor for each term in the phrase.
 // Params: 	collectionStats – collection-level statistics
 //			termStats – term-level statistics for the terms in the phrase
-// Returns: an Explain object that includes both an idf score factor for the phrase and an explanation for each term.
+// Returns: an Explain object that includes both an idf Score factor for the phrase and an explanation for each term.
 func (b *BM25Similarity) IdfExplainV1(
 	collectionStats *CollectionStatistics, termStats []TermStatistics) *Explanation {
 

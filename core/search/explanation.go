@@ -1,6 +1,6 @@
 package search
 
-// Explanation Expert: Describes the score computation for document and query.
+// Explanation Expert: Describes the Score computation for document and query.
 type Explanation struct {
 	match       bool          // whether the document matched
 	value       interface{}   // the value of this node

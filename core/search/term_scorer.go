@@ -12,16 +12,42 @@ type TermScorer struct {
 	impactsDisi  *ImpactsDISI
 }
 
+func NewTermScorerWithPostings(weight Weight, postingsEnum index.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
+	this := &TermScorer{
+		weight:       weight,
+		iterator:     postingsEnum,
+		postingsEnum: postingsEnum,
+		impactsEnum:  index.NewSlowImpactsEnum(postingsEnum),
+		docScorer:    docScorer,
+	}
+
+	this.impactsDisi = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
+	return this
+}
+
+func NewTermScorerWithImpacts(weight Weight, impactsEnum index.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
+	this := &TermScorer{
+		weight:       weight,
+		postingsEnum: impactsEnum,
+		impactsEnum:  impactsEnum,
+		docScorer:    docScorer,
+	}
+
+	this.impactsDisi = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
+	this.iterator = this.impactsDisi
+	return this
+}
+
 func (t *TermScorer) Score() (float64, error) {
 	freq, err := t.postingsEnum.Freq()
 	if err != nil {
 		return 0, err
 	}
-	return t.docScorer.score(t.postingsEnum.DocID(), float64(freq))
+	return t.docScorer.Score(t.postingsEnum.DocID(), float64(freq))
 }
 
 func (t *TermScorer) SmoothingScore(docId int) (float64, error) {
-	return t.docScorer.score(docId, 0)
+	return t.docScorer.Score(docId, 0)
 }
 
 func (t *TermScorer) DocID() int {

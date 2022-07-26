@@ -2,6 +2,10 @@ package index
 
 import "errors"
 
+var (
+	EMPTY_TERMSTATE TermState
+)
+
 // TermStates Maintains a IndexReader TermState view over IndexReader instances containing a single term.
 // The TermStates doesn't track if the given TermState objects are valid, neither if the TermState instances
 // refer to the same terms in the associated readers.
@@ -115,7 +119,7 @@ func (r *TermStates) DocFreq() (int, error) {
 // TotalTermFreq Returns the accumulated term frequency of all TermState instances passed to register(TermState, int, int, long).
 //Returns:
 //the accumulated term frequency of all TermState instances passed to register(TermState, int, int, long).
-func (r TermStates) TotalTermFreq() (int64, error) {
+func (r *TermStates) TotalTermFreq() (int64, error) {
 	if r.term != nil {
 		return 0, errors.New("cannot call totalTermFreq() when needsStats=false")
 	}
@@ -143,4 +147,33 @@ func loadTermsEnum(ctx *LeafReaderContext, term *Term) (TermsEnum, error) {
 		}
 	}
 	return nil, nil
+}
+
+// Get Returns the TermState for a leaf reader context or null if no TermState for the context was registered.
+// Params: 	ctx – the LeafReaderContext to get the TermState for.
+// Returns: the TermState for the given readers ord or null if no TermState for the reader was
+func (r *TermStates) Get(ctx *LeafReaderContext) (TermState, error) {
+	if r.term == nil {
+		return r.states[ctx.Ord], nil
+	}
+
+	if r.states[ctx.Ord] == nil {
+		te, err := loadTermsEnum(ctx, r.term)
+		if err != nil {
+			return nil, err
+		}
+		if te == nil {
+			r.states[ctx.Ord] = EMPTY_TERMSTATE
+		} else {
+			r.states[ctx.Ord], err = te.TermState()
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if r.states[ctx.Ord] == EMPTY_TERMSTATE {
+		return nil, nil
+	}
+	return r.states[ctx.Ord], nil
 }

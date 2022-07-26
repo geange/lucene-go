@@ -18,7 +18,7 @@ func (r *ScoreMode) IsExhaustive() bool {
 }
 
 var (
-	// COMPLETE Produced scorers will allow visiting all matches and get their score.
+	// COMPLETE Produced scorers will allow visiting all matches and get their Score.
 	COMPLETE = &ScoreMode{true, true}
 
 	// COMPLETE_NO_SCORES Produced scorers will allow visiting all matches but scores won't be available.

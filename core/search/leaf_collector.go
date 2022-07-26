@@ -2,7 +2,7 @@ package search
 
 import "github.com/geange/lucene-go/core/index"
 
-// LeafCollector Collector decouples the score from the collected doc: the score computation is skipped entirely if it's not needed. Collectors that do need the score should implement the setScorer method, to hold onto the passed Scorer instance, and call Scorer.score() within the collect method to compute the current hit's score. If your collector may request the score for a single hit multiple times, you should use ScoreCachingWrappingScorer.
+// LeafCollector Collector decouples the Score from the collected doc: the Score computation is skipped entirely if it's not needed. Collectors that do need the Score should implement the setScorer method, to hold onto the passed Scorer instance, and call Scorer.Score() within the collect method to compute the current hit's Score. If your collector may request the Score for a single hit multiple times, you should use ScoreCachingWrappingScorer.
 //NOTE: The doc that is passed to the collect method is relative to the current reader. If your collector needs to resolve this to the docID space of the Multi*Reader, you must re-base it by recording the docBase from the most recent setNextReader call. Here's a simple example showing how to collect docIDs into a BitSet:
 //   IndexSearcher searcher = new IndexSearcher(indexReader);
 //   final BitSet bits = new BitSet(indexReader.maxDoc());
@@ -29,9 +29,9 @@ import "github.com/geange/lucene-go/core/index"
 // Not all collectors will need to rebase the docID. For example, a collector that simply counts the total
 // number of hits would skip it.
 type LeafCollector interface {
-	// SetScorer Called before successive calls to collect(int). Implementations that need the score of
+	// SetScorer Called before successive calls to collect(int). Implementations that need the Score of
 	// the current document (passed-in to collect(int)), should save the passed-in Scorer and call
-	// scorer.score() when needed.
+	// scorer.Score() when needed.
 	SetScorer(scorer Scorable) error
 
 	// Collect Called once for every document matching a query, with the unbased document number.
