@@ -36,11 +36,3 @@ type Scorer interface {
 	// was shallow-advanced to included and upTo included.
 	GetMaxScore(upTo int) (float64, error)
 }
-
-type ScorerImp struct {
-	weight Weight
-}
-
-func NewScorerImp(weight Weight) *ScorerImp {
-	return &ScorerImp{weight: weight}
-}

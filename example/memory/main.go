@@ -11,9 +11,6 @@ import (
 )
 
 func main() {
-
-	fmt.Println("---------")
-
 	index, err := memory.NewNewMemoryIndexDefault()
 	if err != nil {
 		panic(err)

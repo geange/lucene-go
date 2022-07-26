@@ -273,7 +273,10 @@ func (m *MemoryIndex) Search(query search.Query) float64 {
 
 	searcher := m.CreateSearcher()
 	scores := make([]float64, 1)
-	searcher.Search(query, newSimpleCollector(scores))
+	err := searcher.Search(query, newSimpleCollector(scores))
+	if err != nil {
+		return 0
+	}
 	score := scores[0]
 	return score
 }

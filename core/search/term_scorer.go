@@ -9,7 +9,7 @@ type TermScorer struct {
 	impactsEnum  index.ImpactsEnum
 	iterator     index.DocIdSetIterator
 	docScorer    *LeafSimScorer
-	impactsDisi  *ImpactsDISI
+	impactsDISI  *ImpactsDISI
 }
 
 func NewTermScorerWithPostings(weight Weight, postingsEnum index.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
@@ -21,7 +21,7 @@ func NewTermScorerWithPostings(weight Weight, postingsEnum index.PostingsEnum, d
 		docScorer:    docScorer,
 	}
 
-	this.impactsDisi = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
+	this.impactsDISI = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
 	return this
 }
 
@@ -33,8 +33,8 @@ func NewTermScorerWithImpacts(weight Weight, impactsEnum index.ImpactsEnum, docS
 		docScorer:    docScorer,
 	}
 
-	this.impactsDisi = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
-	this.iterator = this.impactsDisi
+	this.impactsDISI = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
+	this.iterator = this.impactsDISI
 	return this
 }
 
@@ -59,7 +59,7 @@ func (t *TermScorer) Freq() (int, error) {
 }
 
 func (t *TermScorer) SetMinCompetitiveScore(minScore float64) error {
-	return t.impactsDisi.setMinCompetitiveScore(minScore)
+	return t.impactsDISI.setMinCompetitiveScore(minScore)
 }
 
 func (t *TermScorer) GetChildren() ([]ChildScorable, error) {
@@ -79,5 +79,5 @@ func (t *TermScorer) TwoPhaseIterator() TwoPhaseIterator {
 }
 
 func (t *TermScorer) GetMaxScore(upTo int) (float64, error) {
-	return t.impactsDisi.getMaxScore(upTo)
+	return t.impactsDISI.getMaxScore(upTo)
 }
