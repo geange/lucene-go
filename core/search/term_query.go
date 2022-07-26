@@ -137,9 +137,10 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 		similarity: searcher.GetSimilarity(),
 		termStates: termStates,
 		scoreMode:  scoreMode,
+		TermQuery:  t,
 	}
 
-	weight.WeightImp = NewWeightImp(weight)
+	weight.WeightImp = NewWeightImp(weight, weight)
 
 	var collectionStats *CollectionStatistics
 	var termStats *TermStatistics

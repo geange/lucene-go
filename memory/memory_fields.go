@@ -7,10 +7,15 @@ import (
 
 type MemoryFields struct {
 	fields *treemap.Map
+
+	*MemoryIndex
 }
 
-func NewMemoryFields(fields *treemap.Map) *MemoryFields {
-	return &MemoryFields{fields: fields}
+func (m *MemoryIndex) NewMemoryFields(fields *treemap.Map) *MemoryFields {
+	return &MemoryFields{
+		fields:      fields,
+		MemoryIndex: m,
+	}
 }
 
 func (m *MemoryFields) Iterator() func() string {
@@ -49,7 +54,7 @@ func (m *MemoryFields) Terms(field string) (index.Terms, error) {
 		return nil, nil
 	}
 
-	return NewTerms(info), nil
+	return m.NewTerms(info), nil
 }
 
 func (m *MemoryFields) Size() int {

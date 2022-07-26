@@ -107,7 +107,7 @@ func (r *IndexSearcher) Search3(leaves []*index.LeafReaderContext, weight Weight
 			return err
 		}
 		if scorer != nil {
-			_, err = scorer.Score(leafCollector, ctx.LeafReader().GetLiveDocs())
+			err = scorer.Score(leafCollector, ctx.LeafReader().GetLiveDocs())
 			if err != nil {
 				return err
 			}

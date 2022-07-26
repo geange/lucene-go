@@ -25,8 +25,17 @@ type MemoryPostingsEnum struct {
 	storePayloads     bool
 }
 
-func NewMemoryPostingsEnum() *MemoryPostingsEnum {
-	return &MemoryPostingsEnum{}
+func (m *MemoryIndex) NewMemoryPostingsEnum() *MemoryPostingsEnum {
+	return &MemoryPostingsEnum{
+		doc:         -1,
+		sliceReader: util.NewSliceReader(m.intBlockPool),
+		payloadBuilder: func() *util.BytesRefBuilder {
+			if m.storePayloads {
+				return util.NewBytesRefBuilder()
+			}
+			return nil
+		}(),
+	}
 }
 
 func (m *MemoryPostingsEnum) reset(start, end, freq int) index.PostingsEnum {

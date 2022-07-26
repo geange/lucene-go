@@ -14,15 +14,18 @@ type MemoryTermsEnum struct {
 	termUpto int
 	br       []byte
 	atts     *tokenattributes.AttributeSource
+
+	*MemoryIndex
 }
 
-func NewMemoryTermsEnum(info *Info) *MemoryTermsEnum {
+func (m *MemoryIndex) NewMemoryTermsEnum(info *Info) *MemoryTermsEnum {
 	info.sortTerms()
 	return &MemoryTermsEnum{
-		info:     info,
-		termUpto: -1,
-		br:       nil,
-		atts:     tokenattributes.NewAttributeSource(),
+		info:        info,
+		termUpto:    -1,
+		br:          nil,
+		atts:        tokenattributes.NewAttributeSource(),
+		MemoryIndex: m,
 	}
 }
 
@@ -105,11 +108,11 @@ func (m *MemoryTermsEnum) TotalTermFreq() (int64, error) {
 
 func (m *MemoryTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
 	if reuse == nil {
-		reuse = NewMemoryPostingsEnum()
+		reuse = m.NewMemoryPostingsEnum()
 	}
 
 	if _, ok := reuse.(*MemoryPostingsEnum); !ok {
-		reuse = NewMemoryPostingsEnum()
+		reuse = m.NewMemoryPostingsEnum()
 	}
 
 	ord := m.info.sortedTerms[m.termUpto]

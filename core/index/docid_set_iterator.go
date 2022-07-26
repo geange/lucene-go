@@ -1,5 +1,7 @@
 package index
 
+import "math"
+
 // DocIdSetIterator This abstract class defines methods to iterate over a set of non-decreasing doc ids.
 // Note that this class assumes it iterates on doc Ids, and therefore NO_MORE_DOCS is set to 2147483647
 // in order to be used as a sentinel object. Implementations of this class are expected to consider
@@ -46,3 +48,7 @@ type DocIdSetIterator interface {
 	// rough heuristic, hardcoded value, or otherwise completely inaccurate.
 	Cost() int64
 }
+
+const (
+	NO_MORE_DOCS = math.MaxInt32
+)

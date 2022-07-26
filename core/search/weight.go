@@ -1,9 +1,9 @@
 package search
 
 import (
-	"fmt"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
+	"math"
 )
 
 // Weight Expert: Calculate query weights and build query scorers.
@@ -72,8 +72,11 @@ type WeightImp struct {
 	parentQuery Query
 }
 
-func NewWeightImp(parentQuery Query) *WeightImp {
-	return &WeightImp{parentQuery: parentQuery}
+func NewWeightImp(parentQuery Query, extra WeightExtra) *WeightImp {
+	return &WeightImp{
+		WeightExtra: extra,
+		parentQuery: parentQuery,
+	}
 }
 
 func (r *WeightImp) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
@@ -166,7 +169,13 @@ func NewDefaultBulkScorer(scorer Scorer) *DefaultBulkScorer {
 	}
 }
 
-func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs *bitset.BitSet) (int, error) {
+func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs *bitset.BitSet) error {
+	NO_MORE_DOCS := math.MaxInt32
+	_, err := d.Score4(collector, acceptDocs, 0, NO_MORE_DOCS)
+	return err
+}
+
+func (d *DefaultBulkScorer) Score4(collector LeafCollector, acceptDocs *bitset.BitSet, min, max int) (int, error) {
 	err := collector.SetScorer(d.scorer)
 	if err != nil {
 		return 0, err
@@ -205,22 +214,104 @@ func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs *bitset.Bi
 		})
 	}
 
-	// TODO
-	fmt.Println(filteredIterator)
+	if filteredIterator.DocID() == -1 && min == 0 && max == index.NO_MORE_DOCS {
+		err := scoreAll(collector, filteredIterator, d.twoPhase, acceptDocs)
+		if err != nil {
+			return 0, err
+		}
+		return index.NO_MORE_DOCS, nil
+	} else {
+		doc := filteredIterator.DocID()
+		if doc < min {
+			doc, err = filteredIterator.Advance(min)
+			if err != nil {
+				return 0, err
+			}
+		}
+		return scoreRange(collector, filteredIterator, d.twoPhase, acceptDocs, doc, max)
+	}
+}
 
-	//min
-	//
-	//if (filteredIterator.DocID() == -1 && min == 0 && max == DocIdSetIterator.NO_MORE_DOCS) {
-	//	scoreAll(collector, filteredIterator, twoPhase, acceptDocs);
-	//	return index.;
-	//} else {
-	//	int doc = filteredIterator.docID();
-	//	if (doc < min) {
-	//		doc = filteredIterator.advance(min);
-	//	}
-	//	return scoreRange(collector, filteredIterator, twoPhase, acceptDocs, doc, max);
-	//}
-	panic("")
+func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
+	twoPhase TwoPhaseIterator, acceptDocs *bitset.BitSet) error {
+
+	if twoPhase == nil {
+		doc, err := iterator.NextDoc()
+		if err != nil {
+			return err
+		}
+		for doc != index.NO_MORE_DOCS {
+			if acceptDocs == nil || acceptDocs.Test(uint(doc)) {
+				err := collector.Collect(doc)
+				if err != nil {
+					return err
+				}
+			}
+
+			doc, err = iterator.NextDoc()
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		doc, err := iterator.NextDoc()
+		if err != nil {
+			return err
+		}
+
+		// The scorer has an approximation, so run the approximation first, then check acceptDocs, then confirm
+		for doc != index.NO_MORE_DOCS {
+			if ok, _ := twoPhase.Matches(); ok && (acceptDocs == nil || acceptDocs.Test(uint(doc))) {
+				err := collector.Collect(doc)
+				if err != nil {
+					return err
+				}
+			}
+
+			doc, err = iterator.NextDoc()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func scoreRange(collector LeafCollector, iterator index.DocIdSetIterator, twoPhase TwoPhaseIterator,
+	acceptDocs *bitset.BitSet, currentDoc, end int) (int, error) {
+
+	var err error
+
+	if twoPhase == nil {
+		for currentDoc < end {
+			if acceptDocs == nil || acceptDocs.Test(uint(currentDoc)) {
+				err := collector.Collect(currentDoc)
+				if err != nil {
+					return 0, err
+				}
+			}
+			currentDoc, err = iterator.NextDoc()
+			if err != nil {
+				return 0, err
+			}
+		}
+		return currentDoc, nil
+	} else {
+		for currentDoc < end {
+			if ok, _ := twoPhase.Matches(); ok && (acceptDocs == nil || acceptDocs.Test(uint(currentDoc))) {
+				err := collector.Collect(currentDoc)
+				if err != nil {
+					return 0, err
+				}
+			}
+
+			currentDoc, err = iterator.NextDoc()
+			if err != nil {
+				return 0, err
+			}
+		}
+		return currentDoc, nil
+	}
 }
 
 func (d *DefaultBulkScorer) Cost() int64 {

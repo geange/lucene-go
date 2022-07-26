@@ -10,16 +10,21 @@ type Terms struct {
 	info          *Info
 	storeOffsets  bool
 	storePayloads bool
+
+	*MemoryIndex
 }
 
-func NewTerms(info *Info) *Terms {
-	terms := &Terms{info: info}
+func (m *MemoryIndex) NewTerms(info *Info) *Terms {
+	terms := &Terms{
+		info:        info,
+		MemoryIndex: m,
+	}
 	terms.TermsImp = index.NewTermsImp(terms)
 	return terms
 }
 
 func (t *Terms) Iterator() (index.TermsEnum, error) {
-	return NewMemoryTermsEnum(t.info), nil
+	return t.NewMemoryTermsEnum(t.info), nil
 }
 
 func (t *Terms) Size() (int, error) {
