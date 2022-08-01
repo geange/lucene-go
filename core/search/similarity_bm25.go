@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util"
 	"math"
 )
 
@@ -13,9 +14,11 @@ var (
 
 func init() {
 	for i := 0; i < 256; i++ {
-		LENGTH_TABLE[i] = float64(i)
+		LENGTH_TABLE[i] = float64(util.Byte4ToInt(byte(i)))
 	}
 }
+
+var _ Similarity = &BM25Similarity{}
 
 // BM25Similarity BM25 Similarity. Introduced in Stephen E. Robertson, Steve Walker, Susan Jones,
 // Micheline Hancock-Beaulieu, and Mike Gatford. Okapi at TREC-3. In Proceedings of the Third Text REtrieval
@@ -49,8 +52,9 @@ func NewBM25SimilarityV1(k1, b float64) (*BM25Similarity, error) {
 	}
 
 	return &BM25Similarity{
-		k1: k1,
-		b:  b,
+		k1:               k1,
+		b:                b,
+		discountOverlaps: true,
 	}, nil
 }
 
@@ -159,6 +163,8 @@ func (b *BM25Similarity) GetK1() float64 {
 func (b *BM25Similarity) GetB() float64 {
 	return b.b
 }
+
+var _ SimScorer = &BM25Scorer{}
 
 type BM25Scorer struct {
 	boost  float64      // query boost

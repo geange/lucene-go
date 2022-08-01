@@ -23,11 +23,11 @@ func main() {
 
 	analyzer := standard.NewAnalyzer(set)
 
-	err = index.AddField(document.NewTextFieldByString("name", "cnn abcd", false), analyzer)
+	err = index.AddField(document.NewTextFieldByString("f1", "some text", false), analyzer)
 	if err != nil {
 		panic(err)
 	}
 
-	count := index.Search(search.NewTermQuery(index2.NewTerm("name", []byte("cnn"))))
+	count := index.Search(search.NewTermQuery(index2.NewTerm("f1", []byte("some"))))
 	fmt.Println(count)
 }

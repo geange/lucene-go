@@ -2,8 +2,8 @@ package search
 
 // ScoreMode Different modes of search.
 type ScoreMode struct {
-	needsScores  bool
 	isExhaustive bool
+	needsScores  bool
 }
 
 // NeedsScores Whether this ScoreMode needs to compute scores.

@@ -13,6 +13,8 @@ type SimpleCollector interface {
 
 type SimpleCollectorExtra interface {
 	DoSetNextReader(context *index.LeafReaderContext) error
+	SetScorer(scorer Scorable) error
+	Collect(doc int) error
 }
 
 type SimpleCollectorImp struct {
@@ -31,12 +33,4 @@ func (s *SimpleCollectorImp) GetLeafCollector(context *index.LeafReaderContext) 
 		return nil, err
 	}
 	return s, nil
-}
-
-func (s *SimpleCollectorImp) SetScorer(scorer Scorable) error {
-	return nil
-}
-
-func (s *SimpleCollectorImp) Collect(doc int) error {
-	return nil
 }
