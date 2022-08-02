@@ -29,6 +29,20 @@ type FieldInvertState struct {
 	termFreqAttribute tokenattributes.TermFrequencyAttribute
 }
 
+func NewFieldInvertState(indexCreatedVersionMajor int, name string, indexOptions types.IndexOptions, position int, length int, numOverlap int, offset int, maxTermFrequency int, uniqueTermCount int) *FieldInvertState {
+	return &FieldInvertState{
+		indexCreatedVersionMajor: indexCreatedVersionMajor,
+		name:                     name,
+		indexOptions:             indexOptions,
+		position:                 position,
+		length:                   length,
+		numOverlap:               numOverlap,
+		offset:                   offset,
+		maxTermFrequency:         maxTermFrequency,
+		uniqueTermCount:          uniqueTermCount,
+	}
+}
+
 // GetPosition Get the last processed term position.
 // Returns: the position
 func (f *FieldInvertState) GetPosition() int {

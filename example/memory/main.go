@@ -28,6 +28,6 @@ func main() {
 		panic(err)
 	}
 
-	count := index.Search(search.NewTermQuery(index2.NewTerm("f1", []byte("some"))))
+	count := index.Search(search.NewTermQuery(index2.NewTerm("f1", []byte("some text"))))
 	fmt.Println(count)
 }

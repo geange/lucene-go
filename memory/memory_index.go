@@ -238,7 +238,7 @@ func (m *MemoryIndex) SetSimilarity(similarity search.Similarity) error {
 	}
 
 	m.fields.Each(func(key interface{}, value interface{}) {
-		value.(*Info).norm = -1
+		value.(*Info).norm = nil
 	})
 
 	return nil
@@ -294,14 +294,14 @@ func (m *MemoryIndex) getInfo(fieldName string, fieldType types.IndexableFieldTy
 	var info *Info
 	v, ok := m.fields.Get(fieldName)
 	if !ok {
-		info = NewInfo(m.createFieldInfo(fieldName, m.fields.Size(), fieldType), m.byteBlockPool)
+		info = m.NewInfo(m.createFieldInfo(fieldName, m.fields.Size(), fieldType), m.byteBlockPool)
 		m.fields.Put(fieldName, info)
 	} else {
 		info = v.(*Info)
 	}
 
 	if !ok {
-		info = NewInfo(m.createFieldInfo(fieldName, m.fields.Size(), fieldType), m.byteBlockPool)
+		info = m.NewInfo(m.createFieldInfo(fieldName, m.fields.Size(), fieldType), m.byteBlockPool)
 		m.fields.Put(fieldName, info)
 	}
 

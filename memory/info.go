@@ -7,8 +7,10 @@ import (
 )
 
 type Info struct {
+	index *MemoryIndex
+
 	fieldInfo *types.FieldInfo
-	norm      int64
+	norm      *int64
 
 	// TODO
 	// Term strings and their positions for this field: Map <String termText, ArrayIntList positions>
@@ -48,10 +50,11 @@ type Info struct {
 	pointValuesCount int
 }
 
-func NewInfo(fieldInfo *types.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
+func (m *MemoryIndex) NewInfo(fieldInfo *types.FieldInfo, byteBlockPool *util.ByteBlockPool) *Info {
 	sliceArray := NewSliceByteStartArray(util.DEFAULT_CAPACITY)
 
 	info := Info{
+		index:           m,
 		fieldInfo:       fieldInfo,
 		terms:           util.NewBytesRefHashV1(byteBlockPool, util.DEFAULT_CAPACITY, sliceArray),
 		sliceArray:      sliceArray,
@@ -85,5 +88,42 @@ func (r *Info) prepareDocValuesAndPointValues() {
 }
 
 func (r *Info) getNormDocValues() index.NumericDocValues {
-	return nil
+	if r.norm == nil {
+		invertState := index.NewFieldInvertState(
+			util.VersionLast.Major,
+			r.fieldInfo.Name,
+			r.fieldInfo.GetIndexOptions(),
+			r.lastPosition,
+			r.numTokens,
+			r.numOverlapTokens,
+			0,
+			r.maxTermFrequency,
+			r.terms.Size())
+
+		value := r.index.normSimilarity.ComputeNorm(invertState)
+		r.norm = &value
+
+		return newInnerNumericDocValues(*r.norm)
+	}
+
+	//if (norm == null) {
+	//	FieldInvertState invertState =
+	//		new FieldInvertState(
+	//		Version.LATEST.major,
+	//		fieldInfo.name,
+	//		fieldInfo.getIndexOptions(),
+	//		lastPosition,
+	//		numTokens,
+	//		numOverlapTokens,
+	//		0,
+	//		maxTermFrequency,
+	//		terms.size());
+	//	final long value = normSimilarity.computeNorm(invertState);
+	//	if (DEBUG)
+	//		System.err.println(
+	//			"MemoryIndexReader.norms: " + fieldInfo.name + ":" + value + ":" + numTokens);
+	//
+	//	norm = value;
+	// TODO
+	panic("TODO")
 }
