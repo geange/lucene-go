@@ -30,5 +30,5 @@ type FieldMetaData struct {
 	sumTotalTermFreq int64
 	sumDocFreq       int64
 	docCount         int
-	dict             FST
+	//dict             FST
 }
