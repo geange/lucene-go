@@ -1,5 +1,12 @@
 package store
 
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+)
+
 var _ FSLockFactory = &SimpleFSLockFactory{}
 
 // SimpleFSLockFactory Implements LockFactory using Files.createFile.
@@ -10,4 +17,71 @@ var _ FSLockFactory = &SimpleFSLockFactory{}
 // This is a singleton, you have to use INSTANCE.
 // See Also: LockFactory
 type SimpleFSLockFactory struct {
+	*FSLockFactoryImp
+}
+
+func (s *SimpleFSLockFactory) ObtainFSLock(dir FSDirectory, lockName string) (Lock, error) {
+	lockDir := dir.GetDirectory()
+
+	// Ensure that lockDir exists and is a directory.
+	// note: this will fail if lockDir is a symlink
+	// Files.createDirectories(lockDir)
+
+	lockFile := filepath.Join(lockDir, lockName)
+
+	// create the file: this will fail if it already exists
+	_, err := os.Stat(lockFile)
+	if err == nil {
+		return nil, fmt.Errorf("lock held elsewhere: %s", lockFile)
+	}
+
+	if os.IsNotExist(err) {
+		// 文件不存在
+		_, err := os.Create(lockFile)
+		if err != nil {
+			return nil, err
+		}
+		info, err := os.Stat(lockFile)
+		if err != nil {
+			return nil, err
+		}
+		_, ctime, _ := FileTime(info)
+		return NewSimpleFSLock(lockFile, ctime), nil
+	}
+
+	return nil, err
+}
+
+var _ Lock = &SimpleFSLock{}
+
+type SimpleFSLock struct {
+	path         string
+	creationTime time.Time
+	closed       bool
+}
+
+func NewSimpleFSLock(path string, creationTime time.Time) *SimpleFSLock {
+	return &SimpleFSLock{path: path, creationTime: creationTime}
+}
+
+func (s *SimpleFSLock) Close() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *SimpleFSLock) EnsureValid() error {
+	if s.closed {
+		return fmt.Errorf("lock instance already released: %s", s.path)
+	}
+	info, err := os.Stat(s.path)
+	if err != nil {
+		return err
+	}
+	_, ctime, _ := FileTime(info)
+	if !s.creationTime.Equal(ctime) {
+		return fmt.Errorf(
+			"underlying file changed by an external force at %s, (lock=%s)",
+			ctime.String(), s.path)
+	}
+	return nil
 }

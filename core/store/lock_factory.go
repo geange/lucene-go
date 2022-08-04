@@ -13,7 +13,15 @@ package store
 // easily test it by using VerifyingLockFactory, LockVerifyServer and LockStressTest.
 //
 // See Also: 	LockVerifyServer,
-//				LockStressTest,
-//				VerifyingLockFactory
+//
+//	LockStressTest,
+//	VerifyingLockFactory
 type LockFactory interface {
+
+	// ObtainLock Return a new obtained Lock instance identified by lockName.
+	// Params: lockName – name of the lock to be created.
+	// Throws: 	LockObtainFailedException – (optional specific exception) if the lock could not be obtained
+	//			because it is currently held elsewhere.
+	//			IOException – if any i/o error occurs attempting to gain the lock
+	ObtainLock(dir Directory, lockName string) (Lock, error)
 }

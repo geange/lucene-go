@@ -11,4 +11,7 @@ package store
 // See Also: Directory
 type FSDirectory interface {
 	BaseDirectory
+
+	// GetDirectory Returns: the underlying filesystem directory
+	GetDirectory() string
 }

@@ -24,13 +24,13 @@ type DataOutput interface {
 	// See Also: DataInput.readShort()
 	WriteUint16(i uint16) error
 
-	// WriteVInt32 Writes an int in a variable-length format. Writes between one and five bytes. Smaller
+	// WriteUvarint Writes an int in a variable-length format. Writes between one and five bytes. Smaller
 	// values take fewer bytes. Negative numbers are supported, but should be avoided.
 	// VByte is a variable-length format for positive integers is defined where the high-order bit of each
 	// byte indicates whether more bytes remain to be read. The low-order seven bits are appended as
 	// increasingly more significant bits in the resulting integer value. Thus values from zero to 127 may
 	// be stored in a single byte, values from 128 to 16,383 may be stored in two bytes, and so on.
-	WriteVInt32(i uint64) error
+	WriteUvarint(i uint64) error
 
 	// WriteZInt32 Write a zig-zag-encoded variable-length integer. This is typically useful to write small
 	// signed ints and is equivalent to calling writeVInt(BitUtil.zigZagEncode(i)).
@@ -46,7 +46,7 @@ type DataOutput interface {
 	// Smaller values take fewer bytes. Negative numbers are not supported.
 	// The format is described further in writeVInt(int).
 	// See Also: DataInput.readVLong()
-	WriteVInt64(i uint64) error
+	//WriteVInt64(i uint64) error
 
 	// WriteZInt64 Write a zig-zag-encoded variable-length long. Writes between one and ten bytes. This is typically
 	// useful to write small signed ints.
@@ -106,9 +106,9 @@ func (d *DataOutputImp) WriteUint16(i uint16) error {
 	return d.WriteBytes(d.buffer[:2])
 }
 
-func (d *DataOutputImp) WriteVInt32(i uint64) error {
-	//TODO implement me
-	panic("implement me")
+func (d *DataOutputImp) WriteUvarint(i uint64) error {
+	num := binary.PutUvarint(d.buffer, i)
+	return d.WriteBytes(d.buffer[:num])
 }
 
 func (d *DataOutputImp) WriteZInt32(i int32) error {
@@ -121,18 +121,13 @@ func (d *DataOutputImp) WriteUint64(i uint64) error {
 	return d.WriteBytes(d.buffer[:8])
 }
 
-func (d *DataOutputImp) WriteVInt64(i uint64) error {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (d *DataOutputImp) WriteZInt64(i int64) error {
 	//TODO implement me
 	panic("implement me")
 }
 
 func (d *DataOutputImp) WriteString(s string) error {
-	err := d.WriteVInt32(uint64(len([]rune(s))))
+	err := d.WriteUvarint(uint64(len([]rune(s))))
 	if err != nil {
 		return err
 	}
@@ -145,7 +140,7 @@ func (d *DataOutputImp) CopyBytes(input DataInput, numBytes int) error {
 }
 
 func (d *DataOutputImp) WriteMapOfStrings(values map[string]string) error {
-	if err := d.WriteVInt32(uint64(len(values))); err != nil {
+	if err := d.WriteUvarint(uint64(len(values))); err != nil {
 		return err
 	}
 
@@ -161,7 +156,7 @@ func (d *DataOutputImp) WriteMapOfStrings(values map[string]string) error {
 }
 
 func (d *DataOutputImp) WriteSetOfStrings(values map[string]struct{}) error {
-	if err := d.WriteVInt32(uint64(len(values))); err != nil {
+	if err := d.WriteUvarint(uint64(len(values))); err != nil {
 		return err
 	}
 
