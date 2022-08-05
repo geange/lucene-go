@@ -4,3 +4,15 @@ package store
 type BaseDirectory interface {
 	Directory
 }
+
+type BaseDirectoryImp struct {
+	isOpen bool
+
+	// Holds the LockFactory instance (implements locking for this Directory instance).
+	lockFactory LockFactory
+}
+
+func (b *BaseDirectoryImp) ObtainLock(name string) (Lock, error) {
+	//return b.lockFactory.ObtainLock(, name)
+	panic("")
+}

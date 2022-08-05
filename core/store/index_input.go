@@ -1,5 +1,7 @@
 package store
 
+import "io"
+
 // IndexInput Abstract base class for input from a file in a Directory. A random-access input stream. Used for
 // all Lucene index input operations.
 //
@@ -13,4 +15,19 @@ package store
 // AlreadyClosedException.
 // See Also: Directory
 type IndexInput interface {
+	DataInput
+
+	io.Closer
+
+	// GetFilePointer Returns the current position in this file, where the next read will occur.
+	// See Also: seek(long)
+	GetFilePointer() int64
+
+	// Seek Sets current position in this file, where the next read will occur. If this is beyond the end
+	// of the file then this will throw EOFException and then the stream is in an undetermined state.
+	// See Also: getFilePointer()
+	Seek(pos int) error
+
+	// Length The number of bytes in the file.
+	Length() int
 }

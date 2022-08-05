@@ -68,8 +68,6 @@ type DataInput interface {
 	// same behavior as reading the same number of bytes into a buffer and discarding its content.
 	// Negative values of numBytes are not supported.
 	SkipBytes(numBytes int) error
-
-	io.Closer
 }
 
 type DataInputNeed interface {
@@ -95,6 +93,14 @@ type DataInputImp struct {
 	// threads, then another thread might update the buffer while the checksum is
 	// being computed, making it invalid. See LUCENE-5583 for more information.
 	skipBuffer []byte
+}
+
+func NewDataInputImp(need DataInputNeed) *DataInputImp {
+	return &DataInputImp{
+		DataInputNeed: need,
+		endian:        binary.BigEndian,
+		buff:          make([]byte, 48),
+	}
 }
 
 func (d *DataInputImp) ReadUint16() (uint16, error) {

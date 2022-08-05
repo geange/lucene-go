@@ -5,14 +5,14 @@ import "io"
 // A Directory provides an abstraction layer for storing a list of files. A directory contains only files
 // (no sub-folder hierarchy). Implementing classes must comply with the following:
 //
-// * A file in a directory can be created (createOutput), appended to, then closed.
-// * A file open for writing may not be available for read access until the corresponding IndexOutput is closed.
-// * Once a file is created it must only be opened for input (openInput), or deleted (deleteFile). Calling
-// 	 createOutput on an existing file must throw java.nio.file.FileAlreadyExistsException.
+//   - A file in a directory can be created (createOutput), appended to, then closed.
+//   - A file open for writing may not be available for read access until the corresponding IndexOutput is closed.
+//   - Once a file is created it must only be opened for input (openInput), or deleted (deleteFile). Calling
+//     createOutput on an existing file must throw java.nio.file.FileAlreadyExistsException.
 //
 // See Also: 	* FSDirectory
-//				* RAMDirectory
-//				* FilterDirectory
+//   - RAMDirectory
+//   - FilterDirectory
 type Directory interface {
 
 	// ListAll Returns names of all files stored in this directory. The output must be in sorted
@@ -72,7 +72,7 @@ type Directory interface {
 	// throw either NoSuchFileException or FileNotFoundException if name points to a non-existing file.
 	// Params: name – the name of an existing file.
 	// Throws: IOException – in case of I/O error
-	OpenChecksumInput(name string, context *IOContext) (ChecksumIndexInput, error)
+	//OpenChecksumInput(name string, context *IOContext) (ChecksumIndexInput, error)
 
 	// ObtainLock Acquires and returns a Lock for a file with the given name.
 	// Params: name – the name of the lock file
@@ -85,7 +85,7 @@ type Directory interface {
 	io.Closer
 
 	// CopyFrom Copies an existing src file from directory from to a non-existent file dest in this directory.
-	CopyFrom(from Directory, src, dest string, context *IOContext) error
+	//CopyFrom(from Directory, src, dest string, context *IOContext) error
 
 	// EnsureOpen Ensures this directory is still open.
 	// Throws: AlreadyClosedException – if this directory is closed.
@@ -93,6 +93,41 @@ type Directory interface {
 
 	// GetPendingDeletions Returns a set of files currently pending deletion in this directory.
 	GetPendingDeletions() (map[string]struct{}, error)
+}
+
+type DirectoryNeed interface {
+	OpenInput(name string, context *IOContext) (IndexInput, error)
+}
+
+type DirectoryImp struct {
+	DirectoryNeed
+}
+
+func (d *DirectoryImp) OpenChecksumInput(name string, context *IOContext) (ChecksumIndexInput, error) {
+	input, err := d.OpenInput(name, context)
+	if err != nil {
+		return nil, err
+	}
+	return NewBufferedChecksumIndexInput(input), nil
+}
+
+func (d *DirectoryImp) CopyFrom(from Directory, src, dest string, context *IOContext) error {
+	is, err := from.OpenInput(src, context)
+	if err != nil {
+		return err
+	}
+
+	os, err := from.CreateOutput(dest, context)
+	if err != nil {
+		return err
+	}
+
+	if err := os.CopyBytes(is, is.Length()); err != nil {
+		// IOUtils.deleteFilesIgnoringExceptions(this, dest)
+		// TODO: 删除目标文件
+		return err
+	}
+	return nil
 }
 
 // Creates a file name for a temporary file. The name will start with prefix, end with suffix and have a reserved file extension .tmp.
