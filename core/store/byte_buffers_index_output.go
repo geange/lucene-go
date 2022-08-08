@@ -1,6 +1,6 @@
 package store
 
-var _ IndexOutput = &ByteBuffersIndexOutput{}
+//var _ IndexOutput = &ByteBuffersIndexOutput{}
 
 // ByteBuffersIndexOutput An IndexOutput writing to a ByteBuffersDataOutput.
 type ByteBuffersIndexOutput struct {

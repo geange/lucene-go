@@ -26,8 +26,8 @@ type IndexInput interface {
 	// Seek Sets current position in this file, where the next read will occur. If this is beyond the end
 	// of the file then this will throw EOFException and then the stream is in an undetermined state.
 	// See Also: getFilePointer()
-	Seek(pos int) error
+	Seek(pos int64, whence int) (int64, error)
 
 	// Length The number of bytes in the file.
-	Length() int
+	Length() int64
 }

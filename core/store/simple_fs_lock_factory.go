@@ -20,8 +20,17 @@ type SimpleFSLockFactory struct {
 	*FSLockFactoryImp
 }
 
+func NewSimpleFSLockFactory() *SimpleFSLockFactory {
+	factory := &SimpleFSLockFactory{}
+	factory.FSLockFactoryImp = NewFSLockFactoryImp(factory)
+	return factory
+}
+
 func (s *SimpleFSLockFactory) ObtainFSLock(dir FSDirectory, lockName string) (Lock, error) {
-	lockDir := dir.GetDirectory()
+	lockDir, err := dir.GetDirectory()
+	if err != nil {
+		return nil, err
+	}
 
 	// Ensure that lockDir exists and is a directory.
 	// note: this will fail if lockDir is a symlink
@@ -30,7 +39,7 @@ func (s *SimpleFSLockFactory) ObtainFSLock(dir FSDirectory, lockName string) (Lo
 	lockFile := filepath.Join(lockDir, lockName)
 
 	// create the file: this will fail if it already exists
-	_, err := os.Stat(lockFile)
+	_, err = os.Stat(lockFile)
 	if err == nil {
 		return nil, fmt.Errorf("lock held elsewhere: %s", lockFile)
 	}

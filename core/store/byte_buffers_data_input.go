@@ -5,5 +5,5 @@ package store
 // For efficiency, this class requires that the buffers are a power-of-two (chunkSizePower).
 type ByteBuffersDataInput interface {
 	IndexInput
-	RandomAccessInput
+	//RandomAccessInput
 }

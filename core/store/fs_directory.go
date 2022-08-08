@@ -1,5 +1,13 @@
 package store
 
+import (
+	"errors"
+	"fmt"
+	"go.uber.org/atomic"
+	"os"
+	"path/filepath"
+)
+
 // FSDirectory Base class for Directory implementations that store index files in the file system.
 // There are currently three core subclasses:
 // SimpleFSDirectory is a straightforward implementation using Files.newByteChannel. However, it has poor concurrent performance (multiple threads will bottleneck) as it synchronizes when multiple threads read from the same file.
@@ -13,5 +21,261 @@ type FSDirectory interface {
 	BaseDirectory
 
 	// GetDirectory Returns: the underlying filesystem directory
-	GetDirectory() string
+	GetDirectory() (string, error)
+}
+
+//var _ Directory = &FSDirectoryImp{}
+
+type FSDirectoryImp struct {
+	*BaseDirectoryImp
+
+	// The underlying filesystem directory
+	directory string
+
+	//Maps files that we are trying to delete (or we tried already but failed) before attempting to delete that key.
+	pendingDeletes map[string]struct{}
+
+	opsSinceLastDelete *atomic.Int64
+
+	// Used to generate temp file names in createTempOutput.
+	nextTempFileCounter *atomic.Int64
+}
+
+func NewFSDirectoryImp(path string, factory LockFactory) (*FSDirectoryImp, error) {
+	directory, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FSDirectoryImp{
+
+		directory:           directory,
+		pendingDeletes:      map[string]struct{}{},
+		opsSinceLastDelete:  atomic.NewInt64(0),
+		nextTempFileCounter: atomic.NewInt64(0),
+	}, nil
+}
+
+func (f *FSDirectoryImp) ListAll() ([]string, error) {
+	stat, err := os.Stat(f.directory)
+	if err != nil {
+		return nil, err
+	}
+	if !stat.IsDir() {
+		return nil, errors.New("TODO")
+	}
+	dir, err := os.ReadDir(f.directory)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(dir))
+	for _, entry := range dir {
+		names = append(names, entry.Name())
+	}
+	return names, nil
+}
+
+func (f *FSDirectoryImp) DeleteFile(name string) error {
+	if _, ok := f.pendingDeletes[name]; ok {
+		return fmt.Errorf("file %s is pending delete", name)
+	}
+
+	if err := f.privateDeleteFile(name, false); err != nil {
+		return err
+	}
+	return f.maybeDeletePendingFiles()
+}
+
+func (f *FSDirectoryImp) FileLength(name string) (int64, error) {
+	if _, ok := f.pendingDeletes[name]; ok {
+		return 0, fmt.Errorf("file %s is pending delete", name)
+	}
+	filePath := filepath.Join(f.directory, name)
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return 0, err
+	}
+	return fileInfo.Size(), nil
+}
+
+func (f *FSDirectoryImp) CreateOutput(name string, context *IOContext) (IndexOutput, error) {
+	if err := f.EnsureOpen(); err != nil {
+		return nil, err
+	}
+
+	if err := f.maybeDeletePendingFiles(); err != nil {
+		return nil, err
+	}
+
+	if _, ok := f.pendingDeletes[name]; ok {
+		delete(f.pendingDeletes, name)
+		if err := f.privateDeleteFile(name, true); err != nil {
+			return nil, err
+		}
+	}
+
+	return f.NewFSIndexOutput(name)
+}
+
+func (f *FSDirectoryImp) CreateTempOutput(prefix, suffix string, context *IOContext) (IndexOutput, error) {
+	if err := f.EnsureOpen(); err != nil {
+		return nil, err
+	}
+
+	if err := f.maybeDeletePendingFiles(); err != nil {
+		return nil, err
+	}
+
+	for {
+		name := getTempFileName(prefix, suffix, f.nextTempFileCounter.Inc())
+		if _, ok := f.pendingDeletes[name]; ok {
+			continue
+		}
+		return f.NewFSIndexOutput(name)
+	}
+}
+
+func (f *FSDirectoryImp) Sync(names []string) error {
+	if err := f.EnsureOpen(); err != nil {
+		return err
+	}
+
+	for _, name := range names {
+		if err := f.fsync(name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f *FSDirectoryImp) fsync(name string) error {
+	//  IOUtils.fsync(directory.resolve(name), false);
+	// TODO:
+	return nil
+}
+
+func (f *FSDirectoryImp) SyncMetaData() error {
+	// TODO: to improve listCommits(), IndexFileDeleter could call this after deleting segments_Ns
+	if err := f.EnsureOpen(); err != nil {
+		return err
+	}
+	//IOUtils.fsync(directory, true);
+	return f.maybeDeletePendingFiles()
+}
+
+func (f *FSDirectoryImp) Rename(source, dest string) error {
+	if err := f.EnsureOpen(); err != nil {
+		return err
+	}
+	if _, ok := f.pendingDeletes[source]; ok {
+		return fmt.Errorf("file \"%s\" is pending delete and cannot be moved", source)
+	}
+	if err := f.maybeDeletePendingFiles(); err != nil {
+		return err
+	}
+	if _, ok := f.pendingDeletes[dest]; ok {
+		if err := f.privateDeleteFile(dest, true); err != nil {
+			return err
+		}
+		delete(f.pendingDeletes, dest)
+	}
+	return os.Rename(f.resolveFilePath(source), f.resolveFilePath(dest))
+}
+
+//func (f *FSDirectoryImp) OpenInput(name string, context *IOContext) (IndexInput, error) {
+//	//TODO implement me
+//	panic("implement me")
+//}
+
+func (f *FSDirectoryImp) Close() error {
+	f.isOpen = false
+	return f.deletePendingFiles()
+}
+
+func (f *FSDirectoryImp) EnsureOpen() error {
+	return nil
+}
+
+func (f *FSDirectoryImp) GetPendingDeletions() (map[string]struct{}, error) {
+	if err := f.deletePendingFiles(); err != nil {
+		return nil, err
+	}
+
+	return f.pendingDeletes, nil
+}
+
+func (f *FSDirectoryImp) resolveFilePath(name string) string {
+	return filepath.Join(f.directory, name)
+}
+
+func (f *FSDirectoryImp) privateDeleteFile(name string, isPendingDelete bool) error {
+	delete(f.pendingDeletes, name)
+	err := os.Remove(f.resolveFilePath(name))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			delete(f.pendingDeletes, name)
+			return err
+		}
+
+		f.pendingDeletes[name] = struct{}{}
+		return err
+	}
+	return nil
+}
+
+func (f *FSDirectoryImp) maybeDeletePendingFiles() error {
+	if len(f.pendingDeletes) > 0 {
+		count := int(f.opsSinceLastDelete.Add(1))
+		if count >= len(f.pendingDeletes) {
+			return f.deletePendingFiles()
+		}
+	}
+	return nil
+}
+
+// try to delete any pending files that we had previously tried to delete but failed because we are on
+// Windows and the files were still held open.
+func (f *FSDirectoryImp) deletePendingFiles() error {
+
+	if len(f.pendingDeletes) == 0 {
+		return nil
+	}
+
+	for name := range f.pendingDeletes {
+		if err := f.privateDeleteFile(name, true); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ IndexOutput = &FSIndexOutput{}
+
+type FSIndexOutput struct {
+	*OutputStreamIndexOutput
+}
+
+func (f *FSDirectoryImp) NewFSIndexOutput(name string) (*FSIndexOutput, error) {
+	file, err := os.OpenFile(f.resolveFilePath(name), os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FSIndexOutput{
+		OutputStreamIndexOutput: NewOutputStreamIndexOutput(file),
+	}, nil
+}
+
+func (f *FSDirectoryImp) ensureCanRead(name string) error {
+	if _, ok := f.pendingDeletes[name]; ok {
+		return fmt.Errorf("file \"%s\" is pending delete and cannot be opened for read", name)
+	}
+	return nil
+}
+
+func (f *FSDirectoryImp) GetDirectory() (string, error) {
+	if err := f.EnsureOpen(); err != nil {
+		return "", err
+	}
+	return f.directory, nil
 }

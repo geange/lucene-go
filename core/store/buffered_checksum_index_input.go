@@ -19,11 +19,11 @@ func (b *BufferedChecksumIndexInput) GetFilePointer() int64 {
 	return b.main.GetFilePointer()
 }
 
-func (b *BufferedChecksumIndexInput) Seek(pos int) error {
-	return b.main.Seek(pos)
+func (b *BufferedChecksumIndexInput) Seek(pos int64, whence int) (int64, error) {
+	return b.main.Seek(pos, 0)
 }
 
-func (b *BufferedChecksumIndexInput) Length() int {
+func (b *BufferedChecksumIndexInput) Length() int64 {
 	return b.Length()
 }
 

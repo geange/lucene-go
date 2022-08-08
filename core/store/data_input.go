@@ -2,7 +2,12 @@ package store
 
 import (
 	"encoding/binary"
-	"io"
+	"fmt"
+	"github.com/geange/lucene-go/core/util"
+)
+
+const (
+	SKIP_BUFFER_SIZE = 1024
 )
 
 // DataInput Abstract base class for performing read operations of Lucene's low-level data types.
@@ -18,6 +23,10 @@ type DataInput interface {
 	// ReadBytes Reads a specified number of bytes into an array.
 	ReadBytes(b []byte) error
 
+	//DataInputExt
+}
+
+type DataInputExt interface {
 	// ReadUint16 Reads two bytes and returns a short.
 	// See Also: DataOutput.writeByte(byte)
 	ReadUint16() (uint16, error)
@@ -64,29 +73,22 @@ type DataInput interface {
 	// Returns: An immutable set containing the written contents.
 	ReadSetOfStrings() (map[string]struct{}, error)
 
-	// SkipBytes Closer Skip over numBytes bytes. The contract on this method is that it should have the
-	// same behavior as reading the same number of bytes into a buffer and discarding its content.
-	// Negative values of numBytes are not supported.
 	SkipBytes(numBytes int) error
 }
 
-type DataInputNeed interface {
-	ReadByte() (byte, error)
-	ReadBytes(b []byte) error
-}
-
-var _ DataInput = &DataInputImp{}
-var _ io.ByteReader = &DataInputImp{}
+var (
+	_ DataInputExt = &DataInputImp{}
+)
 
 type DataInputImp struct {
-	DataInputNeed
+	input DataInput
 
 	EOF    bool
 	endian binary.ByteOrder
 	buff   []byte
 
 	// This buffer is used to skip over bytes with the default implementation of
-	// skipBytes. The reason why we need to use an instance member instead of
+	// skipBytes. The reason why we reader to use an instance member instead of
 	// sharing a single instance across threads is that some delegating
 	// implementations of DataInput might want to reuse the provided buffer in
 	// order to eg. update the checksum. If we shared the same buffer across
@@ -95,16 +97,20 @@ type DataInputImp struct {
 	skipBuffer []byte
 }
 
-func NewDataInputImp(need DataInputNeed) *DataInputImp {
+//func (d *DataInputImp) ReadByte() (byte, error) {
+//	return d.input.ReadByte()
+//}
+
+func NewDataInputImp(input DataInput) *DataInputImp {
 	return &DataInputImp{
-		DataInputNeed: need,
-		endian:        binary.BigEndian,
-		buff:          make([]byte, 48),
+		input:  input,
+		endian: binary.BigEndian,
+		buff:   make([]byte, 48),
 	}
 }
 
 func (d *DataInputImp) ReadUint16() (uint16, error) {
-	err := d.ReadBytes(d.buff[:2])
+	err := d.input.ReadBytes(d.buff[:2])
 	if err != nil {
 		return 0, err
 	}
@@ -112,7 +118,7 @@ func (d *DataInputImp) ReadUint16() (uint16, error) {
 }
 
 func (d *DataInputImp) ReadUint32() (uint32, error) {
-	err := d.ReadBytes(d.buff[:4])
+	err := d.input.ReadBytes(d.buff[:4])
 	if err != nil {
 		return 0, err
 	}
@@ -120,7 +126,7 @@ func (d *DataInputImp) ReadUint32() (uint32, error) {
 }
 
 func (d *DataInputImp) ReadUvarint() (uint64, error) {
-	num, err := binary.ReadUvarint(d)
+	num, err := binary.ReadUvarint(d.input)
 	if err != nil {
 		return 0, err
 	}
@@ -133,7 +139,7 @@ func (d *DataInputImp) ReadZInt32() (int64, error) {
 }
 
 func (d *DataInputImp) ReadUint64() (uint64, error) {
-	err := d.ReadBytes(d.buff[:8])
+	err := d.input.ReadBytes(d.buff[:8])
 	if err != nil {
 		return 0, err
 	}
@@ -160,7 +166,7 @@ func (d *DataInputImp) ReadString() (string, error) {
 		buf = make([]byte, length)
 	}
 
-	err = d.ReadBytes(buf)
+	err = d.input.ReadBytes(buf)
 	if err != nil {
 		return "", err
 	}
@@ -215,9 +221,24 @@ func (d *DataInputImp) ReadSetOfStrings() (map[string]struct{}, error) {
 	return values, nil
 }
 
+// SkipBytes Closer Skip over numBytes bytes. The contract on this method is that it should have the
+// same behavior as reading the same number of bytes into a buffer and discarding its content.
+// Negative values of numBytes are not supported.
 func (d *DataInputImp) SkipBytes(numBytes int) error {
-	//TODO implement me
-	panic("implement me")
+	if numBytes < 0 {
+		return fmt.Errorf("numBytes must be >= 0, got %d", numBytes)
+	}
+	if len(d.skipBuffer) == 0 {
+		d.skipBuffer = make([]byte, SKIP_BUFFER_SIZE)
+	}
+	for skipped := 0; skipped < numBytes; {
+		step := util.Min(SKIP_BUFFER_SIZE, numBytes-skipped)
+		if err := d.input.ReadBytes(d.skipBuffer[0:step]); err != nil {
+			return err
+		}
+		skipped += step
+	}
+	return nil
 }
 
 func (d *DataInputImp) Close() error {

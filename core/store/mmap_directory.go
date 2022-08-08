@@ -1,6 +1,6 @@
 package store
 
-var _ FSDirectory = &MMapDirectory{}
+//var _ FSDirectory = &MMapDirectory{}
 
 // MMapDirectory File-based Directory implementation that uses mmap for reading, and FSDirectory.FSIndexOutput for writing.
 // NOTE: memory mapping uses up a portion of the virtual memory address space in your process equal to the size of the file being mapped. Before using this class, be sure your have plenty of virtual address space, e.g. by using a 64 bit JRE, or a 32 bit JRE with indexes that are guaranteed to fit within the address space. On 32 bit platforms also consult MMapDirectory(Path, LockFactory, int) if you have problems with mmap failing because of fragmented address space. If you get an OutOfMemoryException, it is recommended to reduce the chunk size, until it works.

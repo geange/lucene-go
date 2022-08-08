@@ -15,6 +15,13 @@ type DataOutput interface {
 	// WriteBytes Writes an array of bytes.
 	WriteBytes(b []byte) error
 
+	// CopyBytes Copy numBytes bytes from input to ourself.
+	CopyBytes(input DataInput, numBytes int) error
+
+	//DataOutputExt
+}
+
+type DataOutputExt interface {
 	// WriteUint32 Writes an int as four bytes.
 	// 32-bit unsigned integer written as four bytes, high-order bytes first.
 	// See Also: DataInput.readInt()
@@ -75,40 +82,39 @@ type DataOutputNeed interface {
 	WriteBytes(b []byte) error
 }
 
-var _ DataOutput = &DataOutputImp{}
+var _ DataOutputExt = &DataOutputImp{}
 
 type DataOutputImp struct {
-	DataOutputNeed
-
+	output DataOutput
 	endian binary.ByteOrder
 	buffer []byte
 }
 
-func NewDataOutputImp(need DataOutputNeed) *DataOutputImp {
+func NewDataOutputImp(output DataOutput) *DataOutputImp {
 	return &DataOutputImp{
-		DataOutputNeed: need,
-		endian:         binary.BigEndian,
-		buffer:         make([]byte, 48),
+		output: output,
+		endian: binary.BigEndian,
+		buffer: make([]byte, 48),
 	}
 }
 
 func (d *DataOutputImp) WriteByte(b byte) error {
-	return d.WriteBytes([]byte{b})
+	return d.output.WriteBytes([]byte{b})
 }
 
 func (d *DataOutputImp) WriteUint32(i uint32) error {
 	d.endian.PutUint32(d.buffer, i)
-	return d.WriteBytes(d.buffer[:4])
+	return d.output.WriteBytes(d.buffer[:4])
 }
 
 func (d *DataOutputImp) WriteUint16(i uint16) error {
 	d.endian.PutUint16(d.buffer, i)
-	return d.WriteBytes(d.buffer[:2])
+	return d.output.WriteBytes(d.buffer[:2])
 }
 
 func (d *DataOutputImp) WriteUvarint(i uint64) error {
 	num := binary.PutUvarint(d.buffer, i)
-	return d.WriteBytes(d.buffer[:num])
+	return d.output.WriteBytes(d.buffer[:num])
 }
 
 func (d *DataOutputImp) WriteZInt32(i int32) error {
@@ -118,7 +124,7 @@ func (d *DataOutputImp) WriteZInt32(i int32) error {
 
 func (d *DataOutputImp) WriteUint64(i uint64) error {
 	d.endian.PutUint64(d.buffer, i)
-	return d.WriteBytes(d.buffer[:8])
+	return d.output.WriteBytes(d.buffer[:8])
 }
 
 func (d *DataOutputImp) WriteZInt64(i int64) error {
@@ -131,7 +137,7 @@ func (d *DataOutputImp) WriteString(s string) error {
 	if err != nil {
 		return err
 	}
-	return d.WriteBytes([]byte(s))
+	return d.output.WriteBytes([]byte(s))
 }
 
 func (d *DataOutputImp) CopyBytes(input DataInput, numBytes int) error {

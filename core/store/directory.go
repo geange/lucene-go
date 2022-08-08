@@ -1,6 +1,9 @@
 package store
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 // A Directory provides an abstraction layer for storing a list of files. A directory contains only files
 // (no sub-folder hierarchy). Implementing classes must comply with the following:
@@ -122,7 +125,7 @@ func (d *DirectoryImp) CopyFrom(from Directory, src, dest string, context *IOCon
 		return err
 	}
 
-	if err := os.CopyBytes(is, is.Length()); err != nil {
+	if err := os.CopyBytes(is, int(is.Length())); err != nil {
 		// IOUtils.deleteFilesIgnoringExceptions(this, dest)
 		// TODO: 删除目标文件
 		return err
@@ -133,5 +136,5 @@ func (d *DirectoryImp) CopyFrom(from Directory, src, dest string, context *IOCon
 // Creates a file name for a temporary file. The name will start with prefix, end with suffix and have a reserved file extension .tmp.
 // See Also: createTempOutput(String, String, IOContext)
 func getTempFileName(prefix, suffix string, counter int64) string {
-	return ""
+	return fmt.Sprintf("%s_%s_%d.tmp", prefix, suffix, counter)
 }

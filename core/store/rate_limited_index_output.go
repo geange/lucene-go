@@ -1,6 +1,6 @@
 package store
 
-var _ IndexOutput = &RateLimitedIndexOutput{}
+//var _ IndexOutput = &RateLimitedIndexOutput{}
 
 // RateLimitedIndexOutput A rate limiting IndexOutput
 type RateLimitedIndexOutput struct {

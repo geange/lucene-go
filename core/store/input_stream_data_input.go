@@ -1,6 +1,6 @@
 package store
 
-var _ DataInput = &InputStreamDataInput{}
+//var _ DataInput = &InputStreamDataInput{}
 
 // InputStreamDataInput A DataInput wrapping a plain InputStream.
 type InputStreamDataInput struct {
