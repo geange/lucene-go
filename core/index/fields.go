@@ -5,7 +5,9 @@ package index
 // vectors per document.
 type Fields interface {
 	// Iterator Returns an iterator that will step through all fields names. This will not return null.
-	Iterator() func() string
+	//Iterator() func() string
+
+	Names() []string
 
 	// Terms Get the Terms for this field. This will return null if the field does not exist.
 	Terms(field string) (Terms, error)

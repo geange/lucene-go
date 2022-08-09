@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/index"
+)
 
 // TermScorer Expert: A Scorer for documents matching a Term.
 type TermScorer struct {

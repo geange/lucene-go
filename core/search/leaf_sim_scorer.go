@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/index"
+)
 
 type LeafSimScorer struct {
 	scorer SimScorer

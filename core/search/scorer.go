@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/index"
+)
 
 // Scorer Expert: Common scoring functionality for different types of queries.
 // 不同类型查询的通用评分功能。

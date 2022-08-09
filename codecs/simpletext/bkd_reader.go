@@ -5,9 +5,9 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-var _ index.PointValues = &SimpleTextBKDReader{}
+var _ index.PointValues = &TextBKDReader{}
 
-type SimpleTextBKDReader struct {
+type TextBKDReader struct {
 	splitPackedValues      []byte
 	leafBlockFPs           []int64
 	leafNodeOffset         int
@@ -26,47 +26,47 @@ type SimpleTextBKDReader struct {
 	packedIndexBytesLength int
 }
 
-func (s *SimpleTextBKDReader) Intersect(visitor index.IntersectVisitor) error {
+func (s *TextBKDReader) Intersect(visitor index.IntersectVisitor) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextBKDReader) EstimatePointCount(visitor index.IntersectVisitor) int64 {
+func (s *TextBKDReader) EstimatePointCount(visitor index.IntersectVisitor) int64 {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextBKDReader) GetMinPackedValue() ([]byte, error) {
+func (s *TextBKDReader) GetMinPackedValue() ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextBKDReader) GetMaxPackedValue() ([]byte, error) {
+func (s *TextBKDReader) GetMaxPackedValue() ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextBKDReader) GetNumDimensions() (int, error) {
+func (s *TextBKDReader) GetNumDimensions() (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextBKDReader) GetNumIndexDimensions() (int, error) {
+func (s *TextBKDReader) GetNumIndexDimensions() (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextBKDReader) GetBytesPerDimension() (int, error) {
+func (s *TextBKDReader) GetBytesPerDimension() (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextBKDReader) Size() int64 {
+func (s *TextBKDReader) Size() int64 {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextBKDReader) GetDocCount() int {
+func (s *TextBKDReader) GetDocCount() int {
 	//TODO implement me
 	panic("implement me")
 }

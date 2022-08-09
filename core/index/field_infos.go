@@ -24,3 +24,7 @@ type FieldInfos struct {
 func NewFieldInfos(infos []types.FieldInfo) *FieldInfos {
 	return nil
 }
+
+func (f *FieldInfos) FieldInfo(fieldName string) *types.FieldInfo {
+	return f.byName[fieldName]
+}

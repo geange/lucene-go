@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/index"
+)
 
 // MaxScoreCache Compute maximum scores based on Impacts and keep them in a cache in order not to run
 // expensive similarity score computations multiple times on the same data.

@@ -1,6 +1,8 @@
 package index
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	EMPTY_TERMSTATE TermState
@@ -43,7 +45,8 @@ func (r *TermStates) WasBuiltFor(context IndexReaderContext) bool {
 // readers containing the term in the returned TermStates using the leaf reader's ordinal.
 // Note: the given context must be a top-level context.
 // Params: 	needsStats – if true then all leaf contexts will be visited up-front to collect term statistics.
-// 			Otherwise, the TermState objects will be built only when requested
+//
+//	Otherwise, the TermState objects will be built only when requested
 func BuildTermStates(context IndexReaderContext, term *Term, needsStats bool) (*TermStates, error) {
 	var perReaderTermState *TermStates
 	if needsStats {
@@ -107,8 +110,8 @@ func (r *TermStates) AccumulateStatistics(docFreq int, totalTermFreq int64) {
 }
 
 // DocFreq Returns the accumulated document frequency of all TermState instances passed to register(TermState, int, int, long).
-//Returns:
-//the accumulated document frequency of all TermState instances passed to register(TermState, int, int, long).
+// Returns:
+// the accumulated document frequency of all TermState instances passed to register(TermState, int, int, long).
 func (r *TermStates) DocFreq() (int, error) {
 	if r.term != nil {
 		return 0, errors.New("cannot call docFreq() when needsStats=false")
@@ -117,8 +120,8 @@ func (r *TermStates) DocFreq() (int, error) {
 }
 
 // TotalTermFreq Returns the accumulated term frequency of all TermState instances passed to register(TermState, int, int, long).
-//Returns:
-//the accumulated term frequency of all TermState instances passed to register(TermState, int, int, long).
+// Returns:
+// the accumulated term frequency of all TermState instances passed to register(TermState, int, int, long).
 func (r *TermStates) TotalTermFreq() (int64, error) {
 	if r.term != nil {
 		return 0, errors.New("cannot call totalTermFreq() when needsStats=false")

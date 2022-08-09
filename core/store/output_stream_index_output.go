@@ -15,6 +15,11 @@ type OutputStreamIndexOutput struct {
 	out Writer
 }
 
+func (o *OutputStreamIndexOutput) GetFilePointer() int64 {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewOutputStreamIndexOutput(out Writer) *OutputStreamIndexOutput {
 	output := &OutputStreamIndexOutput{
 		out: out,

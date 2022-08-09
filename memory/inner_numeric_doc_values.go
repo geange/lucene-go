@@ -1,6 +1,8 @@
 package memory
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/index"
+)
 
 var _ index.NumericDocValues = &innerNumericDocValues{}
 

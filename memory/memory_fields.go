@@ -44,6 +44,23 @@ func (m *MemoryFields) Iterator() func() string {
 	}
 }
 
+func (m *MemoryFields) Names() []string {
+	m.fields.Keys()
+	keys := make([]string, 0)
+
+	m.fields.Each(func(key interface{}, value interface{}) {
+		if value.(*Info).numTokens > 0 {
+			keys = append(keys, value.(string))
+		}
+	})
+
+	for _, v := range m.fields.Keys() {
+		keys = append(keys, v.(string))
+	}
+
+	return keys
+}
+
 func (m *MemoryFields) Terms(field string) (index.Terms, error) {
 	v, ok := m.fields.Get(field)
 	if !ok {
