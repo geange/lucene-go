@@ -24,7 +24,7 @@ func (b *BufferedChecksumIndexInput) GetFilePointer() int64 {
 	return b.main.GetFilePointer()
 }
 
-func (b *BufferedChecksumIndexInput) Seek(pos int64)  error {
+func (b *BufferedChecksumIndexInput) Seek(pos int64) error {
 	return b.main.Seek(pos)
 }
 
