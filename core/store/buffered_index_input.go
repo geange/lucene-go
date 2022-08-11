@@ -17,6 +17,13 @@ type BufferedIndexInput interface {
 	// readInternal(ByteBuffer) will occur.
 	// See Also: readInternal(ByteBuffer)
 	//SeekInternal(pos int) error
+
+	BufferedIndexInputExt
+}
+
+type BufferedIndexInputExt interface {
+	// Change the buffer size used by this IndexInput
+	SetBufferSize(newSize int)
 }
 
 const (

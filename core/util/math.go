@@ -1,6 +1,6 @@
 package util
 
-func Max[T int](a, b T) T {
+func Max[T int | int64](a, b T) T {
 	if a > b {
 		return a
 	}
@@ -12,4 +12,13 @@ func Min[T int](a, b T) T {
 		return b
 	}
 	return a
+}
+
+func Log(x, base int) int {
+	ret := 0
+	for x >= base {
+		x /= base
+		ret++
+	}
+	return ret
 }

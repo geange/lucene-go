@@ -3,6 +3,8 @@ package index
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util"
+	"math"
 )
 
 // MultiLevelSkipListReader This abstract class reads skip lists with multiple levels. See
@@ -119,7 +121,39 @@ func (m *MultiLevelSkipListReaderImp) SkipTo(target int) (int, error) {
 }
 
 func (m *MultiLevelSkipListReaderImp) loadNextSkip(level int) (bool, error) {
-	panic("")
+	// we have to skip, the target document is greater than the current
+	// skip list entry
+	m.setLastSkipData(level)
+
+	m.numSkipped[level] += m.skipInterval[level]
+
+	// numSkipped may overflow a signed int, so compare as unsigned.
+	if m.numSkipped[level] > m.docCount {
+		// this skip list is exhausted
+		m.skipDoc[level] = math.MaxInt32
+		if m.numberOfSkipLevels > level {
+			m.numberOfSkipLevels = level
+		}
+		return false, nil
+	}
+
+	// read next skip entry
+	data, err := m.readSkipData(level, m.skipStream[level])
+	if err != nil {
+		return false, err
+	}
+	m.skipDoc[level] += int(data)
+
+	if level != 0 {
+		// read the child pointer if we are not on the leaf level
+		pointer, err := m.readChildPointer(m.skipStream[level])
+		if err != nil {
+			return false, err
+		}
+		m.childPointer[level] = pointer + m.skipPointer[level-1]
+	}
+
+	return true, nil
 }
 
 func (m *MultiLevelSkipListReaderImp) seekChild(level int) error {
@@ -172,7 +206,52 @@ func (m *MultiLevelSkipListReaderImp) Init(skipPointer int64, df int) error {
 
 // Loads the skip levels
 func (m *MultiLevelSkipListReaderImp) loadSkipLevels() error {
-	panic("")
+	if m.docCount <= m.skipInterval[0] {
+		m.numberOfSkipLevels = 1
+	} else {
+		m.numberOfSkipLevels = 1 + util.Log(m.docCount/m.skipInterval[0], m.skipMultiplier)
+	}
+
+	if m.numberOfSkipLevels > m.maxNumberOfSkipLevels {
+		m.numberOfSkipLevels = m.maxNumberOfSkipLevels
+	}
+
+	m.skipStream[0].Seek(m.skipPointer[0])
+
+	toBuffer := m.numberOfLevelsToBuffer
+
+	for i := m.numberOfSkipLevels - 1; i > 0; i-- {
+		// the length of the current level
+		length, err := m.readLevelLength(m.skipStream[0])
+		if err != nil {
+			return err
+		}
+
+		// the start pointer of the current level
+		m.skipPointer[i] = m.skipStream[0].GetFilePointer()
+		if toBuffer > 0 {
+			// buffer this level
+			m.skipStream[i], err = NewSkipBuffer(m.skipStream[0], int(length))
+			if err != nil {
+				return err
+			}
+			toBuffer--
+		} else {
+			// clone this stream, it is already at the start of the current level
+			m.skipStream[i] = m.skipStream[0].Clone()
+			if m.inputIsBuffered && length < store.BUFFER_SIZE {
+				m.skipStream[i].(store.BufferedIndexInput).SetBufferSize(util.Max(store.MIN_BUFFER_SIZE, int(length)))
+			}
+
+			// move base stream beyond the current level
+			m.skipStream[0].Seek(m.skipStream[0].GetFilePointer() + length)
+		}
+	}
+
+	// use base stream for the lowest level
+	m.skipPointer[0] = m.skipStream[0].GetFilePointer()
+
+	return nil
 }
 
 // Subclasses must implement the actual skip data encoding in this method.
@@ -212,6 +291,11 @@ type SkipBuffer struct {
 	data    []byte
 	pointer int64
 	pos     int
+}
+
+func (s *SkipBuffer) Clone() store.IndexInput {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewSkipBuffer(input store.IndexInput, length int) (*SkipBuffer, error) {

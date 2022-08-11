@@ -28,6 +28,8 @@ type IndexInput interface {
 	// See Also: getFilePointer()
 	Seek(pos int64) error
 
+	Clone() IndexInput
+
 	// Slice Creates a slice of this index input, with the given description, offset, and length. The slice is sought to the beginning.
 	Slice(sliceDescription string, offset, length int64) (IndexInput, error)
 
