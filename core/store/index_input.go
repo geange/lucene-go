@@ -26,7 +26,10 @@ type IndexInput interface {
 	// Seek Sets current position in this file, where the next read will occur. If this is beyond the end
 	// of the file then this will throw EOFException and then the stream is in an undetermined state.
 	// See Also: getFilePointer()
-	Seek(pos int64, whence int) (int64, error)
+	Seek(pos int64) error
+
+	// Slice Creates a slice of this index input, with the given description, offset, and length. The slice is sought to the beginning.
+	Slice(sliceDescription string, offset, length int64) (IndexInput, error)
 
 	// Length The number of bytes in the file.
 	Length() int64

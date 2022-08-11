@@ -15,12 +15,17 @@ type BufferedChecksumIndexInput struct {
 	digest hash.Hash32
 }
 
+func (b *BufferedChecksumIndexInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (b *BufferedChecksumIndexInput) GetFilePointer() int64 {
 	return b.main.GetFilePointer()
 }
 
-func (b *BufferedChecksumIndexInput) Seek(pos int64, whence int) (int64, error) {
-	return b.main.Seek(pos, 0)
+func (b *BufferedChecksumIndexInput) Seek(pos int64)  error {
+	return b.main.Seek(pos)
 }
 
 func (b *BufferedChecksumIndexInput) Length() int64 {

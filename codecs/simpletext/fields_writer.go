@@ -40,7 +40,7 @@ type FieldsWriter struct {
 	segment    string
 	docCount   int
 
-	skipWriter                   *SkipWriter
+	skipWriter                   *SimpleTextSkipWriter
 	competitiveImpactAccumulator *index.CompetitiveImpactAccumulator
 	lastDocFilePointer           int64
 }
@@ -118,7 +118,9 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 			}
 
 			docCount := 0
-			s.skipWriter.resetSkip()
+			if err := s.skipWriter.ResetSkip(); err != nil {
+				return err
+			}
 			s.competitiveImpactAccumulator.Clear()
 			s.lastDocFilePointer = -1
 
@@ -234,7 +236,9 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 				}
 			}
 			if docCount >= BLOCK_SIZE {
-				s.skipWriter.writeSkip(s.out)
+				if err := s.skipWriter.WriteSkip(s.out); err != nil {
+					return err
+				}
 			}
 		}
 	}

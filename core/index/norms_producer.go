@@ -4,6 +4,7 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
+// NormsProducer Abstract API that produces field normalization values
 type NormsProducer interface {
 
 	// GetNorms Returns NumericDocValues for this field. The returned instance need not be thread-safe:

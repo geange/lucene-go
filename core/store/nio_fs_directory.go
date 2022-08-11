@@ -120,12 +120,17 @@ func (n *NIOFSIndexInput) GetFilePointer() int64 {
 	return 0
 }
 
-func (n *NIOFSIndexInput) Seek(pos int64, whence int) (int64, error) {
+func (n *NIOFSIndexInput) Seek(pos int64) error {
 	_, err := n.file.Seek(pos, io.SeekStart)
-	return 0, err
+	return err
 }
 
 func (n *NIOFSIndexInput) Length() int64 {
 	info, _ := n.file.Stat()
 	return info.Size()
+}
+
+func (n *NIOFSIndexInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
+	//TODO implement me
+	panic("implement me")
 }

@@ -114,3 +114,7 @@ func (b *bytesRefIterator) Next() ([]byte, error) {
 	}
 	return nil, io.EOF
 }
+
+type SortState struct {
+	indices []int
+}
