@@ -15,6 +15,19 @@ type BufferedChecksumIndexInput struct {
 	digest hash.Hash32
 }
 
+func NewBufferedChecksumIndexInput(main IndexInput) *BufferedChecksumIndexInput {
+	input := &BufferedChecksumIndexInput{
+		main:   main,
+		digest: crc32.NewIEEE(),
+	}
+	input.DataInputImp = NewDataInputImp(input)
+	return input
+}
+
+func (b *BufferedChecksumIndexInput) Clone() IndexInput {
+	panic("")
+}
+
 func (b *BufferedChecksumIndexInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
 	//TODO implement me
 	panic("implement me")
@@ -55,13 +68,4 @@ func (b *BufferedChecksumIndexInput) ReadBytes(bs []byte) error {
 
 func (b *BufferedChecksumIndexInput) GetChecksum() uint32 {
 	return b.digest.Sum32()
-}
-
-func NewBufferedChecksumIndexInput(main IndexInput) *BufferedChecksumIndexInput {
-	input := &BufferedChecksumIndexInput{
-		main:   main,
-		digest: crc32.NewIEEE(),
-	}
-	input.DataInputImp = NewDataInputImp(input)
-	return input
 }

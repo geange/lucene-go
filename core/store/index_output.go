@@ -11,4 +11,6 @@ type IndexOutput interface {
 
 	// GetFilePointer Returns the current position in this file, where the next write will occur.
 	GetFilePointer() int64
+
+	GetChecksum() (uint32, error)
 }

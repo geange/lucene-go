@@ -1,8 +1,6 @@
 package index
 
-import (
-	"github.com/geange/lucene-go/core/types"
-)
+import "github.com/geange/lucene-go/core/types"
 
 // NormsProducer Abstract API that produces field normalization values
 type NormsProducer interface {

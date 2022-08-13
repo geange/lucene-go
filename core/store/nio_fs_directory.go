@@ -45,10 +45,34 @@ var _ BufferedIndexInput = &NIOFSIndexInput{}
 type NIOFSIndexInput struct {
 	*DataInputImp
 
-	file   *os.File
-	off    int
-	end    int
+	file    *os.File
+	pointer int64
+
 	buffer []byte
+}
+
+func NewNIOFSIndexInput(file *os.File, ctx *IOContext) *NIOFSIndexInput {
+	_, err := file.Stat()
+	if err != nil {
+		return nil
+	}
+
+	input := &NIOFSIndexInput{
+		file:   file,
+		buffer: make([]byte, 48),
+	}
+	input.DataInputImp = NewDataInputImp(input)
+	return input
+}
+
+func (n *NIOFSIndexInput) Clone() IndexInput {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (n *NIOFSIndexInput) SetBufferSize(newSize int) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (n *NIOFSIndexInput) ReadByte() (byte, error) {
@@ -56,60 +80,14 @@ func (n *NIOFSIndexInput) ReadByte() (byte, error) {
 	if err != nil {
 		return 0, err
 	}
+	n.pointer++
 	return n.buffer[0], nil
 }
 
 func (n *NIOFSIndexInput) ReadBytes(b []byte) error {
-	_, err := n.file.Read(b)
+	num, err := n.file.Read(b)
+	n.pointer += int64(num)
 	return err
-}
-
-//func (n *NIOFSIndexInput) ReadUint8(pos int64) (byte, error) {
-//	_, err := n.file.ReadAt(n.buffer[:1], pos)
-//	if err != nil {
-//		return 0, err
-//	}
-//	return n.buffer[0], nil
-//}
-//
-//func (n *NIOFSIndexInput) ReadUint16(pos int64) (uint16, error) {
-//	_, err := n.file.ReadAt(n.buffer[:2], pos)
-//	if err != nil {
-//		return 0, err
-//	}
-//	return binary.BigEndian.Uint16(n.buffer), nil
-//}
-//
-//func (n *NIOFSIndexInput) ReadUint32(pos int64) (uint32, error) {
-//	_, err := n.file.ReadAt(n.buffer[:4], pos)
-//	if err != nil {
-//		return 0, err
-//	}
-//	return binary.BigEndian.Uint32(n.buffer), nil
-//}
-//
-//func (n *NIOFSIndexInput) ReadUint64(pos int64) (uint64, error) {
-//	_, err := n.file.ReadAt(n.buffer[:8], pos)
-//	if err != nil {
-//		return 0, err
-//	}
-//	return binary.BigEndian.Uint64(n.buffer), nil
-//}
-
-func NewNIOFSIndexInput(file *os.File, ctx *IOContext) *NIOFSIndexInput {
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return nil
-	}
-
-	input := &NIOFSIndexInput{
-		file:   file,
-		off:    0,
-		end:    int(fileInfo.Size()),
-		buffer: make([]byte, 48),
-	}
-	input.DataInputImp = NewDataInputImp(input)
-	return input
 }
 
 func (n *NIOFSIndexInput) Close() error {

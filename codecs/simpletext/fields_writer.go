@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	FieldsWriterToken = struct {
+	FieldsToken = struct {
 		END          []byte
 		FIELD        []byte
 		TERM         []byte
@@ -30,9 +30,9 @@ var (
 	}
 )
 
-var _ index.FieldsConsumer = &FieldsWriter{}
+var _ index.FieldsConsumer = &SimpleTextFieldsWriter{}
 
-type FieldsWriter struct {
+type SimpleTextFieldsWriter struct {
 	*index.FieldsConsumerImp
 
 	out        store.IndexOutput
@@ -45,17 +45,17 @@ type FieldsWriter struct {
 	lastDocFilePointer           int64
 }
 
-func (s *FieldsWriter) Close() error {
+func (s *SimpleTextFieldsWriter) Close() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *FieldsWriter) Write(fields index.Fields, norms index.NormsProducer) error {
+func (s *SimpleTextFieldsWriter) Write(fields index.Fields, norms index.NormsProducer) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
+func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 	normsProducer index.NormsProducer) error {
 
 	for _, field := range fields.Names() {
@@ -145,7 +145,7 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 
 					if !wroteField {
 						// we lazily do this, in case the field had no terms
-						s.write(FieldsWriterToken.FIELD)
+						s.write(FieldsToken.FIELD)
 						s.write([]byte(field))
 						s.newline()
 						wroteField = true
@@ -153,7 +153,7 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 
 					// we lazily do this, in case the term had
 					// zero docs
-					s.write(FieldsWriterToken.TERM)
+					s.write(FieldsToken.TERM)
 					s.write(term)
 					s.newline()
 					wroteTerm = true
@@ -161,7 +161,7 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 				if s.lastDocFilePointer == -1 {
 					s.lastDocFilePointer = s.out.GetFilePointer()
 				}
-				s.write(FieldsWriterToken.DOC)
+				s.write(FieldsToken.DOC)
 				s.write([]byte(strconv.Itoa(doc)))
 				s.newline()
 				if hasFreqs {
@@ -169,7 +169,7 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 					if err != nil {
 						return err
 					}
-					s.write(FieldsWriterToken.FREQ)
+					s.write(FieldsToken.FREQ)
 					s.write([]byte(strconv.Itoa(freq)))
 					s.newline()
 
@@ -184,7 +184,7 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 								return err
 							}
 
-							s.write(FieldsWriterToken.POS)
+							s.write(FieldsToken.POS)
 							s.write([]byte(strconv.Itoa(position)))
 							s.newline()
 
@@ -199,10 +199,10 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 								}
 
 								//lastStartOffset = startOffset
-								s.write(FieldsWriterToken.START_OFFSET)
+								s.write(FieldsToken.START_OFFSET)
 								s.write([]byte(strconv.Itoa(startOffset)))
 								s.newline()
-								s.write(FieldsWriterToken.END_OFFSET)
+								s.write(FieldsToken.END_OFFSET)
 								s.write([]byte(strconv.Itoa(endOffset)))
 								s.newline()
 							}
@@ -210,7 +210,7 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 							payload, err := postingsEnum.GetPayload()
 
 							if payload != nil && len(payload) > 0 {
-								s.write(FieldsWriterToken.PAYLOAD)
+								s.write(FieldsToken.PAYLOAD)
 								s.write(payload)
 								s.newline()
 							}
@@ -245,7 +245,7 @@ func (s *FieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
 	return nil
 }
 
-func (s *FieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, error) {
+func (s *SimpleTextFieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, error) {
 	if norms == nil {
 		return 1, nil
 	}
@@ -259,10 +259,10 @@ func (s *FieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, er
 	return norms.LongValue()
 }
 
-func (s *FieldsWriter) write(field []byte) error {
-	return s.out.WriteBytes(field)
+func (s *SimpleTextFieldsWriter) write(field []byte) error {
+	return WriteBytes(s.out, field)
 }
 
-func (s *FieldsWriter) newline() error {
-	return s.out.WriteByte('\n')
+func (s *SimpleTextFieldsWriter) newline() error {
+	return WriteNewline(s.out)
 }

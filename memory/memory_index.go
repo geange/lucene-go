@@ -40,29 +40,31 @@ import (
 // For some interesting background information on search technology, see Bob Wyman's Prospective Search,
 // Jim Gray's A Call to Arms - Custom subscriptions, and Tim Bray's On Search, the Series.
 // Example Usage
-//   Analyzer analyzer = new SimpleAnalyzer(version);
-//   MemoryIndex index = new MemoryIndex();
-//   index.addField("content", "Readings about Salmons and other select Alaska fishing Manuals", analyzer);
-//   index.addField("author", "Tales of James", analyzer);
-//   QueryParser parser = new QueryParser(version, "content", analyzer);
-//   float score = index.search(parser.parse("+author:james +salmon~ +fish* manual~"));
-//   if (score > 0.0f) {
-//       System.out.println("it's a match");
-//   } else {
-//       System.out.println("no match found");
-//   }
-//   System.out.println("indexData=" + index.toString());
+//
+//	Analyzer analyzer = new SimpleAnalyzer(version);
+//	MemoryIndex index = new MemoryIndex();
+//	index.addField("content", "Readings about Salmons and other select Alaska fishing Manuals", analyzer);
+//	index.addField("author", "Tales of James", analyzer);
+//	QueryParser parser = new QueryParser(version, "content", analyzer);
+//	float score = index.search(parser.parse("+author:james +salmon~ +fish* manual~"));
+//	if (score > 0.0f) {
+//	    System.out.println("it's a match");
+//	} else {
+//	    System.out.println("no match found");
+//	}
+//	System.out.println("indexData=" + index.toString());
 //
 // Example XQuery Usage
-//   (: An XQuery that finds all books authored by James that have something to do
-//   with "salmon fishing manuals", sorted by relevance :)
-//   declare namespace lucene = "java:nux.xom.pool.FullTextUtil";
-//   declare variable $query := "+salmon~ +fish* manual~"; (: any arbitrary Lucene query can go here :)
 //
-//   for $book in /books/book[author="James" and lucene:match(abstract, $query) > 0.0]
-//   let $score := lucene:match($book/abstract, $query)
-//   order by $score descending
-//   return $book
+//	(: An XQuery that finds all books authored by James that have something to do
+//	with "salmon fishing manuals", sorted by relevance :)
+//	declare namespace lucene = "java:nux.xom.pool.FullTextUtil";
+//	declare variable $query := "+salmon~ +fish* manual~"; (: any arbitrary Lucene query can go here :)
+//
+//	for $book in /books/book[author="James" and lucene:match(abstract, $query) > 0.0]
+//	let $score := lucene:match($book/abstract, $query)
+//	order by $score descending
+//	return $book
 //
 // Thread safety guarantees
 // MemoryIndex is not normally thread-safe for adds or queries. However, queries are thread-safe after
@@ -253,7 +255,7 @@ func (m *MemoryIndex) CreateSearcher() *search.IndexSearcher {
 }
 
 // Freeze Prepares the MemoryIndex for querying in a non-lazy way.
-//After calling this you can query the MemoryIndex from multiple threads, but you cannot subsequently add new data.
+// After calling this you can query the MemoryIndex from multiple threads, but you cannot subsequently add new data.
 func (m *MemoryIndex) Freeze() {
 	m.frozen = true
 	m.fields.Each(func(key interface{}, value interface{}) {
@@ -265,7 +267,8 @@ func (m *MemoryIndex) Freeze() {
 // given Lucene query expression.
 // Params: query – an arbitrary Lucene query to run against this index
 // Returns: the relevance score of the matchmaking; A number in the range [0.0 .. 1.0], with 0.0 indicating
-// 			no match. The higher the number the better the match.
+//
+//	no match. The higher the number the better the match.
 func (m *MemoryIndex) Search(query search.Query) float64 {
 	if query == nil {
 		return 0

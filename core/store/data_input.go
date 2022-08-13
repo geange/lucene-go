@@ -97,10 +97,6 @@ type DataInputImp struct {
 	skipBuffer []byte
 }
 
-//func (d *DataInputImp) ReadByte() (byte, error) {
-//	return d.input.ReadByte()
-//}
-
 func NewDataInputImp(input DataInput) *DataInputImp {
 	return &DataInputImp{
 		input:  input,
@@ -242,6 +238,11 @@ func (d *DataInputImp) SkipBytes(numBytes int) error {
 }
 
 func (d *DataInputImp) Close() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *DataInputImp) Clone() *DataInputImp {
 	//TODO implement me
 	panic("implement me")
 }
