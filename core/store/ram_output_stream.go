@@ -8,6 +8,11 @@ var _ IndexOutput = &RAMOutputStream{}
 type RAMOutputStream struct {
 }
 
+func (r *RAMOutputStream) GetChecksum() (uint32, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (r *RAMOutputStream) Close() error {
 	//TODO implement me
 	panic("implement me")

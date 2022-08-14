@@ -35,6 +35,8 @@ func WriteNewline(out store.DataOutput) error {
 }
 
 func ReadLine(in store.IndexInput, buf *bytes.Buffer) error {
+	buf.Reset()
+
 	for {
 		b, err := in.ReadByte()
 		if err != nil {
