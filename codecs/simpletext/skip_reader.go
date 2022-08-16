@@ -22,6 +22,10 @@ type SimpleTextSkipReader struct {
 	hasSkipList     bool
 }
 
+func NewSimpleTextSkipReader(skipStream store.IndexInput) *SimpleTextSkipReader {
+	panic("")
+}
+
 func (s *SimpleTextSkipReader) ReadSkipData(level int, skipStream store.IndexInput) (int, error) {
 	//TODO implement me
 	panic("implement me")

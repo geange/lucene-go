@@ -1,6 +1,9 @@
 package fst
 
-import "github.com/geange/lucene-go/core/store"
+import (
+	"errors"
+	"github.com/geange/lucene-go/core/store"
+)
 
 var (
 	BIT_FINAL_ARC   = 1 << 0
@@ -61,7 +64,7 @@ var (
 // FST Represents an finite state machine (FST), using a compact byte[] format.
 // The format is similar to what's used by Morfologik (https://github.com/morfologik/morfologik-stemming).
 // See the package documentation for some simple examples.
-type FST struct {
+type FST[T any] struct {
 	inputType InputType
 
 	// if non-null, this FST accepts the empty string and
@@ -76,6 +79,74 @@ type FST struct {
 	outputs   Outputs
 }
 
+func (f *FST[T]) finish(newStartNode int64) error {
+	if f.startNode != -1 {
+		return errors.New("already finished")
+	}
+	if newStartNode == int64(FINAL_END_NODE) && f.emptyOutput != nil {
+		newStartNode = 0
+	}
+	f.startNode = newStartNode
+	f.bytes.Finish()
+	return nil
+}
+
+func (f *FST[T]) GetEmptyOutput() any {
+	return f.emptyOutput
+}
+
+func (f *FST[T]) setEmptyOutput(v any) {
+	if f.emptyOutput != nil {
+		f.emptyOutput = f.outputs.Merge(f.emptyOutput, v)
+	} else {
+		f.emptyOutput = v
+	}
+}
+
+func (f *FST[T]) Save(metaOut, out store.DataOutput) error {
+	panic("")
+}
+
+// SaveToFile Writes an automaton to a file.
+func (f *FST[T]) SaveToFile(path string) error {
+	panic("")
+}
+
+// Read Reads an automaton from a file.
+func Read(path string, outputs Outputs) error {
+	panic("")
+}
+
+func (f *FST[T]) writeLabel(out store.DataOutput, v int) error {
+	panic("")
+}
+
+// Reads one BYTE1/2/4 label from the provided DataInput.
+func (f *FST[T]) readLabel(in store.DataInput) error {
+	panic("")
+}
+
+// returns true if the node at this address has any outgoing arcs
+func targetHasArcs[T any](arc *Arc[T]) bool {
+	return arc.Target() > 0
+}
+
+// serializes new node by appending its bytes to the end
+// of the current byte[]
+func (f *FST[T]) addNode(builder *Builder[T], nodeIn *UnCompiledNode[T]) error {
+	panic("")
+}
+
+// Returns whether the given node should be expanded with fixed length arcs. Nodes will be expanded depending on their depth (distance from the root node) and their number of arcs.
+// Nodes with fixed length arcs use more space, because they encode all arcs with a fixed number of bytes, but they allow either binary search or direct addressing on the arcs (instead of linear scan) on lookup by arc label.
+func (f *FST[T]) shouldExpandNodeWithFixedLengthArcs(builder *Builder[T], nodeIn *UnCompiledNode[T]) error {
+	panic("")
+}
+
+func flag(flags, bits int) bool {
+	return flags&bits != 0
+}
+
 // InputType Specifies allowed range of each int input label for this FST.
 type InputType int
 
@@ -84,35 +155,6 @@ const (
 	BYTE2
 	BYTE4
 )
-
-// Arc Represents a single arc.
-type Arc struct {
-	label           int
-	output          any
-	target          int64
-	flags           byte
-	nextFinalOutput any
-	nextArc         int64
-	nodeFlags       byte
-
-	//*** Fields for arcs belonging to a node with fixed length arcs.
-	// So only valid when bytesPerArc != 0.
-	// nodeFlags == ARCS_FOR_BINARY_SEARCH || nodeFlags == ARCS_FOR_DIRECT_ADDRESSING.
-	bytesPerArc  int
-	posArcsStart int64
-	arcIdx       int
-	numArcs      int
-
-	//*** Fields for a direct addressing node. nodeFlags == ARCS_FOR_DIRECT_ADDRESSING.
-
-	//Start position in the FST.BytesReader of the presence bits for a direct addressing node, aka the bit-table
-	bitTableStart int64
-
-	firstLabel int
-
-	// Index of the current label of a direct addressing node. While arcIdx is the current index in the label range, presenceIndex is its corresponding index in the list of actually present labels. It is equal to the number of bits set before the bit at arcIdx in the bit-table. This field is a cache to avoid to count bits set repeatedly when iterating the next arcs.
-	presenceIndex int
-}
 
 type BitTable struct {
 }

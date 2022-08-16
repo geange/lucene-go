@@ -7,8 +7,6 @@ import (
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 )
 
 var (
@@ -82,28 +80,4 @@ func (s *SimpleTextFieldsReader) CheckIntegrity() error {
 
 func (s *SimpleTextFieldsReader) GetMergeInstance() index.FieldsProducer {
 	return nil
-}
-
-type SimpleTextTermsEnum struct {
-	index.BaseTermsEnum
-
-	indexOptions  types.IndexOptions
-	docFreq       int
-	totalTermFreq int64
-	docsStart     int64
-	skipPointer   int64
-	ended         bool
-}
-
-//var _ index.ImpactsEnum = &SimpleTextDocsEnum{}
-
-type SimpleTextDocsEnum struct {
-	inStart      store.IndexInput
-	in           store.IndexInput
-	omitTF       bool
-	docID        int
-	tf           int
-	scratch      *util.BytesRefBuilder
-	scratchUTF16 *util.CharsRefBuilder
-	cost         int
 }

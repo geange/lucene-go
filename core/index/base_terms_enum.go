@@ -1,5 +1,7 @@
 package index
 
+import "github.com/geange/lucene-go/core/tokenattributes"
+
 // BaseTermsEnum A base TermsEnum that adds default implementations for
 // * attributes()
 // * termState()
@@ -7,8 +9,28 @@ package index
 // * seekExact(BytesRef, TermState)
 // In some cases, the default implementation may be slow and consume huge memory, so subclass
 // SHOULD have its own implementation if possible.
-type BaseTermsEnum struct {
-	termsEnum TermsEnum
+type BaseTermsEnum interface {
+	TermsEnum
+}
+
+type BaseTermsEnumImp struct {
+	atts *tokenattributes.AttributeSource
+}
+
+func (b *BaseTermsEnumImp) TermState() (TermState, error) {
+	panic("")
+}
+
+func (b *BaseTermsEnumImp) SeekExact(text []byte) (bool, error) {
+	panic("")
+}
+
+func (b *BaseTermsEnumImp) SeekExactExpert(term []byte, state TermState) error {
+	panic("")
+}
+
+func (b *BaseTermsEnumImp) Attributes() *tokenattributes.AttributeSource {
+	return b.atts
 }
 
 type innerTermState struct {
