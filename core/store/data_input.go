@@ -23,7 +23,7 @@ type DataInput interface {
 	// ReadBytes Reads a specified number of bytes into an array.
 	ReadBytes(b []byte) error
 
-	//DataInputExt
+	DataInputExt
 }
 
 type DataInputExt interface {

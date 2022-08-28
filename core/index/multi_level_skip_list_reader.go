@@ -259,7 +259,7 @@ func (m *MultiLevelSkipListReaderImp) loadSkipLevels() error {
 // level – the level skip data shall be read from
 // skipStream – the skip stream to read from
 func (m *MultiLevelSkipListReaderImp) readSkipData(level int, skipStream store.IndexInput) (int64, error) {
-	num, err := skipStream.(store.DataInputExt).ReadUvarint()
+	num, err := skipStream.ReadUvarint()
 	return int64(num), err
 }
 
@@ -267,7 +267,7 @@ func (m *MultiLevelSkipListReaderImp) readSkipData(level int, skipStream store.I
 // Params: skipStream – the IndexInput the length shall be read from
 // Returns: level length
 func (m *MultiLevelSkipListReaderImp) readLevelLength(skipStream store.IndexInput) (int64, error) {
-	num, err := skipStream.(store.DataInputExt).ReadUvarint()
+	num, err := skipStream.ReadUvarint()
 	return int64(num), err
 }
 
@@ -275,7 +275,7 @@ func (m *MultiLevelSkipListReaderImp) readLevelLength(skipStream store.IndexInpu
 // Params: skipStream – the IndexInput the child pointer shall be read from
 // Returns: child pointer
 func (m *MultiLevelSkipListReaderImp) readChildPointer(skipStream store.IndexInput) (int64, error) {
-	num, err := skipStream.(store.DataInputExt).ReadUvarint()
+	num, err := skipStream.ReadUvarint()
 	return int64(num), err
 }
 
@@ -288,6 +288,8 @@ var _ store.IndexInput = &SkipBuffer{}
 
 // SkipBuffer used to buffer the top skip levels
 type SkipBuffer struct {
+	*store.DataInputImp
+
 	data    []byte
 	pointer int64
 	pos     int
@@ -303,6 +305,8 @@ func NewSkipBuffer(input store.IndexInput, length int) (*SkipBuffer, error) {
 		data:    make([]byte, length),
 		pointer: input.GetFilePointer(),
 	}
+	buffer.DataInputImp = store.NewDataInputImp(buffer)
+
 	if err := input.ReadBytes(buffer.data); err != nil {
 		return nil, err
 	}

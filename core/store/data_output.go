@@ -18,7 +18,7 @@ type DataOutput interface {
 	// CopyBytes Copy numBytes bytes from input to ourself.
 	CopyBytes(input DataInput, numBytes int) error
 
-	//DataOutputExt
+	DataOutputExt
 }
 
 type DataOutputExt interface {
@@ -85,9 +85,10 @@ type DataOutputNeed interface {
 var _ DataOutputExt = &DataOutputImp{}
 
 type DataOutputImp struct {
-	output DataOutput
-	endian binary.ByteOrder
-	buffer []byte
+	output     DataOutput
+	endian     binary.ByteOrder
+	buffer     []byte
+	copyBuffer []byte
 }
 
 func NewDataOutputImp(output DataOutput) *DataOutputImp {
@@ -140,9 +141,34 @@ func (d *DataOutputImp) WriteString(s string) error {
 	return d.output.WriteBytes([]byte(s))
 }
 
+const (
+	COPY_BUFFER_SIZE = 16384
+)
+
 func (d *DataOutputImp) CopyBytes(input DataInput, numBytes int) error {
-	//TODO implement me
-	panic("implement me")
+	left := numBytes
+	if len(d.copyBuffer) == 0 {
+		d.copyBuffer = make([]byte, COPY_BUFFER_SIZE)
+	}
+
+	for left > 0 {
+		var toCopy int
+		if left > COPY_BUFFER_SIZE {
+			toCopy = COPY_BUFFER_SIZE
+		} else {
+			toCopy = left
+		}
+		err := input.ReadBytes(d.copyBuffer[:toCopy])
+		if err != nil {
+			return err
+		}
+		err = d.output.WriteBytes(d.copyBuffer[:toCopy])
+		if err != nil {
+			return err
+		}
+		left -= toCopy
+	}
+	return nil
 }
 
 func (d *DataOutputImp) WriteMapOfStrings(values map[string]string) error {

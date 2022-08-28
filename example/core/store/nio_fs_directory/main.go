@@ -15,7 +15,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if err := output.(store.DataOutputExt).WriteString("xxxxxxxx"); err != nil {
+	if err := output.WriteString("xxxxxxxx"); err != nil {
 		panic(err)
 	}
 	if err := output.Close(); err != nil {
@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	text, err := input.(store.DataInputExt).ReadString()
+	text, err := input.ReadString()
 	if err != nil {
 		panic(err)
 	}

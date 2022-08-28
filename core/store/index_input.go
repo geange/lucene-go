@@ -36,3 +36,7 @@ type IndexInput interface {
 	// Length The number of bytes in the file.
 	Length() int64
 }
+
+type IndexInputImp struct {
+	*DataInputImp
+}

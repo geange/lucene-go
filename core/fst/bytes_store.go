@@ -2,6 +2,7 @@ package fst
 
 import (
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util"
 )
 
 var _ store.DataOutput = &BytesStore{}
@@ -10,6 +11,8 @@ var _ store.DataOutput = &BytesStore{}
 // TODO: merge with PagedBytes, except PagedBytes doesn't
 // let you read while writing which FST needs
 type BytesStore struct {
+	*store.DataOutputImp
+
 	blocks    [][]byte
 	blockSize int
 	blockBits int
@@ -25,7 +28,42 @@ func NewBytesStore(blockBits int) *BytesStore {
 	this.blockSize = 1 << blockBits
 	this.blockMask = this.blockSize - 1
 	this.nextWrite = this.blockSize
+
+	this.DataOutputImp = store.NewDataOutputImp(this)
+
 	return this
+}
+
+func NewBytesStore3(in store.DataInput, numBytes, maxBlockSize int) (*BytesStore, error) {
+	blockSize := 2
+	blockBits := 1
+	for blockSize < numBytes && blockSize < maxBlockSize {
+		blockSize *= 2
+		blockBits++
+	}
+
+	this := &BytesStore{
+		blockSize: blockSize,
+		blockBits: blockBits,
+		blockMask: blockSize - 1,
+	}
+
+	left := numBytes
+	for left > 0 {
+		chunk := util.Min(blockSize, left)
+		block := make([]byte, chunk)
+		err := in.ReadBytes(block)
+		if err != nil {
+			return nil, err
+		}
+
+		this.blocks = append(this.blocks, block)
+		left -= chunk
+	}
+
+	// So .getPosition still works
+	this.nextWrite = len(this.blocks[len(this.blocks)-1])
+	return this, nil
 }
 
 func (r *BytesStore) WriteByteIndex(dest int64, v byte) {
@@ -68,12 +106,14 @@ func (r *BytesStore) WriteBytes(bs []byte) error {
 	return nil
 }
 
-func (r *BytesStore) CopyBytes(input store.DataInput, numBytes int) error {
-	return nil
-}
-
 func (r *BytesStore) getBlockBits() int {
 	return r.blockBits
+}
+
+func (r *BytesStore) writeByte(dest int, b byte) {
+	blockIndex := (int)(dest >> r.blockBits)
+	block := r.blocks[blockIndex]
+	block[dest&r.blockMask] = b
 }
 
 // Absolute writeBytes without changing the current position. Note: this cannot "grow" the bytes,
@@ -219,7 +259,7 @@ func (r *BytesStore) Reverse(srcPos, destPos int) {
 }
 
 // SkipBytes 跳过 size 数量的字节
-func (r *BytesStore) SkipBytes(size int) {
+func (r *BytesStore) SkipBytes(size int) error {
 	for size > 0 {
 		chunk := r.blockSize - r.nextWrite
 		if size <= chunk {
@@ -232,6 +272,7 @@ func (r *BytesStore) SkipBytes(size int) {
 			r.nextWrite = 0
 		}
 	}
+	return nil
 }
 
 func (r *BytesStore) GetPosition() int64 {
@@ -273,4 +314,161 @@ func (r *BytesStore) WriteTo(out store.DataOutput) error {
 		}
 	}
 	return nil
+}
+
+var _ BytesReader = &forwardReader{}
+
+type forwardReader struct {
+	*store.DataInputImp
+
+	parent *BytesStore
+
+	current    []byte
+	nextBuffer int
+	nextRead   int
+}
+
+func (r *forwardReader) ReadByte() (byte, error) {
+	if r.nextRead == r.parent.blockSize {
+		r.current = r.parent.blocks[r.nextBuffer]
+		r.nextBuffer++
+		r.nextRead = 0
+	}
+	v := r.current[r.nextRead]
+	r.nextRead++
+	return v, nil
+}
+
+func (r *forwardReader) ReadBytes(b []byte) error {
+	offset, size := 0, len(b)
+
+	for size > 0 {
+		chunkLeft := r.parent.blockSize - r.nextRead
+		if size <= chunkLeft {
+			copy(b[offset:], r.current[r.nextRead:r.nextRead+size])
+			r.nextRead += size
+			break
+		} else {
+			if chunkLeft > 0 {
+				copy(b[offset:], r.current[r.nextRead:r.nextBuffer+chunkLeft])
+				offset += chunkLeft
+				size -= chunkLeft
+			}
+			r.current = r.parent.blocks[r.nextBuffer]
+			r.nextBuffer++
+			r.nextRead = 0
+		}
+	}
+	return nil
+}
+
+func (r *forwardReader) GetPosition() int64 {
+	return int64((r.nextBuffer-1)*r.parent.blockSize + r.nextRead)
+}
+
+func (r *forwardReader) SetPosition(pos int64) error {
+	bufferIndex := (int)(pos >> r.parent.blockBits)
+	if r.nextBuffer != bufferIndex+1 {
+		r.nextBuffer = bufferIndex + 1
+		r.current = r.parent.blocks[bufferIndex]
+	}
+	r.nextRead = int(pos) & r.parent.blockMask
+	return nil
+}
+
+func (r *forwardReader) Reversed() bool {
+	return false
+}
+
+func (r *BytesStore) GetForwardReader() BytesReader {
+	reader := &forwardReader{
+		current:    nil,
+		nextBuffer: 0,
+		nextRead:   r.blockSize,
+		parent:     r,
+	}
+	reader.DataInputImp = store.NewDataInputImp(reader)
+	return reader
+}
+
+var _ BytesReader = &reverseReader{}
+
+type reverseReader struct {
+	*store.DataInputImp
+	parent *BytesStore
+
+	current    []byte
+	nextBuffer int
+	nextRead   int
+}
+
+func (r *reverseReader) GetPosition() int64 {
+	return int64((r.nextBuffer+1)*r.parent.blockSize + r.nextRead)
+}
+
+func (r *reverseReader) ReadByte() (byte, error) {
+	if r.nextRead == -1 {
+		r.current = r.parent.blocks[r.nextBuffer]
+		r.nextBuffer--
+		r.nextRead = r.parent.blockSize - 1
+	}
+	v := r.current[r.nextRead]
+	r.nextRead--
+	return v, nil
+}
+
+func (r *reverseReader) ReadBytes(b []byte) error {
+	for i := 0; i < len(b); i++ {
+		v, err := r.ReadByte()
+		if err != nil {
+			return err
+		}
+		b[i] = v
+	}
+	return nil
+}
+
+func (r *reverseReader) SetPosition(pos int64) error {
+	// NOTE: a little weird because if you
+	// setPosition(0), the next byte you read is
+	// bytes[0] ... but I would expect bytes[-1] (ie,
+	// EOF)...?
+	bufferIndex := (int)(pos >> r.parent.blockBits)
+	if r.nextBuffer != bufferIndex-1 {
+		r.nextBuffer = bufferIndex - 1
+		r.current = r.parent.blocks[bufferIndex]
+	}
+	r.nextRead = int(pos) & r.parent.blockMask
+	return nil
+}
+
+func (r *reverseReader) Reversed() bool {
+	return true
+}
+
+func (r *BytesStore) GetReverseReader() BytesReader {
+	return r.getReverseReader(true)
+}
+
+func (r *BytesStore) getReverseReader(allowSingle bool) BytesReader {
+	if allowSingle && len(r.blocks) == 1 {
+		return NewReverseBytesReader(r.blocks[0])
+	}
+	return r.newReverseReader()
+}
+
+func (r *BytesStore) newReverseReader() BytesReader {
+	var current []byte
+	if len(r.blocks) > 0 {
+		current = r.blocks[0]
+	}
+
+	reader := &reverseReader{
+		parent:     r,
+		current:    current,
+		nextBuffer: -1,
+		nextRead:   0,
+	}
+	reader.DataInputImp = store.NewDataInputImp(reader)
+	return reader
 }

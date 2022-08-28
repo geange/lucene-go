@@ -14,3 +14,21 @@ type IndexOutput interface {
 
 	GetChecksum() (uint32, error)
 }
+
+type IndexOutputImp struct {
+	*DataOutputImp
+
+	// Just the name part from resourceDescription
+	name string
+}
+
+func NewIndexOutputImp(output DataOutput, name string) *IndexOutputImp {
+	return &IndexOutputImp{
+		DataOutputImp: NewDataOutputImp(output),
+		name:          name,
+	}
+}
+
+func (i *IndexOutputImp) GetName() string {
+	return i.name
+}
