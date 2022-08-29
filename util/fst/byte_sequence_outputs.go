@@ -9,7 +9,7 @@ import (
 var _ Outputs[*ByteRef] = &ByteSequenceOutputs[*ByteRef]{}
 
 var (
-	ByteSequenceOutputsNoOutput = ByteRef{}
+	NoOutputByteSequence = ByteRef{}
 )
 
 type ByteSequenceOutputs[T []byte] struct {
@@ -65,7 +65,7 @@ func (b *ByteSequenceOutputs[T]) Common(output1, output2 *ByteRef) *ByteRef {
 	}
 
 	if pos1 == 0 {
-		return &ByteSequenceOutputsNoOutput
+		return &NoOutputByteSequence
 	} else if pos1 == output1.Len() {
 		return output1
 	} else if pos2 == output2.Len() {
@@ -76,21 +76,21 @@ func (b *ByteSequenceOutputs[T]) Common(output1, output2 *ByteRef) *ByteRef {
 }
 
 func (b *ByteSequenceOutputs[T]) Subtract(output, inc *ByteRef) *ByteRef {
-	if inc == &ByteSequenceOutputsNoOutput {
-		return &ByteSequenceOutputsNoOutput
+	if inc == &NoOutputByteSequence {
+		return &NoOutputByteSequence
 	}
 
 	if inc.Len() == output.Len() {
-		return &ByteSequenceOutputsNoOutput
+		return &NoOutputByteSequence
 	}
 
 	return NewByteRef(output.Bytes[inc.Len():])
 }
 
 func (b *ByteSequenceOutputs[T]) Add(prefix, output *ByteRef) *ByteRef {
-	if prefix == &ByteSequenceOutputsNoOutput {
-		return &ByteSequenceOutputsNoOutput
-	} else if output == &ByteSequenceOutputsNoOutput {
+	if prefix == &NoOutputByteSequence {
+		return &NoOutputByteSequence
+	} else if output == &NoOutputByteSequence {
 		return prefix
 	}
 
@@ -114,7 +114,7 @@ func (b *ByteSequenceOutputs[T]) Read(in store.DataInput) (*ByteRef, error) {
 		return nil, err
 	}
 	if size == 0 {
-		return &ByteSequenceOutputsNoOutput, nil
+		return &NoOutputByteSequence, nil
 	}
 
 	output := NewByteRef(make([]byte, int(size)))
@@ -134,7 +134,7 @@ func (b *ByteSequenceOutputs[T]) SkipOutput(in store.DataInput) error {
 }
 
 func (b *ByteSequenceOutputs[T]) GetNoOutput() *ByteRef {
-	return &ByteSequenceOutputsNoOutput
+	return &NoOutputByteSequence
 }
 
 func (b *ByteSequenceOutputs[T]) OutputToString(output T) string {
