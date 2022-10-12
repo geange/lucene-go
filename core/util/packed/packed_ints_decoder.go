@@ -21,7 +21,7 @@ type Decoder interface {
 	//			values – the values buffer
 	//			valuesOffset – the offset where to start writing values
 	//			iterations – controls how much data to decode
-	DecodeLongToLong(blocks, values []int64, iterations int)
+	DecodeLongToLong(blocks, values []uint64, iterations int)
 
 	// DecodeByteToLong Read 8 * iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
 	// Params: 	blocks – the long blocks that hold packed integer values
@@ -29,7 +29,7 @@ type Decoder interface {
 	//			values – the values buffer
 	//			valuesOffset – the offset where to start writing values
 	//			iterations – controls how much data to decode
-	DecodeByteToLong(blocks []byte, values []int64, iterations int)
+	DecodeByteToLong(blocks []byte, values []uint64, iterations int)
 
 	// DecodeLongToInt Read iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
 	// Params: 	blocks – the long blocks that hold packed integer values blocksOffset – the offset where to start reading blocks values – the values buffer valuesOffset – the offset where to start writing values iterations – controls how much data to decode
@@ -41,5 +41,5 @@ type Decoder interface {
 	//			values – the values buffer
 	//			valuesOffset – the offset where to start writing values
 	//			iterations – controls how much data to decode
-	DecodeByteToInt(blocks []byte, values []int32, iterations int)
+	DecodeByteToInt(blocks []byte, values []uint32, iterations int)
 }

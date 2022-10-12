@@ -18,11 +18,11 @@ func NewDirect32(valueCount int) *Direct32 {
 	return direct
 }
 
-func (d *Direct32) Get(index int) int64 {
-	return int64(d.values[index] & 0xFFFFFFFF)
+func (d *Direct32) Get(index int) uint64 {
+	return uint64(d.values[index] & 0xFFFFFFFF)
 }
 
-func (d *Direct32) Set(index int, value int64) {
+func (d *Direct32) Set(index int, value uint64) {
 	d.values[index] = uint32(value)
 }
 
@@ -32,15 +32,15 @@ func (d *Direct32) Clear() {
 	}
 }
 
-func (d *Direct32) GetBulk(index int, arr []int64) int {
+func (d *Direct32) GetBulk(index int, arr []uint64) int {
 	gets := Min(d.valueCount-index, len(arr))
 	for i := range arr {
-		arr[i] = int64(d.values[index+i] & 0xFFFFFFFF)
+		arr[i] = uint64(d.values[index+i] & 0xFFFFFFFF)
 	}
 	return gets
 }
 
-func (d *Direct32) SetBulk(index int, arr []int64) int {
+func (d *Direct32) SetBulk(index int, arr []uint64) int {
 	sets := Min(d.valueCount-index, len(arr))
 	for i := range arr {
 		d.values[index+i] = uint32(arr[i])
@@ -48,7 +48,7 @@ func (d *Direct32) SetBulk(index int, arr []int64) int {
 	return sets
 }
 
-func (d *Direct32) Fill(fromIndex, toIndex int, value int64) {
+func (d *Direct32) Fill(fromIndex, toIndex int, value uint64) {
 	for i := fromIndex; i < toIndex; i++ {
 		d.values[i] = uint32(value)
 	}

@@ -25,35 +25,35 @@ func NewPacked8ThreeBlocks(valueCount int) *Packed8ThreeBlocks {
 	return blocks
 }
 
-func (p *Packed8ThreeBlocks) Get(index int) int64 {
+func (p *Packed8ThreeBlocks) Get(index int) uint64 {
 	o := index * 3
-	return int64(p.blocks[o]&0xFF)<<16 |
-		int64(p.blocks[o+1]&0xFF)<<8 |
-		int64(p.blocks[o+2])
+	return uint64(p.blocks[o]&0xFF)<<16 |
+		uint64(p.blocks[o+1]&0xFF)<<8 |
+		uint64(p.blocks[o+2])
 }
 
-func (p *Packed8ThreeBlocks) GetBulk(index int, arr []int64) int {
+func (p *Packed8ThreeBlocks) GetBulk(index int, arr []uint64) int {
 	gets := Min(p.valueCount-index, len(arr))
 	end := (index + gets) * 3
 
 	off := 0
 	for i := index * 3; i < end; i += 3 {
-		arr[off] = int64(p.blocks[i]&0xFF)<<16 |
-			int64(p.blocks[i+1]&0xFF)<<16 |
-			int64(p.blocks[i+2]&0xFF)
+		arr[off] = uint64(p.blocks[i]&0xFF)<<16 |
+			uint64(p.blocks[i+1]&0xFF)<<16 |
+			uint64(p.blocks[i+2]&0xFF)
 		off++
 	}
 	return gets
 }
 
-func (p *Packed8ThreeBlocks) Set(index int, value int64) {
+func (p *Packed8ThreeBlocks) Set(index int, value uint64) {
 	off := index * 3
 	p.blocks[off] = byte(value >> 16)
 	p.blocks[off+1] = byte(value >> 8)
 	p.blocks[off+2] = byte(value)
 }
 
-func (p *Packed8ThreeBlocks) SetBulk(index int, arr []int64) int {
+func (p *Packed8ThreeBlocks) SetBulk(index int, arr []uint64) int {
 	sets := Min(p.valueCount-index, len(arr))
 
 	for i, off := 0, index*3; i < sets; i++ {
@@ -66,7 +66,7 @@ func (p *Packed8ThreeBlocks) SetBulk(index int, arr []int64) int {
 	return sets
 }
 
-func (p *Packed8ThreeBlocks) Fill(fromIndex, toIndex int, value int64) {
+func (p *Packed8ThreeBlocks) Fill(fromIndex, toIndex int, value uint64) {
 	block1 := byte(value >> 16)
 	block2 := byte(value >> 8)
 	block3 := byte(value)

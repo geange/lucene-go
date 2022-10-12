@@ -3,8 +3,8 @@ package packed
 import "github.com/geange/lucene-go/math"
 
 type AbstractPagedMutable interface {
-	Get(index int) int64
-	Set(index int, value int64)
+	Get(index int) uint64
+	Set(index int, value uint64)
 	Resize(newSize int) AbstractPagedMutable
 	Grow(minSize int) AbstractPagedMutable
 	GrowOne() AbstractPagedMutable
@@ -99,13 +99,13 @@ func (a *abstractPagedMutable) indexInPage(index int) int {
 	return index & a.pageMask
 }
 
-func (a *abstractPagedMutable) Get(index int) int64 {
+func (a *abstractPagedMutable) Get(index int) uint64 {
 	pageIndex := a.pageIndex(index)
 	indexInPage := a.indexInPage(index)
 	return a.subMutables[pageIndex].Get(indexInPage)
 }
 
-func (a *abstractPagedMutable) Set(index int, value int64) {
+func (a *abstractPagedMutable) Set(index int, value uint64) {
 	pageIndex := a.pageIndex(index)
 	indexInPage := a.indexInPage(index)
 	a.subMutables[pageIndex].Set(indexInPage, value)
@@ -128,7 +128,7 @@ func (a *abstractPagedMutable) SetSubMutableByIndex(index int, value Mutable) {
 func (a *abstractPagedMutable) Resize(newSize int) AbstractPagedMutable {
 	ucopy := a.spi.newUnfilledCopy(newSize)
 	numCommonPages := math.Min(len(ucopy.SubMutables()), len(a.subMutables))
-	copyBuffer := make([]int64, 1024)
+	copyBuffer := make([]uint64, 1024)
 
 	size := len(ucopy.SubMutables())
 

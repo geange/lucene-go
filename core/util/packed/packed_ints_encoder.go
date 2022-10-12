@@ -10,7 +10,7 @@ type Encoder interface {
 	//			blocks – the long blocks that hold packed integer values
 	//			blocksOffset – the offset where to start writing blocks
 	//			iterations – controls how much data to encode
-	EncodeLongToLong(values, blocks []int64, iterations int)
+	EncodeLongToLong(values, blocks []uint64, iterations int)
 
 	// EncodeLongToBytes Read iterations * valueCount() values from values,
 	// encode them and write 8 * iterations * blockCount() blocks into blocks.
@@ -19,7 +19,7 @@ type Encoder interface {
 	//			blocks – the long blocks that hold packed integer values
 	//			blocksOffset – the offset where to start writing blocks
 	//			iterations – controls how much data to encode
-	EncodeLongToBytes(values []int64, blocks []byte, iterations int)
+	EncodeLongToBytes(values []uint64, blocks []byte, iterations int)
 
 	// EncodeIntToBytes Read iterations * valueCount() values from values, encode them and write 8 * iterations * blockCount() blocks into blocks.
 	// Params: 	values – the values buffer
@@ -27,5 +27,5 @@ type Encoder interface {
 	//			blocks – the long blocks that hold packed integer values
 	//			blocksOffset – the offset where to start writing blocks
 	//			iterations – controls how much data to encode
-	EncodeIntToBytes(values []int32, blocks []byte, iterations int)
+	EncodeIntToBytes(values []uint32, blocks []byte, iterations int)
 }

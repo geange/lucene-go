@@ -14,7 +14,7 @@ type Writer interface {
 	GetFormat() Format
 
 	// Add a value to the stream.
-	Add(v int64) error
+	Add(v uint64) error
 
 	// BitsPerValue The number of bits per value.
 	BitsPerValue() int

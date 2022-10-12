@@ -8,17 +8,17 @@ type Packed64SingleBlock struct {
 	*MutableImpl
 	fnGet  func(index int) int64
 	fnSet  func(index int, value int64)
-	blocks []int
+	blocks []uint64
 }
 
 func NewPacked64SingleBlock(valueCount, bitsPerValue int) *Packed64SingleBlock {
 	valuesPerBlock := 64 / bitsPerValue
-	block := &Packed64SingleBlock{blocks: make([]int, requiredCapacity(valueCount, valuesPerBlock))}
+	block := &Packed64SingleBlock{blocks: make([]uint64, requiredCapacity(valueCount, valuesPerBlock))}
 	block.MutableImpl = newMutableImpl(block, valueCount, bitsPerValue)
 	return block
 }
 
-func (p *Packed64SingleBlock) Get(index int) int64 {
+func (p *Packed64SingleBlock) Get(index int) uint64 {
 	switch p.bitsPerValue {
 	case 1:
 		o := index >> 6
@@ -92,10 +92,10 @@ func (p *Packed64SingleBlock) Get(index int) int64 {
 		return (p.blocks[o] >> shift) & 4294967295
 	}
 
-	return -1
+	return 0
 }
 
-func (p *Packed64SingleBlock) Set(index int, value int64) {
+func (p *Packed64SingleBlock) Set(index int, value uint64) {
 	switch p.bitsPerValue {
 	case 1:
 		o := index >> 6

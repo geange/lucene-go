@@ -16,7 +16,7 @@ type PackedWriter struct {
 	encoder BulkOperation
 
 	nextBlocks []byte
-	nextValues []int64
+	nextValues []uint64
 	iterations int
 	off        int
 	written    int
@@ -37,7 +37,7 @@ func NewPackedWriter(format Format, out store.DataOutput, valueCount, bitsPerVal
 		format:     format,
 		encoder:    encoder,
 		nextBlocks: make([]byte, iterations*encoder.ByteBlockCount()),
-		nextValues: make([]int64, iterations*encoder.ByteValueCount()),
+		nextValues: make([]uint64, iterations*encoder.ByteValueCount()),
 		iterations: iterations,
 		off:        0,
 		written:    0,
@@ -50,7 +50,7 @@ func (p *PackedWriter) GetFormat() Format {
 	return p.format
 }
 
-func (p *PackedWriter) Add(v int64) error {
+func (p *PackedWriter) Add(v uint64) error {
 	if p.valueCount != -1 && p.written >= p.valueCount {
 		return errors.New("writing past end of stream")
 	}

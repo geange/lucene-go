@@ -43,7 +43,7 @@ func (n *NIOFSDirectory) OpenInput(name string, context *IOContext) (IndexInput,
 var _ BufferedIndexInput = &NIOFSIndexInput{}
 
 type NIOFSIndexInput struct {
-	*DataInputImp
+	*IndexInputImp
 
 	file    *os.File
 	pointer int64
@@ -61,7 +61,7 @@ func NewNIOFSIndexInput(file *os.File, ctx *IOContext) *NIOFSIndexInput {
 		file:   file,
 		buffer: make([]byte, 48),
 	}
-	input.DataInputImp = NewDataInputImp(input)
+	input.IndexInputImp = NewIndexInputImp(input)
 	return input
 }
 

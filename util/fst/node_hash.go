@@ -17,6 +17,16 @@ type NodeHash[T any] struct {
 	in         BytesReader
 }
 
+func NewNodeHash[T any](fst *FST[T], in BytesReader) *NodeHash[T] {
+	return &NodeHash[T]{
+		table:      packed.NewPagedGrowableWriter(16, 1<<27, 8, packed.COMPACT),
+		mask:       15,
+		fst:        fst,
+		in:         in,
+		scratchArc: &Arc[T]{},
+	}
+}
+
 /**
 
   public long add(Builder<T> builder, Builder.UnCompiledNode<T> nodeIn) throws IOException {

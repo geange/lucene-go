@@ -132,9 +132,9 @@ type bulkOperation struct {
 	decoder Decoder
 }
 
-func writeLong(block int64, blocks []byte, blocksOffset int) int {
+func writeLong(block uint64, blocks []byte, blocksOffset int) int {
 	for j := 1; j <= 8; j++ {
-		blocks[blocksOffset] = block >> (64 - (j << 3))
+		blocks[blocksOffset] = byte(block >> (64 - (j << 3)))
 		blocksOffset++
 	}
 	return blocksOffset

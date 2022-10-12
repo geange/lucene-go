@@ -105,17 +105,17 @@ func fastestFormatAndBits(valueCount, bitsPerValue int, acceptableOverheadRatio 
 // lucene.internal
 type Reader interface {
 	// Get the long at the given index. Behavior is undefined for out-of-range indices.
-	Get(index int) int64
+	Get(index int) uint64
 
 	// GetBulk Bulk get: read at least one and at most len longs starting from index into
 	// arr[off:off+len] and return the actual number of values that have been read.
-	GetBulk(index int, arr []int64) int
+	GetBulk(index int, arr []uint64) int
 
 	// Size Returns: the number of values.
 	Size() int
 }
 
-func GetBulk(reader Reader, index int, arr []int64) int {
+func GetBulk(reader Reader, index int, arr []uint64) int {
 	gets := Min(reader.Size()-index, len(arr))
 
 	for i, o, end := index, 0, index+gets; i < end; {
@@ -160,12 +160,12 @@ func PackedIntsCopy(src Reader, srcPos int, dest Mutable, destPos, size, mem int
 
 	if size > 0 {
 		// use bulk operations
-		buf := make([]int64, Min(capacity, size))
+		buf := make([]uint64, Min(capacity, size))
 		PackedIntsCopyBuff(src, srcPos, dest, destPos, size, buf)
 	}
 }
 
-func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int, buf []int64) {
+func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int, buf []uint64) {
 	remaining := 0
 	for size > 0 {
 		read := src.GetBulk(srcPos, buf[0:Min(size, len(buf)-remaining)])
@@ -258,11 +258,11 @@ func getWriterNoHeader(out store.DataOutput, format Format, valueCount, bitsPerV
   }
 */
 
-func PackedIntsMaxValue(bitsPerValue int) int64 {
+func PackedIntsMaxValue(bitsPerValue int) uint64 {
 	if bitsPerValue == 64 {
 		return math.MaxInt64
 	}
-	return ^(^0 << bitsPerValue)
+	return ^(^uint64(0) << bitsPerValue)
 }
 
 // PackedIntsBitsRequired Returns how many bits are required to hold values up to and including maxValue
@@ -270,12 +270,12 @@ func PackedIntsMaxValue(bitsPerValue int) int64 {
 // Params: maxValue – the maximum value that should be representable.
 // Returns: the amount of bits needed to represent values from 0 to maxValue.
 // lucene.internal
-func PackedIntsBitsRequired(maxValue int64) int {
+func PackedIntsBitsRequired(maxValue uint64) int {
 	return unsignedBitsRequired(maxValue)
 }
 
-func unsignedBitsRequired(v int64) int {
-	return Max(1, 64-bits.LeadingZeros64(uint64(v)))
+func unsignedBitsRequired(v uint64) int {
+	return Max(1, 64-bits.LeadingZeros64(v))
 }
 
 func checkBlockSize(blockSize, minBlockSize, maxBlockSize int) int {

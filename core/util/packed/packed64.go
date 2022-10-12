@@ -17,10 +17,10 @@ type Packed64 struct {
 	*MutableImpl
 
 	// Values are stores contiguously in the blocks array.
-	blocks []int64
+	blocks []uint64
 
 	// A right-aligned mask of width BitsPerValue used by get(int).
-	maskRight int64
+	maskRight uint64
 
 	// Optimization: Saves one lookup in get(int).
 	bpvMinusBlockSize int
@@ -33,16 +33,16 @@ type Packed64 struct {
 func NewPacked64(valueCount, bitsPerValue int) *Packed64 {
 	format := FormatPacked
 	longCount := format.LongCount(VERSION_CURRENT, valueCount, bitsPerValue)
-	packed64 := &Packed64{blocks: make([]int64, longCount)}
+	packed64 := &Packed64{blocks: make([]uint64, longCount)}
 
-	packed64.maskRight = ^0 << (Packed64BlockSize - bitsPerValue) >> (Packed64BlockSize - bitsPerValue)
+	packed64.maskRight = ^uint64(0) << (Packed64BlockSize - bitsPerValue) >> (Packed64BlockSize - bitsPerValue)
 	packed64.bpvMinusBlockSize = bitsPerValue - Packed64BlockSize
 
 	packed64.MutableImpl = newMutableImpl(packed64, valueCount, bitsPerValue)
 	return packed64
 }
 
-func (p *Packed64) Get(index int) int64 {
+func (p *Packed64) Get(index int) uint64 {
 	// The abstract index in a bit stream
 	majorBitPos := index * p.bitsPerValue
 
@@ -63,7 +63,7 @@ func (p *Packed64) Get(index int) int64 {
 		p.maskRight
 }
 
-func (p *Packed64) GetBulk(index int, arr []int64) int {
+func (p *Packed64) GetBulk(index int, arr []uint64) int {
 	off, length := 0, len(arr)
 	length = Min(length, p.valueCount-index)
 
@@ -107,7 +107,7 @@ func (p *Packed64) GetBulk(index int, arr []int64) int {
 	return GetBulk(p, index, arr[off:off+length])
 }
 
-func (p *Packed64) Set(index int, value int64) {
+func (p *Packed64) Set(index int, value uint64) {
 	// The abstract index in a contiguous bit stream
 	majorBitPos := index * p.bitsPerValue
 	// The index in the backing long-array
@@ -121,10 +121,10 @@ func (p *Packed64) Set(index int, value int64) {
 	}
 	// Two blocks
 	p.blocks[elementPos] = p.blocks[elementPos] & ^(p.maskRight>>endBits) | (value >> endBits)
-	p.blocks[elementPos+1] = p.blocks[elementPos+1]&(^0>>endBits) | (value << (Packed64BlockSize - endBits))
+	p.blocks[elementPos+1] = p.blocks[elementPos+1]&(^uint64(0)>>endBits) | (value << (Packed64BlockSize - endBits))
 }
 
-func (p *Packed64) SetBulk(index int, arr []int64) int {
+func (p *Packed64) SetBulk(index int, arr []uint64) int {
 	off := 0
 	size := Min(len(arr), p.valueCount-index)
 	originalIndex := index
@@ -166,7 +166,7 @@ func (p *Packed64) SetBulk(index int, arr []int64) int {
 	return SetBulk(p, index, arr[off:off+size])
 }
 
-func (p *Packed64) Fill(fromIndex, toIndex int, value int64) {
+func (p *Packed64) Fill(fromIndex, toIndex int, value uint64) {
 	// minimum number of values that use an exact number of full blocks
 	nAlignedValues := 64 / gcd(64, p.bitsPerValue)
 	span := toIndex - fromIndex
@@ -190,7 +190,7 @@ func (p *Packed64) Fill(fromIndex, toIndex int, value int64) {
 	// use them to set as many values as possible without applying any mask
 	// or shift
 	nAlignedBlocks := (nAlignedValues * p.bitsPerValue) >> 6
-	nAlignedValuesBlocks := make([]int64, 0)
+	nAlignedValuesBlocks := make([]uint64, 0)
 	{
 		values := NewPacked64(nAlignedValues, p.bitsPerValue)
 		for i := 0; i < nAlignedValues; i++ {

@@ -8,13 +8,13 @@ var (
 type BulkOperationPacked struct {
 	*bulkOperation
 
-	bitsPerValue   int
+	bitsPerValue   int // 存放的值占用的
 	longBlockCount int // 一个block的大小为 [longBlockCount]int64
 	longValueCount int // 一个block存储的value的数量为 longValueCount
 	byteBlockCount int // 一个block的大小为 [longBlockCount * 8]uint8
 	byteValueCount int // 一个block存储的value的数量为 longValueCount
-	mask           int64
-	intMask        int
+	mask           uint64
+	intMask        uint32
 }
 
 func NewBulkOperationPacked(bitsPerValue int) *BulkOperationPacked {
@@ -36,11 +36,11 @@ func NewBulkOperationPacked(bitsPerValue int) *BulkOperationPacked {
 	packed.byteBlockCount = byteBlockCount
 	packed.byteValueCount = byteValueCount
 	if bitsPerValue == 64 {
-		packed.mask = ^0
+		packed.mask = ^uint64(0)
 	} else {
 		packed.mask = (1 << bitsPerValue) - 1
 	}
-	packed.intMask = int(packed.mask)
+	packed.intMask = uint32(packed.mask)
 	return packed
 }
 
@@ -60,7 +60,7 @@ func (b *BulkOperationPacked) ByteValueCount() int {
 	return b.byteValueCount
 }
 
-func (b *BulkOperationPacked) DecodeLongToLong(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked) DecodeLongToLong(blocks, values []uint64, iterations int) {
 	bitsLeft := 64
 	valuesOffset, blocksOffset := 0, 0
 	for i := 0; i < b.longValueCount*iterations; i++ {
@@ -79,7 +79,35 @@ func (b *BulkOperationPacked) DecodeLongToLong(blocks, values []int64, iteration
 	}
 }
 
-func (b *BulkOperationPacked) DecodeByteToLong(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked) DecodeByteToLong(blocks []byte, values []uint64, iterations int) {
+	blocksOffset, valuesOffset := 0, 0
+	nextValue := uint64(0)
+	bitsLeft := b.bitsPerValue
+	for i := 0; i < iterations*b.byteBlockCount; i++ {
+		bytes := blocks[blocksOffset] & 0xFF
+		blocksOffset++
+		if bitsLeft > 8 {
+			// just buffer
+			bitsLeft -= 8
+			nextValue |= uint64(bytes) << bitsLeft
+		} else {
+			// flush
+			bits := 8 - bitsLeft
+			values[valuesOffset] = nextValue | uint64(bytes>>bits)
+			valuesOffset++
+			for bits >= b.bitsPerValue {
+				bits -= b.bitsPerValue
+				values[valuesOffset] = uint64(bytes>>bits) & b.mask
+				valuesOffset++
+			}
+			// then buffer
+			bitsLeft = b.bitsPerValue - bits
+			nextValue = uint64(bytes&((1<<bits)-1)) << bitsLeft
+		}
+	}
+}
+
+func (b *BulkOperationPacked) DecodeByteToInt(blocks []byte, values []uint32, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	nextValue := 0
 	bitsLeft := b.bitsPerValue
@@ -89,55 +117,27 @@ func (b *BulkOperationPacked) DecodeByteToLong(blocks []byte, values []int64, it
 		if bitsLeft > 8 {
 			// just buffer
 			bitsLeft -= 8
-			nextValue |= bytes << bitsLeft
+			nextValue = nextValue | (int(bytes) << bitsLeft)
 		} else {
 			// flush
 			bits := 8 - bitsLeft
-			values[valuesOffset] = nextValue | (bytes >> bits)
+			values[valuesOffset] = uint32(nextValue | int(bytes>>bits))
 			valuesOffset++
 			for bits >= b.bitsPerValue {
 				bits -= b.bitsPerValue
-				values[valuesOffset] = (bytes >> bits) & b.mask
+				values[valuesOffset] = uint32(bytes>>bits) & b.intMask
 				valuesOffset++
 			}
 			// then buffer
 			bitsLeft = b.bitsPerValue - bits
-			nextValue = (bytes & ((1 << bits) - 1)) << bitsLeft
+			nextValue = int(bytes&((1<<bits)-1)) << bitsLeft
 		}
 	}
 }
 
-func (b *BulkOperationPacked) DecodeByteToInt(blocks []byte, values []int32, iterations int) {
-	blocksOffset, valuesOffset := 0, 0
-	nextValue := 0
-	bitsLeft := b.bitsPerValue
-	for i := 0; i < iterations*b.byteBlockCount; i++ {
-		bytes := blocks[blocksOffset] & 0xFF
-		blocksOffset++
-		if bitsLeft > 8 {
-			// just buffer
-			bitsLeft -= 8
-			nextValue |= bytes << bitsLeft
-		} else {
-			// flush
-			bits := 8 - bitsLeft
-			values[valuesOffset] = nextValue | (bytes >> bits)
-			valuesOffset++
-			for bits >= b.bitsPerValue {
-				bits -= b.bitsPerValue
-				values[valuesOffset] = (bytes >> bits) & b.intMask
-				valuesOffset++
-			}
-			// then buffer
-			bitsLeft = b.bitsPerValue - bits
-			nextValue = (bytes & ((1 << bits) - 1)) << bitsLeft
-		}
-	}
-}
-
-func (b *BulkOperationPacked) EncodeLongToLong(values, blocks []int64, iterations int) {
+func (b *BulkOperationPacked) EncodeLongToLong(values, blocks []uint64, iterations int) {
 	valuesOffset, blocksOffset := 0, 0
-	nextBlock := int64(0)
+	nextBlock := uint64(0)
 	bitsLeft := 64
 	for i := 0; i < b.longValueCount*iterations; i++ {
 		bitsLeft -= b.bitsPerValue
@@ -162,7 +162,7 @@ func (b *BulkOperationPacked) EncodeLongToLong(values, blocks []int64, iteration
 	}
 }
 
-func (b *BulkOperationPacked) EncodeLongToBytes(values []int64, blocks []byte, iterations int) {
+func (b *BulkOperationPacked) EncodeLongToBytes(values []uint64, blocks []byte, iterations int) {
 	valuesOffset, blocksOffset := 0, 0
 
 	nextBlock := 0
@@ -172,12 +172,12 @@ func (b *BulkOperationPacked) EncodeLongToBytes(values []int64, blocks []byte, i
 		valuesOffset++
 		if b.bitsPerValue < bitsLeft {
 			// just buffer
-			nextBlock |= v << (bitsLeft - b.bitsPerValue)
+			nextBlock |= int(v << (bitsLeft - b.bitsPerValue))
 			bitsLeft -= b.bitsPerValue
 		} else {
 			// flush as many blocks as possible
 			bits := b.bitsPerValue - bitsLeft
-			blocks[blocksOffset] = (byte)(nextBlock | (v >> bits))
+			blocks[blocksOffset] = (byte)(nextBlock | int(v>>bits))
 			blocksOffset++
 			for bits >= 8 {
 				bits -= 8
@@ -191,7 +191,7 @@ func (b *BulkOperationPacked) EncodeLongToBytes(values []int64, blocks []byte, i
 	}
 }
 
-func (b *BulkOperationPacked) EncodeIntToBytes(values []int32, blocks []byte, iterations int) {
+func (b *BulkOperationPacked) EncodeIntToBytes(values []uint32, blocks []byte, iterations int) {
 	valuesOffset, blocksOffset := 0, 0
 	nextBlock := 0
 	bitsLeft := 8
@@ -201,12 +201,12 @@ func (b *BulkOperationPacked) EncodeIntToBytes(values []int32, blocks []byte, it
 
 		if b.bitsPerValue < bitsLeft {
 			// just buffer
-			nextBlock |= v << (bitsLeft - b.bitsPerValue)
+			nextBlock |= int(v << (bitsLeft - b.bitsPerValue))
 			bitsLeft -= b.bitsPerValue
 		} else {
 			// flush as many blocks as possible
 			bits := b.bitsPerValue - bitsLeft
-			blocks[blocksOffset] = byte(nextBlock | (v >> bits))
+			blocks[blocksOffset] = byte(nextBlock | int(v>>bits))
 			blocksOffset++
 			for bits >= 8 {
 				bits -= 8
@@ -215,7 +215,7 @@ func (b *BulkOperationPacked) EncodeIntToBytes(values []int32, blocks []byte, it
 			}
 			// then buffer
 			bitsLeft = 8 - bits
-			nextBlock = (v & ((1 << bits) - 1)) << bitsLeft
+			nextBlock = int(v&((1<<bits)-1)) << bitsLeft
 		}
 	}
 }

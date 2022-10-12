@@ -25,7 +25,10 @@ func newPagedGrowableWriter(size, pageSize, startBitsPerValue int,
 		acceptableOverheadRatio: acceptableOverheadRatio,
 	}
 	if fillPages {
-		writer.fillPages()
+		err := writer.fillPages()
+		if err != nil {
+			return nil
+		}
 	}
 	return writer
 }
