@@ -1,13 +1,13 @@
 package structure
 
-type ByteRef struct {
+type BytesRef struct {
 	Bytes []byte
 }
 
-func NewByteRef(values []byte) *ByteRef {
-	return &ByteRef{Bytes: values}
+func NewBytesRef(values []byte) *BytesRef {
+	return &BytesRef{Bytes: values}
 }
 
-func (r *ByteRef) Len() int {
+func (r *BytesRef) Len() int {
 	return len(r.Bytes)
 }

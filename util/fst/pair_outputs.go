@@ -5,41 +5,45 @@ import "github.com/geange/lucene-go/core/store"
 var _ Outputs[*Pair[any, any]] = &PairOutputs[any, any]{}
 
 type PairOutputs[A, B any] struct {
-	NO_OUTPUT *Pair[A, B]
-	outputs1  Outputs[A]
-	outputs2  Outputs[B]
+	NoOutput *Box[*Pair[A, B]]
+	outputs1 Outputs[A]
+	outputs2 Outputs[B]
 }
 
-func (p *PairOutputs[A, B]) Common(pair1, pair2 *Pair[A, B]) *Pair[A, B] {
-	return NewPair(
-		p.outputs1.Common(pair1.Output1, pair2.Output1),
-		p.outputs2.Common(pair1.Output2, pair2.Output2),
-	)
+func (p PairOutputs[A, B]) Common(output1, output2 *Box[*Pair[A, B]]) *Box[*Pair[A, B]] {
+	return NewBox(&Pair[A, B]{
+		Output1: p.outputs1.Common(output1.V.Output1, output2.V.Output1),
+		Output2: p.outputs2.Common(output1.V.Output2, output2.V.Output2),
+	})
 }
 
-func (p *PairOutputs[A, B]) Subtract(output, inc *Pair[A, B]) *Pair[A, B] {
-	return NewPair(
-		p.outputs1.Subtract(output.Output1, inc.Output1),
-		p.outputs2.Subtract(output.Output2, inc.Output2),
-	)
+func (p PairOutputs[A, B]) Subtract(output, inc *Box[*Pair[A, B]]) *Box[*Pair[A, B]] {
+	return NewBox(&Pair[A, B]{
+		Output1: p.outputs1.Subtract(output.V.Output1, inc.V.Output1),
+		Output2: p.outputs2.Subtract(output.V.Output2, inc.V.Output2),
+	})
 }
 
-func (p *PairOutputs[A, B]) Add(prefix, output *Pair[A, B]) *Pair[A, B] {
-	return NewPair(
-		p.outputs1.Add(prefix.Output1, output.Output1),
-		p.outputs2.Add(prefix.Output2, output.Output2),
-	)
+func (p PairOutputs[A, B]) Add(prefix, output *Box[*Pair[A, B]]) *Box[*Pair[A, B]] {
+	return NewBox(&Pair[A, B]{
+		Output1: p.outputs1.Add(prefix.V.Output1, output.V.Output1),
+		Output2: p.outputs2.Add(prefix.V.Output2, output.V.Output2),
+	})
 }
 
-func (p *PairOutputs[A, B]) Write(output *Pair[A, B], writer store.DataOutput) error {
-	err := p.outputs1.Write(output.Output1, writer)
+func (p PairOutputs[A, B]) Write(output *Box[*Pair[A, B]], out store.DataOutput) error {
+	err := p.outputs1.Write(output.V.Output1, out)
 	if err != nil {
 		return err
 	}
-	return p.outputs2.Write(output.Output2, writer)
+	return p.outputs2.Write(output.V.Output2, out)
 }
 
-func (p *PairOutputs[A, B]) Read(in store.DataInput) (*Pair[A, B], error) {
+func (p PairOutputs[A, B]) WriteFinalOutput(output *Box[*Pair[A, B]], out store.DataOutput) error {
+	return p.Write(output, out)
+}
+
+func (p PairOutputs[A, B]) Read(in store.DataInput) (*Box[*Pair[A, B]], error) {
 	output1, err := p.outputs1.Read(in)
 	if err != nil {
 		return nil, err
@@ -48,10 +52,18 @@ func (p *PairOutputs[A, B]) Read(in store.DataInput) (*Pair[A, B], error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewPair(output1, output2), nil
+
+	return NewBox(&Pair[A, B]{
+		Output1: output1,
+		Output2: output2,
+	}), nil
 }
 
-func (p *PairOutputs[A, B]) SkipOutput(in store.DataInput) error {
+func (p PairOutputs[A, B]) ReadFinalOutput(in store.DataInput) (*Box[*Pair[A, B]], error) {
+	return p.Read(in)
+}
+
+func (p PairOutputs[A, B]) SkipOutput(in store.DataInput) error {
 	err := p.outputs1.SkipOutput(in)
 	if err != nil {
 		return err
@@ -59,23 +71,30 @@ func (p *PairOutputs[A, B]) SkipOutput(in store.DataInput) error {
 	return p.outputs2.SkipOutput(in)
 }
 
-func (p *PairOutputs[A, B]) GetNoOutput() *Pair[A, B] {
-	return p.NO_OUTPUT
+func (p PairOutputs[A, B]) SkipFinalOutput(in store.DataInput) error {
+	return p.SkipOutput(in)
 }
 
-func (p *PairOutputs[A, B]) OutputToString(output *Pair[A, B]) string {
-	//TODO implement me
-	panic("implement me")
+func (p PairOutputs[A, B]) GetNoOutput() *Box[*Pair[A, B]] {
+	return p.NoOutput
+}
+
+func (p PairOutputs[A, B]) OutputToString(output *Box[*Pair[A, B]]) string {
+	return ""
+}
+
+func (p PairOutputs[A, B]) Merge(first, second *Box[*Pair[A, B]]) *Box[*Pair[A, B]] {
+	return nil
 }
 
 type Pair[A, B any] struct {
-	Output1 A
-	Output2 B
+	Output1 *Box[A]
+	Output2 *Box[B]
 }
 
 func NewPair[A any, B any](output1 A, output2 B) *Pair[A, B] {
 	return &Pair[A, B]{
-		Output1: output1,
-		Output2: output2,
+		Output1: NewBox(output1),
+		Output2: NewBox(output2),
 	}
 }

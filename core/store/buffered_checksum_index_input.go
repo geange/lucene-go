@@ -9,7 +9,7 @@ var _ ChecksumIndexInput = &BufferedChecksumIndexInput{}
 
 // BufferedChecksumIndexInput Simple implementation of ChecksumIndexInput that wraps another input and delegates calls.
 type BufferedChecksumIndexInput struct {
-	*DataInputImp
+	*IndexInputImp
 
 	main   IndexInput
 	digest hash.Hash32
@@ -20,7 +20,7 @@ func NewBufferedChecksumIndexInput(main IndexInput) *BufferedChecksumIndexInput 
 		main:   main,
 		digest: crc32.NewIEEE(),
 	}
-	input.DataInputImp = NewDataInputImp(input)
+	input.IndexInputImp = NewIndexInputImp(input)
 	return input
 }
 

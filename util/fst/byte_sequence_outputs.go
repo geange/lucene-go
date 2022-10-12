@@ -3,61 +3,26 @@ package fst
 import (
 	"github.com/geange/lucene-go/core/store"
 	. "github.com/geange/lucene-go/math"
-	. "github.com/geange/lucene-go/util/structure"
 )
 
-var _ Outputs[*ByteRef] = &ByteSequenceOutputs[*ByteRef]{}
+var _ Outputs[[]byte] = &ByteSequenceOutputs[[]byte]{}
 
 var (
-	NoOutputByteSequence = ByteRef{}
+	NoOutputByteSequence = NewBox([]byte{})
 )
 
 type ByteSequenceOutputs[T []byte] struct {
 }
 
-func NewByteSequenceOutputs[T ByteRef]() *ByteSequenceOutputs[T] {
+func NewByteSequenceOutputs[T []byte]() *ByteSequenceOutputs[T] {
 	return &ByteSequenceOutputs[T]{}
 }
 
-/**
-
-  public BytesRef common(BytesRef output1, BytesRef output2) {
-    assert output1 != null;
-    assert output2 != null;
-
-    int pos1 = output1.offset;
-    int pos2 = output2.offset;
-    int stopAt1 = pos1 + Math.min(output1.length, output2.length);
-    while(pos1 < stopAt1) {
-      if (output1.bytes[pos1] != output2.bytes[pos2]) {
-        break;
-      }
-      pos1++;
-      pos2++;
-    }
-
-    if (pos1 == output1.offset) {
-      // no common prefix
-      return NO_OUTPUT;
-    } else if (pos1 == output1.offset + output1.length) {
-      // output1 is a prefix of output2
-      return output1;
-    } else if (pos2 == output2.offset + output2.length) {
-      // output2 is a prefix of output1
-      return output2;
-    } else {
-      return new BytesRef(output1.bytes, output1.offset, pos1-output1.offset);
-    }
-  }
-
-
-*/
-
-func (b *ByteSequenceOutputs[T]) Common(output1, output2 *ByteRef) *ByteRef {
+func (b *ByteSequenceOutputs[T]) Common(output1, output2 *Box[[]byte]) *Box[[]byte] {
 	pos1, pos2 := 0, 0
-	stopAt1 := Min(output1.Len(), output2.Len())
+	stopAt1 := Min(len(output1.V), len(output2.V))
 	for pos1 < stopAt1 {
-		if output1.Bytes[pos1] != output2.Bytes[pos2] {
+		if output1.V[pos1] != output2.V[pos2] {
 			break
 		}
 		pos1++
@@ -65,64 +30,74 @@ func (b *ByteSequenceOutputs[T]) Common(output1, output2 *ByteRef) *ByteRef {
 	}
 
 	if pos1 == 0 {
-		return &NoOutputByteSequence
-	} else if pos1 == output1.Len() {
+		return NoOutputByteSequence
+	} else if pos1 == len(output1.V) {
 		return output1
-	} else if pos2 == output2.Len() {
+	} else if pos2 == len(output2.V) {
 		return output2
 	} else {
-		return NewByteRef(output1.Bytes[:pos1])
+		return NewBox(output1.V[:pos1])
 	}
 }
 
-func (b *ByteSequenceOutputs[T]) Subtract(output, inc *ByteRef) *ByteRef {
-	if inc == &NoOutputByteSequence {
-		return &NoOutputByteSequence
+func (b *ByteSequenceOutputs[T]) Subtract(output, inc *Box[[]byte]) *Box[[]byte] {
+	if inc == NoOutputByteSequence {
+		return NoOutputByteSequence
 	}
 
-	if inc.Len() == output.Len() {
-		return &NoOutputByteSequence
+	if len(inc.V) == len(output.V) {
+		return NoOutputByteSequence
 	}
 
-	return NewByteRef(output.Bytes[inc.Len():])
+	return NewBox(output.V[len(inc.V):])
 }
 
-func (b *ByteSequenceOutputs[T]) Add(prefix, output *ByteRef) *ByteRef {
-	if prefix == &NoOutputByteSequence {
-		return &NoOutputByteSequence
-	} else if output == &NoOutputByteSequence {
+func (b *ByteSequenceOutputs[T]) Add(prefix, output *Box[[]byte]) *Box[[]byte] {
+	if prefix == NoOutputByteSequence {
+		return NoOutputByteSequence
+	} else if output == NoOutputByteSequence {
 		return prefix
 	}
 
-	buff := make([]byte, prefix.Len()+output.Len())
-	copy(buff, prefix.Bytes)
-	copy(buff[prefix.Len():], output.Bytes)
-	return NewByteRef(buff)
+	buff := make([]byte, len(prefix.V)+len(output.V))
+	copy(buff, prefix.V)
+	copy(buff[len(prefix.V):], output.V)
+	return NewBox(buff)
 }
 
-func (b *ByteSequenceOutputs[T]) Write(prefix *ByteRef, out store.DataOutput) error {
-	err := out.WriteUvarint(uint64(prefix.Len()))
+func (b *ByteSequenceOutputs[T]) Write(prefix *Box[[]byte], out store.DataOutput) error {
+	err := out.WriteUvarint(uint64(len(prefix.V)))
 	if err != nil {
 		return err
 	}
-	return out.WriteBytes(prefix.Bytes)
+	return out.WriteBytes(prefix.V)
 }
 
-func (b *ByteSequenceOutputs[T]) Read(in store.DataInput) (*ByteRef, error) {
+func (b *ByteSequenceOutputs[T]) WriteFinalOutput(output *Box[[]byte], out store.DataOutput) error {
+	return b.Write(output, out)
+}
+
+func (b *ByteSequenceOutputs[T]) Read(in store.DataInput) (*Box[[]byte], error) {
 	size, err := in.ReadUvarint()
 	if err != nil {
 		return nil, err
 	}
 	if size == 0 {
-		return &NoOutputByteSequence, nil
+		return NoOutputByteSequence, nil
 	}
 
-	output := NewByteRef(make([]byte, int(size)))
-	err = in.ReadBytes(output.Bytes)
+	buf := make([]byte, int(size))
+	err = in.ReadBytes(buf)
+	output := NewBox(buf)
+
 	if err != nil {
 		return nil, err
 	}
 	return output, nil
+}
+
+func (b *ByteSequenceOutputs[T]) ReadFinalOutput(in store.DataInput) (*Box[[]byte], error) {
+	return b.Read(in)
 }
 
 func (b *ByteSequenceOutputs[T]) SkipOutput(in store.DataInput) error {
@@ -133,11 +108,18 @@ func (b *ByteSequenceOutputs[T]) SkipOutput(in store.DataInput) error {
 	return in.SkipBytes(int(size))
 }
 
-func (b *ByteSequenceOutputs[T]) GetNoOutput() *ByteRef {
-	return &NoOutputByteSequence
+func (b *ByteSequenceOutputs[T]) SkipFinalOutput(in store.DataInput) error {
+	return b.SkipOutput(in)
 }
 
-func (b *ByteSequenceOutputs[T]) OutputToString(output T) string {
-	//TODO implement me
-	panic("implement me")
+func (b *ByteSequenceOutputs[T]) GetNoOutput() *Box[[]byte] {
+	return NoOutputByteSequence
+}
+
+func (b *ByteSequenceOutputs[T]) OutputToString(output *Box[[]byte]) string {
+	return ""
+}
+
+func (b *ByteSequenceOutputs[T]) Merge(first, second *Box[[]byte]) *Box[[]byte] {
+	return nil
 }

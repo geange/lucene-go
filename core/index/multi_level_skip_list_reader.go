@@ -288,7 +288,7 @@ var _ store.IndexInput = &SkipBuffer{}
 
 // SkipBuffer used to buffer the top skip levels
 type SkipBuffer struct {
-	*store.DataInputImp
+	*store.IndexInputImp
 
 	data    []byte
 	pointer int64
@@ -305,7 +305,7 @@ func NewSkipBuffer(input store.IndexInput, length int) (*SkipBuffer, error) {
 		data:    make([]byte, length),
 		pointer: input.GetFilePointer(),
 	}
-	buffer.DataInputImp = store.NewDataInputImp(buffer)
+	buffer.IndexInputImp = store.NewIndexInputImp(buffer)
 
 	if err := input.ReadBytes(buffer.data); err != nil {
 		return nil, err

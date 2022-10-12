@@ -7,3 +7,7 @@ type ChecksumIndexInput interface {
 	// GetChecksum Returns the current checksum value
 	GetChecksum() uint32
 }
+
+type ChecksumIndexInputImp struct {
+	*IndexInputImp
+}

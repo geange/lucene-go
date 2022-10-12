@@ -14,13 +14,17 @@ type ReverseRandomAccessReader struct {
 	*store.DataInputImp
 
 	in  store.RandomAccessInput
-	pos int64
+	pos int
 
 	isEOF bool
 }
 
+func NewReverseRandomAccessReader(in store.RandomAccessInput) *ReverseRandomAccessReader {
+	return &ReverseRandomAccessReader{in: in}
+}
+
 func (r *ReverseRandomAccessReader) ReadByte() (byte, error) {
-	v, err := r.in.ReadUint8(r.pos)
+	v, err := r.in.RUint8(int64(r.pos))
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			r.isEOF = true
@@ -50,15 +54,15 @@ func (r *ReverseRandomAccessReader) ReadBytes(b []byte) error {
 }
 
 func (r *ReverseRandomAccessReader) SkipBytes(count int) error {
-	r.pos += int64(count)
+	r.pos += count
 	return nil
 }
 
-func (r *ReverseRandomAccessReader) GetPosition() int64 {
+func (r *ReverseRandomAccessReader) GetPosition() int {
 	return r.pos
 }
 
-func (r *ReverseRandomAccessReader) SetPosition(pos int64) {
+func (r *ReverseRandomAccessReader) SetPosition(pos int) {
 	r.pos = pos
 }
 
