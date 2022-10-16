@@ -3,6 +3,7 @@ package fst
 import (
 	. "github.com/geange/lucene-go/math"
 	. "github.com/geange/lucene-go/util/structure"
+	"math"
 	"reflect"
 )
 
@@ -71,6 +72,32 @@ type Builder[T any] struct {
 	directAddressingMaxOversizingFactor float64
 	directAddressingExpansionCredit     int
 	bytes                               *BytesStore
+}
+
+// NewBuilder Instantiates an FST/FSA builder without any pruning.
+// A shortcut to Builder(FST.INPUT_TYPE, int, int, boolean, boolean, int, Outputs, boolean, int)
+// with pruning options turned off.
+func NewBuilder[T any](inputType INPUT_TYPE, outputs Outputs[T]) (*Builder[T], error) {
+	return NewBuilderV1[T](inputType, 0, 0, true, true, math.MaxInt32, outputs, true, 15)
+}
+
+//public Builder(FST.INPUT_TYPE inputType, int minSuffixCount1, int minSuffixCount2, boolean doShareSuffix,
+//boolean doShareNonSingletonNodes, int shareMaxTailLength, Outputs<T> outputs,
+//boolean allowFixedLengthArcs, int bytesPageBits) {
+
+// NewBuilderV1 nstantiates an FST/FSA builder with all the possible tuning and construction tweaks.
+// Read parameter documentation carefully.
+// Params:
+//
+//	inputType – The input type (transition labels). Can be anything from FST.INPUT_TYPE enumeration. Shorter types will consume less memory. Strings (character sequences) are represented as FST.INPUT_TYPE.BYTE4 (full unicode codepoints). minSuffixCount1 – If pruning the input graph during construction, this threshold is used for telling if a node is kept or pruned. If transition_count(node) >= minSuffixCount1, the node is kept.
+//	minSuffixCount2 – (Note: only Mike McCandless knows what this one is really doing...)
+//	doShareSuffix – If true, the shared suffixes will be compacted into unique paths. This requires an additional RAM-intensive hash map for lookups in memory. Setting this parameter to false creates a single suffix path for all input sequences. This will result in a larger FST, but requires substantially less memory and CPU during building.
+//	doShareNonSingletonNodes – Only used if doShareSuffix is true. Set this to true to ensure FST is fully minimal, at cost of more CPU and more RAM during building. shareMaxTailLength – Only used if doShareSuffix is true. Set this to Integer.MAX_VALUE to ensure FST is fully minimal, at cost of more CPU and more RAM during building. outputs – The output type for each input sequence. Applies only if building an FST. For FSA, use NoOutputs.getSingleton() and NoOutputs.getNoOutput() as the singleton output object. allowFixedLengthArcs – Pass false to disable the fixed length arc optimization (binary search or direct addressing) while building the FST; this will make the resulting FST smaller but slower to traverse. bytesPageBits – How many bits wide to make each byte[] block in the BytesStore; if you know the FST will be large then make this larger. For example 15 bits = 32768 byte pages.
+func NewBuilderV1[T any](inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
+	doShareSuffix, doShareNonSingletonNodes bool, shareMaxTailLength int, outputs Outputs[T],
+	allowFixedLengthArcs bool, bytesPageBits int) (*Builder[T], error) {
+
+	panic("")
 }
 
 // SetDirectAddressingMaxOversizingFactor Overrides the default the maximum oversizing of fixed array allowed

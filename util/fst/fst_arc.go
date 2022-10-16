@@ -29,7 +29,7 @@ const (
 
 // Arc Represents a single arc.
 type Arc[T any] struct {
-	label           int
+	label           int64
 	output          *Box[T]
 	target          int
 	flags           byte
@@ -98,7 +98,7 @@ func flag(flags, bit int) bool {
 	return flags&bit != 0
 }
 
-func (a *Arc[T]) Label() int {
+func (a *Arc[T]) Label() int64 {
 	return a.label
 }
 

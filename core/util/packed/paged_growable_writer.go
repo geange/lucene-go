@@ -13,24 +13,26 @@ type PagedGrowableWriter struct {
 	acceptableOverheadRatio float64
 }
 
-func NewPagedGrowableWriter(size, pageSize, startBitsPerValue int, acceptableOverheadRatio float64) *PagedGrowableWriter {
-	return newPagedGrowableWriter(size, pageSize, startBitsPerValue, acceptableOverheadRatio, true)
-}
-
-func newPagedGrowableWriter(size, pageSize, startBitsPerValue int,
-	acceptableOverheadRatio float64, fillPages bool) *PagedGrowableWriter {
-
+func NewPagedGrowableWriter(size, pageSize, startBitsPerValue int, acceptableOverheadRatio float64) (*PagedGrowableWriter, error) {
 	writer := &PagedGrowableWriter{
-		abstractPagedMutable:    newAbstractPagedMutable(startBitsPerValue, size, pageSize),
+		abstractPagedMutable:    nil,
 		acceptableOverheadRatio: acceptableOverheadRatio,
 	}
+	return writer.NewPagedGrowableWriter(size, pageSize, startBitsPerValue, acceptableOverheadRatio, true)
+}
+
+func (p *PagedGrowableWriter) NewPagedGrowableWriter(size, pageSize, startBitsPerValue int,
+	acceptableOverheadRatio float64, fillPages bool) (*PagedGrowableWriter, error) {
+
+	p.abstractPagedMutable = newAbstractPagedMutable(p, startBitsPerValue, size, pageSize)
+	p.acceptableOverheadRatio = acceptableOverheadRatio
 	if fillPages {
-		err := writer.fillPages()
+		err := p.fillPages()
 		if err != nil {
-			return nil
+			return nil, err
 		}
 	}
-	return writer
+	return p, nil
 }
 
 func (p *PagedGrowableWriter) newMutable(valueCount, bitsPerValue int) Mutable {
@@ -38,5 +40,9 @@ func (p *PagedGrowableWriter) newMutable(valueCount, bitsPerValue int) Mutable {
 }
 
 func (p *PagedGrowableWriter) newUnfilledCopy(newSize int) AbstractPagedMutable {
-	return newPagedGrowableWriter(newSize, p.pageSize(), p.bitsPerValue, p.acceptableOverheadRatio, false)
+	writer, err := p.NewPagedGrowableWriter(newSize, p.pageSize(), p.bitsPerValue, p.acceptableOverheadRatio, false)
+	if err != nil {
+		return nil
+	}
+	return writer
 }
