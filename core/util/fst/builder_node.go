@@ -2,6 +2,7 @@ package fst
 
 import (
 	"github.com/geange/lucene-go/core/util"
+	"reflect"
 )
 
 // Node NOTE: not many instances of Node or CompiledNode are
@@ -87,10 +88,19 @@ func (u *UnCompiledNode) ReplaceLast(labelToMatch int, target Node, nextFinalOut
 	arc.isFinal = isFinal
 }
 
-func (u *UnCompiledNode) deleteLast(label int, target Node) error {
-	//assert(u.numArcs > 0)
-	//assert(label == u.arcs[u.numArcs-1].label)
-	//assert(reflect.DeepEqual(target, u.arcs[u.numArcs-1].target))
+func (u *UnCompiledNode) DeleteLast(label int, target Node) error {
+	err := assert(u.numArcs > 0)
+	if err != nil {
+		return err
+	}
+	err = assert(label == u.arcs[u.numArcs-1].label)
+	if err != nil {
+		return err
+	}
+	err = assert(reflect.DeepEqual(target, u.arcs[u.numArcs-1].target))
+	if err != nil {
+		return err
+	}
 
 	u.numArcs--
 	return nil
@@ -106,16 +116,22 @@ func (u *UnCompiledNode) SetLastOutput(labelToMatch int, newOutput any) error {
 	return nil
 }
 
-// pushes an output prefix forward onto all arcs
-func (u *UnCompiledNode) prependOutput(outputPrefix any) error {
+// PrependOutput pushes an output prefix forward onto all arcs
+func (u *UnCompiledNode) PrependOutput(outputPrefix any) (err error) {
 	//  assert owner.validOutput(outputPrefix);
 	for arcIdx := 0; arcIdx < u.numArcs; arcIdx++ {
-		u.arcs[arcIdx].output = u.owner.fst.outputs.Add(outputPrefix, u.arcs[arcIdx].output)
+		u.arcs[arcIdx].output, err = u.owner.fst.outputs.Add(outputPrefix, u.arcs[arcIdx].output)
+		if err != nil {
+			return err
+		}
 		//assert owner.validOutput(u.arcs[arcIdx].output);
 	}
 
 	if u.isFinal {
-		u.output = u.owner.fst.outputs.Add(outputPrefix, u.output)
+		u.output, err = u.owner.fst.outputs.Add(outputPrefix, u.output)
+		if err != nil {
+			return err
+		}
 		//assert owner.validOutput(output);
 	}
 

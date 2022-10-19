@@ -1,7 +1,5 @@
 package fst
 
-import "github.com/geange/lucene-go/util/fst"
-
 type INPUT_TYPE int
 
 const (
@@ -20,7 +18,7 @@ type FST struct {
 	// A BytesStore, used during building, or during reading when the FST is very large (more than 1 GB). If the FST is less than 1 GB then bytesArray is set instead.
 	bytes BytesStore
 
-	fstStore fst.FSTStore
+	fstStore FSTStore
 
 	startNode int64
 

@@ -10,3 +10,12 @@ type NodeHash struct {
 	scratchArc *FSTArc
 	in         BytesReader
 }
+
+func NewNodeHash(table *packed.PagedGrowableWriter) *NodeHash {
+	return &NodeHash{table: table}
+}
+
+
+func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) (bool, error) {
+	panic("")
+}
