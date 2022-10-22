@@ -42,3 +42,8 @@ func (r *ReverseBytesReader) SetPosition(pos int64) {
 func (r *ReverseBytesReader) Reversed() bool {
 	return true
 }
+
+func (r *ReverseBytesReader) SkipBytes(numBytes int) error {
+	r.pos -= int64(numBytes)
+	return nil
+}

@@ -53,11 +53,6 @@ func (r *ReverseRandomAccessReader) ReadBytes(b []byte) error {
 	return nil
 }
 
-func (r *ReverseRandomAccessReader) SkipBytes(count int) error {
-	r.pos += count
-	return nil
-}
-
 func (r *ReverseRandomAccessReader) GetPosition() int {
 	return r.pos
 }
@@ -68,4 +63,9 @@ func (r *ReverseRandomAccessReader) SetPosition(pos int) {
 
 func (r *ReverseRandomAccessReader) Reversed() bool {
 	return true
+}
+
+func (r *ReverseRandomAccessReader) SkipBytes(count int) error {
+	r.pos -= count
+	return nil
 }

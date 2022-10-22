@@ -37,29 +37,6 @@ func (r *bytesStoreForwardReader) ReadByte() (byte, error) {
 	return b, nil
 }
 
-/**
-
-  public void readBytes(byte[] b, int offset, int len) {
-    while(len > 0) {
-      int chunkLeft = blockSize - nextRead;
-      if (len <= chunkLeft) {
-        System.arraycopy(current, nextRead, b, offset, len);
-        nextRead += len;
-        break;
-      } else {
-        if (chunkLeft > 0) {
-          System.arraycopy(current, nextRead, b, offset, chunkLeft);
-          offset += chunkLeft;
-          len -= chunkLeft;
-        }
-        current = blocks.get(nextBuffer++);
-        nextRead = 0;
-      }
-    }
-  }
-
-*/
-
 func (r *bytesStoreForwardReader) ReadBytes(b []byte) error {
 	offset, size := 0, len(b)
 	for size > 0 {

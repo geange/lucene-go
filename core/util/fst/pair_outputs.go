@@ -173,11 +173,6 @@ func (p *PairOutputs) GetNoOutput() any {
 	return p.NO_OUTPUT
 }
 
-func (p *PairOutputs) OutputToString(output any) string {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (p *PairOutputs) Merge(first, second any) (any, error) {
 	//TODO implement me
 	panic("implement me")

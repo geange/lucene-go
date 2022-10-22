@@ -40,3 +40,8 @@ func (f *ForwardBytesReader) SetPosition(pos int64) {
 func (f *ForwardBytesReader) Reversed() bool {
 	return false
 }
+
+func (f *ForwardBytesReader) SkipBytes(numBytes int) error {
+	f.pos += int64(numBytes)
+	return nil
+}

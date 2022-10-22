@@ -1,6 +1,9 @@
 package fst
 
-import "github.com/geange/lucene-go/core/store"
+import (
+	"fmt"
+	"github.com/geange/lucene-go/core/store"
+)
 
 var _ FSTStore = &OnHeapFSTStore{}
 
@@ -15,8 +18,11 @@ type OnHeapFSTStore struct {
 	maxBlockBits int
 }
 
-func NewOnHeapFSTStore(maxBlockBits int) *OnHeapFSTStore {
-	return &OnHeapFSTStore{maxBlockBits: maxBlockBits}
+func NewOnHeapFSTStore(maxBlockBits int) (*OnHeapFSTStore, error) {
+	if maxBlockBits < 1 || maxBlockBits > 30 {
+		return nil, fmt.Errorf("maxBlockBits should be 1 .. 30; got %d", maxBlockBits)
+	}
+	return &OnHeapFSTStore{maxBlockBits: maxBlockBits}, nil
 }
 
 func (r *OnHeapFSTStore) Init(in store.DataInput, numBytes int64) error {

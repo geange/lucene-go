@@ -99,13 +99,24 @@ func (b *ByteSequenceOutputs) Add(output1, output2 any) (any, error) {
 }
 
 func (b *ByteSequenceOutputs) Write(output any, out store.DataOutput) error {
-	//TODO implement me
-	panic("implement me")
+	prefix, ok := output.([]byte)
+	if !ok {
+		return errors.New("output is not []byte")
+	}
+
+	err := assert(prefix != nil)
+	if err != nil {
+		return err
+	}
+	err = out.WriteUvarint(uint64(len(prefix)))
+	if err != nil {
+		return err
+	}
+	return out.WriteBytes(prefix)
 }
 
 func (b *ByteSequenceOutputs) WriteFinalOutput(output any, out store.DataOutput) error {
-	//TODO implement me
-	panic("implement me")
+	return b.Write(output, out)
 }
 
 func (b *ByteSequenceOutputs) Read(in store.DataInput) (any, error) {
