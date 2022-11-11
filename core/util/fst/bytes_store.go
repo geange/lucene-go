@@ -41,32 +41,6 @@ func NewBytesStore(blockBits int) *BytesStore {
 	return bytesStore
 }
 
-/**
-  public BytesStore(DataInput in, long numBytes, int maxBlockSize) throws IOException {
-    int blockSize = 2;
-    int blockBits = 1;
-    while(blockSize < numBytes && blockSize < maxBlockSize) {
-      blockSize *= 2;
-      blockBits++;
-    }
-    this.blockBits = blockBits;
-    this.blockSize = blockSize;
-    this.blockMask = blockSize-1;
-    long left = numBytes;
-    while(left > 0) {
-      final int chunk = (int) Math.min(blockSize, left);
-      byte[] block = new byte[chunk];
-      in.readBytes(block, 0, block.length);
-      blocks.add(block);
-      left -= chunk;
-    }
-
-    // So .getPosition still works
-    nextWrite = blocks.get(blocks.size()-1).length;
-  }
-
-*/
-
 // NewBytesStoreV1 Pulls bytes from the provided IndexInput.
 func NewBytesStoreV1(in store.DataInput, numBytes int64, maxBlockSize int) (*BytesStore, error) {
 	b := &BytesStore{}

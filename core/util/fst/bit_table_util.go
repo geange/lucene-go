@@ -12,12 +12,8 @@ const (
 	LONG_BYTES   = 8
 )
 
-// BitTableUtil Static helper methods for FST.Arc.bitTable.
-// lucene.experimental
-type BitTableUtil struct {
-}
-
-// Returns whether the bit at given zero-based index is set. Example: bitIndex 10 means the third bit on the right of the second byte.
+// Returns whether the bit at given zero-based index is set. Example: bitIndex 10 means the third
+// bit on the right of the second byte.
 // Params:
 //
 //	bitIndex – The bit zero-based index. It must be greater than or equal to 0, and strictly less
