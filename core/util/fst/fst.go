@@ -1,108 +1,140 @@
 package fst
 
-import "errors"
-
-type INPUT_TYPE int
-
-const (
-	BYTE1 = INPUT_TYPE(iota)
-	BYTE2
-	BYTE4
-
-	BIT_FINAL_ARC   = 1 << 0
-	BIT_LAST_ARC    = 1 << 1
-	BIT_TARGET_NEXT = 1 << 2
-
-	// BIT_STOP_NODE TODO: we can free up a bit if we can nuke this:
-	BIT_STOP_NODE = 1 << 3
-
-	// BIT_ARC_HAS_OUTPUT This flag is set if the arc has an output.
-	BIT_ARC_HAS_OUTPUT = 1 << 4
-
-	BIT_ARC_HAS_FINAL_OUTPUT = 1 << 5
-
-	// ARCS_FOR_BINARY_SEARCH Value of the arc flags to declare a node with fixed length arcs designed for binary search.
-	// We use this as a marker because this one flag is illegal by itself.
-	ARCS_FOR_BINARY_SEARCH = BIT_ARC_HAS_FINAL_OUTPUT
-
-	// ARCS_FOR_DIRECT_ADDRESSING Value of the arc flags to declare a node with fixed length arcs and bit table designed for direct addressing.
-	ARCS_FOR_DIRECT_ADDRESSING = 1 << 6
-
-	// FIXED_LENGTH_ARC_SHALLOW_DEPTH See Also: shouldExpandNodeWithFixedLengthArcs
-	// 0 => only root node.
-	FIXED_LENGTH_ARC_SHALLOW_DEPTH = 3
-
-	// FIXED_LENGTH_ARC_SHALLOW_NUM_ARCS See Also: shouldExpandNodeWithFixedLengthArcs
-	FIXED_LENGTH_ARC_SHALLOW_NUM_ARCS = 5
-
-	// FIXED_LENGTH_ARC_DEEP_NUM_ARCS See Also: shouldExpandNodeWithFixedLengthArcs
-	FIXED_LENGTH_ARC_DEEP_NUM_ARCS = 10
-
-	// DIRECT_ADDRESSING_MAX_OVERSIZE_WITH_CREDIT_FACTOR Maximum oversizing factor allowed for direct addressing compared to binary search when expansion credits allow the oversizing. This factor prevents expansions that are obviously too costly even if there are sufficient credits.
-	// See Also: shouldExpandNodeWithDirectAddressing
-	DIRECT_ADDRESSING_MAX_OVERSIZE_WITH_CREDIT_FACTOR = 1.66
-
-	FILE_FORMAT_NAME = "FST"
-	VERSION_START    = 6
-	VERSION_CURRENT  = 7
-
-	// FINAL_END_NODE Never serialized; just used to represent the virtual
-	// final node w/ no arcs:
-	FINAL_END_NODE = -1
-
-	// NON_FINAL_END_NODE Never serialized; just used to represent the virtual
-	// non-final node w/ no arcs:
-	NON_FINAL_END_NODE = 0
-
-	// END_LABEL If arc has this label then that arc is final/accepted
-	END_LABEL = -1
-)
-
 type FST struct {
-	inputType INPUT_TYPE
-
-	// if non-null, this FST accepts the empty string and
-	// produces this output
-	emptyOutput any
-
-	// A BytesStore, used during building, or during reading when the FST is very large (more than 1 GB). If the FST is less than 1 GB then bytesArray is set instead.
-	bytes BytesStore
-
-	fstStore FSTStore
-
-	startNode int64
-
-	outputs Outputs
+	Outputs Outputs
 }
 
-func (f *FST) finish(newStartNode int64) error {
-	err := assert(newStartNode <= f.bytes.GetPosition())
+func (f *FST) ReadFirstRealTargetArc(nodeAddress int64, arc *FSTArc, in BytesReader) (*FSTArc, error) {
+	panic("")
+}
+
+// ReadNextRealArc Never returns null, but you should never call this if arc.isLast() is true.
+func (f *FST) ReadNextRealArc(arc *FSTArc, in BytesReader) (*FSTArc, error) {
+	panic("")
+}
+
+// AddNode serializes new node by appending its bytes to the end
+// of the current byte[]
+func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
+	panic("")
+}
+
+type FSTArc struct {
+	label           int
+	output          any
+	target          int64
+	flags           byte
+	nextFinalOutput any
+	nextArc         int64
+	nodeFlags       byte
+
+	//*** Fields for arcs belonging to a node with fixed length arcs.
+	// So only valid when bytesPerArc != 0.
+	// nodeFlags == ARCS_FOR_BINARY_SEARCH || nodeFlags == ARCS_FOR_DIRECT_ADDRESSING.
+
+	bytesPerArc  int
+	posArcsStart int64
+	arcIdx       int
+	numArcs      int
+
+	//*** Fields for a direct addressing node. nodeFlags == ARCS_FOR_DIRECT_ADDRESSING.
+
+	// Start position in the FST.BytesReader of the presence bits for a direct addressing node, aka the bit-table
+	bitTableStart int64
+
+	// First label of a direct addressing node.
+	firstLabel int
+
+	// Index of the current label of a direct addressing node. While arcIdx is the current index in the label range,
+	// presenceIndex is its corresponding index in the list of actually present labels. It is equal to the number
+	// of bits set before the bit at arcIdx in the bit-table. This field is a cache to avoid to count bits set
+	// repeatedly when iterating the next arcs.
+	presenceIndex int
+}
+
+func (r *FSTArc) flag(value int) bool {
+	return flag(int(r.flags), value)
+}
+
+func (r *FSTArc) IsLast() bool {
+	return r.flag(BIT_LAST_ARC)
+}
+
+func (r *FSTArc) IsFinal() bool {
+	return r.flag(BIT_FINAL_ARC)
+}
+
+func (r *FSTArc) Label() int {
+	return r.label
+}
+
+func (r *FSTArc) Output() any {
+	return r.output
+}
+
+// Target Ord/address to target node.
+func (r *FSTArc) Target() int64 {
+	return r.target
+}
+
+func (r *FSTArc) Flags() byte {
+	return r.flags
+}
+
+func (r *FSTArc) NextFinalOutput() any {
+	return r.nextFinalOutput
+}
+
+// NextArc Address (into the byte[]) of the next arc - only for list of variable length arc.
+// Or ord/address to the next node if label == END_LABEL.
+func (r *FSTArc) NextArc() int64 {
+	return r.nextArc
+}
+
+// ArcIdx Where we are in the array; only valid if bytesPerArc != 0.
+func (r *FSTArc) ArcIdx() int {
+	return r.arcIdx
+}
+
+// NodeFlags Node header flags. Only meaningful to check if the value is either ARCS_FOR_BINARY_SEARCH
+// or ARCS_FOR_DIRECT_ADDRESSING (other value when bytesPerArc == 0).
+func (r *FSTArc) NodeFlags() byte {
+	return r.nodeFlags
+}
+
+// PosArcsStart Where the first arc in the array starts; only valid if bytesPerArc != 0
+func (r *FSTArc) PosArcsStart() int64 {
+	return r.posArcsStart
+}
+
+// BytesPerArc Non-zero if this arc is part of a node with fixed length arcs,
+// which means all arcs for the node are encoded with a fixed number of bytes
+// so that we binary search or direct address. We do when there are enough arcs leaving one node.
+// It wastes some bytes but gives faster lookups.
+func (r *FSTArc) BytesPerArc() int {
+	return r.bytesPerArc
+}
+
+// NumArcs How many arcs; only valid if bytesPerArc != 0 (fixed length arcs).
+// For a node designed for binary search this is the array size.
+// For a node designed for direct addressing, this is the label range.
+func (r *FSTArc) NumArcs() int {
+	return r.numArcs
+}
+
+// FirstLabel First label of a direct addressing node. Only valid if nodeFlags == ARCS_FOR_DIRECT_ADDRESSING.
+func (r *FSTArc) FirstLabel() int {
+	return r.firstLabel
+}
+
+func flag(flags, bit int) bool {
+	return flags&bit != 0
+}
+
+func getNumPresenceBytes(labelRange int) (int, error) {
+	err := assert(labelRange >= 0)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	if f.startNode != -1 {
-		return errors.New("already finished")
-	}
-	if newStartNode == FINAL_END_NODE && f.emptyOutput != nil {
-		newStartNode = 0
-	}
-	f.startNode = newStartNode
-	f.bytes.Finish()
-	return nil
-}
-
-func (f *FST) getEmptyOutput() any {
-	return f.emptyOutput
-}
-
-func (f *FST) setEmptyOutput(v any) (err error) {
-	if f.emptyOutput != nil {
-		f.emptyOutput, err = f.outputs.Merge(f.emptyOutput, v)
-		if err != nil {
-			return err
-		}
-	} else {
-		f.emptyOutput = v
-	}
-	return nil
+	return (labelRange + 7) >> 3, nil
 }

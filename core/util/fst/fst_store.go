@@ -1,14 +1,14 @@
 package fst
 
-import "github.com/geange/lucene-go/core/store"
+import "io"
 
 // FSTStore Abstraction for reading/writing bytes necessary for FST.
 type FSTStore interface {
-	Init(in store.DataInput, numBytes int64) error
+	Init(in io.Reader, numBytes int64) error
 
 	Size() int64
 
 	GetReverseBytesReader() BytesReader
 
-	WriteTo(out store.DataOutput) error
+	WriteTo(out io.Writer) (int64, error)
 }

@@ -26,7 +26,7 @@ type UnCompiledNode struct {
 	// node, maybe we should use -1 arc to mean "end" (like
 	// we do when reading the FST).  Would simplify much
 	// code here...
-	Arcs       []Arc
+	Arcs       []BuilderArc
 	Output     any
 	IsFinal    bool
 	InputCount int64
@@ -50,21 +50,20 @@ func (u *UnCompiledNode) Clear() {
 }
 
 func (u *UnCompiledNode) GetLastOutput(labelToMatch int) any {
-	return u.Arcs[u.NumArcs-1].Output
+	return u.Arcs[len(u.Arcs)-1].Output
 }
 
-func (u *UnCompiledNode) AddArc(label int32, target Node) {
-	u.Arcs = append(u.Arcs, Arc{
+func (u *UnCompiledNode) AddArc(label int, target Node) {
+	u.Arcs = append(u.Arcs, BuilderArc{
 		Label:           label,
 		Target:          target,
 		Output:          nil,
 		NextFinalOutput: nil,
 		IsFinal:         false,
 	})
-	u.NumArcs++
 }
 
-func (u *UnCompiledNode) DeleteLast(label int32, target Node) error {
+func (u *UnCompiledNode) DeleteLast(label int, target Node) error {
 	if len(u.Arcs) <= 0 {
 		return errors.New("arcs size is 0")
 	}
@@ -80,7 +79,7 @@ func (u *UnCompiledNode) DeleteLast(label int32, target Node) error {
 	return nil
 }
 
-func (u *UnCompiledNode) SetLastOutput(label int32, newOutput any) error {
+func (u *UnCompiledNode) SetLastOutput(label int, newOutput any) error {
 	if len(u.Arcs) <= 0 {
 		return errors.New("arcs size is 0")
 	}
@@ -93,7 +92,7 @@ func (u *UnCompiledNode) SetLastOutput(label int32, newOutput any) error {
 }
 
 func (u *UnCompiledNode) ReplaceLast(target Node, nextFinalOutput any, isFinal bool) {
-	arc := u.Arcs[u.NumArcs-1]
+	arc := u.Arcs[len(u.Arcs)-1]
 	arc.Target = target
 	arc.NextFinalOutput = nextFinalOutput
 	arc.IsFinal = isFinal
@@ -122,11 +121,14 @@ func (u *UnCompiledNode) PrependOutput(outputPrefix any) error {
 	return nil
 }
 
-// Arc Expert: holds a pending (seen but not yet serialized) arc.
-type Arc struct {
-	Label           int32
+// BuilderArc Expert: holds a pending (seen but not yet serialized) arc.
+type BuilderArc struct {
+	Label           int
 	Target          Node
 	IsFinal         bool
 	Output          any
 	NextFinalOutput any
+}
+
+type name interface {
 }
