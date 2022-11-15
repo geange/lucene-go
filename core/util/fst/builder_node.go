@@ -20,7 +20,7 @@ var _ Node = &UnCompiledNode{}
 
 type UnCompiledNode struct {
 	Owner   *Builder
-	NumArcs int
+	NumArcs int64
 
 	// TODO: instead of recording isFinal/output on the
 	// node, maybe we should use -1 arc to mean "end" (like
@@ -102,7 +102,7 @@ func (u *UnCompiledNode) ReplaceLast(target Node, nextFinalOutput any, isFinal b
 func (u *UnCompiledNode) PrependOutput(outputPrefix any) error {
 	var err error
 	for i := range u.Arcs {
-		u.Arcs[i].Output, err = u.Owner.fst.Outputs.Add(outputPrefix, u.Arcs[i].Output)
+		u.Arcs[i].Output, err = u.Owner.fst.outputs.Add(outputPrefix, u.Arcs[i].Output)
 		if err != nil {
 			return err
 		}
@@ -110,7 +110,7 @@ func (u *UnCompiledNode) PrependOutput(outputPrefix any) error {
 	}
 
 	if u.IsFinal {
-		u.Output, err = u.Owner.fst.Outputs.Add(outputPrefix, u.Output)
+		u.Output, err = u.Owner.fst.outputs.Add(outputPrefix, u.Output)
 		if err != nil {
 			return err
 		}
@@ -128,7 +128,4 @@ type BuilderArc struct {
 	IsFinal         bool
 	Output          any
 	NextFinalOutput any
-}
-
-type name interface {
 }

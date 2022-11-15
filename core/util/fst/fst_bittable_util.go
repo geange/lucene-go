@@ -42,7 +42,7 @@ func isBitSet(bitIndex int, reader BytesReader) (bool, error) {
 //
 //	bitTableBytes – The number of bytes in the bit-table.
 //	reader – The FST.BytesReader to read. It must be positioned at the beginning of the bit-table.
-func countBits(bitTableBytes int, reader BytesReader) (int, error) {
+func countBits(bitTableBytes int64, reader BytesReader) (int64, error) {
 	err := assert(bitTableBytes >= 0, fmt.Sprintf("bitTableBytes=%d", bitTableBytes))
 	if err != nil {
 		return 0, err
@@ -67,7 +67,7 @@ func countBits(bitTableBytes int, reader BytesReader) (int, error) {
 
 		bitCount += bits.OnesCount64(uint64(values))
 	}
-	return bitCount, nil
+	return int64(bitCount), nil
 }
 
 // Counts the bits set up to the given bit zero-based index, exclusive.
@@ -105,7 +105,7 @@ func countBitsUpTo(bitIndex int, reader BytesReader) (int, error) {
 		mask := int64(1<<bitIndex) - 1 // Shifts are mod 64.
 		// Count the bits set only within the mask part, so up to bitIndex exclusive.
 
-		num, err := readUpTo8Bytes(numRemainingBytes, reader)
+		num, err := readUpTo8Bytes(int64(numRemainingBytes), reader)
 		if err != nil {
 			return 0, err
 		}
@@ -249,7 +249,7 @@ func readByte(reader BytesReader) (int64, error) {
 	return int64(b) & 0xFF, nil
 }
 
-func readUpTo8Bytes(numBytes int, reader BytesReader) (int64, error) {
+func readUpTo8Bytes(numBytes int64, reader BytesReader) (int64, error) {
 	err := assert(numBytes > 0 && numBytes <= 8, fmt.Sprintf("numBytes=%d", numBytes))
 	if err != nil {
 		return 0, err

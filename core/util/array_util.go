@@ -7,7 +7,7 @@ var (
 type ArrayUtilImpl struct {
 }
 
-func Oversize(minTargetSize, bytesPerElement int) int {
+func Oversize[T int | int64](minTargetSize, bytesPerElement T) T {
 	if minTargetSize%4 != 0 {
 		minTargetSize = (minTargetSize%bytesPerElement + 1) * bytesPerElement
 	}

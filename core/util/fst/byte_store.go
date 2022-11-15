@@ -2,6 +2,7 @@ package fst
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/pkg/collection"
 	"io"
 )
@@ -10,6 +11,8 @@ import (
 // let you read while writing which FST needs
 
 type ByteStore struct {
+	*store.DataOutputImp
+
 	blocks collection.ArrayList[[]byte]
 
 	blockSize int64
@@ -145,7 +148,7 @@ func (r *ByteStore) WriteBytesAt(dest int64, bs []byte) error {
 
 // CopyBytes Absolute copy bytes self to self, without changing the position.
 // Note: this cannot "grow" the bytes, so must only call it on already written parts.
-func (r *ByteStore) CopyBytes(src, dest, size int64) error {
+func (r *ByteStore) CopyBytesSelf(src, dest, size int64) error {
 	if src >= dest {
 		return errors.New("src >= dest")
 	}

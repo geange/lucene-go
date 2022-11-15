@@ -41,7 +41,7 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 				}
 			}
 
-			if node.Arcs[len(node.Arcs)-1].Label-node.Arcs[0].Label+1 != n.scratchArc.NumArcs() {
+			if int64(node.Arcs[len(node.Arcs)-1].Label-node.Arcs[0].Label+1) != n.scratchArc.NumArcs() {
 				return false
 			} else if v, err := BitTable.countBits(n.scratchArc, n.in); err == nil && v != node.NumArcs {
 				return false
@@ -59,7 +59,7 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 		}
 
 		if n.scratchArc.IsLast() {
-			if i == node.NumArcs-1 {
+			if i == int(node.NumArcs-1) {
 				return true
 			}
 			return false

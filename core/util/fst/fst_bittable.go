@@ -19,7 +19,7 @@ func (b *bitTable) isBitSet(bitIndex int, arc *FSTArc, in BytesReader) (bool, er
 
 // See BitTableUtil.countBits(int, FST.BytesReader).
 // The count of bit set is the number of arcs of a direct addressing node.
-func (b *bitTable) countBits(arc *FSTArc, in BytesReader) (int, error) {
+func (b *bitTable) countBits(arc *FSTArc, in BytesReader) (int64, error) {
 	err := assert(arc.NodeFlags() == ARCS_FOR_DIRECT_ADDRESSING)
 	if err != nil {
 		return 0, err
@@ -55,7 +55,7 @@ func (b *bitTable) nextBitSet(bitIndex int, arc *FSTArc, in BytesReader) (int, e
 	if err != nil {
 		return 0, err
 	}
-	return nextBitSet(bitIndex, bytes, in)
+	return nextBitSet(bitIndex, int(bytes), in)
 }
 
 // See BitTableUtil.previousBitSet(int, FST.BytesReader).
@@ -88,7 +88,7 @@ func (b *bitTable) assertIsValid(arc *FSTArc, in BytesReader) (bool, error) {
 		return false, err
 	}
 	// Last bit must be set.
-	ok, err = b.isBitSet(arc.NumArcs()-1, arc, in)
+	ok, err = b.isBitSet(int(arc.NumArcs()-1), arc, in)
 	if err != nil {
 		return false, err
 	}
@@ -97,7 +97,7 @@ func (b *bitTable) assertIsValid(arc *FSTArc, in BytesReader) (bool, error) {
 		return false, err
 	}
 	// No bit set after the last arc.
-	bitSet, err := b.nextBitSet(arc.NumArcs()-1, arc, in)
+	bitSet, err := b.nextBitSet(int(arc.NumArcs()-1), arc, in)
 	if err != nil {
 		return false, err
 	}
