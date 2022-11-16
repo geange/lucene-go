@@ -10,7 +10,7 @@ type BytesReader interface {
 	GetPosition() int64
 
 	// SetPosition Set current read position.
-	SetPosition(pos int64)
+	SetPosition(pos int64) error
 
 	// Reversed Returns true if this reader uses reversed bytes under-the-hood.
 	Reversed() bool

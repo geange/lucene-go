@@ -12,7 +12,3 @@ func assert(op bool, msg ...string) error {
 	//}
 	//return errors.New(msg[0])
 }
-
-func assertf(op bool) {
-
-}

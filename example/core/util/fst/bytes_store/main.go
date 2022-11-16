@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/geange/lucene-go/core/util/fst1"
+	"github.com/geange/lucene-go/core/util/fst"
 )
 
 func main() {
-	bytes := fst1.NewBytesStore(2)
+	bytes := fst.NewByteStore(2)
 
-	err := bytes.WriteBytes([]byte("1111111111"))
+	err := bytes.WriteBytes([]byte("1111111112"))
 	if err != nil {
 		panic(err)
 	}

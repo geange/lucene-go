@@ -18,6 +18,17 @@ type NodeHash struct {
 	in         BytesReader
 }
 
+func NewNodeHash(fst *FST, in BytesReader) *NodeHash {
+	table, _ := packed.NewPagedGrowableWriter(16, 1<<27, 8, packed.COMPACT)
+	return &NodeHash{
+		table:      table,
+		mask:       15,
+		fst:        fst,
+		scratchArc: &FSTArc{},
+		in:         in,
+	}
+}
+
 const (
 	PRIME = int64(32)
 )

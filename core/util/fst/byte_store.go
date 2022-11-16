@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/pkg/collection"
-	"io"
 )
 
 // TODO: merge with PagedBytes, except PagedBytes doesn't
@@ -13,7 +12,7 @@ import (
 type ByteStore struct {
 	*store.DataOutputImp
 
-	blocks collection.ArrayList[[]byte]
+	blocks *collection.ArrayList[[]byte]
 
 	blockSize int64
 	blockBits int64
@@ -24,10 +23,24 @@ type ByteStore struct {
 	nextWrite int64
 }
 
+func NewByteStore(blockBits int) *ByteStore {
+	blockSize := int64(1 << blockBits)
+	bs := &ByteStore{
+		blocks:    collection.NewArrayList[[]byte](),
+		blockSize: blockSize,
+		blockBits: int64(blockBits),
+		blockMask: blockSize - 1,
+		current:   nil,
+		nextWrite: 0,
+	}
+	bs.DataOutputImp = store.NewDataOutputImp(bs)
+	return bs
+}
+
 // WriteByteAt Absolute write byte; you must ensure dest is < max position written so far.
 func (r *ByteStore) WriteByteAt(dest int64, b byte) error {
-	blockIndex := dest >> r.blockBits
-	block, err := r.blocks.Get(blockIndex)
+	blockIndex := int64(dest >> r.blockBits)
+	block, err := r.blocks.Get(int(blockIndex))
 	if err != nil {
 		return err
 	}
@@ -50,13 +63,22 @@ func (r *ByteStore) WriteByte(b byte) error {
 }
 
 func (r *ByteStore) WriteBytes(bs []byte) error {
+	if r.current == nil {
+		r.current = make([]byte, r.blockSize)
+		err := r.blocks.Add(r.current)
+		if err != nil {
+			return err
+		}
+		r.nextWrite = 0
+	}
+
 	offset := int64(0)
 	size := int64(len(bs))
 
 	for size > 0 {
 		chunk := r.blockSize - r.nextWrite
 		if size <= chunk {
-			copy(r.current[r.nextWrite:], bs[offset:])
+			copy(r.current[r.nextWrite:], bs[offset:offset+size])
 			r.nextWrite += size
 			break
 		} else {
@@ -116,39 +138,9 @@ func (r *ByteStore) WriteBytesAt(dest int64, bs []byte) error {
 	return nil
 }
 
-/**
-
-  long end = src + len;
-
-  int blockIndex = (int) (end >> blockBits);
-  int downTo = (int) (end & blockMask);
-  if (downTo == 0) {
-    blockIndex--;
-    downTo = blockSize;
-  }
-  byte[] block = blocks.get(blockIndex);
-
-  while (len > 0) {
-    //System.out.println("  cycle downTo=" + downTo);
-    if (len <= downTo) {
-      //System.out.println("    finish");
-      writeBytes(dest, block, downTo-len, len);
-      break;
-    } else {
-      //System.out.println("    partial");
-      len -= downTo;
-      writeBytes(dest + len, block, 0, downTo);
-      blockIndex--;
-      block = blocks.get(blockIndex);
-      downTo = blockSize;
-    }
-  }
-
-*/
-
-// CopyBytes Absolute copy bytes self to self, without changing the position.
+// MoveBytes Absolute copy bytes self to self, without changing the position.
 // Note: this cannot "grow" the bytes, so must only call it on already written parts.
-func (r *ByteStore) CopyBytesSelf(src, dest, size int64) error {
+func (r *ByteStore) MoveBytes(src, dest, size int64) error {
 	if src >= dest {
 		return errors.New("src >= dest")
 	}
@@ -168,7 +160,7 @@ func (r *ByteStore) CopyBytesSelf(src, dest, size int64) error {
 
 	for size > 0 {
 		if size <= downTo {
-			err := r.WriteBytesAt(dest, block[downTo-size:size])
+			err := r.WriteBytesAt(dest, block[downTo-size:downTo])
 			if err != nil {
 				return err
 			}
@@ -189,31 +181,6 @@ func (r *ByteStore) CopyBytesSelf(src, dest, size int64) error {
 	}
 	return nil
 }
-
-/**
-
-  public void copyBytes(long src, byte[] dest, int offset, int len) {
-    int blockIndex = (int) (src >> blockBits);
-    int upto = (int) (src & blockMask);
-    byte[] block = blocks.get(blockIndex);
-    while (len > 0) {
-      int chunk = blockSize - upto;
-      if (len <= chunk) {
-        System.arraycopy(block, upto, dest, offset, len);
-        break;
-      } else {
-        System.arraycopy(block, upto, dest, offset, chunk);
-        blockIndex++;
-        block = blocks.get(blockIndex);
-        upto = 0;
-        len -= chunk;
-        offset += chunk;
-      }
-    }
-  }
-
-
-*/
 
 // CopyBytesToArray Copies bytes from this store to a target byte array.
 func (r *ByteStore) CopyBytesToArray(src int64, dest []byte) error {
@@ -249,30 +216,11 @@ func (r *ByteStore) CopyBytesToArray(src int64, dest []byte) error {
 	return nil
 }
 
-/**
-  public void writeInt(long pos, int value) {
-    int blockIndex = (int) (pos >> blockBits);
-    int upto = (int) (pos & blockMask);
-    byte[] block = blocks.get(blockIndex);
-    int shift = 24;
-    for(int i=0;i<4;i++) {
-      block[upto++] = (byte) (value >> shift);
-      shift -= 8;
-      if (upto == blockSize) {
-        upto = 0;
-        blockIndex++;
-        block = blocks.get(blockIndex);
-      }
-    }
-  }
-
-*/
-
 // WriteInt32 Writes an int at the absolute position without changing the current pointer.
 func (r *ByteStore) WriteInt32(pos int64, value int32) error {
-	blockIndex := pos >> r.blockBits
+	blockIndex := int64(pos >> r.blockBits)
 	upto := pos & r.blockMask
-	block, err := r.blocks.Get(blockIndex)
+	block, err := r.blocks.Get(int(blockIndex))
 	if err != nil {
 		return err
 	}
@@ -285,7 +233,7 @@ func (r *ByteStore) WriteInt32(pos int64, value int32) error {
 		if upto == r.blockSize {
 			upto = 0
 			blockIndex++
-			block, err = r.blocks.Get(blockIndex)
+			block, err = r.blocks.Get(int(blockIndex))
 			if err != nil {
 				return err
 			}
@@ -305,14 +253,14 @@ func (r *ByteStore) Reverse(srcPos, destPos int64) error {
 
 	srcBlockIndex := srcPos >> r.blockBits
 	src := srcPos & r.blockMask
-	srcBlock, err := r.blocks.Get(srcBlockIndex)
+	srcBlock, err := r.blocks.Get(int(srcBlockIndex))
 	if err != nil {
 		return err
 	}
 
 	destBlockIndex := destPos >> r.blockBits
 	dest := destPos & r.blockMask
-	destBlock, err := r.blocks.Get(destBlockIndex)
+	destBlock, err := r.blocks.Get(int(destBlockIndex))
 	if err != nil {
 		return err
 	}
@@ -327,7 +275,7 @@ func (r *ByteStore) Reverse(srcPos, destPos int64) error {
 
 		if src == r.blockSize {
 			srcBlockIndex++
-			srcBlock, err = r.blocks.Get(srcBlockIndex)
+			srcBlock, err = r.blocks.Get(int(srcBlockIndex))
 			if err != nil {
 				return err
 			}
@@ -338,7 +286,7 @@ func (r *ByteStore) Reverse(srcPos, destPos int64) error {
 
 		if dest == -1 {
 			destBlockIndex--
-			destBlock, err = r.blocks.Get(destBlockIndex)
+			destBlock, err = r.blocks.Get(int(destBlockIndex))
 			if err != nil {
 				return err
 			}
@@ -388,7 +336,7 @@ func (r *ByteStore) Truncate(newLen int64) error {
 		nextWrite = r.blockSize
 	}
 
-	err := r.blocks.ClearSubList(blockIndex+1, r.blocks.Size())
+	err := r.blocks.ClearSubList(int(blockIndex+1), r.blocks.Size())
 	if err != nil {
 		return err
 	}
@@ -396,7 +344,7 @@ func (r *ByteStore) Truncate(newLen int64) error {
 	if newLen == 0 {
 		r.current = nil
 	} else {
-		r.current, err = r.blocks.Get(blockIndex)
+		r.current, err = r.blocks.Get(int(blockIndex))
 		if err != nil {
 			return err
 		}
@@ -424,12 +372,24 @@ func (r *ByteStore) Finish() error {
 }
 
 // WriteTo Writes all of our bytes to the target DataOutput.
-func (r *ByteStore) WriteTo(out io.Writer) error {
+func (r *ByteStore) WriteTo(out store.DataOutput) error {
 	for _, block := range r.blocks.List() {
-		_, err := out.Write(block)
+		err := out.WriteBytes(block)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (r *ByteStore) getReverseReader(allowSingle bool) (BytesReader, error) {
+	if allowSingle && r.blocks.Size() == 1 {
+		bytes, err := r.blocks.Get(0)
+		if err != nil {
+			return nil, err
+		}
+		return NewReverseBytesReader(bytes), nil
+	}
+
+	return NewBuilderBytesReader(r)
 }

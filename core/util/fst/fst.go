@@ -15,13 +15,24 @@ type FST struct {
 	emptyOutput any
 
 	// A BytesStore, used during building, or during reading when the FST is very large (more than 1 GB). If the FST is less than 1 GB then bytesArray is set instead.
-	bytes ByteStore
+	bytes *ByteStore
 
 	fstStore FSTStore
 
 	startNode int64
 
 	outputs Outputs
+}
+
+func NewFST(inputType INPUT_TYPE, outputs Outputs, bytesPageBits int) *FST {
+	return &FST{
+		inputType:   inputType,
+		emptyOutput: nil,
+		bytes:       NewByteStore(bytesPageBits),
+		fstStore:    nil,
+		startNode:   0,
+		outputs:     outputs,
+	}
 }
 
 func (f *FST) ReadFirstRealTargetArc(nodeAddress int64, arc *FSTArc, in BytesReader) (*FSTArc, error) {
@@ -669,7 +680,7 @@ func (f *FST) writeNodeForBinarySearch(builder *Builder, nodeIn *UnCompiledNode,
 			srcPos -= int64(arcLen)
 			if srcPos != destPos {
 				// TODO: assert destPos > srcPos: "destPos=" + destPos + " srcPos=" + srcPos + " arcIdx=" + arcIdx + " maxBytesPerArc=" + maxBytesPerArc + " arcLen=" + arcLen + " nodeIn.numArcs=" + nodeIn.numArcs;
-				err := builder.bytes.CopyBytesSelf(srcPos, destPos, int64(arcLen))
+				err := builder.bytes.MoveBytes(srcPos, destPos, int64(arcLen))
 				if err != nil {
 					return err
 				}

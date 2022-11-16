@@ -35,6 +35,15 @@ type UnCompiledNode struct {
 	Depth int
 }
 
+func NewUnCompiledNode(owner *Builder, depth int) *UnCompiledNode {
+	return &UnCompiledNode{
+		Owner:  owner,
+		Arcs:   make([]BuilderArc, 1),
+		Output: owner.NO_OUTPUT,
+		Depth:  depth,
+	}
+}
+
 func (u *UnCompiledNode) IsCompiled() bool {
 	return false
 }

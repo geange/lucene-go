@@ -4,6 +4,13 @@ import "errors"
 
 type ArrayList[T any] struct {
 	elem []T
+	no   T
+}
+
+func NewArrayList[T any]() *ArrayList[T] {
+	return &ArrayList[T]{
+		elem: make([]T, 0),
+	}
 }
 
 func (r *ArrayList[T]) Size() int {
@@ -12,15 +19,12 @@ func (r *ArrayList[T]) Size() int {
 
 func (r *ArrayList[T]) Get(index int) (T, error) {
 	if index < 0 || index >= r.Size() {
-		return nil, ErrIndexOutOfBounds
+		return r.no, ErrIndexOutOfBounds
 	}
 	return r.elem[index], nil
 }
 
 func (r *ArrayList[T]) Add(values T) error {
-	if values == nil {
-		return ErrNilPointer
-	}
 	r.elem = append(r.elem, values)
 	return nil
 }
