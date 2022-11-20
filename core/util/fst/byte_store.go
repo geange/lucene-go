@@ -30,9 +30,10 @@ func NewByteStore(blockBits int) *ByteStore {
 		blockSize: blockSize,
 		blockBits: int64(blockBits),
 		blockMask: blockSize - 1,
-		current:   nil,
+		current:   make([]byte, blockSize),
 		nextWrite: 0,
 	}
+	_ = bs.blocks.Add(bs.current)
 	bs.DataOutputImp = store.NewDataOutputImp(bs)
 	return bs
 }
@@ -49,7 +50,7 @@ func (r *ByteStore) WriteByteAt(dest int64, b byte) error {
 }
 
 func (r *ByteStore) WriteByte(b byte) error {
-	if r.nextWrite == r.blockSize {
+	if r.nextWrite == r.blockSize || len(r.current) == 0 {
 		r.current = make([]byte, r.blockSize)
 		err := r.blocks.Add(r.current)
 		if err != nil {

@@ -39,9 +39,7 @@ type Outputs interface {
 	// defaults to just calling readFinalOutput and discarding the result.
 	SkipFinalOutput(in store.DataInput) error
 
-	// GetNoOutput NOTE: this output is compared with == so you must ensure that all methods return
-	// the single object if it's really no output
-	GetNoOutput() any
+	IsNoOutput(v any) bool
 
 	Merge(first, second any) (any, error)
 }

@@ -1,6 +1,9 @@
 package fst
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type Node interface {
 	IsCompiled() bool
@@ -12,6 +15,10 @@ type CompiledNode struct {
 	node int64
 }
 
+func NewCompiledNode() *CompiledNode {
+	return &CompiledNode{}
+}
+
 func (*CompiledNode) IsCompiled() bool {
 	return true
 }
@@ -19,14 +26,14 @@ func (*CompiledNode) IsCompiled() bool {
 var _ Node = &UnCompiledNode{}
 
 type UnCompiledNode struct {
-	Owner   *Builder
-	NumArcs int64
+	Owner *Builder
+	//NumArcs int64
 
 	// TODO: instead of recording isFinal/output on the
 	// node, maybe we should use -1 arc to mean "end" (like
 	// we do when reading the FST).  Would simplify much
 	// code here...
-	Arcs       []BuilderArc
+	Arcs       []*BuilderArc
 	Output     any
 	IsFinal    bool
 	InputCount int64
@@ -35,11 +42,15 @@ type UnCompiledNode struct {
 	Depth int
 }
 
+func (u *UnCompiledNode) NumArcs() int64 {
+	return int64(len(u.Arcs))
+}
+
 func NewUnCompiledNode(owner *Builder, depth int) *UnCompiledNode {
 	return &UnCompiledNode{
 		Owner:  owner,
-		Arcs:   make([]BuilderArc, 1),
-		Output: owner.NO_OUTPUT,
+		Arcs:   make([]*BuilderArc, 0),
+		Output: nil,
 		Depth:  depth,
 	}
 }
@@ -49,9 +60,9 @@ func (u *UnCompiledNode) IsCompiled() bool {
 }
 
 func (u *UnCompiledNode) Clear() {
-	u.NumArcs = 0
+	u.Arcs = u.Arcs[:0]
 	u.IsFinal = false
-	u.Output = u.Owner.NO_OUTPUT
+	u.Output = nil
 	u.InputCount = 0
 
 	// We don't clear the depth here because it never changes
@@ -63,7 +74,7 @@ func (u *UnCompiledNode) GetLastOutput(labelToMatch int) any {
 }
 
 func (u *UnCompiledNode) AddArc(label int, target Node) {
-	u.Arcs = append(u.Arcs, BuilderArc{
+	u.Arcs = append(u.Arcs, &BuilderArc{
 		Label:           label,
 		Target:          target,
 		Output:          nil,
@@ -100,11 +111,19 @@ func (u *UnCompiledNode) SetLastOutput(label int, newOutput any) error {
 	return nil
 }
 
-func (u *UnCompiledNode) ReplaceLast(target Node, nextFinalOutput any, isFinal bool) {
+func (u *UnCompiledNode) ReplaceLast(labelToMatch int, target Node, nextFinalOutput any, isFinal bool) error {
+	if len(u.Arcs) <= 0 {
+		return fmt.Errorf("arcs size is 0")
+	}
+
 	arc := u.Arcs[len(u.Arcs)-1]
+	if arc.Label != labelToMatch {
+		return fmt.Errorf("arc.label=%d vs %d", arc.Label, labelToMatch)
+	}
 	arc.Target = target
 	arc.NextFinalOutput = nextFinalOutput
 	arc.IsFinal = isFinal
+	return nil
 }
 
 // PrependOutput pushes an output prefix forward onto all arcs

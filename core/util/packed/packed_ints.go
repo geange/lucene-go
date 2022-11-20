@@ -279,5 +279,5 @@ func unsignedBitsRequired(v uint64) int {
 }
 
 func checkBlockSize(blockSize, minBlockSize, maxBlockSize int) int {
-	return bits.LeadingZeros32(uint32(blockSize))
+	return bits.TrailingZeros(uint(blockSize))
 }

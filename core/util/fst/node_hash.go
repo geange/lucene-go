@@ -1,6 +1,7 @@
 package fst
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -42,7 +43,7 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 	// Fail fast for a node with fixed length arcs.
 	if n.scratchArc.BytesPerArc() != 0 {
 		if n.scratchArc.NodeFlags() == ARCS_FOR_BINARY_SEARCH {
-			if node.NumArcs != n.scratchArc.NumArcs() {
+			if node.NumArcs() != n.scratchArc.NumArcs() {
 				return false
 			}
 		} else {
@@ -54,7 +55,7 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 
 			if int64(node.Arcs[len(node.Arcs)-1].Label-node.Arcs[0].Label+1) != n.scratchArc.NumArcs() {
 				return false
-			} else if v, err := BitTable.countBits(n.scratchArc, n.in); err == nil && v != node.NumArcs {
+			} else if v, err := BitTable.countBits(n.scratchArc, n.in); err == nil && v != node.NumArcs() {
 				return false
 			}
 		}
@@ -70,7 +71,7 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 		}
 
 		if n.scratchArc.IsLast() {
-			if i == int(node.NumArcs-1) {
+			if i == int(node.NumArcs()-1) {
 				return true
 			}
 			return false
@@ -87,7 +88,7 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 
 // hashNode code for an unfrozen node.  This must be identical
 // to the frozen case (below)!!
-func (n *NodeHash) hashUnfrozenNode(node *UnCompiledNode) int64 {
+func (n *NodeHash) hashUnfrozenNode(node *UnCompiledNode) (int64, error) {
 	h := int64(0)
 	// TODO: maybe if number of arcs is high we can safely subsample?
 
@@ -95,16 +96,21 @@ func (n *NodeHash) hashUnfrozenNode(node *UnCompiledNode) int64 {
 		arc := node.Arcs[i]
 		h = PRIME*h + int64(arc.Label)
 
-		n := arc.Target.(*CompiledNode).node
+		target, ok := arc.Target.(*CompiledNode)
+		if !ok {
+			return 0, errors.New("target is not CompiledNode")
+		}
 
-		h = PRIME*h + (n ^ (n >> 32))
+		nodeValue := target.node
+
+		h = PRIME*h + (nodeValue ^ (nodeValue >> 32))
 		h = PRIME*h + hashObj(arc.Output)
 		h = PRIME*h + hashObj(arc.NextFinalOutput)
 		if arc.IsFinal {
 			h += 17
 		}
 	}
-	return h & math.MaxInt64
+	return h & math.MaxInt64, nil
 }
 
 func (n *NodeHash) hashFrozenNode(node int64) (int64, error) {
@@ -138,7 +144,10 @@ func (n *NodeHash) hashFrozenNode(node int64) (int64, error) {
 }
 
 func (n *NodeHash) Add(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
-	h := n.hashUnfrozenNode(nodeIn)
+	h, err := n.hashUnfrozenNode(nodeIn)
+	if err != nil {
+		return 0, err
+	}
 	pos := h & n.mask
 	c := int64(0)
 
@@ -156,6 +165,7 @@ func (n *NodeHash) Add(builder *Builder, nodeIn *UnCompiledNode) (int64, error) 
 				if err != nil {
 					return 0, err
 				}
+
 				if frozenNode != h {
 					return 0, fmt.Errorf("frozenHash=%d vs h=%d", frozenNode, h)
 				}
@@ -233,6 +243,9 @@ func hashObj(obj interface{}) int64 {
 				h = PRIME*h + int64(b)
 			}
 			return h
+		case int64:
+			value := obj.(int64)
+			return value ^ (value >> 32)
 		}
 
 	}

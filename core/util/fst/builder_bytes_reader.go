@@ -22,12 +22,15 @@ func NewBuilderBytesReader(bs *ByteStore) (*BuilderBytesReader, error) {
 		current = v
 	}
 
-	return &BuilderBytesReader{
+	reader := &BuilderBytesReader{
 		current:    current,
 		bs:         bs,
 		nextBuffer: -1,
 		nextRead:   0,
-	}, nil
+	}
+
+	reader.DataInputImp = store.NewDataInputImp(reader)
+	return reader, nil
 }
 
 func (b *BuilderBytesReader) ReadByte() (byte, error) {

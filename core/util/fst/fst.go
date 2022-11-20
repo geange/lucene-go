@@ -1,6 +1,7 @@
 package fst
 
 import (
+	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
@@ -30,13 +31,16 @@ func NewFST(inputType INPUT_TYPE, outputs Outputs, bytesPageBits int) *FST {
 		emptyOutput: nil,
 		bytes:       NewByteStore(bytesPageBits),
 		fstStore:    nil,
-		startNode:   0,
+		startNode:   -1,
 		outputs:     outputs,
 	}
 }
 
 func (f *FST) ReadFirstRealTargetArc(nodeAddress int64, arc *FSTArc, in BytesReader) (*FSTArc, error) {
-	in.SetPosition(nodeAddress)
+	err := in.SetPosition(nodeAddress)
+	if err != nil {
+		return nil, err
+	}
 
 	b, err := in.ReadByte()
 	if err != nil {
@@ -184,7 +188,7 @@ func (f *FST) readArc(arc *FSTArc, in BytesReader) (*FSTArc, error) {
 		}
 		arc.output = output
 	} else {
-		arc.output = f.outputs.GetNoOutput()
+		arc.output = nil
 	}
 
 	if arc.flag(BIT_ARC_HAS_FINAL_OUTPUT) {
@@ -194,7 +198,7 @@ func (f *FST) readArc(arc *FSTArc, in BytesReader) (*FSTArc, error) {
 		}
 		arc.nextFinalOutput = output
 	} else {
-		arc.nextFinalOutput = f.outputs.GetNoOutput()
+		arc.nextFinalOutput = nil
 	}
 
 	if arc.flag(BIT_STOP_NODE) {
@@ -226,7 +230,10 @@ func (f *FST) readArc(arc *FSTArc, in BytesReader) (*FSTArc, error) {
 				} else {
 					numArcs = int(arc.NumArcs())
 				}
-				in.SetPosition(arc.PosArcsStart() - int64(arc.BytesPerArc()*numArcs))
+				err := in.SetPosition(arc.PosArcsStart() - int64(arc.BytesPerArc()*numArcs))
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 		arc.target = in.GetPosition()
@@ -304,9 +311,9 @@ func (f *FST) readArcByDirectAddressing(arc *FSTArc, in BytesReader, rangeIndex,
 // AddNode serializes new node by appending its bytes to the end
 // of the current byte[]
 func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
-	NO_OUTPUT := f.outputs.GetNoOutput()
+	//NO_OUTPUT := f.outputs.GetNoOutput()
 
-	if nodeIn.NumArcs == 0 {
+	if nodeIn.NumArcs() == 0 {
 		if nodeIn.IsFinal {
 			return FINAL_END_NODE, nil
 		} else {
@@ -317,20 +324,20 @@ func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
 
 	doFixedLengthArcs := f.shouldExpandNodeWithFixedLengthArcs(builder, nodeIn)
 	if doFixedLengthArcs {
-		if int64(len(builder.numBytesPerArc)) < nodeIn.NumArcs {
-			builder.numBytesPerArc = make([]int, util.Oversize(nodeIn.NumArcs, int64(INTEGER_BYTES)))
+		if int64(len(builder.numBytesPerArc)) < nodeIn.NumArcs() {
+			builder.numBytesPerArc = make([]int, util.Oversize(nodeIn.NumArcs(), int64(INTEGER_BYTES)))
 			builder.numLabelBytesPerArc = make([]int64, len(builder.numBytesPerArc))
 		}
 	}
 
-	builder.arcCount += int64(nodeIn.NumArcs)
+	builder.arcCount += nodeIn.NumArcs()
 
-	lastArc := nodeIn.NumArcs - 1
+	lastArc := nodeIn.NumArcs() - 1
 
 	lastArcStart := builder.bytes.GetPosition()
 	maxBytesPerArc := 0
 	maxBytesPerArcWithoutLabel := 0
-	for arcIdx := 0; arcIdx < int(nodeIn.NumArcs); arcIdx++ {
+	for arcIdx := 0; arcIdx < int(nodeIn.NumArcs()); arcIdx++ {
 		arc := nodeIn.Arcs[arcIdx]
 		target := arc.Target.(*CompiledNode)
 		flags := 0
@@ -348,7 +355,7 @@ func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
 
 		if arc.IsFinal {
 			flags += BIT_FINAL_ARC
-			if arc.NextFinalOutput != NO_OUTPUT {
+			if arc.NextFinalOutput != nil {
 				flags += BIT_ARC_HAS_FINAL_OUTPUT
 			}
 		} else {
@@ -361,7 +368,7 @@ func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
 			flags += BIT_STOP_NODE
 		}
 
-		if arc.Output != NO_OUTPUT {
+		if arc.Output != nil {
 			flags += BIT_ARC_HAS_OUTPUT
 		}
 
@@ -377,14 +384,14 @@ func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
 
 		numLabelBytes := builder.bytes.GetPosition() - labelStart
 
-		if arc.Output != NO_OUTPUT {
+		if arc.Output != nil {
 			err := f.outputs.Write(arc.Output, builder.bytes)
 			if err != nil {
 				return 0, err
 			}
 		}
 
-		if arc.NextFinalOutput != NO_OUTPUT {
+		if arc.NextFinalOutput != nil {
 			//System.out.println("    write final output");
 			err := f.outputs.WriteFinalOutput(arc.NextFinalOutput, builder.bytes)
 			if err != nil {
@@ -418,7 +425,7 @@ func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
 		// TODO: assert maxBytesPerArc > 0;
 		// 2nd pass just "expands" all arcs to take up a fixed byte size
 
-		labelRange := nodeIn.Arcs[nodeIn.NumArcs-1].Label - nodeIn.Arcs[0].Label + 1
+		labelRange := nodeIn.Arcs[nodeIn.NumArcs()-1].Label - nodeIn.Arcs[0].Label + 1
 		// TODO: assert labelRange > 0;
 		if ok, err := f.shouldExpandNodeWithDirectAddressing(builder, nodeIn, int64(maxBytesPerArc), int64(maxBytesPerArcWithoutLabel), int64(labelRange)); ok && err == nil {
 			err := f.writeNodeForDirectAddressing(builder, nodeIn, startAddress, int64(maxBytesPerArcWithoutLabel), int64(labelRange))
@@ -468,13 +475,13 @@ func (f *FST) shouldExpandNodeWithDirectAddressing(builder *Builder, nodeIn *UnC
 	numBytesPerArc, maxBytesPerArcWithoutLabel, labelRange int64) (bool, error) {
 
 	// Anticipate precisely the size of the encodings.
-	sizeForBinarySearch := numBytesPerArc * nodeIn.NumArcs
+	sizeForBinarySearch := numBytesPerArc * nodeIn.NumArcs()
 
 	bytes, err := getNumPresenceBytes(labelRange)
 	if err != nil {
 		return false, err
 	}
-	sizeForDirectAddressing := bytes + builder.numLabelBytesPerArc[0] + maxBytesPerArcWithoutLabel*nodeIn.NumArcs
+	sizeForDirectAddressing := bytes + builder.numLabelBytesPerArc[0] + maxBytesPerArcWithoutLabel*nodeIn.NumArcs()
 
 	// Determine the allowed oversize compared to binary search.
 	// This is defined by a parameter of FST Builder (default 1: no oversize).
@@ -510,7 +517,7 @@ func (f *FST) writeNodeForDirectAddressing(builder *Builder, nodeIn *UnCompiledN
 		return err
 	}
 	srcPos := builder.bytes.GetPosition()
-	totalArcBytes := builder.numLabelBytesPerArc[0] + nodeIn.NumArcs*maxBytesPerArcWithoutLabel
+	totalArcBytes := builder.numLabelBytesPerArc[0] + nodeIn.NumArcs()*maxBytesPerArcWithoutLabel
 	bufferOffset := headerMaxLen + numPresenceBytes + totalArcBytes
 	fixedBuffer := builder.fixedLengthArcsBuffer
 	err = fixedBuffer.ensureCapacity(int(bufferOffset))
@@ -520,7 +527,7 @@ func (f *FST) writeNodeForDirectAddressing(builder *Builder, nodeIn *UnCompiledN
 	buffer := fixedBuffer.GetBytes()
 
 	// Copy the arcs to the buffer, dropping all labels except first one.
-	for arcIdx := nodeIn.NumArcs - 1; arcIdx >= 0; arcIdx-- {
+	for arcIdx := nodeIn.NumArcs() - 1; arcIdx >= 0; arcIdx-- {
 		bufferOffset -= maxBytesPerArcWithoutLabel
 		srcArcLen := int64(builder.numBytesPerArc[arcIdx])
 		srcPos -= srcArcLen
@@ -612,7 +619,7 @@ func (f *FST) writePresenceBits(builder *Builder, nodeIn *UnCompiledNode, dest, 
 	presenceBits := 1 // The first arc is always present.
 	presenceIndex := 0
 	previousLabel := nodeIn.Arcs[0].Label
-	for arcIdx := 1; arcIdx < int(nodeIn.NumArcs); arcIdx++ {
+	for arcIdx := 1; arcIdx < int(nodeIn.NumArcs()); arcIdx++ {
 		label := nodeIn.Arcs[arcIdx].Label
 		// TODO: assert label > previousLabel;
 		presenceIndex += label - previousLabel
@@ -654,7 +661,7 @@ func (f *FST) writeNodeForBinarySearch(builder *Builder, nodeIn *UnCompiledNode,
 	if err != nil {
 		return err
 	}
-	err = fixedBuffer.writeVInt(nodeIn.NumArcs)
+	err = fixedBuffer.writeVInt(nodeIn.NumArcs())
 	if err != nil {
 		return err
 	}
@@ -667,14 +674,14 @@ func (f *FST) writeNodeForBinarySearch(builder *Builder, nodeIn *UnCompiledNode,
 
 	// Expand the arcs in place, backwards.
 	srcPos := builder.bytes.GetPosition()
-	destPos := startAddress + int64(headerLen) + nodeIn.NumArcs*maxBytesPerArc
+	destPos := startAddress + headerLen + nodeIn.NumArcs()*maxBytesPerArc
 	// TODO: assert destPos >= srcPos;
 	if destPos > srcPos {
 		err := builder.bytes.SkipBytes(destPos - srcPos)
 		if err != nil {
 			return err
 		}
-		for arcIdx := nodeIn.NumArcs - 1; arcIdx >= 0; arcIdx-- {
+		for arcIdx := nodeIn.NumArcs() - 1; arcIdx >= 0; arcIdx-- {
 			destPos -= int64(maxBytesPerArc)
 			arcLen := builder.numBytesPerArc[arcIdx]
 			srcPos -= int64(arcLen)
@@ -699,8 +706,24 @@ const (
 
 func (f *FST) shouldExpandNodeWithFixedLengthArcs(builder *Builder, node *UnCompiledNode) bool {
 	return builder.allowFixedLengthArcs &&
-		((node.Depth <= FIXED_LENGTH_ARC_SHALLOW_DEPTH && node.NumArcs >= FIXED_LENGTH_ARC_SHALLOW_NUM_ARCS) ||
-			node.NumArcs >= FIXED_LENGTH_ARC_DEEP_NUM_ARCS)
+		((node.Depth <= FIXED_LENGTH_ARC_SHALLOW_DEPTH && node.NumArcs() >= FIXED_LENGTH_ARC_SHALLOW_NUM_ARCS) ||
+			node.NumArcs() >= FIXED_LENGTH_ARC_DEEP_NUM_ARCS)
+}
+
+func (f *FST) SetEmptyOutput(output any) {
+
+}
+
+func (f *FST) Finish(newStartNode int64) error {
+	// TODO: assert newStartNode <= bytes.getPosition();
+	if f.startNode != -1 {
+		return errors.New("already finished")
+	}
+	if newStartNode == FINAL_END_NODE && f.emptyOutput != nil {
+		newStartNode = 0
+	}
+	f.startNode = newStartNode
+	return f.bytes.Finish()
 }
 
 func flag(flags, bit int) bool {
