@@ -268,11 +268,17 @@ func (b *Builder) freezeTail(prefixLenPlus1 int) error {
 					return err
 				}
 
-				parent.ReplaceLast(int(b.lastInput[idx-1]), compileNode, nextFinalOutput, isFinal)
+				err = parent.ReplaceLast(int(b.lastInput[idx-1]), compileNode, nextFinalOutput, isFinal)
+				if err != nil {
+					return err
+				}
 			} else {
 				// replaceLast just to install
 				// nextFinalOutput/isFinal onto the arc
-				parent.ReplaceLast(int(b.lastInput[idx-1]), node, nextFinalOutput, isFinal)
+				err := parent.ReplaceLast(int(b.lastInput[idx-1]), node, nextFinalOutput, isFinal)
+				if err != nil {
+					return err
+				}
 				// this node will stay in play for now, since we are
 				// undecided on whether to prune it.  later, it
 				// will be either compiled or pruned, so we must
@@ -372,7 +378,7 @@ func (b *Builder) Add(input []rune, output any) error {
 				return err
 			}
 			// TODO: assert validOutput(wordSuffix);
-			err := parentNode.SetLastOutput(int(input[idx-1]), commonOutputPrefix)
+			err = parentNode.SetLastOutput(int(input[idx-1]), commonOutputPrefix)
 			if err != nil {
 				return err
 			}

@@ -19,15 +19,8 @@ func NewPositiveIntOutputs() *PositiveIntOutputs {
 }
 
 func (p *PositiveIntOutputs) Common(output1, output2 any) (any, error) {
-	n1, ok := output1.(int64)
-	if !ok {
-		return 0, errors.Wrap(ErrTypeNotInt64, "output1's type not match")
-	}
-
-	n2, ok := output2.(int64)
-	if !ok {
-		return 0, errors.Wrap(ErrTypeNotInt64, "output2's type not match")
-	}
+	n1, _ := output1.(int64)
+	n2, _ := output2.(int64)
 
 	if n1 == 0 || n2 == 0 {
 		return nil, nil
@@ -40,15 +33,8 @@ func (p *PositiveIntOutputs) Common(output1, output2 any) (any, error) {
 }
 
 func (p *PositiveIntOutputs) Subtract(output1, inc any) (any, error) {
-	n1, ok := output1.(int64)
-	if !ok {
-		return 0, errors.Wrap(ErrTypeNotInt64, "prefix's type not match")
-	}
-
-	n2, ok := inc.(int64)
-	if !ok {
-		return 0, errors.Wrap(ErrTypeNotInt64, "inc's type not match")
-	}
+	n1, _ := output1.(int64)
+	n2, _ := inc.(int64)
 
 	if n1 == n2 {
 		return nil, nil
@@ -58,21 +44,15 @@ func (p *PositiveIntOutputs) Subtract(output1, inc any) (any, error) {
 }
 
 func (p *PositiveIntOutputs) Add(prefix, output any) (any, error) {
-	n1, ok := prefix.(int64)
-	if !ok {
-		return 0, errors.Wrap(ErrTypeNotInt64, "prefix's type not match")
-	}
-	n2, ok := output.(int64)
-	if !ok {
-		return 0, errors.Wrap(ErrTypeNotInt64, "output's type not match")
-	}
+	n1, _ := prefix.(int64)
+	n2, _ := output.(int64)
 
 	return n1 + n2, nil
 }
 
 func (p *PositiveIntOutputs) Write(output any, out store.DataOutput) error {
 	n1, ok := output.(int64)
-	if ok {
+	if !ok {
 		return errors.Wrap(ErrTypeNotInt64, "output's type not match")
 	}
 	return out.WriteUvarint(uint64(n1))

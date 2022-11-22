@@ -6,6 +6,7 @@ func main() {
 	posIntOutputs := fst.NewPositiveIntOutputs()
 
 	builder := fst.NewBuilder(fst.BYTE1, posIntOutputs)
+
 	// "mop", "moth", "pop", "star", "stop", "top"
 	// 100, 91, 72, 83, 54, 55
 	err := builder.Add([]rune("mop"), int64(100))

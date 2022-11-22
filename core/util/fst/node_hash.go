@@ -5,25 +5,22 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-
-	"github.com/geange/lucene-go/core/util/packed"
 )
 
 // NodeHash Used to dedup states (lookup already-frozen states)
 type NodeHash struct {
-	table      *packed.PagedGrowableWriter
-	count      int64
-	mask       int64
+	table map[int]int64
+	//count      int64
+	//mask       int64
 	fst        *FST
 	scratchArc *FSTArc
 	in         BytesReader
 }
 
 func NewNodeHash(fst *FST, in BytesReader) *NodeHash {
-	table, _ := packed.NewPagedGrowableWriter(16, 1<<27, 8, packed.COMPACT)
 	return &NodeHash{
-		table:      table,
-		mask:       15,
+		table: make(map[int]int64),
+		//mask:       15,
 		fst:        fst,
 		scratchArc: &FSTArc{},
 		in:         in,
@@ -65,7 +62,8 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 		arc := node.Arcs[i]
 		if arc.Label != n.scratchArc.Label() ||
 			!(reflect.DeepEqual(arc.Output, n.scratchArc.output)) ||
-			arc.Target.(*CompiledNode).node != n.scratchArc.NextFinalOutput() ||
+			arc.Target.(*CompiledNode).node != n.scratchArc.Target() ||
+			!reflect.DeepEqual(arc.NextFinalOutput, n.scratchArc.NextFinalOutput()) ||
 			arc.IsFinal != n.scratchArc.IsFinal() {
 			return false
 		}
@@ -148,12 +146,12 @@ func (n *NodeHash) Add(builder *Builder, nodeIn *UnCompiledNode) (int64, error) 
 	if err != nil {
 		return 0, err
 	}
-	pos := h & n.mask
-	c := int64(0)
+	//pos := h & n.mask
+	pos := int(h)
 
 	for {
-		v := n.table.Get(int(pos))
-		if v == 0 {
+		v, ok := n.table[pos]
+		if !ok {
 			// freeze & add
 			node, err := n.fst.AddNode(builder, nodeIn)
 			if err != nil {
@@ -171,23 +169,22 @@ func (n *NodeHash) Add(builder *Builder, nodeIn *UnCompiledNode) (int64, error) 
 				}
 			}
 
-			n.count++
-			n.table.Set(int(pos), uint64(node))
-			// Rehash at 2/3 occupancy:
-			if n.count > int64(2*n.table.Size()/3) {
-				err := n.rehash()
-				if err != nil {
-					return 0, err
-				}
-			}
+			//n.count++
+			n.table[pos] = node
+			//// Rehash at 2/3 occupancy:
+			//if n.count > int64(2*n.table.Size()/3) {
+			//	err := n.rehash()
+			//	if err != nil {
+			//		return 0, err
+			//	}
+			//}
 			return node, nil
 		}
-		if n.nodesEqual(nodeIn, int64(v)) {
-			return int64(v), nil
-		}
 
-		pos = (pos + (c + 1)) & n.mask
-		c++
+		if n.nodesEqual(nodeIn, v) {
+			return v, nil
+		}
+		pos++
 	}
 }
 
@@ -197,41 +194,43 @@ func (n *NodeHash) addNew(address int64) error {
 	if err != nil {
 		return err
 	}
-	pos := v & n.mask
-	c := int64(0)
+	//pos := v & n.mask
+	pos := int(v)
+	//c := int64(0)
 	for {
-		if n.table.Get(int(pos)) == 0 {
-			n.table.Set(int(pos), uint64(address))
+		if _, ok := n.table[pos]; ok {
+			n.table[pos] = address
 			break
 		}
 
 		// quadratic probe
-		pos = (pos + (c + 1)) & n.mask
-		c++
+		//pos = (pos + (c + 1)) & n.mask
+		//c++
+		pos++
 	}
 	return nil
 }
 
-func (n *NodeHash) rehash() error {
-	oldTable := n.table
-	var err error
-	n.table, err = packed.NewPagedGrowableWriter(
-		2*oldTable.Size(), 1<<30, packed.PackedIntsBitsRequired(uint64(n.count)), packed.COMPACT)
-	if err != nil {
-		return err
-	}
-	n.mask = int64(n.table.Size() - 1)
-	for i := 0; i < oldTable.Size(); i++ {
-		address := oldTable.Get(i)
-		if address != 0 {
-			err := n.addNew(int64(address))
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
+//func (n *NodeHash) rehash() error {
+//	oldTable := n.table
+//	var err error
+//	n.table, err = packed.NewPagedGrowableWriter(
+//		2*oldTable.Size(), 1<<30, packed.PackedIntsBitsRequired(uint64(n.count)), packed.COMPACT)
+//	if err != nil {
+//		return err
+//	}
+//	n.mask = int64(n.table.Size() - 1)
+//	for i := 0; i < oldTable.Size(); i++ {
+//		address := oldTable.Get(i)
+//		if address != 0 {
+//			err := n.addNew(int64(address))
+//			if err != nil {
+//				return err
+//			}
+//		}
+//	}
+//	return nil
+//}
 
 func hashObj(obj interface{}) int64 {
 	// TODO: != NO_OUTPUT
@@ -249,5 +248,5 @@ func hashObj(obj interface{}) int64 {
 		}
 
 	}
-	return -1
+	return 0
 }
