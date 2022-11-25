@@ -1,4 +1,4 @@
-//go:build amd64 && darwin
+//go:build darwin
 
 package store
 

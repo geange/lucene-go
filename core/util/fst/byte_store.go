@@ -3,6 +3,7 @@ package fst
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/pkg/collection"
 )
 
@@ -36,6 +37,45 @@ func NewByteStore(blockBits int) *ByteStore {
 	_ = bs.blocks.Add(bs.current)
 	bs.DataOutputImp = store.NewDataOutputImp(bs)
 	return bs
+}
+
+func NewBytesStoreV1(in store.DataInput, numBytes, maxBlockSize int64) (*ByteStore, error) {
+	blockSize := int64(2)
+	blockBits := int64(1)
+	for blockSize < numBytes && blockSize < maxBlockSize {
+		blockSize *= 2
+		blockBits++
+	}
+
+	bs := &ByteStore{
+		blocks: collection.NewArrayList[[]byte](),
+	}
+
+	bs.blockBits = blockBits
+	bs.blockSize = blockSize
+	bs.blockMask = blockSize - 1
+	left := numBytes
+	for left > 0 {
+		chunk := util.Min(blockSize, left)
+		block := make([]byte, chunk)
+		err := in.ReadBytes(block)
+		if err != nil {
+			return nil, err
+		}
+		err = bs.blocks.Add(block)
+		if err != nil {
+			return nil, err
+		}
+		left -= chunk
+	}
+
+	// So .getPosition still works
+	bytes, err := bs.blocks.Get(bs.blocks.Size() - 1)
+	if err != nil {
+		return nil, err
+	}
+	bs.nextWrite = int64(len(bytes))
+	return bs, nil
 }
 
 // WriteByteAt Absolute write byte; you must ensure dest is < max position written so far.
@@ -381,6 +421,10 @@ func (r *ByteStore) WriteTo(out store.DataOutput) error {
 		}
 	}
 	return nil
+}
+
+func (r *ByteStore) GetReverseReader() (BytesReader, error) {
+	return r.getReverseReader(true)
 }
 
 func (r *ByteStore) getReverseReader(allowSingle bool) (BytesReader, error) {

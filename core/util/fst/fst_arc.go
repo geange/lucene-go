@@ -1,6 +1,6 @@
 package fst
 
-type FSTArc struct {
+type Arc struct {
 	label           int
 	output          any
 	target          int64
@@ -33,58 +33,58 @@ type FSTArc struct {
 	presenceIndex int
 }
 
-func (r *FSTArc) flag(value int) bool {
+func (r *Arc) flag(value int) bool {
 	return flag(int(r.flags), value)
 }
 
-func (r *FSTArc) IsLast() bool {
+func (r *Arc) IsLast() bool {
 	return r.flag(BIT_LAST_ARC)
 }
 
-func (r *FSTArc) IsFinal() bool {
+func (r *Arc) IsFinal() bool {
 	return r.flag(BIT_FINAL_ARC)
 }
 
-func (r *FSTArc) Label() int {
+func (r *Arc) Label() int {
 	return r.label
 }
 
-func (r *FSTArc) Output() any {
+func (r *Arc) Output() any {
 	return r.output
 }
 
 // Target Ord/address to target node.
-func (r *FSTArc) Target() int64 {
+func (r *Arc) Target() int64 {
 	return r.target
 }
 
-func (r *FSTArc) Flags() byte {
+func (r *Arc) Flags() byte {
 	return r.flags
 }
 
-func (r *FSTArc) NextFinalOutput() any {
+func (r *Arc) NextFinalOutput() any {
 	return r.nextFinalOutput
 }
 
 // NextArc Address (into the byte[]) of the next arc - only for list of variable length arc.
 // Or ord/address to the next node if label == END_LABEL.
-func (r *FSTArc) NextArc() int64 {
+func (r *Arc) NextArc() int64 {
 	return r.nextArc
 }
 
 // ArcIdx Where we are in the array; only valid if bytesPerArc != 0.
-func (r *FSTArc) ArcIdx() int {
+func (r *Arc) ArcIdx() int {
 	return r.arcIdx
 }
 
 // NodeFlags Node header flags. Only meaningful to check if the value is either ARCS_FOR_BINARY_SEARCH
 // or ARCS_FOR_DIRECT_ADDRESSING (other value when bytesPerArc == 0).
-func (r *FSTArc) NodeFlags() byte {
+func (r *Arc) NodeFlags() byte {
 	return r.nodeFlags
 }
 
 // PosArcsStart Where the first arc in the array starts; only valid if bytesPerArc != 0
-func (r *FSTArc) PosArcsStart() int64 {
+func (r *Arc) PosArcsStart() int64 {
 	return r.posArcsStart
 }
 
@@ -92,18 +92,18 @@ func (r *FSTArc) PosArcsStart() int64 {
 // which means all arcs for the node are encoded with a fixed number of bytes
 // so that we binary search or direct address. We do when there are enough arcs leaving one node.
 // It wastes some bytes but gives faster lookups.
-func (r *FSTArc) BytesPerArc() int {
+func (r *Arc) BytesPerArc() int {
 	return r.bytesPerArc
 }
 
 // NumArcs How many arcs; only valid if bytesPerArc != 0 (fixed length arcs).
 // For a node designed for binary search this is the array size.
 // For a node designed for direct addressing, this is the label range.
-func (r *FSTArc) NumArcs() int64 {
+func (r *Arc) NumArcs() int64 {
 	return r.numArcs
 }
 
 // FirstLabel First label of a direct addressing node. Only valid if nodeFlags == ARCS_FOR_DIRECT_ADDRESSING.
-func (r *FSTArc) FirstLabel() int {
+func (r *Arc) FirstLabel() int {
 	return r.firstLabel
 }

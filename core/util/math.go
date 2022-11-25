@@ -7,7 +7,7 @@ func Max[T int | int64](a, b T) T {
 	return b
 }
 
-func Min[T int](a, b T) T {
+func Min[T int | int64](a, b T) T {
 	if a > b {
 		return b
 	}

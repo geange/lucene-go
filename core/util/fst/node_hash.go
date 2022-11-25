@@ -13,7 +13,7 @@ type NodeHash struct {
 	//count      int64
 	//mask       int64
 	fst        *FST
-	scratchArc *FSTArc
+	scratchArc *Arc
 	in         BytesReader
 }
 
@@ -22,7 +22,7 @@ func NewNodeHash(fst *FST, in BytesReader) *NodeHash {
 		table: make(map[int]int64),
 		//mask:       15,
 		fst:        fst,
-		scratchArc: &FSTArc{},
+		scratchArc: &Arc{},
 		in:         in,
 	}
 }
