@@ -5,7 +5,7 @@ import (
 )
 
 // Outputs Represents the outputs for an FST, providing the basic algebra required for building and traversing the FST.
-// Note that any operation that returns NO_OUTPUT must return the same singleton object from getNoOutput.
+// Note that any operation that returns noOutput must return the same singleton object from getNoOutput.
 //
 // lucene.experimental
 type Outputs interface {
@@ -40,6 +40,8 @@ type Outputs interface {
 	SkipFinalOutput(in store.DataInput) error
 
 	IsNoOutput(v any) bool
+
+	GetNoOutput() any
 
 	Merge(first, second any) (any, error)
 }

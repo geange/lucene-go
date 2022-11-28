@@ -303,7 +303,7 @@ func TargetHasArcs(arc *Arc) bool {
 // AddNode serializes new node by appending its bytes to the end
 // of the current byte[]
 func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
-	//NO_OUTPUT := f.outputs.GetNoOutput()
+	//noOutput := f.outputs.GetNoOutput()
 
 	if nodeIn.NumArcs() == 0 {
 		if nodeIn.IsFinal {
@@ -351,7 +351,7 @@ func (f *FST) AddNode(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
 				flags += BIT_ARC_HAS_FINAL_OUTPUT
 			}
 		} else {
-			// TODO: assert arc.nextFinalOutput == NO_OUTPUT;
+			// TODO: assert arc.nextFinalOutput == noOutput;
 		}
 
 		targetHasArcs := target.node > 0
@@ -713,30 +713,127 @@ func (f *FST) readPresenceBytes(arc *Arc, in BytesReader) error {
 
 // GetFirstArc Fills virtual 'start' arc, ie, an empty incoming arc to the FST's start node
 func (f *FST) GetFirstArc(arc *Arc) (*Arc, error) {
-	//if f.emptyOutput != nil {
-	//	arc.flags = BIT_FINAL_ARC | BIT_LAST_ARC
-	//	arc.nextFinalOutput = f.emptyOutput
-	//	if f.emptyOutput != NO_OUTPUT {
-	//		arc.flags = arc.Flags() | BIT_ARC_HAS_FINAL_OUTPUT
-	//	}
-	//} else {
-	//	arc.flags = BIT_LAST_ARC
-	//	arc.nextFinalOutput = nil
-	//}
-	//arc.output = nil
-	//
-	//// If there are no nodes, ie, the FST only accepts the
-	//// empty string, then startNode is 0
-	//arc.target = f.startNode
-	//return arc, nil
-	panic("")
+	noOutput := f.outputs.GetNoOutput()
+
+	if f.emptyOutput != nil {
+		arc.flags = BIT_FINAL_ARC | BIT_LAST_ARC
+		arc.nextFinalOutput = f.emptyOutput
+		if f.emptyOutput != noOutput {
+			arc.flags = arc.Flags() | BIT_ARC_HAS_FINAL_OUTPUT
+		}
+	} else {
+		arc.flags = BIT_LAST_ARC
+		arc.nextFinalOutput = nil
+	}
+	arc.output = noOutput
+
+	// If there are no nodes, ie, the FST only accepts the
+	// empty string, then startNode is 0
+	arc.target = f.startNode
+	return arc, nil
 }
 
 // Follows the follow arc and reads the last arc of its target; this changes the provided
 // arc (2nd arg) in-place and returns it.
 // Returns: Returns the second argument (arc).
 func (f *FST) readLastTargetArc(follow, arc *Arc, in BytesReader) (*Arc, error) {
-	panic("")
+	if !TargetHasArcs(follow) {
+		//System.out.println("  end node");
+		// TODO: assert follow.isFinal();
+		arc.label = END_LABEL
+		arc.target = FINAL_END_NODE
+		arc.output = follow.NextFinalOutput()
+		arc.flags = BIT_LAST_ARC
+		arc.nodeFlags = arc.flags
+		return arc, nil
+	}
+	in.SetPosition(follow.Target())
+	flags, err := in.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+	arc.nodeFlags = flags
+
+	if flags == ARCS_FOR_BINARY_SEARCH || flags == ARCS_FOR_DIRECT_ADDRESSING {
+		// Special arc which is actually a node header for fixed length arcs.
+		// Jump straight to end to find the last arc.
+		numArcs, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		arc.numArcs = int64(numArcs)
+
+		bytesPerArc, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		arc.bytesPerArc = int(bytesPerArc)
+		//System.out.println("  array numArcs=" + arc.numArcs + " bpa=" + arc.bytesPerArc);
+		if flags == ARCS_FOR_DIRECT_ADDRESSING {
+			if err := f.readPresenceBytes(arc, in); err != nil {
+				return nil, err
+			}
+			arc.firstLabel, err = f.ReadLabel(in)
+			if err != nil {
+				return nil, err
+			}
+			arc.posArcsStart = in.GetPosition()
+			if _, err := f.ReadLastArcByDirectAddressing(arc, in); err != nil {
+				return nil, err
+			}
+		} else {
+			arc.arcIdx = int(arc.NumArcs() - 2)
+			arc.posArcsStart = in.GetPosition()
+			if _, err := f.ReadNextRealArc(arc, in); err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		arc.flags = flags
+		// non-array: linear scan
+		arc.bytesPerArc = 0
+		//System.out.println("  scan");
+		for !arc.IsLast() {
+			// skip this arc:
+			if _, err := f.ReadLabel(in); err != nil {
+				return nil, err
+			}
+			if arc.flag(BIT_ARC_HAS_OUTPUT) {
+				if err := f.outputs.SkipOutput(in); err != nil {
+					return nil, err
+				}
+			}
+			if arc.flag(BIT_ARC_HAS_FINAL_OUTPUT) {
+				if err := f.outputs.SkipFinalOutput(in); err != nil {
+					return nil, err
+				}
+			}
+			if arc.flag(BIT_STOP_NODE) {
+			} else if arc.flag(BIT_TARGET_NEXT) {
+			} else {
+				if _, err := f.readUnpackedNodeTarget(in); err != nil {
+					return nil, err
+				}
+			}
+			arc.flags, err = in.ReadByte()
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Undo the byte flags we read:
+		if err := in.SkipBytes(-1); err != nil {
+			return nil, err
+		}
+
+		arc.nextArc = in.GetPosition()
+		if _, err := f.ReadNextRealArc(arc, in); err != nil {
+			return nil, err
+		}
+
+	}
+	// TODO: assert arc.isLast();
+	return arc, nil
+
 }
 
 func (f *FST) readUnpackedNodeTarget(in BytesReader) (int64, error) {
@@ -751,7 +848,23 @@ func (f *FST) readUnpackedNodeTarget(in BytesReader) (int64, error) {
 // fthe provided arc (2nd arg) in-place and returns it.
 // Returns: Returns the second argument (arc).
 func (f *FST) ReadFirstTargetArc(follow, arc *Arc, in BytesReader) (*Arc, error) {
-	panic("")
+	if follow.IsFinal() {
+		// Insert "fake" final first arc:
+		arc.label = END_LABEL
+		arc.output = follow.NextFinalOutput()
+		arc.flags = BIT_FINAL_ARC
+		if follow.Target() <= 0 {
+			arc.flags |= BIT_LAST_ARC
+		} else {
+			// NOTE: nextArc is a node (not an address!) in this case:
+			arc.nextArc = follow.Target()
+		}
+		arc.target = FINAL_END_NODE
+		arc.nodeFlags = arc.flags
+		return arc, nil
+	} else {
+		return f.ReadFirstRealTargetArc(follow.Target(), arc, in)
+	}
 }
 
 func (f *FST) ReadFirstRealTargetArc(nodeAddress int64, arc *Arc, in BytesReader) (*Arc, error) {
@@ -808,16 +921,120 @@ func (f *FST) ReadFirstRealTargetArc(nodeAddress int64, arc *Arc, in BytesReader
 
 // Returns whether arc's target points to a node in expanded format (fixed length arcs).
 func isExpandedTarget(follow *Arc, in BytesReader) (bool, error) {
-	panic("")
+	if !TargetHasArcs(follow) {
+		return false, nil
+	} else {
+		if err := in.SetPosition(follow.Target()); err != nil {
+			return false, err
+		}
+		flags, err := in.ReadByte()
+		if err != nil {
+			return false, err
+		}
+		return flags == ARCS_FOR_BINARY_SEARCH || flags == ARCS_FOR_DIRECT_ADDRESSING, nil
+	}
 }
 
 // ReadNextArc In-place read; returns the arc.
 func (f *FST) ReadNextArc(arc *Arc, in BytesReader) (*Arc, error) {
-	panic("")
+	if arc.Label() == END_LABEL {
+		// This was a fake inserted "final" arc
+		if arc.NextArc() <= 0 {
+			return nil, errors.New("cannot readNextArc when arc.isLast()=true")
+		}
+		return f.ReadFirstRealTargetArc(arc.NextArc(), arc, in)
+	} else {
+		return f.ReadNextRealArc(arc, in)
+	}
+}
+
+// Peeks at next arc's label; does not alter arc. Do not call this if arc.isLast()!
+func (f *FST) readNextArcLabel(arc *Arc, in BytesReader) (int, error) {
+	// TODO: assert !arc.isLast();
+
+	if arc.Label() == END_LABEL {
+		//System.out.println("    nextArc fake " + arc.nextArc);
+		// Next arc is the first arc of a node.
+		// Position to read the first arc label.
+
+		if err := in.SetPosition(arc.NextArc()); err != nil {
+			return 0, err
+		}
+		flags, err := in.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		if flags == ARCS_FOR_BINARY_SEARCH || flags == ARCS_FOR_DIRECT_ADDRESSING {
+
+			// Special arc which is actually a node header for fixed length arcs.
+			numArcs, err := in.ReadUvarint()
+			if err != nil {
+				return 0, err
+			}
+			if _, err := in.ReadUvarint(); err != nil {
+				return 0, err
+			} // Skip bytesPerArc.
+			if flags == ARCS_FOR_BINARY_SEARCH {
+				if _, err := in.ReadByte(); err != nil {
+					return 0, err
+				} // Skip arc flags.
+			} else {
+				bytes, err := getNumPresenceBytes(int64(numArcs))
+				if err != nil {
+					return 0, err
+				}
+				if err := in.SkipBytes(int(bytes)); err != nil {
+					return 0, err
+				}
+			}
+		}
+	} else {
+		if arc.BytesPerArc() != 0 {
+			// Arcs have fixed length.
+			if arc.NodeFlags() == ARCS_FOR_BINARY_SEARCH {
+				// Point to next arc, -1 to skip arc flags.
+				if err := in.SetPosition(arc.PosArcsStart() - (1+int64(arc.ArcIdx()))*int64(arc.BytesPerArc()) - 1); err != nil {
+					return 0, err
+				}
+			} else {
+				// TODO: assert arc.nodeFlags() == ARCS_FOR_DIRECT_ADDRESSING;
+				// Direct addressing node. The label is not stored but rather inferred
+				// based on first label and arc index in the range.
+				// TODO: assert BitTable.assertIsValid(arc, in);
+				// TODO: assert BitTable.isBitSet(arc.arcIdx(), arc, in);
+				nextIndex, err := BitTable.nextBitSet(arc.ArcIdx(), arc, in)
+				if err != nil {
+					return 0, err
+				}
+				// TODO: assert nextIndex != -1;
+				return arc.FirstLabel() + nextIndex, nil
+			}
+		} else {
+			// Arcs have variable length.
+			//System.out.println("    nextArc real list");
+			// Position to next arc, -1 to skip flags.
+			if err := in.SetPosition(arc.NextArc() - 1); err != nil {
+				return 0, err
+			}
+		}
+	}
+	return f.ReadLabel(in)
 }
 
 func (f *FST) ReadArcByIndex(arc *Arc, in BytesReader, idx int) (*Arc, error) {
-	panic("")
+	// TODO: assert arc.bytesPerArc() > 0;
+	// TODO: assert arc.nodeFlags() == ARCS_FOR_BINARY_SEARCH;
+	// TODO: assert idx >= 0 && idx < arc.numArcs();
+	if err := in.SetPosition(arc.PosArcsStart() - int64(idx*arc.BytesPerArc())); err != nil {
+		return nil, err
+	}
+	arc.arcIdx = idx
+	var err error
+	arc.flags, err = in.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+	return f.readArc(arc, in)
 }
 
 // ReadArcByDirectAddressing Reads a present direct addressing node arc, with the provided index in the label range.
@@ -825,13 +1042,21 @@ func (f *FST) ReadArcByIndex(arc *Arc, in BytesReader, idx int) (*Arc, error) {
 //
 //	The real arc offset is computed based on the presence bits of the direct addressing node.
 func (f *FST) ReadArcByDirectAddressing(arc *Arc, in BytesReader, rangeIndex int) (*Arc, error) {
-
-	panic("")
+	// TODO: assert BitTable.assertIsValid(arc, in);
+	// TODO: assert rangeIndex >= 0 && rangeIndex < arc.numArcs();
+	// TODO: assert BitTable.isBitSet(rangeIndex, arc, in);
+	presenceIndex, err := BitTable.countBitsUpTo(rangeIndex, arc, in)
+	if err != nil {
+		return nil, err
+	}
+	return f.readArcByDirectAddressingV1(arc, in, rangeIndex, presenceIndex)
 }
 
 // Reads a present direct addressing node arc, with the provided index in the label range and its corresponding presence index (which is the count of presence bits before it).
 func (f *FST) readArcByDirectAddressingV1(arc *Arc, in BytesReader, rangeIndex, presenceIndex int) (*Arc, error) {
-	in.SetPosition(arc.PosArcsStart() - int64(presenceIndex*arc.BytesPerArc()))
+	if err := in.SetPosition(arc.PosArcsStart() - int64(presenceIndex*arc.BytesPerArc())); err != nil {
+		return nil, err
+	}
 	arc.arcIdx = rangeIndex
 	arc.presenceIndex = presenceIndex
 
@@ -848,7 +1073,13 @@ func (f *FST) readArcByDirectAddressingV1(arc *Arc, in BytesReader, rangeIndex, 
 // This method is equivalent to call readArcByDirectAddressing(FST.Arc, FST.BytesReader, int)
 // with rangeIndex equal to arc.numArcs() - 1, but it is faster.
 func (f *FST) ReadLastArcByDirectAddressing(arc *Arc, in BytesReader) (*Arc, error) {
-	panic("")
+	// TODO: assert BitTable.assertIsValid(arc, in);
+	presenceIndex, err := BitTable.countBits(arc, in)
+	if err != nil {
+		return nil, err
+	}
+	presenceIndex -= 1
+	return f.readArcByDirectAddressingV1(arc, in, int(arc.NumArcs()-1), int(presenceIndex))
 }
 
 // ReadNextRealArc Never returns null, but you should never call this if arc.isLast() is true.
@@ -979,13 +1210,156 @@ func (f *FST) readArc(arc *Arc, in BytesReader) (*Arc, error) {
 }
 
 func readEndArc(follow, arc *Arc) *Arc {
-	panic("")
+	if follow.IsFinal() {
+		if follow.Target() <= 0 {
+			arc.flags = BIT_LAST_ARC
+		} else {
+			arc.flags = 0
+			// NOTE: nextArc is a node (not an address!) in this case:
+			arc.nextArc = follow.Target()
+		}
+		arc.output = follow.NextFinalOutput()
+		arc.label = END_LABEL
+		return arc
+	} else {
+		return nil
+	}
 }
 
 // FindTargetArc Finds an arc leaving the incoming arc, replacing the arc in place.
 // This returns null if the arc was not found, else the incoming arc.
-func (f *FST) FindTargetArc(labelToMatch int, follow, arc *Arc, inn BytesReader) (*Arc, error) {
-	panic("")
+func (f *FST) FindTargetArc(labelToMatch int, follow, arc *Arc, in BytesReader) (*Arc, error) {
+
+	if labelToMatch == END_LABEL {
+		if follow.IsFinal() {
+			if follow.Target() <= 0 {
+				arc.flags = BIT_LAST_ARC
+			} else {
+				arc.flags = 0
+				// NOTE: nextArc is a node (not an address!) in this case:
+				arc.nextArc = follow.Target()
+			}
+			arc.output = follow.NextFinalOutput()
+			arc.label = END_LABEL
+			arc.nodeFlags = arc.flags
+			return arc, nil
+		} else {
+			return nil, nil
+		}
+	}
+
+	if !TargetHasArcs(follow) {
+		return nil, nil
+	}
+
+	if err := in.SetPosition(follow.Target()); err != nil {
+		return nil, err
+	}
+
+	// System.out.println("fta label=" + (char) labelToMatch);
+	flags, err := in.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+	arc.nodeFlags = flags
+	if flags == ARCS_FOR_DIRECT_ADDRESSING {
+		numArcs, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		arc.numArcs = int64(numArcs) // This is in fact the label range.
+
+		bytesPerArc, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		arc.bytesPerArc = int(bytesPerArc)
+		if err := f.readPresenceBytes(arc, in); err != nil {
+			return nil, err
+		}
+		arc.firstLabel, err = f.ReadLabel(in)
+		if err != nil {
+			return nil, err
+		}
+		arc.posArcsStart = in.GetPosition()
+
+		arcIndex := labelToMatch - arc.FirstLabel()
+		if arcIndex < 0 || arcIndex >= int(arc.NumArcs()) {
+			return nil, nil // Before or after label range.
+		}
+
+		if ok, err := BitTable.isBitSet(arcIndex, arc, in); err != nil {
+			return nil, err
+		} else if !ok {
+			return nil, nil // Arc missing in the range.
+		}
+
+		return f.ReadArcByDirectAddressing(arc, in, arcIndex)
+	} else if flags == ARCS_FOR_BINARY_SEARCH {
+		numArcs, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		arc.numArcs = int64(numArcs)
+
+		bytesPerArc, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		arc.bytesPerArc = int(bytesPerArc)
+		arc.posArcsStart = in.GetPosition()
+
+		// Array is sparse; do binary search:
+		low := 0
+		high := int(arc.NumArcs() - 1)
+		for low <= high {
+			//System.out.println("    cycle");
+			mid := (low + high) >> 1
+			// +1 to skip over flags
+			if err := in.SetPosition(arc.PosArcsStart() - int64(arc.BytesPerArc()*mid+1)); err != nil {
+				return nil, err
+			}
+			midLabel, err := f.ReadLabel(in)
+			if err != nil {
+				return nil, err
+			}
+			cmp := midLabel - labelToMatch
+			if cmp < 0 {
+				low = mid + 1
+			} else if cmp > 0 {
+				high = mid - 1
+			} else {
+				arc.arcIdx = mid - 1
+				//System.out.println("    found!");
+				return f.ReadNextRealArc(arc, in)
+			}
+		}
+		return nil, nil
+	}
+
+	// Linear scan
+	if _, err := f.ReadFirstRealTargetArc(follow.Target(), arc, in); err != nil {
+		return nil, err
+	}
+
+	for {
+		//System.out.println("  non-bs cycle");
+		// TODO: we should fix this code to not have to create
+		// object for the output of every arc we scan... only
+		// for the matching arc, if found
+		if arc.Label() == labelToMatch {
+			//System.out.println("    found!");
+			return arc, nil
+		} else if arc.Label() > labelToMatch {
+			return nil, nil
+		} else if arc.IsLast() {
+			return nil, nil
+		} else {
+			if _, err := f.ReadNextRealArc(arc, in); err != nil {
+				return nil, err
+			}
+		}
+	}
 }
 
 func (f *FST) seekToNextNode(in BytesReader) error {

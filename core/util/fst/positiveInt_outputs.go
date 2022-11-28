@@ -101,6 +101,14 @@ func (p *PositiveIntOutputs) IsNoOutput(v any) bool {
 	return false
 }
 
+var (
+	positiveIntOutputsNoOutput = new(any)
+)
+
+func (p *PositiveIntOutputs) GetNoOutput() any {
+	return positiveIntOutputsNoOutput
+}
+
 func (p *PositiveIntOutputs) Merge(first, second any) (any, error) {
 	//TODO implement me
 	panic("implement me")

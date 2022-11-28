@@ -233,7 +233,7 @@ func (n *NodeHash) addNew(address int64) error {
 //}
 
 func hashObj(obj interface{}) int64 {
-	// TODO: != NO_OUTPUT
+	// TODO: != noOutput
 	if obj != nil {
 		switch obj.(type) {
 		case []byte:

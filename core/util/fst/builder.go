@@ -22,7 +22,7 @@ import (
 type Builder struct {
 	dedupHash *NodeHash
 	fst       *FST
-	//NO_OUTPUT any
+	noOutput  any
 
 	// private static final boolean DEBUG = true;
 
@@ -116,7 +116,7 @@ func NewBuilderV1(inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
 		builder.dedupHash = NewNodeHash(builder.fst, reader)
 	}
 
-	//builder.NO_OUTPUT = outputs.GetNoOutput()
+	//builder.noOutput = outputs.GetNoOutput()
 
 	for i := 0; i < 10; i++ {
 		node := NewUnCompiledNode(builder, i)
@@ -299,15 +299,15 @@ func (b *Builder) freezeTail(prefixLenPlus1 int) error {
 //
 // 添加input/output。提供的input必须要先进行排序。如果输入相同的input+不同的output，output需要实现merge方法。
 func (b *Builder) Add(input []rune, output any) error {
-	// TODO: if (output.equals(NO_OUTPUT)) {
-	//      output = NO_OUTPUT;
+	// TODO: if (output.equals(noOutput)) {
+	//      output = noOutput;
 	//    }
 
 	// TODO: assert lastInput.length() == 0 || input.compareTo(lastInput.get()) >= 0: "inputs are added out of order lastInput=" + lastInput.get() + " vs input=" + input;
 	// TODO: assert validOutput(output);
 
 	if b.fst.outputs.IsNoOutput(output) {
-		output = nil
+		output = b.noOutput
 	}
 
 	if len(input) == 0 {
@@ -318,7 +318,10 @@ func (b *Builder) Add(input []rune, output any) error {
 		// the node
 		b.frontier[0].InputCount++
 		b.frontier[0].IsFinal = true
-		b.fst.SetEmptyOutput(output)
+		err := b.fst.SetEmptyOutput(output)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -352,7 +355,7 @@ func (b *Builder) Add(input []rune, output any) error {
 	lastNode := b.frontier[len(input)]
 	if len(b.lastInput) != len(input) || prefixLenPlus1 != len(input)+1 {
 		lastNode.IsFinal = true
-		//lastNode.Output = b.NO_OUTPUT
+		//lastNode.Output = b.noOutput
 	}
 
 	// push conflicting outputs forward, only as far as
