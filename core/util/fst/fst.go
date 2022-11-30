@@ -226,7 +226,7 @@ func (f *FST) Save(metaOut store.DataOutput, out store.DataOutput) error {
 }
 
 func (f *FST) SaveToFile(path string) error {
-	file, err := os.Open(path)
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -234,8 +234,8 @@ func (f *FST) SaveToFile(path string) error {
 	return f.Save(out, out)
 }
 
-// Reads an automaton from a file.
-func (f *FST) Read(path string, outputs Outputs) (*FST, error) {
+// NewFSTFromFile Reads an automaton from a file.
+func NewFSTFromFile(path string, outputs Outputs) (*FST, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -1343,7 +1343,6 @@ func (f *FST) FindTargetArc(labelToMatch int, follow, arc *Arc, in BytesReader) 
 	}
 
 	for {
-		//System.out.println("  non-bs cycle");
 		// TODO: we should fix this code to not have to create
 		// object for the output of every arc we scan... only
 		// for the matching arc, if found
@@ -1397,6 +1396,15 @@ func (f *FST) seekToNextNode(in BytesReader) error {
 		if flag(int(flags), BIT_LAST_ARC) {
 			return nil
 		}
+	}
+}
+
+// GetBytesReader Returns a FST.BytesReader for this FST, positioned at position 0.
+func (f *FST) GetBytesReader() (BytesReader, error) {
+	if f.fstStore != nil {
+		return f.fstStore.GetReverseBytesReader()
+	} else {
+		return f.bytes.GetReverseReader()
 	}
 }
 

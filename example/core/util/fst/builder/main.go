@@ -1,6 +1,9 @@
 package main
 
-import "github.com/geange/lucene-go/core/util/fst"
+import (
+	"fmt"
+	"github.com/geange/lucene-go/core/util/fst"
+)
 
 func main() {
 	posIntOutputs := fst.NewPositiveIntOutputs()
@@ -39,9 +42,54 @@ func main() {
 		panic(err)
 	}
 
-	_, err = builder.Finish()
+	fmap, err := builder.Finish()
 	if err != nil {
 		panic(err)
 	}
+	arc := new(fst.Arc)
+	firstArc1, err := fmap.GetFirstArc(arc)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%#v\n", firstArc1)
+
+	err = fmap.SaveToFile("test.fst")
+	if err != nil {
+		panic(err)
+	}
+
+	newFST, err := fst.NewFSTFromFile("test.fst", &fst.PositiveIntOutputs{})
+	if err != nil {
+		panic(err)
+	}
+
+	reader, _ := newFST.GetBytesReader()
+
+	arc2 := new(fst.Arc)
+	arc2, err = newFST.GetFirstArc(arc2)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%c\n", arc2.Label())
+
+	follow := new(fst.Arc)
+	arc2, err = newFST.FindTargetArc(int('t'), arc2, follow, reader)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%c", arc2.Label())
+
+	arc2, err = newFST.FindTargetArc(int('o'), arc2, follow, reader)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%c", arc2.Label())
+
+	arc2, err = newFST.FindTargetArc(int('p'), arc2, follow, reader)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%c\n", arc2.Label())
 
 }
