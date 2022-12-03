@@ -23,18 +23,18 @@ func (*CompiledNode) IsCompiled() bool {
 	return true
 }
 
-var _ Node = &UnCompiledNode{}
+var _ Node = &UnCompiledNode[any]{}
 
-type UnCompiledNode struct {
-	Owner *Builder
+type UnCompiledNode[T any] struct {
+	Owner *Builder[T]
 	//NumArcs int64
 
 	// TODO: instead of recording isFinal/output on the
 	// node, maybe we should use -1 arc to mean "end" (like
 	// we do when reading the FST).  Would simplify much
 	// code here...
-	Arcs       []*BuilderArc
-	Output     any
+	Arcs       []*BuilderArc[T]
+	Output     T
 	IsFinal    bool
 	InputCount int64
 
@@ -42,48 +42,48 @@ type UnCompiledNode struct {
 	Depth int
 }
 
-func (u *UnCompiledNode) NumArcs() int64 {
+func (u *UnCompiledNode[T]) NumArcs() int64 {
 	return int64(len(u.Arcs))
 }
 
-func NewUnCompiledNode(owner *Builder, depth int) *UnCompiledNode {
-	return &UnCompiledNode{
+func NewUnCompiledNode[T any](owner *Builder[T], depth int) *UnCompiledNode[T] {
+	return &UnCompiledNode[T]{
 		Owner:  owner,
-		Arcs:   make([]*BuilderArc, 0),
-		Output: nil,
+		Arcs:   make([]*BuilderArc[T], 0),
+		Output: owner.noOutput,
 		Depth:  depth,
 	}
 }
 
-func (u *UnCompiledNode) IsCompiled() bool {
+func (u *UnCompiledNode[T]) IsCompiled() bool {
 	return false
 }
 
-func (u *UnCompiledNode) Clear() {
+func (u *UnCompiledNode[T]) Clear() {
 	u.Arcs = u.Arcs[:0]
 	u.IsFinal = false
-	u.Output = nil
+	//u.Output = nil
 	u.InputCount = 0
 
 	// We don't clear the depth here because it never changes
 	// for nodes on the frontier (even when reused).
 }
 
-func (u *UnCompiledNode) GetLastOutput(labelToMatch int) any {
+func (u *UnCompiledNode[T]) GetLastOutput(labelToMatch int) T {
 	return u.Arcs[len(u.Arcs)-1].Output
 }
 
-func (u *UnCompiledNode) AddArc(label int, target Node) {
-	u.Arcs = append(u.Arcs, &BuilderArc{
+func (u *UnCompiledNode[T]) AddArc(label int, target Node) {
+	u.Arcs = append(u.Arcs, &BuilderArc[T]{
 		Label:           label,
 		Target:          target,
-		Output:          nil,
-		NextFinalOutput: nil,
+		Output:          u.Owner.noOutput,
+		NextFinalOutput: u.Owner.noOutput,
 		IsFinal:         false,
 	})
 }
 
-func (u *UnCompiledNode) DeleteLast(label int, target Node) error {
+func (u *UnCompiledNode[T]) DeleteLast(label int, target Node) error {
 	if len(u.Arcs) <= 0 {
 		return errors.New("arcs size is 0")
 	}
@@ -99,7 +99,7 @@ func (u *UnCompiledNode) DeleteLast(label int, target Node) error {
 	return nil
 }
 
-func (u *UnCompiledNode) SetLastOutput(label int, newOutput any) error {
+func (u *UnCompiledNode[T]) SetLastOutput(label int, newOutput T) error {
 	if len(u.Arcs) <= 0 {
 		return errors.New("arcs size is 0")
 	}
@@ -111,7 +111,7 @@ func (u *UnCompiledNode) SetLastOutput(label int, newOutput any) error {
 	return nil
 }
 
-func (u *UnCompiledNode) ReplaceLast(labelToMatch int, target Node, nextFinalOutput any, isFinal bool) error {
+func (u *UnCompiledNode[T]) ReplaceLast(labelToMatch int, target Node, nextFinalOutput T, isFinal bool) error {
 	if len(u.Arcs) <= 0 {
 		return fmt.Errorf("arcs size is 0")
 	}
@@ -127,7 +127,7 @@ func (u *UnCompiledNode) ReplaceLast(labelToMatch int, target Node, nextFinalOut
 }
 
 // PrependOutput pushes an output prefix forward onto all arcs
-func (u *UnCompiledNode) PrependOutput(outputPrefix any) error {
+func (u *UnCompiledNode[T]) PrependOutput(outputPrefix T) error {
 	var err error
 	for i := range u.Arcs {
 		u.Arcs[i].Output, err = u.Owner.fst.outputs.Add(outputPrefix, u.Arcs[i].Output)
@@ -150,10 +150,10 @@ func (u *UnCompiledNode) PrependOutput(outputPrefix any) error {
 }
 
 // BuilderArc Expert: holds a pending (seen but not yet serialized) arc.
-type BuilderArc struct {
+type BuilderArc[T any] struct {
 	Label           int
 	Target          Node
 	IsFinal         bool
-	Output          any
-	NextFinalOutput any
+	Output          T
+	NextFinalOutput T
 }

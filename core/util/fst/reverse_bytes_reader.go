@@ -32,6 +32,11 @@ func (r *ReverseBytesReader) ReadBytes(b []byte) error {
 	return nil
 }
 
+func (r *ReverseBytesReader) SkipBytes(numBytes int) error {
+	r.pos -= int64(numBytes)
+	return nil
+}
+
 func (r *ReverseBytesReader) GetPosition() int64 {
 	return r.pos
 }

@@ -8,21 +8,21 @@ import (
 )
 
 // NodeHash Used to dedup states (lookup already-frozen states)
-type NodeHash struct {
+type NodeHash[T any] struct {
 	table map[int]int64
 	//count      int64
 	//mask       int64
-	fst        *FST
-	scratchArc *Arc
+	fst        *FST[T]
+	scratchArc *Arc[T]
 	in         BytesReader
 }
 
-func NewNodeHash(fst *FST, in BytesReader) *NodeHash {
-	return &NodeHash{
+func NewNodeHash[T any](fst *FST[T], in BytesReader) *NodeHash[T] {
+	return &NodeHash[T]{
 		table: make(map[int]int64),
 		//mask:       15,
 		fst:        fst,
-		scratchArc: &Arc{},
+		scratchArc: &Arc[T]{},
 		in:         in,
 	}
 }
@@ -31,7 +31,7 @@ const (
 	PRIME = int64(32)
 )
 
-func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
+func (n *NodeHash[T]) nodesEqual(node *UnCompiledNode[T], address int64) bool {
 	_, err := n.fst.ReadFirstRealTargetArc(address, n.scratchArc, n.in)
 	if err != nil {
 		return false
@@ -52,7 +52,7 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 
 			if int64(node.Arcs[len(node.Arcs)-1].Label-node.Arcs[0].Label+1) != n.scratchArc.NumArcs() {
 				return false
-			} else if v, err := BitTable.countBits(n.scratchArc, n.in); err == nil && v != node.NumArcs() {
+			} else if v, err := CountBits(n.scratchArc, n.in); err == nil && v != node.NumArcs() {
 				return false
 			}
 		}
@@ -86,7 +86,7 @@ func (n *NodeHash) nodesEqual(node *UnCompiledNode, address int64) bool {
 
 // hashNode code for an unfrozen node.  This must be identical
 // to the frozen case (below)!!
-func (n *NodeHash) hashUnfrozenNode(node *UnCompiledNode) (int64, error) {
+func (n *NodeHash[T]) hashUnfrozenNode(node *UnCompiledNode[T]) (int64, error) {
 	h := int64(0)
 	// TODO: maybe if number of arcs is high we can safely subsample?
 
@@ -111,7 +111,7 @@ func (n *NodeHash) hashUnfrozenNode(node *UnCompiledNode) (int64, error) {
 	return h & math.MaxInt64, nil
 }
 
-func (n *NodeHash) hashFrozenNode(node int64) (int64, error) {
+func (n *NodeHash[T]) hashFrozenNode(node int64) (int64, error) {
 	h := int64(0)
 	var err error
 	_, err = n.fst.ReadFirstRealTargetArc(node, n.scratchArc, n.in)
@@ -141,7 +141,7 @@ func (n *NodeHash) hashFrozenNode(node int64) (int64, error) {
 	return h & math.MaxInt64, nil
 }
 
-func (n *NodeHash) Add(builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
+func (n *NodeHash[T]) Add(builder *Builder[T], nodeIn *UnCompiledNode[T]) (int64, error) {
 	h, err := n.hashUnfrozenNode(nodeIn)
 	if err != nil {
 		return 0, err
@@ -189,7 +189,7 @@ func (n *NodeHash) Add(builder *Builder, nodeIn *UnCompiledNode) (int64, error) 
 }
 
 // called only by rehash
-func (n *NodeHash) addNew(address int64) error {
+func (n *NodeHash[T]) addNew(address int64) error {
 	v, err := n.hashFrozenNode(address)
 	if err != nil {
 		return err
@@ -211,30 +211,14 @@ func (n *NodeHash) addNew(address int64) error {
 	return nil
 }
 
-//func (n *NodeHash) rehash() error {
-//	oldTable := n.table
-//	var err error
-//	n.table, err = packed.NewPagedGrowableWriter(
-//		2*oldTable.Size(), 1<<30, packed.PackedIntsBitsRequired(uint64(n.count)), packed.COMPACT)
-//	if err != nil {
-//		return err
-//	}
-//	n.mask = int64(n.table.Size() - 1)
-//	for i := 0; i < oldTable.Size(); i++ {
-//		address := oldTable.Get(i)
-//		if address != 0 {
-//			err := n.addNew(int64(address))
-//			if err != nil {
-//				return err
-//			}
-//		}
-//	}
-//	return nil
-//}
-
 func hashObj(obj interface{}) int64 {
 	// TODO: != noOutput
 	if obj != nil {
+		code, ok := obj.(HashCode)
+		if ok {
+			return code.Hash()
+		}
+
 		switch obj.(type) {
 		case []byte:
 			h := int64(0)
@@ -249,4 +233,8 @@ func hashObj(obj interface{}) int64 {
 
 	}
 	return 0
+}
+
+type HashCode interface {
+	Hash() int64
 }

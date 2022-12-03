@@ -2,114 +2,186 @@ package fst
 
 import (
 	"github.com/geange/lucene-go/core/store"
-	"github.com/pkg/errors"
+	"github.com/geange/lucene-go/math"
 )
 
-var _ Outputs = &PositiveIntOutputs{}
+var _ Outputs[int64] = &PositiveIntOutputs[int64]{}
 
-var (
-	ErrTypeNotInt64 = errors.New("type is not int64")
-)
-
-type PositiveIntOutputs struct {
+func NewPositiveIntOutputs[T int64]() *PositiveIntOutputs[T] {
+	return &PositiveIntOutputs[T]{}
 }
 
-func NewPositiveIntOutputs() *PositiveIntOutputs {
-	return &PositiveIntOutputs{}
+type PositiveIntOutputs[T int64] struct {
+	noOutput T
 }
 
-func (p *PositiveIntOutputs) Common(output1, output2 any) (any, error) {
-	n1, _ := output1.(int64)
-	n2, _ := output2.(int64)
-
-	if n1 == 0 || n2 == 0 {
-		return nil, nil
-	}
-
-	if n1 < n2 {
-		return n1, nil
-	}
-	return n2, nil
+func (p *PositiveIntOutputs[T]) Common(output1, output2 T) (T, error) {
+	return math.Min(output1, output2), nil
 }
 
-func (p *PositiveIntOutputs) Subtract(output1, inc any) (any, error) {
-	n1, _ := output1.(int64)
-	n2, _ := inc.(int64)
-
-	if n1 == n2 {
-		return nil, nil
-	}
-
-	return n1 - n2, nil
+func (p *PositiveIntOutputs[T]) Subtract(output1, inc T) (T, error) {
+	return output1 - inc, nil
 }
 
-func (p *PositiveIntOutputs) Add(prefix, output any) (any, error) {
-	n1, _ := prefix.(int64)
-	n2, _ := output.(int64)
-
-	return n1 + n2, nil
+func (p *PositiveIntOutputs[T]) Add(prefix, output T) (T, error) {
+	return prefix + output, nil
 }
 
-func (p *PositiveIntOutputs) Write(output any, out store.DataOutput) error {
-	n1, ok := output.(int64)
-	if !ok {
-		return errors.Wrap(ErrTypeNotInt64, "output's type not match")
-	}
-	return out.WriteUvarint(uint64(n1))
+func (p *PositiveIntOutputs[T]) Write(output T, out store.DataOutput) error {
+	return out.WriteUvarint(uint64(output))
 }
 
-func (p *PositiveIntOutputs) WriteFinalOutput(output any, out store.DataOutput) error {
+func (p *PositiveIntOutputs[T]) WriteFinalOutput(output T, out store.DataOutput) error {
 	return p.Write(output, out)
 }
 
-func (p *PositiveIntOutputs) Read(in store.DataInput) (any, error) {
+func (p *PositiveIntOutputs[T]) Read(in store.DataInput) (T, error) {
 	num, err := in.ReadUvarint()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-
-	if num == 0 {
-		return nil, nil
-	}
-
-	return int64(num), nil
+	return T(num), nil
 }
 
-func (p *PositiveIntOutputs) SkipOutput(in store.DataInput) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *PositiveIntOutputs) ReadFinalOutput(in store.DataInput) (any, error) {
+func (p *PositiveIntOutputs[T]) ReadFinalOutput(in store.DataInput) (T, error) {
 	return p.Read(in)
 }
 
-func (p *PositiveIntOutputs) SkipFinalOutput(in store.DataInput) error {
+func (p *PositiveIntOutputs[T]) SkipOutput(in store.DataInput) error {
+	_, err := p.Read(in)
+	return err
+}
+
+func (p *PositiveIntOutputs[T]) SkipFinalOutput(in store.DataInput) error {
+	return p.SkipOutput(in)
+}
+
+func (p *PositiveIntOutputs[T]) IsNoOutput(v T) bool {
+	return v == 0
+}
+
+func (p *PositiveIntOutputs[T]) GetNoOutput() T {
+	return 0
+}
+
+func (p *PositiveIntOutputs[T]) Merge(first, second any) (T, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *PositiveIntOutputs) IsNoOutput(v any) bool {
-	if v == nil {
-		return true
-	}
-
-	n, ok := v.(int64)
-	if ok {
-		return n == 0
-	}
-	return false
-}
-
-var (
-	positiveIntOutputsNoOutput = new(any)
-)
-
-func (p *PositiveIntOutputs) GetNoOutput() any {
-	return positiveIntOutputsNoOutput
-}
-
-func (p *PositiveIntOutputs) Merge(first, second any) (any, error) {
-	//TODO implement me
-	panic("implement me")
-}
+//
+//func (p *PositiveIntOutputs) Common(output1, output2 any) (any, error) {
+//	n1, n2 := int64(0), int64(0)
+//	if n, ok := output1.(int64); ok {
+//		n1 = n
+//	}
+//	if n, ok := output2.(int64); ok {
+//		n2 = n
+//	}
+//
+//	if n1 == 0 || n2 == 0 {
+//		return positiveIntOutputsNoOutput, nil
+//	}
+//
+//	if n1 < n2 {
+//		return n1, nil
+//	}
+//	return n2, nil
+//}
+//
+//func (p *PositiveIntOutputs) Subtract(output1, inc any) (any, error) {
+//	n1, n2 := int64(0), int64(0)
+//	if n, ok := output1.(int64); ok {
+//		n1 = n
+//	}
+//	if n, ok := inc.(int64); ok {
+//		n2 = n
+//	}
+//
+//	if n1 == n2 {
+//		return nil, nil
+//	}
+//
+//	return n1 - n2, nil
+//}
+//
+//func (p *PositiveIntOutputs) Add(prefix, output any) (any, error) {
+//	n1, n2 := int64(0), int64(0)
+//	if n, ok := prefix.(int64); ok {
+//		n1 = n
+//	}
+//	if n, ok := output.(int64); ok {
+//		n2 = n
+//	}
+//
+//	return n1 + n2, nil
+//}
+//
+//func (p *PositiveIntOutputs) Write(output any, out store.DataOutput) error {
+//	n := int64(0)
+//
+//	v, ok := output.(int64)
+//	if ok {
+//		n = v
+//	}
+//	return out.WriteUvarint(uint64(n))
+//}
+//
+//func (p *PositiveIntOutputs) WriteFinalOutput(output any, out store.DataOutput) error {
+//	return p.Write(output, out)
+//}
+//
+//func (p *PositiveIntOutputs) Read(in store.DataInput) (any, error) {
+//	num, err := in.ReadUvarint()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	if num == 0 {
+//		return positiveIntOutputsNoOutput, nil
+//	}
+//
+//	return int64(num), nil
+//}
+//
+//func (p *PositiveIntOutputs) SkipOutput(in store.DataInput) error {
+//	_, err := p.Read(in)
+//	return err
+//}
+//
+//func (p *PositiveIntOutputs) ReadFinalOutput(in store.DataInput) (any, error) {
+//	return p.Read(in)
+//}
+//
+//func (p *PositiveIntOutputs) SkipFinalOutput(in store.DataInput) error {
+//	return p.SkipOutput(in)
+//}
+//
+//func (p *PositiveIntOutputs) IsNoOutput(v any) bool {
+//	if v == positiveIntOutputsNoOutput {
+//		return true
+//	}
+//
+//	if v == nil {
+//		return true
+//	}
+//
+//	n, ok := v.(int64)
+//	if ok {
+//		return n == 0
+//	}
+//	return false
+//}
+//
+//var (
+//	positiveIntOutputsNoOutput = new(any)
+//)
+//
+//func (p *PositiveIntOutputs) GetNoOutput() any {
+//	return positiveIntOutputsNoOutput
+//}
+//
+//func (p *PositiveIntOutputs) Merge(first, second any) (any, error) {
+//	//TODO implement me
+//	panic("implement me")
+//}

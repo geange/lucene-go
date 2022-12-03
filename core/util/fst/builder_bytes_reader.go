@@ -59,6 +59,10 @@ func (b *BuilderBytesReader) ReadBytes(bs []byte) error {
 	return nil
 }
 
+func (b *BuilderBytesReader) SkipBytes(numBytes int) error {
+	return b.SetPosition(b.GetPosition() - int64(numBytes))
+}
+
 func (b *BuilderBytesReader) GetPosition() int64 {
 	return int64(b.nextBuffer+1)*b.bs.blockSize + int64(b.nextRead)
 }

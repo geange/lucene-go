@@ -76,9 +76,7 @@ type DataInputExt interface {
 	SkipBytes(numBytes int) error
 }
 
-var (
-	_ DataInputExt = &DataInputImp{}
-)
+var _ DataInputExt = &DataInputImp{}
 
 type DataInputImp struct {
 	input DataInput

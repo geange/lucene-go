@@ -6,9 +6,9 @@ import (
 )
 
 func main() {
-	posIntOutputs := fst.NewPositiveIntOutputs()
+	posIntOutputs := fst.NewPositiveIntOutputs[int64]()
 
-	builder := fst.NewBuilder(fst.BYTE1, posIntOutputs)
+	builder := fst.NewBuilder[int64](fst.BYTE1, posIntOutputs)
 
 	// "mop", "moth", "pop", "star", "stop", "top"
 	// 100, 91, 72, 83, 54, 55
@@ -46,7 +46,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	arc := new(fst.Arc)
+	arc := new(fst.Arc[int64])
 	firstArc1, err := fmap.GetFirstArc(arc)
 	if err != nil {
 		panic(err)
@@ -58,14 +58,14 @@ func main() {
 		panic(err)
 	}
 
-	newFST, err := fst.NewFSTFromFile("test.fst", &fst.PositiveIntOutputs{})
+	newFST, err := fst.NewFSTFromFile[int64]("test.fst", &fst.PositiveIntOutputs[int64]{})
 	if err != nil {
 		panic(err)
 	}
 
 	reader, _ := newFST.GetBytesReader()
 
-	arc2 := new(fst.Arc)
+	arc2 := new(fst.Arc[int64])
 	arc2, err = newFST.GetFirstArc(arc2)
 	if err != nil {
 		panic(err)
@@ -73,7 +73,7 @@ func main() {
 
 	fmt.Printf("%c\n", arc2.Label())
 
-	follow := new(fst.Arc)
+	follow := new(fst.Arc[int64])
 	arc2, err = newFST.FindTargetArc(int('t'), arc2, follow, reader)
 	if err != nil {
 		panic(err)

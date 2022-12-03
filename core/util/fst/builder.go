@@ -4,6 +4,8 @@ import (
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"math"
+
+	. "github.com/geange/lucene-go/math"
 )
 
 // Builder Builds a minimal FST (maps an IntsRef term to an arbitrary output) from pre-sorted terms with outputs.
@@ -19,10 +21,10 @@ import (
 // now possible, however they cannot be packed.
 //
 // lucene.experimental
-type Builder struct {
-	dedupHash *NodeHash
-	fst       *FST
-	noOutput  any
+type Builder[T any] struct {
+	dedupHash *NodeHash[T]
+	fst       *FST[T]
+	noOutput  T
 
 	// private static final boolean DEBUG = true;
 
@@ -44,7 +46,7 @@ type Builder struct {
 	// in build performance on 9.8M Wikipedia terms; so we
 	// left this as an array:
 	// current "frontier"
-	frontier []*UnCompiledNode
+	frontier []*UnCompiledNode[T]
 
 	// Used for the BIT_TARGET_NEXT optimization (whereby
 	// instead of storing the address of the target node for
@@ -71,7 +73,7 @@ type Builder struct {
 // NewBuilder Instantiates an FST/FSA builder without any pruning.
 // A shortcut to Builder(FST.INPUT_TYPE, int, int, boolean, boolean, int, Outputs, boolean, int)
 // with pruning options turned off.
-func NewBuilder(inputType INPUT_TYPE, outputs Outputs) *Builder {
+func NewBuilder[T any](inputType INPUT_TYPE, outputs Outputs[T]) *Builder[T] {
 	return NewBuilderV1(inputType, 0, 0, true, true,
 		math.MaxInt32, outputs, true, 15)
 }
@@ -87,18 +89,18 @@ func NewBuilder(inputType INPUT_TYPE, outputs Outputs) *Builder {
 // outputs – The output type for each input sequence. Applies only if building an FST. For FSA, use NoOutputs.getSingleton() and NoOutputs.getNoOutput() as the singleton output object.
 // allowFixedLengthArcs – Pass false to disable the fixed length arc optimization (binary search or direct addressing) while building the FST; this will make the resulting FST smaller but slower to traverse.
 // bytesPageBits – How many bits wide to make each byte[] block in the BytesStore; if you know the FST will be large then make this larger. For example 15 bits = 32768 byte pages.
-func NewBuilderV1(inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
-	doShareSuffix, doShareNonSingletonNodes bool, shareMaxTailLength int, outputs Outputs,
-	allowFixedLengthArcs bool, bytesPageBits int) *Builder {
+func NewBuilderV1[T any](inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
+	doShareSuffix, doShareNonSingletonNodes bool, shareMaxTailLength int, outputs Outputs[T],
+	allowFixedLengthArcs bool, bytesPageBits int) *Builder[T] {
 
-	builder := &Builder{
+	builder := &Builder[T]{
 		minSuffixCount1:          int64(minSuffixCount1),
 		minSuffixCount2:          int64(minSuffixCount2),
 		doShareNonSingletonNodes: doShareNonSingletonNodes,
 		shareMaxTailLength:       shareMaxTailLength,
 		allowFixedLengthArcs:     allowFixedLengthArcs,
-		fst:                      NewFST(inputType, outputs, bytesPageBits),
-		frontier:                 make([]*UnCompiledNode, 0, 10),
+		fst:                      NewFST[T](inputType, outputs, bytesPageBits),
+		frontier:                 make([]*UnCompiledNode[T], 0, 10),
 		fixedLengthArcsBuffer:    NewFixedLengthArcsBuffer(),
 	}
 
@@ -129,33 +131,36 @@ func NewBuilderV1(inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
 // Setting this factor to a negative value (e.g. -1) effectively disables direct addressing, only binary search nodes will be created.
 // 请参阅:
 // DIRECT_ADDRESSING_MAX_OVERSIZING_FACTOR
-func (b *Builder) SetDirectAddressingMaxOversizingFactor(factor float64) *Builder {
+func (b *Builder[T]) SetDirectAddressingMaxOversizingFactor(factor float64) *Builder[T] {
 	b.directAddressingMaxOversizingFactor = factor
 	return b
 }
 
-func (b *Builder) GetDirectAddressingMaxOversizingFactor() float64 {
+func (b *Builder[T]) GetDirectAddressingMaxOversizingFactor() float64 {
 	return b.directAddressingMaxOversizingFactor
 }
 
-func (b *Builder) GetTermCount() int64 {
+func (b *Builder[T]) GetTermCount() int64 {
 	return b.frontier[0].InputCount
 }
 
-func (b *Builder) GetNodeCount() int64 {
+func (b *Builder[T]) GetNodeCount() int64 {
 	// 1+ in order to count the -1 implicit final node
 	return b.nodeCount + 1
 }
 
-func (b *Builder) GetArcCount() int64 {
+func (b *Builder[T]) GetArcCount() int64 {
 	return b.arcCount
 }
 
-func (b *Builder) compileNode(nodeIn *UnCompiledNode, tailLength int) (*CompiledNode, error) {
+func (b *Builder[T]) compileNode(nodeIn *UnCompiledNode[T], tailLength int) (*CompiledNode, error) {
 	var node int64
 	var err error
 	bytesPosStart := b.bytes.GetPosition()
-	if b.dedupHash != nil && (b.doShareNonSingletonNodes || nodeIn.NumArcs() <= 1) && tailLength <= b.shareMaxTailLength {
+	if b.dedupHash != nil &&
+		(b.doShareNonSingletonNodes || nodeIn.NumArcs() <= 1) &&
+		tailLength <= b.shareMaxTailLength {
+
 		if nodeIn.NumArcs() == 0 {
 			node, err = b.fst.AddNode(b, nodeIn)
 			if err != nil {
@@ -170,13 +175,21 @@ func (b *Builder) compileNode(nodeIn *UnCompiledNode, tailLength int) (*Compiled
 		}
 	} else {
 		node, err = b.fst.AddNode(b, nodeIn)
+		if err != nil {
+			return nil, err
+		}
 	}
-	// TODO: assert node != -2;
+
+	if err := assert(node != -2); err != nil {
+		return nil, err
+	}
 
 	bytesPosEnd := b.bytes.GetPosition()
 	if bytesPosEnd != bytesPosStart {
 		// The FST added a new node:
-		// TODO: assert bytesPosEnd > bytesPosStart;
+		if err := assert(bytesPosEnd > bytesPosStart); err != nil {
+			return nil, err
+		}
 		b.lastFrozenNode = node
 	}
 
@@ -187,7 +200,7 @@ func (b *Builder) compileNode(nodeIn *UnCompiledNode, tailLength int) (*Compiled
 	return fn, nil
 }
 
-func (b *Builder) freezeTail(prefixLenPlus1 int) error {
+func (b *Builder[T]) freezeTail(prefixLenPlus1 int) error {
 	downTo := util.Max(1, prefixLenPlus1)
 
 	for idx := len(b.lastInput); idx >= downTo; idx-- {
@@ -229,7 +242,7 @@ func (b *Builder) freezeTail(prefixLenPlus1 int) error {
 		if node.InputCount < b.minSuffixCount2 || (b.minSuffixCount2 == 1 && node.InputCount == 1 && idx > 1) {
 			// drop all arcs
 			for arcIdx := 0; arcIdx < int(node.NumArcs()); arcIdx++ {
-				target := node.Arcs[arcIdx].Target.(*UnCompiledNode)
+				target := node.Arcs[arcIdx].Target.(*UnCompiledNode[T])
 				target.Clear()
 			}
 			node.Arcs = node.Arcs[:0]
@@ -238,53 +251,51 @@ func (b *Builder) freezeTail(prefixLenPlus1 int) error {
 		if doPrune {
 			// this node doesn't make it -- deref it
 			node.Clear()
-			err := parent.DeleteLast(int(b.lastInput[idx-1]), node)
+			if err := parent.DeleteLast(int(b.lastInput[idx-1]), node); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if b.minSuffixCount2 != 0 {
+			if err := b.compileAllTargets(node, len(b.lastInput)-idx); err != nil {
+				return err
+			}
+		}
+		nextFinalOutput := node.Output
+
+		// We "fake" the node as being final if it has no
+		// outgoing arcs; in theory we could leave it
+		// as non-final (the FST can represent this), but
+		// FSTEnum, Util, etc., have trouble w/ non-final
+		// dead-end states:
+		isFinal := node.IsFinal || node.NumArcs() == 0
+
+		if doCompile {
+			// this node makes it and we now compile it.  first,
+			// compile any targets that were previously
+			// undecided:
+			compileNode, err := b.compileNode(node, 1+len(b.lastInput)-idx)
 			if err != nil {
 				return err
 			}
+
+			if err := parent.ReplaceLast(
+				int(b.lastInput[idx-1]), compileNode, nextFinalOutput, isFinal); err != nil {
+				return err
+			}
 		} else {
-
-			if b.minSuffixCount2 != 0 {
-				err := b.compileAllTargets(node, len(b.lastInput)-idx)
-				if err != nil {
-					return err
-				}
+			// replaceLast just to install
+			// nextFinalOutput/isFinal onto the arc
+			if err := parent.ReplaceLast(
+				int(b.lastInput[idx-1]), node, nextFinalOutput, isFinal); err != nil {
+				return err
 			}
-			nextFinalOutput := node.Output
-
-			// We "fake" the node as being final if it has no
-			// outgoing arcs; in theory we could leave it
-			// as non-final (the FST can represent this), but
-			// FSTEnum, Util, etc., have trouble w/ non-final
-			// dead-end states:
-			isFinal := node.IsFinal || node.NumArcs() == 0
-
-			if doCompile {
-				// this node makes it and we now compile it.  first,
-				// compile any targets that were previously
-				// undecided:
-				compileNode, err := b.compileNode(node, 1+len(b.lastInput)-idx)
-				if err != nil {
-					return err
-				}
-
-				err = parent.ReplaceLast(int(b.lastInput[idx-1]), compileNode, nextFinalOutput, isFinal)
-				if err != nil {
-					return err
-				}
-			} else {
-				// replaceLast just to install
-				// nextFinalOutput/isFinal onto the arc
-				err := parent.ReplaceLast(int(b.lastInput[idx-1]), node, nextFinalOutput, isFinal)
-				if err != nil {
-					return err
-				}
-				// this node will stay in play for now, since we are
-				// undecided on whether to prune it.  later, it
-				// will be either compiled or pruned, so we must
-				// allocate a new node:
-				b.frontier[idx] = NewUnCompiledNode(b, idx)
-			}
+			// this node will stay in play for now, since we are
+			// undecided on whether to prune it.  later, it
+			// will be either compiled or pruned, so we must
+			// allocate a new node:
+			b.frontier[idx] = NewUnCompiledNode(b, idx)
 		}
 	}
 
@@ -298,7 +309,7 @@ func (b *Builder) freezeTail(prefixLenPlus1 int) error {
 // changeable (eg ByteSequenceOutputs or IntSequenceOutputs) then you cannot reuse across calls.
 //
 // 添加input/output。提供的input必须要先进行排序。如果输入相同的input+不同的output，output需要实现merge方法。
-func (b *Builder) Add(input []rune, output any) error {
+func (b *Builder[T]) Add(input []rune, output T) error {
 	// TODO: if (output.equals(noOutput)) {
 	//      output = noOutput;
 	//    }
@@ -306,9 +317,9 @@ func (b *Builder) Add(input []rune, output any) error {
 	// TODO: assert lastInput.length() == 0 || input.compareTo(lastInput.get()) >= 0: "inputs are added out of order lastInput=" + lastInput.get() + " vs input=" + input;
 	// TODO: assert validOutput(output);
 
-	if b.fst.outputs.IsNoOutput(output) {
-		output = b.noOutput
-	}
+	//if b.fst.outputs.IsNoOutput(output) {
+	//	output = b.noOutput
+	//}
 
 	if len(input) == 0 {
 		// empty input: only allowed as first input.  we have
@@ -328,7 +339,7 @@ func (b *Builder) Add(input []rune, output any) error {
 	// compare shared prefix length
 	pos1 := 0
 	pos2 := 0
-	pos1Stop := util.Min(len(b.lastInput), len(input))
+	pos1Stop := Min(len(b.lastInput), len(input))
 	for {
 		b.frontier[pos1].InputCount++
 		if pos1 >= pos1Stop || b.lastInput[pos1] != input[pos2] {
@@ -364,13 +375,13 @@ func (b *Builder) Add(input []rune, output any) error {
 		node := b.frontier[idx]
 		parentNode := b.frontier[idx-1]
 
-		lastOutput := parentNode.GetLastOutput(int(input[idx-1]))
+		var lastOutput T = parentNode.GetLastOutput(int(input[idx-1]))
 		// TODO: assert validOutput(lastOutput);
 
-		var commonOutputPrefix any
-		var wordSuffix any
+		var commonOutputPrefix T
+		var wordSuffix T
 
-		if lastOutput != nil {
+		if !b.fst.outputs.IsNoOutput(lastOutput) {
 			commonOutputPrefix, err = b.fst.outputs.Common(output, lastOutput)
 			if err != nil {
 				return err
@@ -422,7 +433,7 @@ func (b *Builder) Add(input []rune, output any) error {
 }
 
 // Finish Returns final FST. NOTE: this will return null if nothing is accepted by the FST.
-func (b *Builder) Finish() (*FST, error) {
+func (b *Builder[T]) Finish() (*FST[T], error) {
 
 	root := b.frontier[0]
 
@@ -432,7 +443,7 @@ func (b *Builder) Finish() (*FST, error) {
 		return nil, err
 	}
 	if root.InputCount < b.minSuffixCount1 || root.InputCount < b.minSuffixCount2 || root.NumArcs() == 0 {
-		if b.fst.emptyOutput == nil {
+		if b.fst.outputs.IsNoOutput(b.fst.emptyOutput) {
 			return nil, nil
 		} else if b.minSuffixCount1 > 0 || b.minSuffixCount2 > 0 {
 			// empty string got pruned
@@ -460,12 +471,12 @@ func (b *Builder) Finish() (*FST, error) {
 	return b.fst, nil
 }
 
-func (b *Builder) compileAllTargets(node *UnCompiledNode, tailLength int) error {
+func (b *Builder[T]) compileAllTargets(node *UnCompiledNode[T], tailLength int) error {
 	for arcIdx := 0; arcIdx < int(node.NumArcs()); arcIdx++ {
 		arc := node.Arcs[arcIdx]
 		if !arc.Target.IsCompiled() {
 			// not yet compiled
-			n := arc.Target.(*UnCompiledNode)
+			n := arc.Target.(*UnCompiledNode[T])
 			if n.NumArcs() == 0 {
 				//System.out.println("seg=" + segment + "        FORCE final arc=" + (char) arc.label);
 				arc.IsFinal, n.IsFinal = true, true

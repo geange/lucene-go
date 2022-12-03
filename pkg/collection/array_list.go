@@ -19,7 +19,7 @@ func (r *ArrayList[T]) Size() int {
 
 func (r *ArrayList[T]) Get(index int) (T, error) {
 	if index < 0 || index >= r.Size() {
-		return r.no, ErrIndexOutOfBounds
+		return r.no, ErrIndexOutOfRange
 	}
 	return r.elem[index], nil
 }
@@ -31,7 +31,7 @@ func (r *ArrayList[T]) Add(values T) error {
 
 func (r *ArrayList[T]) Set(index int, element T) error {
 	if index < 0 || index >= r.Size() {
-		return ErrIndexOutOfBounds
+		return ErrIndexOutOfRange
 	}
 	r.elem[index] = element
 	return nil
@@ -47,8 +47,6 @@ func (r *ArrayList[T]) List() []T {
 }
 
 var (
-	ErrClassCast        = errors.New("class cast")          // if the class of the specified element prevents it from being added to this list
-	ErrNilPointer       = errors.New("nil pointer")         // if the specified element is null and this list does not permit null elements
-	ErrIndexOutOfBounds = errors.New("index out of bounds") // if the index is out of range (index < 0 || index >= size())
-
+	// ErrIndexOutOfRange if the index is out of range (index < 0 || index >= size())
+	ErrIndexOutOfRange = errors.New("index out of range")
 )
