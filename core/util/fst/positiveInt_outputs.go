@@ -15,56 +15,56 @@ type PositiveIntOutputs[T int64] struct {
 	noOutput T
 }
 
-func (p *PositiveIntOutputs[T]) Common(output1, output2 T) (T, error) {
+func (p *PositiveIntOutputs[int64]) Common(output1, output2 int64) (int64, error) {
 	return math.Min(output1, output2), nil
 }
 
-func (p *PositiveIntOutputs[T]) Subtract(output1, inc T) (T, error) {
+func (p *PositiveIntOutputs[int64]) Subtract(output1, inc int64) (int64, error) {
 	return output1 - inc, nil
 }
 
-func (p *PositiveIntOutputs[T]) Add(prefix, output T) (T, error) {
+func (p *PositiveIntOutputs[int64]) Add(prefix, output int64) (int64, error) {
 	return prefix + output, nil
 }
 
-func (p *PositiveIntOutputs[T]) Write(output T, out store.DataOutput) error {
+func (p *PositiveIntOutputs[int64]) Write(output int64, out store.DataOutput) error {
 	return out.WriteUvarint(uint64(output))
 }
 
-func (p *PositiveIntOutputs[T]) WriteFinalOutput(output T, out store.DataOutput) error {
+func (p *PositiveIntOutputs[int64]) WriteFinalOutput(output int64, out store.DataOutput) error {
 	return p.Write(output, out)
 }
 
-func (p *PositiveIntOutputs[T]) Read(in store.DataInput) (T, error) {
+func (p *PositiveIntOutputs[int64]) Read(in store.DataInput) (int64, error) {
 	num, err := in.ReadUvarint()
 	if err != nil {
 		return 0, err
 	}
-	return T(num), nil
+	return int64(num), nil
 }
 
-func (p *PositiveIntOutputs[T]) ReadFinalOutput(in store.DataInput) (T, error) {
+func (p *PositiveIntOutputs[int64]) ReadFinalOutput(in store.DataInput) (int64, error) {
 	return p.Read(in)
 }
 
-func (p *PositiveIntOutputs[T]) SkipOutput(in store.DataInput) error {
+func (p *PositiveIntOutputs[int64]) SkipOutput(in store.DataInput) error {
 	_, err := p.Read(in)
 	return err
 }
 
-func (p *PositiveIntOutputs[T]) SkipFinalOutput(in store.DataInput) error {
+func (p *PositiveIntOutputs[int64]) SkipFinalOutput(in store.DataInput) error {
 	return p.SkipOutput(in)
 }
 
-func (p *PositiveIntOutputs[T]) IsNoOutput(v T) bool {
+func (p *PositiveIntOutputs[int64]) IsNoOutput(v int64) bool {
 	return v == 0
 }
 
-func (p *PositiveIntOutputs[T]) GetNoOutput() T {
+func (p *PositiveIntOutputs[int64]) GetNoOutput() int64 {
 	return 0
 }
 
-func (p *PositiveIntOutputs[T]) Merge(first, second any) (T, error) {
+func (p *PositiveIntOutputs[int64]) Merge(first, second any) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }

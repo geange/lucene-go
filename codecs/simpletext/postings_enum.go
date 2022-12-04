@@ -52,7 +52,7 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 			return 0, err
 		}
 		//System.out.println("NEXT DOC: " + scratch.utf8ToString());
-		if bytes.HasPrefix(s.scratch.Bytes(), FieldsToken.DOC) {
+		if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_DOC) {
 			if !first {
 				s.nextDocStart = lineStart
 				if err := s.in.Seek(posStart); err != nil {
@@ -60,7 +60,7 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 				}
 				return s.docID, nil
 			}
-			s.scratchUTF16.Write(s.scratch.Bytes()[len(FieldsToken.DOC):])
+			s.scratchUTF16.Write(s.scratch.Bytes()[len(FIELDS_DOC):])
 
 			s.docID, err = strconv.Atoi(s.scratchUTF16.String())
 			if err != nil {
@@ -69,17 +69,17 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 
 			s.tf = 0
 			first = false
-		} else if bytes.HasPrefix(s.scratch.Bytes(), FieldsToken.FREQ) {
-			s.scratchUTF16.Write(s.scratch.Bytes()[len(FieldsToken.FREQ):])
+		} else if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_FREQ) {
+			s.scratchUTF16.Write(s.scratch.Bytes()[len(FIELDS_FREQ):])
 			s.tf, err = strconv.Atoi(s.scratchUTF16.String())
 			posStart = s.in.GetFilePointer()
-		} else if bytes.HasPrefix(s.scratch.Bytes(), FieldsToken.POS) {
+		} else if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_POS) {
 			// skip
-		} else if bytes.HasPrefix(s.scratch.Bytes(), FieldsToken.START_OFFSET) {
+		} else if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_START_OFFSET) {
 			// skip
-		} else if bytes.HasPrefix(s.scratch.Bytes(), FieldsToken.END_OFFSET) {
+		} else if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_END_OFFSET) {
 			// skip
-		} else if bytes.HasPrefix(s.scratch.Bytes(), FieldsToken.PAYLOAD) {
+		} else if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_PAYLOAD) {
 			// skip
 		} else {
 
@@ -151,7 +151,7 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 			return 0, err
 		}
 		s.scratchUTF16_2.Reset()
-		s.scratchUTF16_2.Write(s.scratch.Bytes()[len(FieldsToken.POS):])
+		s.scratchUTF16_2.Write(s.scratch.Bytes()[len(FIELDS_POS):])
 		var err error
 		s.pos, err = strconv.Atoi(s.scratchUTF16_2.String())
 		if err != nil {
@@ -166,7 +166,7 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 			return 0, err
 		}
 		s.scratchUTF16_2.Reset()
-		s.scratchUTF16_2.Write(s.scratch.Bytes()[len(FieldsToken.START_OFFSET):])
+		s.scratchUTF16_2.Write(s.scratch.Bytes()[len(FIELDS_START_OFFSET):])
 		var err error
 		s.startOffset, err = strconv.Atoi(s.scratchUTF16_2.String())
 		if err != nil {
@@ -177,7 +177,7 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 			return 0, err
 		}
 		s.scratchUTF16_2.Reset()
-		s.scratchUTF16_2.Write(s.scratch.Bytes()[len(FieldsToken.END_OFFSET):])
+		s.scratchUTF16_2.Write(s.scratch.Bytes()[len(FIELDS_END_OFFSET):])
 
 		s.endOffset, err = strconv.Atoi(s.scratchUTF16_2.String())
 		if err != nil {
@@ -189,9 +189,9 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 	if err := ReadLine(s.in, s.scratch); err != nil {
 		return 0, err
 	}
-	if bytes.HasPrefix(s.scratch.Bytes(), FieldsToken.PAYLOAD) {
+	if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_PAYLOAD) {
 		s.scratch2.Reset()
-		s.scratch2.Write(s.scratch.Bytes()[len(FieldsToken.PAYLOAD):])
+		s.scratch2.Write(s.scratch.Bytes()[len(FIELDS_PAYLOAD):])
 		s.payload = s.scratch2.Bytes()
 	} else {
 		s.payload = s.payload[:0]

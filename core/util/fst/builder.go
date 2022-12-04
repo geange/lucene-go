@@ -203,6 +203,7 @@ func (b *Builder[T]) compileNode(nodeIn *UnCompiledNode[T], tailLength int) (*Co
 func (b *Builder[T]) freezeTail(prefixLenPlus1 int) error {
 	downTo := util.Max(1, prefixLenPlus1)
 
+	// idx := len(b.lastInput) 因为 b.frontier 长度比 b.lastInput 多一位
 	for idx := len(b.lastInput); idx >= downTo; idx-- {
 		doPrune := false   // 需要修剪
 		doCompile := false // 需要编译
@@ -216,8 +217,8 @@ func (b *Builder[T]) freezeTail(prefixLenPlus1 int) error {
 		} else if idx > prefixLenPlus1 {
 			// prune if parent's inputCount is less than suffixMinCount2
 			if parent.InputCount < b.minSuffixCount2 || (b.minSuffixCount2 == 1 && parent.InputCount == 1 && idx > 1) {
-				// my parent, about to be compiled, doesn't make the cut, so
-				// I'm definitely pruned
+				// my parent, about to be compiled, doesn't make the cut,
+				// so I'm definitely pruned
 
 				// if minSuffixCount2 is 1, we keep only up
 				// until the 'distinguished edge', ie we keep only the
@@ -375,7 +376,7 @@ func (b *Builder[T]) Add(input []rune, output T) error {
 		node := b.frontier[idx]
 		parentNode := b.frontier[idx-1]
 
-		var lastOutput T = parentNode.GetLastOutput(int(input[idx-1]))
+		lastOutput := parentNode.GetLastOutput(int(input[idx-1]))
 		// TODO: assert validOutput(lastOutput);
 
 		var commonOutputPrefix T

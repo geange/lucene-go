@@ -7,27 +7,15 @@ import (
 )
 
 var (
-	FieldsToken = struct {
-		END          []byte
-		FIELD        []byte
-		TERM         []byte
-		DOC          []byte
-		FREQ         []byte
-		POS          []byte
-		START_OFFSET []byte
-		END_OFFSET   []byte
-		PAYLOAD      []byte
-	}{
-		END:          []byte("END"),
-		FIELD:        []byte("field "),
-		TERM:         []byte("  term "),
-		DOC:          []byte("    doc "),
-		FREQ:         []byte("      freq "),
-		POS:          []byte("      pos "),
-		START_OFFSET: []byte("      startOffset "),
-		END_OFFSET:   []byte("      endOffset "),
-		PAYLOAD:      []byte("        payload "),
-	}
+	FIELDS_END          = []byte("END")
+	FIELDS_FIELD        = []byte("field ")
+	FIELDS_TERM         = []byte("  term ")
+	FIELDS_DOC          = []byte("    doc ")
+	FIELDS_FREQ         = []byte("      freq ")
+	FIELDS_POS          = []byte("      pos ")
+	FIELDS_START_OFFSET = []byte("      startOffset ")
+	FIELDS_END_OFFSET   = []byte("      endOffset ")
+	FIELDS_PAYLOAD      = []byte("        payload ")
 )
 
 var _ index.FieldsConsumer = &SimpleTextFieldsWriter{}
@@ -46,16 +34,17 @@ type SimpleTextFieldsWriter struct {
 }
 
 func (s *SimpleTextFieldsWriter) Close() error {
-	//TODO implement me
-	panic("implement me")
+	s.write(FIELDS_END)
+	s.newline()
+	WriteChecksum(s.out)
+	return s.out.Close()
 }
 
 func (s *SimpleTextFieldsWriter) Write(fields index.Fields, norms index.NormsProducer) error {
-	//TODO implement me
-	panic("implement me")
+	return s.WriteV1(s.writeState.FieldInfos, fields, norms)
 }
 
-func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
+func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fields,
 	normsProducer index.NormsProducer) error {
 
 	for _, field := range fields.Names() {
@@ -145,7 +134,7 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields ind
 
 					if !wroteField {
 						// we lazily do this, in case the field had no terms
-						s.write(FieldsToken.FIELD)
+						s.write(FIELDS_FIELD)
 						s.write([]byte(field))
 						s.newline()
 						wroteField = true
@@ -153,7 +142,7 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields ind
 
 					// we lazily do this, in case the term had
 					// zero docs
-					s.write(FieldsToken.TERM)
+					s.write(FIELDS_TERM)
 					s.write(term)
 					s.newline()
 					wroteTerm = true
@@ -161,7 +150,7 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields ind
 				if s.lastDocFilePointer == -1 {
 					s.lastDocFilePointer = s.out.GetFilePointer()
 				}
-				s.write(FieldsToken.DOC)
+				s.write(FIELDS_DOC)
 				s.write([]byte(strconv.Itoa(doc)))
 				s.newline()
 				if hasFreqs {
@@ -169,7 +158,7 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields ind
 					if err != nil {
 						return err
 					}
-					s.write(FieldsToken.FREQ)
+					s.write(FIELDS_FREQ)
 					s.write([]byte(strconv.Itoa(freq)))
 					s.newline()
 
@@ -184,7 +173,7 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields ind
 								return err
 							}
 
-							s.write(FieldsToken.POS)
+							s.write(FIELDS_POS)
 							s.write([]byte(strconv.Itoa(position)))
 							s.newline()
 
@@ -199,10 +188,10 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields ind
 								}
 
 								//lastStartOffset = startOffset
-								s.write(FieldsToken.START_OFFSET)
+								s.write(FIELDS_START_OFFSET)
 								s.write([]byte(strconv.Itoa(startOffset)))
 								s.newline()
-								s.write(FieldsToken.END_OFFSET)
+								s.write(FIELDS_END_OFFSET)
 								s.write([]byte(strconv.Itoa(endOffset)))
 								s.newline()
 							}
@@ -210,7 +199,7 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields ind
 							payload, err := postingsEnum.GetPayload()
 
 							if payload != nil && len(payload) > 0 {
-								s.write(FieldsToken.PAYLOAD)
+								s.write(FIELDS_PAYLOAD)
 								s.write(payload)
 								s.newline()
 							}

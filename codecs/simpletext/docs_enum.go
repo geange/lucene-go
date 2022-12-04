@@ -66,7 +66,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 
 		text := s.scratch.Bytes()
 
-		if bytes.HasPrefix(text, FieldsToken.DOC) {
+		if bytes.HasPrefix(text, FIELDS_DOC) {
 			if !first {
 				if err := s.in.Seek(lineStart); err != nil {
 					return 0, err
@@ -77,22 +77,22 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 				return s.docID, nil
 			}
 
-			s.docID, err = strconv.Atoi(string(text[len(FieldsToken.DOC):]))
+			s.docID, err = strconv.Atoi(string(text[len(FIELDS_DOC):]))
 
 			termFreq = 0
 			first = false
-		} else if bytes.HasPrefix(text, FieldsToken.FREQ) {
-			termFreq, err = strconv.Atoi(string(text[len(FieldsToken.FREQ):]))
+		} else if bytes.HasPrefix(text, FIELDS_FREQ) {
+			termFreq, err = strconv.Atoi(string(text[len(FIELDS_FREQ):]))
 			if err != nil {
 				return 0, err
 			}
-		} else if bytes.HasPrefix(text, FieldsToken.POS) {
+		} else if bytes.HasPrefix(text, FIELDS_POS) {
 			// skip termFreq++;
-		} else if bytes.HasPrefix(text, FieldsToken.START_OFFSET) {
+		} else if bytes.HasPrefix(text, FIELDS_START_OFFSET) {
 			// skip
-		} else if bytes.HasPrefix(text, FieldsToken.END_OFFSET) {
+		} else if bytes.HasPrefix(text, FIELDS_END_OFFSET) {
 			// skip
-		} else if bytes.HasPrefix(text, FieldsToken.PAYLOAD) {
+		} else if bytes.HasPrefix(text, FIELDS_PAYLOAD) {
 			// skip
 		} else {
 

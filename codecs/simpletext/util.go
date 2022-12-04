@@ -59,7 +59,7 @@ func ReadLine(in store.IndexInput, buf *bytes.Buffer) error {
 	return nil
 }
 
-func WriteChecksum(out store.IndexOutput, scratch *bytes.Buffer) error {
+func WriteChecksum(out store.IndexOutput) error {
 	if err := WriteBytes(out, CHECKSUM); err != nil {
 		return err
 	}

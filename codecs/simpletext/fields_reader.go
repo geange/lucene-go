@@ -61,10 +61,10 @@ func (s *SimpleTextFieldsReader) readFields(in store.IndexInput) (*treemap.Map, 
 
 		text := scratch.Bytes()
 
-		if bytes.Equal(text, FieldsToken.END) {
+		if bytes.Equal(text, FIELDS_END) {
 			return fields, nil
-		} else if bytes.HasPrefix(text, FieldsToken.FIELD) {
-			fieldName := string(text[len(FieldsToken.FIELD):])
+		} else if bytes.HasPrefix(text, FIELDS_FIELD) {
+			fieldName := string(text[len(FIELDS_FIELD):])
 			fields.Put(fieldName, input.GetFilePointer())
 		}
 	}
