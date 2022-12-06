@@ -21,7 +21,7 @@ import (
 // now possible, however they cannot be packed.
 //
 // lucene.experimental
-type Builder[T any] struct {
+type Builder[T any | *Pair[int64, int64]] struct {
 	dedupHash *NodeHash[T]
 	fst       *FST[T]
 	noOutput  T
@@ -73,7 +73,7 @@ type Builder[T any] struct {
 // NewBuilder Instantiates an FST/FSA builder without any pruning.
 // A shortcut to Builder(FST.INPUT_TYPE, int, int, boolean, boolean, int, Outputs, boolean, int)
 // with pruning options turned off.
-func NewBuilder[T any](inputType INPUT_TYPE, outputs Outputs[T]) *Builder[T] {
+func NewBuilder[T PairAble](inputType INPUT_TYPE, outputs Outputs[T]) *Builder[T] {
 	return NewBuilderV1(inputType, 0, 0, true, true,
 		math.MaxInt32, outputs, true, 15)
 }
@@ -89,7 +89,7 @@ func NewBuilder[T any](inputType INPUT_TYPE, outputs Outputs[T]) *Builder[T] {
 // outputs – The output type for each input sequence. Applies only if building an FST. For FSA, use NoOutputs.getSingleton() and NoOutputs.getNoOutput() as the singleton output object.
 // allowFixedLengthArcs – Pass false to disable the fixed length arc optimization (binary search or direct addressing) while building the FST; this will make the resulting FST smaller but slower to traverse.
 // bytesPageBits – How many bits wide to make each byte[] block in the BytesStore; if you know the FST will be large then make this larger. For example 15 bits = 32768 byte pages.
-func NewBuilderV1[T any](inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
+func NewBuilderV1[T PairAble](inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
 	doShareSuffix, doShareNonSingletonNodes bool, shareMaxTailLength int, outputs Outputs[T],
 	allowFixedLengthArcs bool, bytesPageBits int) *Builder[T] {
 
@@ -268,7 +268,7 @@ func (b *Builder[T]) freezeTail(prefixLenPlus1 int) error {
 		// We "fake" the node as being final if it has no
 		// outgoing arcs; in theory we could leave it
 		// as non-final (the FST can represent this), but
-		// FSTEnum, Util, etc., have trouble w/ non-final
+		// Enum, Util, etc., have trouble w/ non-final
 		// dead-end states:
 		isFinal := node.IsFinal || node.NumArcs() == 0
 

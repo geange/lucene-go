@@ -14,7 +14,7 @@ var (
 	DEFAULT_MAX_BLOCK_BITS = 30
 )
 
-type FST[T any] struct {
+type FST[T PairAble] struct {
 	inputType INPUT_TYPE
 
 	// if non-null, this FST accepts the empty string and

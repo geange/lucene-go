@@ -1,6 +1,8 @@
 package index
 
 import (
+	"errors"
+	"fmt"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
@@ -18,11 +20,12 @@ const (
 
 // SegmentInfo Information about a segment such as its name, directory, and files related to the segment.
 type SegmentInfo struct {
-	name           string          // Unique segment name in the directory.
-	maxDoc         int             // number of docs in seg
-	dir            store.Directory // Where this segment resides.
-	isCompoundFile bool            //
-	id             []byte          // Id that uniquely identifies this segment.
+	Name string          // Unique segment name in the directory.
+	Dir  store.Directory // Where this segment resides.
+
+	maxDoc         int    // number of docs in seg
+	isCompoundFile bool   //
+	id             []byte // Id that uniquely identifies this segment.
 	codec          Codec
 
 	diagnostics map[string]string
@@ -41,4 +44,20 @@ type SegmentInfo struct {
 	// this is the minimum minVersion of all the segments that have been merged
 	// into this segment
 	minVersion *util.Version
+}
+
+// MaxDoc Returns number of documents in this segment (deletions are not taken into account).
+func (s *SegmentInfo) MaxDoc() (int, error) {
+	if s.maxDoc == -1 {
+		return 0, errors.New("maxDoc isn't set yet")
+	}
+	return s.maxDoc, nil
+}
+
+func (s *SegmentInfo) SetMaxDoc(maxDoc int) error {
+	if s.maxDoc != -1 {
+		return fmt.Errorf("maxDoc was already set: this.maxDoc=%d vs maxDoc=%d", s.maxDoc, maxDoc)
+	}
+	s.maxDoc = maxDoc
+	return nil
 }

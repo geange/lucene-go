@@ -1,19 +1,43 @@
 package fst
 
-// EnumBase doFloor controls the behavior of advance: if it's true doFloor is true,
+//	doFloor controls the behavior of advance: if it's true doFloor is true,
+//
 // advance positions to the biggest term before target.
-type EnumBase[T any] struct {
+type Enum[T PairAble] struct {
 	fst          *FST[T]
 	arcs         []*Arc[T]
-	output       []any
+	output       []T
+	noOutput     T
 	fstReader    BytesReader
 	upto         int
 	targetLength int
 
-	spi EnumBaseSPI
+	spi EnumSPI
 }
 
-type EnumBaseSPI interface {
+func NewEnum[T PairAble](fst *FST[T]) (*Enum[T], error) {
+	reader, err := fst.GetBytesReader()
+	if err != nil {
+		return nil, err
+	}
+
+	noOutput := fst.outputs.GetNoOutput()
+
+	enum := &Enum[T]{
+		fst:       fst,
+		fstReader: reader,
+		noOutput:  noOutput,
+		output:    []T{noOutput},
+	}
+
+	if _, err := fst.GetFirstArc(enum.getArc(0)); err != nil {
+		return nil, err
+	}
+
+	return enum, nil
+}
+
+type EnumSPI interface {
 	GetTargetLabel() (int, error)
 	GetCurrentLabel() (int, error)
 	SetCurrentLabel(label int) error
@@ -21,7 +45,7 @@ type EnumBaseSPI interface {
 }
 
 // Rewinds enum state to match the shared prefix between current term and target term
-func (e *EnumBase[T]) rewindPrefix() error {
+func (e *Enum[T]) rewindPrefix() error {
 	if e.upto == 0 {
 		//System.out.println("  init");
 		e.upto = 1
@@ -30,4 +54,11 @@ func (e *EnumBase[T]) rewindPrefix() error {
 	}
 
 	return nil
+}
+
+func (e *Enum[T]) getArc(idx int) *Arc[T] {
+	if e.arcs[idx] == nil {
+		e.arcs[idx] = new(Arc[T])
+	}
+	return e.arcs[idx]
 }

@@ -64,7 +64,7 @@ func (p *PositiveIntOutputs[int64]) GetNoOutput() int64 {
 	return 0
 }
 
-func (p *PositiveIntOutputs[int64]) Merge(first, second any) (int64, error) {
+func (p *PositiveIntOutputs[int64]) Merge(first, second int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -18,9 +18,9 @@ var (
 	FIELDS_PAYLOAD      = []byte("        payload ")
 )
 
-var _ index.FieldsConsumer = &SimpleTextFieldsWriter{}
+var _ index.FieldsConsumer = &FieldsWriter{}
 
-type SimpleTextFieldsWriter struct {
+type FieldsWriter struct {
 	*index.FieldsConsumerImp
 
 	out        store.IndexOutput
@@ -33,18 +33,18 @@ type SimpleTextFieldsWriter struct {
 	lastDocFilePointer           int64
 }
 
-func (s *SimpleTextFieldsWriter) Close() error {
+func (s *FieldsWriter) Close() error {
 	s.write(FIELDS_END)
 	s.newline()
 	WriteChecksum(s.out)
 	return s.out.Close()
 }
 
-func (s *SimpleTextFieldsWriter) Write(fields index.Fields, norms index.NormsProducer) error {
+func (s *FieldsWriter) Write(fields index.Fields, norms index.NormsProducer) error {
 	return s.WriteV1(s.writeState.FieldInfos, fields, norms)
 }
 
-func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fields,
+func (s *FieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fields,
 	normsProducer index.NormsProducer) error {
 
 	for _, field := range fields.Names() {
@@ -234,7 +234,7 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields in
 	return nil
 }
 
-func (s *SimpleTextFieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, error) {
+func (s *FieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, error) {
 	if norms == nil {
 		return 1, nil
 	}
@@ -248,10 +248,10 @@ func (s *SimpleTextFieldsWriter) getNorm(doc int, norms index.NumericDocValues) 
 	return norms.LongValue()
 }
 
-func (s *SimpleTextFieldsWriter) write(field []byte) error {
+func (s *FieldsWriter) write(field []byte) error {
 	return WriteBytes(s.out, field)
 }
 
-func (s *SimpleTextFieldsWriter) newline() error {
+func (s *FieldsWriter) newline() error {
 	return WriteNewline(s.out)
 }

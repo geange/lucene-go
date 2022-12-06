@@ -23,7 +23,7 @@ type SimpleTextDocsEnum struct {
 	seekTo       int64
 }
 
-func (s *SimpleTextFieldsReader) NewSimpleTextDocsEnum() *SimpleTextDocsEnum {
+func (s *FieldsReader) NewSimpleTextDocsEnum() *SimpleTextDocsEnum {
 	return &SimpleTextDocsEnum{
 		inStart:      s.in,
 		in:           s.in.Clone(),

@@ -39,6 +39,18 @@ var (
 		IMPACTS_END:   []byte("        impactsEnd "),
 		CHILD_POINTER: []byte("        childPointer "),
 	}
+
+	SKIP_LIST     = []byte("    skipList ")
+	LEVEL_LENGTH  = []byte("      levelLength ")
+	LEVEL         = []byte("      level ")
+	SKIP_DOC      = []byte("        skipDoc ")
+	SKIP_DOC_FP   = []byte("        skipDocFP ")
+	IMPACTS       = []byte("        impacts ")
+	IMPACT        = []byte("          impact ")
+	FREQ          = []byte("            freq ")
+	NORM          = []byte("            norm ")
+	IMPACTS_END   = []byte("        impactsEnd ")
+	CHILD_POINTER = []byte("        childPointer ")
 )
 
 var _ index.MultiLevelSkipListWriter = &SimpleTextSkipWriter{}

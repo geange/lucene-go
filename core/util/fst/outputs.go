@@ -47,5 +47,5 @@ type Outputs[T any] interface {
 
 	GetNoOutput() T
 
-	Merge(first, second any) (T, error)
+	Merge(first, second T) (T, error)
 }

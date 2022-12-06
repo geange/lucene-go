@@ -5,25 +5,26 @@ import (
 	"reflect"
 )
 
-type Pair[A, B any] struct {
+type PairAble interface {
+	any | int64 | *Pair[int64, int64]
+}
+
+type Pair[A, B PairAble] struct {
 	Output1 A
 	Output2 B
 }
 
-func NewPair[A, B any](output1 A, output2 B) *Pair[A, B] {
+func NewPair[A, B PairAble](output1 A, output2 B) *Pair[A, B] {
 	return &Pair[A, B]{Output1: output1, Output2: output2}
 }
 
-var _ Outputs[*Pair[any, any]] = &PairOutputs[any, any]{}
-
-type PairOutputs[A, B any] struct {
+type PairOutputs[A, B PairAble] struct {
 	outputs1 Outputs[A]
 	outputs2 Outputs[B]
-
 	noOutput *Pair[A, B]
 }
 
-func NewPairOutputs[A, B any](outputs1 Outputs[A], outputs2 Outputs[B]) *PairOutputs[A, B] {
+func NewPairOutputs[A, B PairAble](outputs1 Outputs[A], outputs2 Outputs[B]) *PairOutputs[A, B] {
 	v1 := outputs1.GetNoOutput()
 	v2 := outputs2.GetNoOutput()
 
@@ -121,7 +122,7 @@ func (p *PairOutputs[A, B]) GetNoOutput() *Pair[A, B] {
 	return p.noOutput
 }
 
-func (p *PairOutputs[A, B]) Merge(first, second any) (*Pair[A, B], error) {
+func (p *PairOutputs[A, B]) Merge(first, second *Pair[A, B]) (*Pair[A, B], error) {
 	//TODO implement me
 	panic("implement me")
 }
