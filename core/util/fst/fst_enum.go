@@ -12,7 +12,7 @@ type Enum[T PairAble] struct {
 	upto         int
 	targetLength int
 
-	spi EnumSPI
+	spi enumSPI
 }
 
 func NewEnum[T PairAble](fst *FST[T]) (*Enum[T], error) {
@@ -37,11 +37,11 @@ func NewEnum[T PairAble](fst *FST[T]) (*Enum[T], error) {
 	return enum, nil
 }
 
-type EnumSPI interface {
-	GetTargetLabel() (int, error)
-	GetCurrentLabel() (int, error)
-	SetCurrentLabel(label int) error
-	Grow() error
+type enumSPI interface {
+	getTargetLabel() (int, error)
+	getCurrentLabel() (int, error)
+	setCurrentLabel(label int) error
+	grow() error
 }
 
 // Rewinds enum state to match the shared prefix between current term and target term

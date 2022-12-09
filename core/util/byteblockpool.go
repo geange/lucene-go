@@ -59,9 +59,10 @@ func NewByteBlockPool(allocator BytesAllocator) *ByteBlockPool {
 // Reset Expert: Resets the pool to its initial state reusing the first buffer. Calling nextBuffer() is not
 // needed after reset.
 // Params: 	zeroFillBuffers – if true the buffers are filled with 0. This should be set to true if this pool is
-//			used with slices.
-//			reuseFirst – if true the first buffer will be reused and calling nextBuffer() is not needed after
-//			reset iff the block pool was used before ie. nextBuffer() was called before.
+//
+//	used with slices.
+//	reuseFirst – if true the first buffer will be reused and calling nextBuffer() is not needed after
+//	reset iff the block pool was used before ie. nextBuffer() was called before.
 func (r *ByteBlockPool) Reset(zeroFillBuffers, reuseFirst bool) {
 	if r.bufferUpto != -1 {
 		// We allocated at least one buffer
@@ -175,7 +176,7 @@ func (r *ByteBlockPool) SetBytesRefV1(builder *BytesRefBuilder, result []byte, o
 	//	result.Offset = pos
 	//} else {
 	//	// uncommon case: the slice spans at least 2 blocks, so we must copy the bytes:
-	//	builder.Grow(length)
+	//	builder.grow(length)
 	//	result.Bytes = builder.Get()
 	//	result.Offset = 0
 	//	r.ReadBytes(offset, result.Bytes, 0, length)
