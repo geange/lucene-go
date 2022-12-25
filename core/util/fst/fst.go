@@ -188,7 +188,7 @@ func (f *FST[T]) Save(metaOut store.DataOutput, out store.DataOutput) error {
 			return err
 		}
 
-		if err := metaOut.WriteBytes(emptyOutputBytes); err != nil {
+		if _, err := metaOut.Write(emptyOutputBytes); err != nil {
 			return err
 		}
 

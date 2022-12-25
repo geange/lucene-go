@@ -240,11 +240,16 @@ func (m *MultiLevelSkipListReaderImp) loadSkipLevels() error {
 			// clone this stream, it is already at the start of the current level
 			m.skipStream[i] = m.skipStream[0].Clone()
 			if m.inputIsBuffered && length < store.BUFFER_SIZE {
-				m.skipStream[i].(store.BufferedIndexInput).SetBufferSize(util.Max(store.MIN_BUFFER_SIZE, int(length)))
+				input, ok := m.skipStream[i].(store.BufferedIndexInput)
+				if ok {
+					input.SetBufferSize(util.Max(store.MIN_BUFFER_SIZE, int(length)))
+				}
 			}
 
 			// move base stream beyond the current level
-			m.skipStream[0].Seek(m.skipStream[0].GetFilePointer()+length, 0)
+			if _, err := m.skipStream[0].Seek(m.skipStream[0].GetFilePointer()+length, 0); err != nil {
+				return err
+			}
 		}
 	}
 

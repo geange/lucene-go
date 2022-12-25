@@ -61,7 +61,7 @@ func NewBytesStoreV1(in store.DataInput, numBytes, maxBlockSize int64) (*ByteSto
 	for left > 0 {
 		chunk := util.Min(blockSize, left)
 		block := make([]byte, chunk)
-		err := in.ReadBytes(block)
+		_, err := in.Read(block)
 		if err != nil {
 			return nil, err
 		}
