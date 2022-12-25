@@ -262,7 +262,7 @@ func (f *FSDirectoryImp) NewFSIndexOutput(name string) (*FSIndexOutput, error) {
 	}
 
 	return &FSIndexOutput{
-		OutputStreamIndexOutput: NewOutputStreamIndexOutput(file),
+		OutputStreamIndexOutput: NewOutputStreamIndexOutput(name, file),
 	}, nil
 }
 

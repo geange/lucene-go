@@ -157,7 +157,7 @@ func (m *MultiLevelSkipListReaderImp) loadNextSkip(level int) (bool, error) {
 }
 
 func (m *MultiLevelSkipListReaderImp) seekChild(level int) error {
-	if err := m.skipStream[level].Seek(m.lastChildPointer); err != nil {
+	if _, err := m.skipStream[level].Seek(m.lastChildPointer, 0); err != nil {
 		return err
 	}
 	m.numSkipped[level] = m.numSkipped[level+1] - m.skipInterval[level+1]
@@ -216,7 +216,7 @@ func (m *MultiLevelSkipListReaderImp) loadSkipLevels() error {
 		m.numberOfSkipLevels = m.maxNumberOfSkipLevels
 	}
 
-	m.skipStream[0].Seek(m.skipPointer[0])
+	m.skipStream[0].Seek(m.skipPointer[0], 0)
 
 	toBuffer := m.numberOfLevelsToBuffer
 
@@ -244,7 +244,7 @@ func (m *MultiLevelSkipListReaderImp) loadSkipLevels() error {
 			}
 
 			// move base stream beyond the current level
-			m.skipStream[0].Seek(m.skipStream[0].GetFilePointer() + length)
+			m.skipStream[0].Seek(m.skipStream[0].GetFilePointer()+length, 0)
 		}
 	}
 
@@ -288,7 +288,7 @@ var _ store.IndexInput = &SkipBuffer{}
 
 // SkipBuffer used to buffer the top skip levels
 type SkipBuffer struct {
-	*store.IndexInputImp
+	*store.IndexInputDefault
 
 	data    []byte
 	pointer int64
@@ -300,17 +300,27 @@ func (s *SkipBuffer) Clone() store.IndexInput {
 	panic("implement me")
 }
 
-func NewSkipBuffer(input store.IndexInput, length int) (*SkipBuffer, error) {
-	buffer := &SkipBuffer{
+func NewSkipBuffer(in store.IndexInput, length int) (*SkipBuffer, error) {
+	input := &SkipBuffer{
 		data:    make([]byte, length),
-		pointer: input.GetFilePointer(),
+		pointer: in.GetFilePointer(),
 	}
-	buffer.IndexInputImp = store.NewIndexInputImp(buffer)
+	input.IndexInputDefault = store.NewIndexInputDefault(&store.IndexInputDefaultConfig{
+		DataInputDefaultConfig: store.DataInputDefaultConfig{
+			ReadByte: input.ReadByte,
+			Read:     input.Read,
+		},
+		Close:          input.Close,
+		GetFilePointer: input.GetFilePointer,
+		Seek:           input.Seek,
+		Slice:          input.Slice,
+		Length:         input.Length,
+	})
 
-	if err := input.ReadBytes(buffer.data); err != nil {
+	if _, err := in.Read(input.data); err != nil {
 		return nil, err
 	}
-	return buffer, nil
+	return input, nil
 }
 
 func (s *SkipBuffer) ReadByte() (byte, error) {
@@ -319,10 +329,10 @@ func (s *SkipBuffer) ReadByte() (byte, error) {
 	return b, nil
 }
 
-func (s *SkipBuffer) ReadBytes(b []byte) error {
+func (s *SkipBuffer) Read(b []byte) (int, error) {
 	copy(b, s.data[s.pos:])
 	s.pos += len(b)
-	return nil
+	return len(b), nil
 }
 
 func (s *SkipBuffer) Close() error {
@@ -334,9 +344,9 @@ func (s *SkipBuffer) GetFilePointer() int64 {
 	return s.pointer + int64(s.pos)
 }
 
-func (s *SkipBuffer) Seek(pos int64) error {
+func (s *SkipBuffer) Seek(pos int64, whence int) (int64, error) {
 	s.pos = int(pos - s.pointer)
-	return nil
+	return 0, nil
 }
 
 func (s *SkipBuffer) Length() int64 {

@@ -8,14 +8,17 @@ var (
 )
 
 type OutputStreamDataOutput struct {
-	*DataOutputImp
+	*DataOutputDefault
 
 	os io.WriteCloser
 }
 
 func NewOutputStreamDataOutput(os io.WriteCloser) *OutputStreamDataOutput {
 	output := &OutputStreamDataOutput{os: os}
-	output.DataOutputImp = NewDataOutputImp(output)
+	output.DataOutputDefault = NewDataOutputDefault(&DataOutputDefaultConfig{
+		WriteByte:  nil,
+		WriteBytes: output.Write,
+	})
 	return output
 }
 
@@ -23,7 +26,6 @@ func (o *OutputStreamDataOutput) Close() error {
 	return o.os.Close()
 }
 
-func (o *OutputStreamDataOutput) WriteBytes(b []byte) error {
-	_, err := o.os.Write(b)
-	return err
+func (o *OutputStreamDataOutput) Write(b []byte) (int, error) {
+	return o.os.Write(b)
 }

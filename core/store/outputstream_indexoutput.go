@@ -3,6 +3,7 @@ package store
 import (
 	"bufio"
 	"hash"
+	"hash/crc32"
 	"io"
 )
 
@@ -10,7 +11,7 @@ var _ IndexOutput = &OutputStreamIndexOutput{}
 
 // OutputStreamIndexOutput Implementation class for buffered IndexOutput that writes to an OutputStream.
 type OutputStreamIndexOutput struct {
-	*DataOutputImp
+	*IndexOutputDefault
 	out    *bufio.Writer
 	closer io.Closer
 
@@ -26,12 +27,16 @@ func (o *OutputStreamIndexOutput) GetChecksum() (uint32, error) {
 	return o.crc.Sum32(), nil
 }
 
-func NewOutputStreamIndexOutput(out io.WriteCloser) *OutputStreamIndexOutput {
+func NewOutputStreamIndexOutput(name string, out io.WriteCloser) *OutputStreamIndexOutput {
 	output := &OutputStreamIndexOutput{
 		out:    bufio.NewWriter(out),
 		closer: out,
+		crc:    crc32.NewIEEE(),
 	}
-	output.DataOutputImp = NewDataOutputImp(output)
+	output.IndexOutputDefault = NewIndexOutputDefault(name, &DataOutputDefaultConfig{
+		WriteByte:  output.WriteByte,
+		WriteBytes: output.Write,
+	})
 	return output
 }
 
@@ -45,17 +50,19 @@ func (o *OutputStreamIndexOutput) WriteByte(b byte) error {
 	return err
 }
 
-func (o *OutputStreamIndexOutput) WriteBytes(b []byte) error {
+func (o *OutputStreamIndexOutput) Write(b []byte) (int, error) {
 	if _, err := o.crc.Write(b); err != nil {
-		return err
+		return 0, err
 	}
 
 	o.bytesWritten += int64(len(b))
-	_, err := o.out.Write(b)
-	return err
+	return o.out.Write(b)
 }
 
 func (o *OutputStreamIndexOutput) Close() error {
+	if err := o.out.Flush(); err != nil {
+		return err
+	}
 	return o.closer.Close()
 }
 

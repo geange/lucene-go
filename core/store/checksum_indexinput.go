@@ -9,5 +9,5 @@ type ChecksumIndexInput interface {
 }
 
 type ChecksumIndexInputImp struct {
-	*IndexInputImp
+	*IndexInputDefault
 }

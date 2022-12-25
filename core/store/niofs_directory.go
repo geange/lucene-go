@@ -1,6 +1,8 @@
 package store
 
 import (
+	"bytes"
+	"errors"
 	"io"
 	"os"
 )
@@ -43,12 +45,10 @@ func (n *NIOFSDirectory) OpenInput(name string, context *IOContext) (IndexInput,
 var _ BufferedIndexInput = &NIOFSIndexInput{}
 
 type NIOFSIndexInput struct {
-	*IndexInputImp
+	*BufferedIndexInputDefault
 
 	file    *os.File
 	pointer int64
-
-	buffer []byte
 }
 
 func NewNIOFSIndexInput(file *os.File, ctx *IOContext) *NIOFSIndexInput {
@@ -58,49 +58,105 @@ func NewNIOFSIndexInput(file *os.File, ctx *IOContext) *NIOFSIndexInput {
 	}
 
 	input := &NIOFSIndexInput{
-		file:   file,
-		buffer: make([]byte, 48),
+		file: file,
 	}
-	input.IndexInputImp = NewIndexInputImp(input)
+
+	cfg := &BufferedIndexInputDefaultConfig{
+		IndexInputDefaultConfig: IndexInputDefaultConfig{
+			DataInputDefaultConfig: DataInputDefaultConfig{
+				ReadByte: input.ReadByte,
+				Read:     input.Read,
+			},
+			Close:          input.Close,
+			GetFilePointer: input.GetFilePointer,
+			Seek:           input.Seek,
+			Slice:          input.Slice,
+			Length:         input.Length,
+		},
+		ReadInternal: input.ReadInternal,
+		SeekInternal: input.SeekInternal,
+	}
+
+	input.BufferedIndexInputDefault = NewBufferedIndexInputDefault(cfg)
+
 	return input
 }
 
-func (n *NIOFSIndexInput) Clone() IndexInput {
-	//TODO implement me
-	panic("implement me")
+func (n *NIOFSIndexInput) ReadInternal(buf *bytes.Buffer, size int) error {
+	bs := make([]byte, size)
+	num, err := n.Read(bs)
+	if err != nil {
+		if num > 0 && errors.Is(err, io.EOF) {
+			buf.Write(bs)
+			return nil
+		}
+	}
+	return err
 }
 
-func (n *NIOFSIndexInput) SetBufferSize(newSize int) {
-	//TODO implement me
-	panic("implement me")
+func (n *NIOFSIndexInput) SeekInternal(pos int) error {
+	stat, err := n.file.Stat()
+	if err != nil {
+		return err
+	}
+	if pos > int(stat.Size()) {
+		return errors.New("pos too large")
+	}
+	return nil
+}
+
+func (n *NIOFSIndexInput) Clone() IndexInput {
+	input := &NIOFSIndexInput{
+		file:    n.file,
+		pointer: n.pointer,
+	}
+
+	cfg := &BufferedIndexInputDefaultConfig{
+		IndexInputDefaultConfig: IndexInputDefaultConfig{
+			DataInputDefaultConfig: DataInputDefaultConfig{
+				ReadByte: input.ReadByte,
+				Read:     input.Read,
+			},
+			Close:          input.Close,
+			GetFilePointer: input.GetFilePointer,
+			Seek:           input.Seek,
+			Slice:          input.Slice,
+			Length:         input.Length,
+		},
+		ReadInternal: input.readInternal,
+		SeekInternal: input.seekInternal,
+	}
+	input.BufferedIndexInputDefault = n.BufferedIndexInputDefault.Clone(cfg)
+	return input
 }
 
 func (n *NIOFSIndexInput) ReadByte() (byte, error) {
-	_, err := n.file.Read(n.buffer[:1])
+	bs := [1]byte{}
+	_, err := n.file.ReadAt(bs[:], n.pointer)
 	if err != nil {
 		return 0, err
 	}
 	n.pointer++
-	return n.buffer[0], nil
+	return bs[0], nil
 }
 
-func (n *NIOFSIndexInput) ReadBytes(b []byte) error {
-	num, err := n.file.Read(b)
+func (n *NIOFSIndexInput) Read(b []byte) (int, error) {
+	num, err := n.file.ReadAt(b, n.pointer)
+	if err != nil {
+		if err != io.EOF {
+			return 0, err
+		}
+	}
 	n.pointer += int64(num)
-	return err
+	return len(b), err
 }
 
 func (n *NIOFSIndexInput) Close() error {
 	return n.file.Close()
 }
 
-func (n *NIOFSIndexInput) GetFilePointer() int64 {
-	return 0
-}
-
-func (n *NIOFSIndexInput) Seek(pos int64) error {
-	_, err := n.file.Seek(pos, io.SeekStart)
-	return err
+func (n *NIOFSIndexInput) Seek(pos int64, whence int) (int64, error) {
+	return n.file.Seek(pos, io.SeekStart)
 }
 
 func (n *NIOFSIndexInput) Length() int64 {

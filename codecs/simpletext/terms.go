@@ -25,11 +25,11 @@ type textTerms struct {
 	scratch          *bytes.Buffer
 }
 
-func (s *FieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc int) *textTerms {
+func (r *FieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc int) *textTerms {
 	terms := &textTerms{
-		reader:           s,
+		reader:           r,
 		termsStart:       termsStart,
-		fieldInfo:        s.fieldInfos.FieldInfo(field),
+		fieldInfo:        r.fieldInfos.FieldInfo(field),
 		maxDoc:           maxDoc,
 		sumTotalTermFreq: 0,
 		sumDocFreq:       0,
@@ -52,7 +52,7 @@ func (s *textTerms) loadTerms() error {
 	fstCompiler := fst.NewBuilder[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]](fst.BYTE1, outputs)
 
 	in := s.reader.in.Clone()
-	if err := in.Seek(s.termsStart); err != nil {
+	if _, err := in.Seek(s.termsStart, 0); err != nil {
 		return err
 	}
 

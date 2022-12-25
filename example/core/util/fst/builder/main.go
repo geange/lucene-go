@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/geange/lucene-go/core/util/fst"
 )
 
@@ -58,38 +59,40 @@ func main() {
 		panic(err)
 	}
 
-	newFST, err := fst.NewFSTFromFile[int64]("test.fst", &fst.PositiveIntOutputs[int64]{})
-	if err != nil {
-		panic(err)
+	{
+		newFST, err := fst.NewFSTFromFile[int64]("test.fst", &fst.PositiveIntOutputs[int64]{})
+		if err != nil {
+			panic(err)
+		}
+
+		reader, _ := newFST.GetBytesReader()
+
+		follow := new(fst.Arc[int64])
+		follow, err = newFST.GetFirstArc(follow)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("%c\n", follow.Label())
+
+		arc := new(fst.Arc[int64])
+		follow, err = newFST.FindTargetArc(int('t'), follow, arc, reader)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%c", follow.Label())
+
+		follow, err = newFST.FindTargetArc(int('o'), follow, arc, reader)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%c", follow.Label())
+
+		follow, err = newFST.FindTargetArc(int('p'), follow, arc, reader)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%c\n", follow.Label())
 	}
-
-	reader, _ := newFST.GetBytesReader()
-
-	arc2 := new(fst.Arc[int64])
-	arc2, err = newFST.GetFirstArc(arc2)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("%c\n", arc2.Label())
-
-	follow := new(fst.Arc[int64])
-	arc2, err = newFST.FindTargetArc(int('t'), arc2, follow, reader)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%c", arc2.Label())
-
-	arc2, err = newFST.FindTargetArc(int('o'), arc2, follow, reader)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%c", arc2.Label())
-
-	arc2, err = newFST.FindTargetArc(int('p'), arc2, follow, reader)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%c\n", arc2.Label())
 
 }

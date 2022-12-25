@@ -8,7 +8,7 @@ type Box[T any] struct {
 	Value T
 }
 
-// Outputs Represents the outputs for an FST, providing the basic algebra required for building and traversing the FST.
+// Outputs Represents the output for an FST, providing the basic algebra required for building and traversing the FST.
 // Note that any operation that returns noOutput must return the same singleton object from getNoOutput.
 //
 // lucene.experimental

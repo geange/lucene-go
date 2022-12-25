@@ -80,7 +80,9 @@ func (r *BytesRefHash) Size() int {
 // Get Populates and returns a BytesRef with the bytes for the given bytesID.
 // Note: the given bytesID must be a positive integer less than the current size (size())
 // Params: 	bytesID – the id
-//			ref – the BytesRef to populate
+//
+//	ref – the BytesRef to populate
+//
 // Returns: the given BytesRef instance populated with the bytes for the given bytesID
 func (r *BytesRefHash) Get(bytesID int) []byte {
 	return r.pool.GetBytes(r.bytesStart[bytesID])

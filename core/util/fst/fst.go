@@ -3,11 +3,12 @@ package fst
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/geange/lucene-go/codecs"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/math"
-	"os"
 )
 
 var (
@@ -298,7 +299,7 @@ func TargetHasArcs[T any](arc *Arc[T]) bool {
 // AddNode serializes new node by appending its bytes to the end
 // of the current byte[]
 func (f *FST[T]) AddNode(builder *Builder[T], nodeIn *UnCompiledNode[T]) (int64, error) {
-	//noOutput := f.outputs.GetNoOutput()
+	//noOutput := f.output.GetNoOutput()
 
 	if nodeIn.NumArcs() == 0 {
 		if nodeIn.IsFinal {
@@ -720,7 +721,7 @@ func (f *FST[T]) readPresenceBytes(arc *Arc[T], in BytesReader) error {
 
 // GetFirstArc Fills virtual 'start' arc, ie, an empty incoming arc to the FST's start node
 func (f *FST[T]) GetFirstArc(arc *Arc[T]) (*Arc[T], error) {
-	//noOutput := f.outputs.GetNoOutput()
+	//noOutput := f.output.GetNoOutput()
 
 	if !f.outputs.IsNoOutput(f.emptyOutput) {
 		arc.flags = BIT_FINAL_ARC | BIT_LAST_ARC
@@ -1235,6 +1236,7 @@ func readEndArc[T any](follow, arc *Arc[T]) *Arc[T] {
 
 // FindTargetArc Finds an arc leaving the incoming arc, replacing the arc in place.
 // This returns null if the arc was not found, else the incoming arc.
+// 查找follow后满足label=${labelToMatch}的Arc
 func (f *FST[T]) FindTargetArc(labelToMatch int, follow, arc *Arc[T], in BytesReader) (*Arc[T], error) {
 
 	if labelToMatch == END_LABEL {
@@ -1269,7 +1271,9 @@ func (f *FST[T]) FindTargetArc(labelToMatch int, follow, arc *Arc[T], in BytesRe
 		return nil, err
 	}
 	arc.nodeFlags = flags
-	if flags == ARCS_FOR_DIRECT_ADDRESSING {
+
+	switch flags {
+	case ARCS_FOR_DIRECT_ADDRESSING:
 		numArcs, err := in.ReadUvarint()
 		if err != nil {
 			return nil, err
@@ -1302,7 +1306,7 @@ func (f *FST[T]) FindTargetArc(labelToMatch int, follow, arc *Arc[T], in BytesRe
 		}
 
 		return f.ReadArcByDirectAddressing(arc, in, arcIndex)
-	} else if flags == ARCS_FOR_BINARY_SEARCH {
+	case ARCS_FOR_BINARY_SEARCH:
 		numArcs, err := in.ReadUvarint()
 		if err != nil {
 			return nil, err

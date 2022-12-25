@@ -4,7 +4,7 @@ var _ DataOutput = &ByteArrayDataOutput{}
 
 // ByteArrayDataOutput DataOutput backed by a byte array. WARNING: This class omits most low-level checks, so be sure to test heavily with assertions enabled.
 type ByteArrayDataOutput struct {
-	*DataOutputImp
+	*DataOutputDefault
 
 	bytes []byte
 	pos   int
@@ -13,14 +13,17 @@ type ByteArrayDataOutput struct {
 
 func NewByteArrayDataOutput(bytes []byte) *ByteArrayDataOutput {
 	output := &ByteArrayDataOutput{bytes: bytes, pos: 0, limit: len(bytes)}
-	output.DataOutputImp = NewDataOutputImp(output)
+	output.DataOutputDefault = NewDataOutputDefault(&DataOutputDefaultConfig{
+		WriteByte:  nil,
+		WriteBytes: output.Write,
+	})
 	return output
 }
 
-func (r *ByteArrayDataOutput) WriteBytes(b []byte) error {
+func (r *ByteArrayDataOutput) Write(b []byte) (int, error) {
 	copy(r.bytes[r.pos:], b)
 	r.pos += len(b)
-	return nil
+	return len(b), nil
 }
 
 func (r *ByteArrayDataOutput) Reset(bytes []byte) error {

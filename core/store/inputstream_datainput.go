@@ -6,7 +6,7 @@ var _ DataInput = &InputStreamDataInput{}
 
 // InputStreamDataInput A DataInput wrapping a plain InputStream.
 type InputStreamDataInput struct {
-	*DataInputImp
+	*DataInputDefault
 
 	eof bool
 	is  io.ReadCloser
@@ -14,33 +14,28 @@ type InputStreamDataInput struct {
 
 func NewInputStreamDataInput(is io.ReadCloser) *InputStreamDataInput {
 	input := &InputStreamDataInput{is: is}
-	input.DataInputImp = NewDataInputImp(input)
+	input.DataInputDefault = NewDataInputDefault(&DataInputDefaultConfig{
+		ReadByte: input.ReadByte,
+		Read:     input.Read,
+	})
 	return input
 }
 
 func (i *InputStreamDataInput) ReadByte() (byte, error) {
 	bs := []byte{0}
-	err := i.ReadBytes(bs)
+	_, err := i.Read(bs)
 	if err != nil {
 		return 0, err
 	}
 	return bs[0], nil
 }
 
-func (i *InputStreamDataInput) ReadBytes(b []byte) error {
+func (i *InputStreamDataInput) Read(b []byte) (int, error) {
 	if i.eof {
-		return io.EOF
+		return 0, io.EOF
 	}
 
-	_, err := i.is.Read(b)
-	if err != nil {
-		if err == io.EOF {
-			i.eof = true
-			return nil
-		}
-		return err
-	}
-	return err
+	return i.is.Read(b)
 }
 
 func (i *InputStreamDataInput) Close() error {

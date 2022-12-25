@@ -5,7 +5,7 @@ import "github.com/geange/lucene-go/core/store"
 var _ BytesReader = &ReverseBytesReader{}
 
 type ReverseBytesReader struct {
-	*store.DataInputImp
+	*store.DataInputDefault
 
 	bytes []byte
 	pos   int64
@@ -14,7 +14,10 @@ type ReverseBytesReader struct {
 func NewReverseBytesReader(bytes []byte) *ReverseBytesReader {
 	reader := &ReverseBytesReader{
 		bytes: bytes}
-	reader.DataInputImp = store.NewDataInputImp(reader)
+	reader.DataInputDefault = store.NewDataInputDefault(&store.DataInputDefaultConfig{
+		ReadByte: reader.ReadByte,
+		Read:     reader.Read,
+	})
 	return reader
 }
 
@@ -24,12 +27,12 @@ func (r *ReverseBytesReader) ReadByte() (byte, error) {
 	return b, nil
 }
 
-func (r *ReverseBytesReader) ReadBytes(b []byte) error {
+func (r *ReverseBytesReader) Read(b []byte) (int, error) {
 	for i := 0; i < len(b); i++ {
 		b[i] = r.bytes[r.pos]
 		r.pos--
 	}
-	return nil
+	return len(b), nil
 }
 
 func (r *ReverseBytesReader) SkipBytes(numBytes int) error {

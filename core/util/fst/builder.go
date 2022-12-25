@@ -8,7 +8,7 @@ import (
 	. "github.com/geange/lucene-go/math"
 )
 
-// Builder Builds a minimal FST (maps an IntsRef term to an arbitrary output) from pre-sorted terms with outputs.
+// Builder Builds a minimal FST (maps an IntsRef term to an arbitrary output) from pre-sorted terms with output.
 // The FST becomes an FSA if you use NoOutputs. The FST is written on-the-fly into a compact serialized format
 // byte array, which can be saved to / loaded from a Directory or used directly for traversal.
 // The FST is always finite (no cycles).
@@ -86,7 +86,7 @@ func NewBuilder[T PairAble](inputType INPUT_TYPE, outputs Outputs[T]) *Builder[T
 // doShareSuffix – If true, the shared suffixes will be compacted into unique paths. This requires an additional RAM-intensive hash map for lookups in memory. Setting this parameter to false creates a single suffix path for all input sequences. This will result in a larger FST, but requires substantially less memory and CPU during building.
 // doShareNonSingletonNodes – Only used if doShareSuffix is true. Set this to true to ensure FST is fully minimal, at cost of more CPU and more RAM during building.
 // shareMaxTailLength – Only used if doShareSuffix is true. Set this to Integer.MAX_VALUE to ensure FST is fully minimal, at cost of more CPU and more RAM during building.
-// outputs – The output type for each input sequence. Applies only if building an FST. For FSA, use NoOutputs.getSingleton() and NoOutputs.getNoOutput() as the singleton output object.
+// output – The output type for each input sequence. Applies only if building an FST. For FSA, use NoOutputs.getSingleton() and NoOutputs.getNoOutput() as the singleton output object.
 // allowFixedLengthArcs – Pass false to disable the fixed length arc optimization (binary search or direct addressing) while building the FST; this will make the resulting FST smaller but slower to traverse.
 // bytesPageBits – How many bits wide to make each byte[] block in the BytesStore; if you know the FST will be large then make this larger. For example 15 bits = 32768 byte pages.
 func NewBuilderV1[T PairAble](inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
@@ -118,7 +118,7 @@ func NewBuilderV1[T PairAble](inputType INPUT_TYPE, minSuffixCount1, minSuffixCo
 		builder.dedupHash = NewNodeHash(builder.fst, reader)
 	}
 
-	//builder.noOutput = outputs.GetNoOutput()
+	//builder.noOutput = output.GetNoOutput()
 
 	for i := 0; i < 10; i++ {
 		node := NewUnCompiledNode(builder, i)
@@ -225,7 +225,7 @@ func (b *Builder[T]) freezeTail(prefixLenPlus1 int) error {
 				// 'divergent' part of the FST. if my parent, about to be
 				// compiled, has inputCount 1 then we are already past the
 				// distinguished edge.  NOTE: this only works if
-				// the FST outputs are not "compressible" (simple
+				// the FST output are not "compressible" (simple
 				// ords ARE compressible).
 				doPrune = true
 			} else {
@@ -268,7 +268,7 @@ func (b *Builder[T]) freezeTail(prefixLenPlus1 int) error {
 		// We "fake" the node as being final if it has no
 		// outgoing arcs; in theory we could leave it
 		// as non-final (the FST can represent this), but
-		// Enum, Util, etc., have trouble w/ non-final
+		// FstEnum, Util, etc., have trouble w/ non-final
 		// dead-end states:
 		isFinal := node.IsFinal || node.NumArcs() == 0
 
@@ -304,9 +304,9 @@ func (b *Builder[T]) freezeTail(prefixLenPlus1 int) error {
 }
 
 // Add the next input/output pair. The provided input must be sorted after the previous one according
-// to IntsRef.compareTo. It's also OK to add the same input twice in a row with different outputs,
+// to IntsRef.compareTo. It's also OK to add the same input twice in a row with different output,
 // as long as Outputs implements the Outputs.merge method. Note that input is fully consumed after
-// this method is returned (so caller is free to reuse), but output is not. So if your outputs are
+// this method is returned (so caller is free to reuse), but output is not. So if your output are
 // changeable (eg ByteSequenceOutputs or IntSequenceOutputs) then you cannot reuse across calls.
 //
 // 添加input/output。提供的input必须要先进行排序。如果输入相同的input+不同的output，output需要实现merge方法。
@@ -318,7 +318,7 @@ func (b *Builder[T]) Add(input []rune, output T) error {
 	// TODO: assert lastInput.length() == 0 || input.compareTo(lastInput.get()) >= 0: "inputs are added out of order lastInput=" + lastInput.get() + " vs input=" + input;
 	// TODO: assert validOutput(output);
 
-	//if b.fst.outputs.IsNoOutput(output) {
+	//if b.fst.output.IsNoOutput(output) {
 	//	output = b.noOutput
 	//}
 
@@ -370,7 +370,7 @@ func (b *Builder[T]) Add(input []rune, output T) error {
 		//lastNode.Output = b.noOutput
 	}
 
-	// push conflicting outputs forward, only as far as
+	// push conflicting output forward, only as far as
 	// needed
 	for idx := 1; idx < prefixLenPlus1; idx++ {
 		node := b.frontier[idx]
@@ -412,7 +412,7 @@ func (b *Builder[T]) Add(input []rune, output T) error {
 
 	if len(b.lastInput) == len(input) && prefixLenPlus1 == 1+len(input) {
 		// same input more than 1 time in a row, mapping to
-		// multiple outputs
+		// multiple output
 		lastNode.Output, err = b.fst.outputs.Merge(lastNode.Output, output)
 		if err != nil {
 			return err

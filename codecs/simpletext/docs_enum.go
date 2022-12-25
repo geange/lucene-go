@@ -23,17 +23,17 @@ type SimpleTextDocsEnum struct {
 	seekTo       int64
 }
 
-func (s *FieldsReader) NewSimpleTextDocsEnum() *SimpleTextDocsEnum {
+func (r *FieldsReader) NewSimpleTextDocsEnum() *SimpleTextDocsEnum {
 	return &SimpleTextDocsEnum{
-		inStart:      s.in,
-		in:           s.in.Clone(),
+		inStart:      r.in,
+		in:           r.in.Clone(),
 		omitTF:       false,
 		docID:        -1,
 		tf:           0,
 		scratch:      nil,
 		scratchUTF16: nil,
 		cost:         0,
-		skipReader:   NewSimpleTextSkipReader(s.in.Clone()),
+		skipReader:   NewSimpleTextSkipReader(r.in.Clone()),
 		nextSkipDoc:  0,
 		seekTo:       -1,
 	}
@@ -68,7 +68,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 
 		if bytes.HasPrefix(text, FIELDS_DOC) {
 			if !first {
-				if err := s.in.Seek(lineStart); err != nil {
+				if _, err := s.in.Seek(lineStart, 0); err != nil {
 					return 0, err
 				}
 				if !s.omitTF {
@@ -97,7 +97,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 		} else {
 
 			if !first {
-				if err := s.in.Seek(lineStart); err != nil {
+				if _, err := s.in.Seek(lineStart, 0); err != nil {
 					return 0, err
 				}
 				if !s.omitTF {
@@ -113,7 +113,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 
 func (s *SimpleTextDocsEnum) advanceTarget(target int) (int, error) {
 	if s.seekTo > 0 {
-		if err := s.in.Seek(s.seekTo); err != nil {
+		if _, err := s.in.Seek(s.seekTo, 0); err != nil {
 			return 0, err
 		}
 		s.seekTo = -1

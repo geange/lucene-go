@@ -11,7 +11,8 @@ var _ IndexOutput = &RAMOutputStream{}
 // Deprecated This class uses inefficient synchronization and is discouraged in favor of MMapDirectory.
 // It will be removed in future versions of Lucene.
 type RAMOutputStream struct {
-	*IndexOutputImp
+	//*IndexOutputImp
+	*IndexOutputDefault
 
 	bufferSize         int
 	file               *RAMFile
@@ -27,19 +28,67 @@ func NewRAMOutputStream() *RAMOutputStream {
 	return NewRAMOutputStreamV1("noname", NewRAMFile(), false)
 }
 
+func (r *RAMOutputStream) WriteByte(b byte) error {
+	if r.bufferPosition == r.bufferLength {
+		r.currentBufferIndex++
+		r.switchCurrentBuffer()
+	}
+	if r.crc != nil {
+		if _, err := r.crc.Write([]byte{b}); err != nil {
+			return err
+		}
+	}
+	r.currentBuffer[r.bufferPosition] = b
+	r.bufferPosition++
+	return nil
+}
+
+func (r *RAMOutputStream) Write(b []byte) (int, error) {
+	_, err := r.crc.Write(b)
+	if err != nil {
+		return 0, err
+	}
+
+	offset := 0
+	size := len(b)
+
+	for size > 0 {
+		if r.bufferPosition == r.bufferLength {
+			r.currentBufferIndex++
+			r.switchCurrentBuffer()
+		}
+
+		remainInBuffer := len(r.currentBuffer) - r.bufferPosition
+		bytesToCopy := size
+		if size >= remainInBuffer {
+			bytesToCopy = remainInBuffer
+		}
+		copy(r.copyBuffer[r.bufferPosition:], b[offset:offset+bytesToCopy])
+		offset += bytesToCopy
+		size -= bytesToCopy
+		r.bufferPosition += bytesToCopy
+	}
+
+	return size, nil
+}
+
 func NewRAMOutputStreamV1(name string, f *RAMFile, checksum bool) *RAMOutputStream {
-	stream := &RAMOutputStream{
+	output := &RAMOutputStream{
+
 		bufferSize:         1024,
 		file:               f,
 		currentBufferIndex: -1,
 	}
 
-	stream.IndexOutputImp = NewIndexOutputImp(stream, name)
+	output.IndexOutputDefault = NewIndexOutputDefault(name, &DataOutputDefaultConfig{
+		WriteByte:  output.WriteByte,
+		WriteBytes: output.Write,
+	})
 
 	if checksum {
-		stream.crc = crc32.NewIEEE()
+		output.crc = crc32.NewIEEE()
 	}
-	return stream
+	return output
 }
 
 // WriteTo Copy the current contents of this buffer to the provided DataOutput.
@@ -58,7 +107,7 @@ func (r *RAMOutputStream) WriteTo(out DataOutput) error {
 		if nextPos > end {
 			length = end - pos
 		}
-		err := out.WriteBytes(r.file.getBuffer(buffer)[:length])
+		_, err := out.Write(r.file.getBuffer(buffer)[:length])
 		if err != nil {
 			return err
 		}
@@ -99,35 +148,6 @@ func (r *RAMOutputStream) WriteToV1(bytes []byte) error {
 
 func (r *RAMOutputStream) Close() error {
 	return r.flush()
-}
-
-func (r *RAMOutputStream) WriteBytes(b []byte) error {
-	_, err := r.crc.Write(b)
-	if err != nil {
-		return err
-	}
-
-	offset := 0
-	size := len(b)
-
-	for size > 0 {
-		if r.bufferPosition == r.bufferLength {
-			r.currentBufferIndex++
-			r.switchCurrentBuffer()
-		}
-
-		remainInBuffer := len(r.currentBuffer) - r.bufferPosition
-		bytesToCopy := size
-		if size >= remainInBuffer {
-			bytesToCopy = remainInBuffer
-		}
-		copy(r.copyBuffer[r.bufferPosition:], b[offset:offset+bytesToCopy])
-		offset += bytesToCopy
-		size -= bytesToCopy
-		r.bufferPosition += bytesToCopy
-	}
-
-	return nil
 }
 
 func (r *RAMOutputStream) switchCurrentBuffer() {

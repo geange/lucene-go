@@ -11,7 +11,7 @@ import (
 // let you read while writing which FST needs
 
 type ByteStore struct {
-	*store.DataOutputImp
+	*store.DataOutputDefault
 
 	blocks *collection.ArrayList[[]byte]
 
@@ -26,7 +26,7 @@ type ByteStore struct {
 
 func NewByteStore(blockBits int) *ByteStore {
 	blockSize := int64(1 << blockBits)
-	bs := &ByteStore{
+	byteStore := &ByteStore{
 		blocks:    collection.NewArrayList[[]byte](),
 		blockSize: blockSize,
 		blockBits: int64(blockBits),
@@ -34,9 +34,12 @@ func NewByteStore(blockBits int) *ByteStore {
 		current:   make([]byte, blockSize),
 		nextWrite: 0,
 	}
-	_ = bs.blocks.Add(bs.current)
-	bs.DataOutputImp = store.NewDataOutputImp(bs)
-	return bs
+	_ = byteStore.blocks.Add(byteStore.current)
+	byteStore.DataOutputDefault = store.NewDataOutputDefault(&store.DataOutputDefaultConfig{
+		WriteByte:  byteStore.WriteByte,
+		WriteBytes: byteStore.Write,
+	})
+	return byteStore
 }
 
 func NewBytesStoreV1(in store.DataInput, numBytes, maxBlockSize int64) (*ByteStore, error) {
@@ -103,18 +106,19 @@ func (r *ByteStore) WriteByte(b byte) error {
 	return nil
 }
 
-func (r *ByteStore) WriteBytes(bs []byte) error {
+func (r *ByteStore) Write(bs []byte) (int, error) {
 	if r.current == nil {
 		r.current = make([]byte, r.blockSize)
 		err := r.blocks.Add(r.current)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		r.nextWrite = 0
 	}
 
 	offset := int64(0)
-	size := int64(len(bs))
+	count := len(bs)
+	size := int64(count)
 
 	for size > 0 {
 		chunk := r.blockSize - r.nextWrite
@@ -130,12 +134,12 @@ func (r *ByteStore) WriteBytes(bs []byte) error {
 			}
 			r.current = make([]byte, r.blockSize)
 			if err := r.blocks.Add(r.current); err != nil {
-				return err
+				return 0, err
 			}
 			r.nextWrite = 0
 		}
 	}
-	return nil
+	return count, nil
 }
 
 func (r *ByteStore) GetBlockBits() int64 {
@@ -415,7 +419,7 @@ func (r *ByteStore) Finish() error {
 // WriteTo Writes all of our bytes to the target DataOutput.
 func (r *ByteStore) WriteTo(out store.DataOutput) error {
 	for _, block := range r.blocks.List() {
-		err := out.WriteBytes(block)
+		_, err := out.Write(block)
 		if err != nil {
 			return err
 		}

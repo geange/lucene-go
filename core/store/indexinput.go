@@ -19,14 +19,15 @@ type IndexInput interface {
 
 	io.Closer
 
+	// Seeker Sets current position in this file, where the next read will occur. If this is beyond the end
+	// of the file then this will throw EOFException and then the stream is in an undetermined state.
+	// See Also: getFilePointer()
+	//Seek(pos int64, whence int) (int64, error)
+	io.Seeker
+
 	// GetFilePointer Returns the current position in this file, where the next read will occur.
 	// See Also: seek(long)
 	GetFilePointer() int64
-
-	// Seek Sets current position in this file, where the next read will occur. If this is beyond the end
-	// of the file then this will throw EOFException and then the stream is in an undetermined state.
-	// See Also: getFilePointer()
-	Seek(pos int64) error
 
 	Clone() IndexInput
 
@@ -42,20 +43,18 @@ type IndexInput interface {
 	RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error)
 }
 
-type IndexInputImp struct {
-	in IndexInput
-	*DataInputImp
+type IndexInputDefault struct {
+	*DataInputDefault
+
+	close          func() error
+	getFilePointer func() int64
+	seek           func(pos int64, whence int) (int64, error)
+	slice          func(sliceDescription string, offset, length int64) (IndexInput, error)
+	length         func() int64
 }
 
-func NewIndexInputImp(in IndexInput) *IndexInputImp {
-	return &IndexInputImp{
-		in:           in,
-		DataInputImp: NewDataInputImp(in),
-	}
-}
-
-func (i *IndexInputImp) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
-	slice, err := i.in.Slice("randomaccess", offset, length)
+func (i *IndexInputDefault) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
+	slice, err := i.slice("randomaccess", offset, length)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +65,39 @@ func (i *IndexInputImp) RandomAccessSlice(offset int64, length int64) (RandomAcc
 	return &randomAccessIndexInput{in: slice}, nil
 }
 
+type IndexInputDefaultConfig struct {
+	DataInputDefaultConfig
+
+	Close          func() error
+	GetFilePointer func() int64
+	Seek           func(pos int64, whence int) (int64, error)
+	Slice          func(sliceDescription string, offset, length int64) (IndexInput, error)
+	Length         func() int64
+}
+
+func NewIndexInputDefault(cfg *IndexInputDefaultConfig) *IndexInputDefault {
+	return &IndexInputDefault{
+		DataInputDefault: NewDataInputDefault(&cfg.DataInputDefaultConfig),
+
+		close:          cfg.Close,
+		getFilePointer: cfg.GetFilePointer,
+		seek:           cfg.Seek,
+		slice:          cfg.Slice,
+		length:         cfg.Length,
+	}
+}
+
+func (i *IndexInputDefault) Clone(cfg *IndexInputDefaultConfig) *IndexInputDefault {
+	return &IndexInputDefault{
+		DataInputDefault: i.DataInputDefault.Clone(&cfg.DataInputDefaultConfig),
+		close:            cfg.Close,
+		getFilePointer:   cfg.GetFilePointer,
+		seek:             cfg.Seek,
+		slice:            cfg.Slice,
+		length:           cfg.Length,
+	}
+}
+
 var _ RandomAccessInput = &randomAccessIndexInput{}
 
 type randomAccessIndexInput struct {
@@ -73,7 +105,7 @@ type randomAccessIndexInput struct {
 }
 
 func (r *randomAccessIndexInput) RUint8(pos int64) (byte, error) {
-	err := r.in.Seek(pos)
+	_, err := r.in.Seek(pos, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -81,7 +113,7 @@ func (r *randomAccessIndexInput) RUint8(pos int64) (byte, error) {
 }
 
 func (r *randomAccessIndexInput) RUint16(pos int64) (uint16, error) {
-	err := r.in.Seek(pos)
+	_, err := r.in.Seek(pos, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -89,7 +121,7 @@ func (r *randomAccessIndexInput) RUint16(pos int64) (uint16, error) {
 }
 
 func (r *randomAccessIndexInput) RUint32(pos int64) (uint32, error) {
-	err := r.in.Seek(pos)
+	_, err := r.in.Seek(pos, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -97,7 +129,7 @@ func (r *randomAccessIndexInput) RUint32(pos int64) (uint32, error) {
 }
 
 func (r *randomAccessIndexInput) RUint64(pos int64) (uint64, error) {
-	err := r.in.Seek(pos)
+	_, err := r.in.Seek(pos, 0)
 	if err != nil {
 		return 0, err
 	}

@@ -1,27 +1,21 @@
 package store
 
-import "encoding/binary"
+import (
+	"io"
+)
 
 // DataOutput Abstract base class for performing write operations of Lucene's low-level data types.
 // DataOutput may only be used from one thread, because it is not thread safe (it keeps internal state like file position).
 type DataOutput interface {
-
-	// WriteByte Writes a single byte.
+	// ByteWriter Write a single byte.
 	// The most primitive data type is an eight-bit byte. Files are accessed as sequences of bytes.
 	// All other data types are defined as sequences of bytes, so file formats are byte-order independent.
 	// See Also: IndexInput.readByte()
-	WriteByte(b byte) error
+	io.ByteWriter
 
-	// WriteBytes Writes an array of bytes.
-	WriteBytes(b []byte) error
+	// Writer Writes an array of bytes.
+	io.Writer
 
-	// CopyBytes Copy numBytes bytes from input to ourself.
-	CopyBytes(input DataInput, numBytes int) error
-
-	DataOutputExt
-}
-
-type DataOutputExt interface {
 	// WriteUint32 Writes an int as four bytes.
 	// 32-bit unsigned integer written as four bytes, high-order bytes first.
 	// See Also: DataInput.readInt()
@@ -75,127 +69,4 @@ type DataOutputExt interface {
 	// WriteSetOfStrings Writes a String set.
 	//First the size is written as an vInt, followed by each value written as a String.
 	WriteSetOfStrings(values map[string]struct{}) error
-}
-
-type DataOutputNeed interface {
-	// WriteBytes Writes an array of bytes.
-	WriteBytes(b []byte) error
-}
-
-var _ DataOutputExt = &DataOutputImp{}
-
-type DataOutputImp struct {
-	output     DataOutput
-	endian     binary.ByteOrder
-	buffer     []byte
-	copyBuffer []byte
-}
-
-func NewDataOutputImp(output DataOutput) *DataOutputImp {
-	return &DataOutputImp{
-		output: output,
-		endian: binary.BigEndian,
-		buffer: make([]byte, 48),
-	}
-}
-
-func (d *DataOutputImp) WriteByte(b byte) error {
-	return d.output.WriteBytes([]byte{b})
-}
-
-func (d *DataOutputImp) WriteUint32(i uint32) error {
-	d.endian.PutUint32(d.buffer, i)
-	return d.output.WriteBytes(d.buffer[:4])
-}
-
-func (d *DataOutputImp) WriteUint16(i uint16) error {
-	d.endian.PutUint16(d.buffer, i)
-	return d.output.WriteBytes(d.buffer[:2])
-}
-
-func (d *DataOutputImp) WriteUvarint(i uint64) error {
-	num := binary.PutUvarint(d.buffer, i)
-	return d.output.WriteBytes(d.buffer[:num])
-}
-
-func (d *DataOutputImp) WriteZInt32(i int32) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (d *DataOutputImp) WriteUint64(i uint64) error {
-	d.endian.PutUint64(d.buffer, i)
-	return d.output.WriteBytes(d.buffer[:8])
-}
-
-func (d *DataOutputImp) WriteZInt64(i int64) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (d *DataOutputImp) WriteString(s string) error {
-	err := d.WriteUvarint(uint64(len([]rune(s))))
-	if err != nil {
-		return err
-	}
-	return d.output.WriteBytes([]byte(s))
-}
-
-const (
-	COPY_BUFFER_SIZE = 16384
-)
-
-func (d *DataOutputImp) CopyBytes(input DataInput, numBytes int) error {
-	left := numBytes
-	if len(d.copyBuffer) == 0 {
-		d.copyBuffer = make([]byte, COPY_BUFFER_SIZE)
-	}
-
-	for left > 0 {
-		var toCopy int
-		if left > COPY_BUFFER_SIZE {
-			toCopy = COPY_BUFFER_SIZE
-		} else {
-			toCopy = left
-		}
-		err := input.ReadBytes(d.copyBuffer[:toCopy])
-		if err != nil {
-			return err
-		}
-		err = d.output.WriteBytes(d.copyBuffer[:toCopy])
-		if err != nil {
-			return err
-		}
-		left -= toCopy
-	}
-	return nil
-}
-
-func (d *DataOutputImp) WriteMapOfStrings(values map[string]string) error {
-	if err := d.WriteUvarint(uint64(len(values))); err != nil {
-		return err
-	}
-
-	for k, v := range values {
-		if err := d.WriteString(k); err != nil {
-			return err
-		}
-		if err := d.WriteString(v); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (d *DataOutputImp) WriteSetOfStrings(values map[string]struct{}) error {
-	if err := d.WriteUvarint(uint64(len(values))); err != nil {
-		return err
-	}
-
-	for k := range values {
-		if err := d.WriteString(k); err != nil {
-			return err
-		}
-	}
-	return nil
 }

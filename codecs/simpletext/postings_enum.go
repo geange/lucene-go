@@ -41,7 +41,7 @@ func (s *SimpleTextPostingsEnum) NextDoc() (int, error) {
 
 func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 	first := true
-	if err := s.in.Seek(s.nextDocStart); err != nil {
+	if _, err := s.in.Seek(s.nextDocStart, 0); err != nil {
 		return 0, err
 	}
 	posStart := int64(0)
@@ -55,7 +55,7 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 		if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_DOC) {
 			if !first {
 				s.nextDocStart = lineStart
-				if err := s.in.Seek(posStart); err != nil {
+				if _, err := s.in.Seek(posStart, 0); err != nil {
 					return 0, err
 				}
 				return s.docID, nil
@@ -85,7 +85,7 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 
 			if !first {
 				s.nextDocStart = lineStart
-				if err := s.in.Seek(posStart); err != nil {
+				if _, err := s.in.Seek(posStart, 0); err != nil {
 					return 0, err
 				}
 				return s.docID, nil
@@ -195,7 +195,7 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 		s.payload = s.scratch2.Bytes()
 	} else {
 		s.payload = s.payload[:0]
-		if err := s.in.Seek(fp); err != nil {
+		if _, err := s.in.Seek(fp, 0); err != nil {
 			return 0, err
 		}
 	}

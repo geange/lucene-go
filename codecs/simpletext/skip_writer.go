@@ -14,32 +14,6 @@ const (
 )
 
 var (
-	SimpleTextSkipWriterToken = struct {
-		SKIP_LIST     []byte
-		LEVEL_LENGTH  []byte
-		LEVEL         []byte
-		SKIP_DOC      []byte
-		SKIP_DOC_FP   []byte
-		IMPACTS       []byte
-		IMPACT        []byte
-		FREQ          []byte
-		NORM          []byte
-		IMPACTS_END   []byte
-		CHILD_POINTER []byte
-	}{
-		SKIP_LIST:     []byte("    skipList "),
-		LEVEL_LENGTH:  []byte("      levelLength "),
-		LEVEL:         []byte("      level "),
-		SKIP_DOC:      []byte("        skipDoc "),
-		SKIP_DOC_FP:   []byte("        skipDocFP "),
-		IMPACTS:       []byte("        impacts "),
-		IMPACT:        []byte("          impact "),
-		FREQ:          []byte("            freq "),
-		NORM:          []byte("            norm "),
-		IMPACTS_END:   []byte("        impactsEnd "),
-		CHILD_POINTER: []byte("        childPointer "),
-	}
-
 	SKIP_LIST     = []byte("    skipList ")
 	LEVEL_LENGTH  = []byte("      levelLength ")
 	LEVEL         = []byte("      level ")
@@ -60,6 +34,10 @@ type SimpleTextSkipWriter struct {
 	curDoc                  int
 	curDocFilePointer       int64
 	curCompetitiveFreqNorms []index.CompetitiveImpactAccumulator
+}
+
+func NewSimpleTextSkipWriter() (*SimpleTextSkipWriter, error) {
+	panic("")
 }
 
 func (s *SimpleTextSkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) error {

@@ -9,7 +9,7 @@ var _ ChecksumIndexInput = &BufferedChecksumIndexInput{}
 
 // BufferedChecksumIndexInput Simple implementation of ChecksumIndexInput that wraps another input and delegates calls.
 type BufferedChecksumIndexInput struct {
-	*IndexInputImp
+	*IndexInputDefault
 
 	main   IndexInput
 	digest hash.Hash32
@@ -20,7 +20,17 @@ func NewBufferedChecksumIndexInput(main IndexInput) *BufferedChecksumIndexInput 
 		main:   main,
 		digest: crc32.NewIEEE(),
 	}
-	input.IndexInputImp = NewIndexInputImp(input)
+	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
+		DataInputDefaultConfig: DataInputDefaultConfig{
+			ReadByte: input.ReadByte,
+			Read:     input.Read,
+		},
+		Close:          input.Close,
+		GetFilePointer: input.GetFilePointer,
+		Seek:           input.Seek,
+		Slice:          input.Slice,
+		Length:         input.Length,
+	})
 	return input
 }
 
@@ -37,8 +47,8 @@ func (b *BufferedChecksumIndexInput) GetFilePointer() int64 {
 	return b.main.GetFilePointer()
 }
 
-func (b *BufferedChecksumIndexInput) Seek(pos int64) error {
-	return b.main.Seek(pos)
+func (b *BufferedChecksumIndexInput) Seek(pos int64, whence int) (int64, error) {
+	return b.main.Seek(pos, 0)
 }
 
 func (b *BufferedChecksumIndexInput) Length() int64 {
@@ -56,14 +66,14 @@ func (b *BufferedChecksumIndexInput) ReadByte() (byte, error) {
 	return readByte, nil
 }
 
-func (b *BufferedChecksumIndexInput) ReadBytes(bs []byte) error {
-	if err := b.main.ReadBytes(bs); err != nil {
-		return err
+func (b *BufferedChecksumIndexInput) Read(bs []byte) (int, error) {
+	if _, err := b.main.Read(bs); err != nil {
+		return 0, err
 	}
 	if _, err := b.digest.Write(bs); err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return len(bs), nil
 }
 
 func (b *BufferedChecksumIndexInput) GetChecksum() uint32 {

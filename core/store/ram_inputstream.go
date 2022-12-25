@@ -15,7 +15,7 @@ var _ IndexInput = &RAMInputStream{}
 // It will be removed in future versions of Lucene.
 // lucene.internal
 type RAMInputStream struct {
-	*IndexInputImp
+	*IndexInputDefault
 
 	bufferSize         int
 	file               *RAMFile
@@ -31,7 +31,7 @@ func NewRAMInputStream(name string, f *RAMFile) (*RAMInputStream, error) {
 }
 
 func NewRAMInputStreamV2(name string, f *RAMFile, length int64) (*RAMInputStream, error) {
-	this := &RAMInputStream{
+	input := &RAMInputStream{
 		bufferSize:         1024,
 		file:               f,
 		length:             length,
@@ -40,16 +40,28 @@ func NewRAMInputStreamV2(name string, f *RAMFile, length int64) (*RAMInputStream
 		bufferPosition:     0,
 		bufferLength:       0,
 	}
-	if int(length)/this.bufferSize >= math.MaxInt32 {
+	if int(length)/input.bufferSize >= math.MaxInt32 {
 		return nil, errors.New("RAMInputStream too large length")
 	}
 
-	err := this.setCurrentBuffer()
+	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
+		DataInputDefaultConfig: DataInputDefaultConfig{
+			ReadByte: input.ReadByte,
+			Read:     input.Read,
+		},
+		Close:          input.Close,
+		GetFilePointer: input.GetFilePointer,
+		Seek:           input.Seek,
+		Slice:          input.Slice,
+		Length:         input.Length,
+	})
+
+	err := input.setCurrentBuffer()
 	if err != nil {
 		return nil, err
 	}
 
-	return this, nil
+	return input, nil
 }
 
 func (r *RAMInputStream) ReadByte() (byte, error) {
@@ -69,19 +81,19 @@ func (r *RAMInputStream) ReadByte() (byte, error) {
 	return b, nil
 }
 
-func (r *RAMInputStream) ReadBytes(b []byte) error {
+func (r *RAMInputStream) Read(b []byte) (int, error) {
 	offset, size := 0, len(b)
 
 	for size > 0 {
 		if r.bufferPosition == r.bufferLength {
 			err := r.nextBuffer()
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 
 		if r.currentBuffer != nil {
-			return io.EOF
+			return 0, io.EOF
 		}
 
 		remainInBuffer := r.bufferLength - r.bufferPosition
@@ -95,21 +107,21 @@ func (r *RAMInputStream) ReadBytes(b []byte) error {
 		size -= bytesToCopy
 		r.bufferPosition += bytesToCopy
 	}
-	return nil
+	return size, nil
 }
 
 func (r *RAMInputStream) GetFilePointer() int64 {
 	return int64(r.currentBufferIndex*r.bufferSize + r.bufferPosition)
 }
 
-func (r *RAMInputStream) Seek(pos int64) error {
+func (r *RAMInputStream) Seek(pos int64, whence int) (int64, error) {
 	newBufferIndex := int(pos) / r.bufferSize
 
 	if newBufferIndex != r.currentBufferIndex {
 		r.currentBufferIndex = newBufferIndex
 		err := r.setCurrentBuffer()
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
@@ -118,10 +130,10 @@ func (r *RAMInputStream) Seek(pos int64) error {
 	// This is not >= because seeking to exact end of file is OK: this is where
 	// you'd also be if you did a readBytes of all bytes in the file
 	if r.GetFilePointer() > r.Length() {
-		return errors.New("seek beyond EOF")
+		return 0, errors.New("seek beyond EOF")
 	}
 
-	return nil
+	return 0, nil
 }
 
 func (r *RAMInputStream) Clone() IndexInput {

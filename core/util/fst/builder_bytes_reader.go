@@ -5,7 +5,7 @@ import "github.com/geange/lucene-go/core/store"
 var _ BytesReader = &BuilderBytesReader{}
 
 type BuilderBytesReader struct {
-	*store.DataInputImp
+	*store.DataInputDefault
 	bs         *ByteStore
 	current    []byte
 	nextBuffer int
@@ -29,7 +29,10 @@ func NewBuilderBytesReader(bs *ByteStore) (*BuilderBytesReader, error) {
 		nextRead:   0,
 	}
 
-	reader.DataInputImp = store.NewDataInputImp(reader)
+	reader.DataInputDefault = store.NewDataInputDefault(&store.DataInputDefaultConfig{
+		ReadByte: reader.ReadByte,
+		Read:     reader.Read,
+	})
 	return reader, nil
 }
 
@@ -48,15 +51,15 @@ func (b *BuilderBytesReader) ReadByte() (byte, error) {
 	return v, nil
 }
 
-func (b *BuilderBytesReader) ReadBytes(bs []byte) error {
+func (b *BuilderBytesReader) Read(bs []byte) (int, error) {
 	for i := range bs {
 		v, err := b.ReadByte()
 		if err != nil {
-			return err
+			return 0, err
 		}
 		bs[i] = v
 	}
-	return nil
+	return len(bs), nil
 }
 
 func (b *BuilderBytesReader) SkipBytes(numBytes int) error {

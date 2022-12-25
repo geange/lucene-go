@@ -18,9 +18,9 @@ var (
 	FIELDS_PAYLOAD      = []byte("        payload ")
 )
 
-var _ index.FieldsConsumer = &FieldsWriter{}
+var _ index.FieldsConsumer = &SimpleTextFieldsWriter{}
 
-type FieldsWriter struct {
+type SimpleTextFieldsWriter struct {
 	*index.FieldsConsumerImp
 
 	out        store.IndexOutput
@@ -33,18 +33,34 @@ type FieldsWriter struct {
 	lastDocFilePointer           int64
 }
 
-func (s *FieldsWriter) Close() error {
-	s.write(FIELDS_END)
-	s.newline()
-	WriteChecksum(s.out)
+func NewFieldsWriter(writeState *index.SegmentWriteState) (*SimpleTextFieldsWriter, error) {
+	//fileName := getPostingsFileName(writeState.SegmentInfo.Name, writeState.SegmentSuffix)
+	//out, err := writeState.Directory.CreateOutput(fileName, writeState.Context)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//NewSk()
+	panic("")
+}
+
+func (s *SimpleTextFieldsWriter) Close() error {
+	if err := s.write(FIELDS_END); err != nil {
+		return err
+	}
+	if err := s.newline(); err != nil {
+		return err
+	}
+	if err := WriteChecksum(s.out); err != nil {
+		return err
+	}
 	return s.out.Close()
 }
 
-func (s *FieldsWriter) Write(fields index.Fields, norms index.NormsProducer) error {
+func (s *SimpleTextFieldsWriter) Write(fields index.Fields, norms index.NormsProducer) error {
 	return s.WriteV1(s.writeState.FieldInfos, fields, norms)
 }
 
-func (s *FieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fields,
+func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fields,
 	normsProducer index.NormsProducer) error {
 
 	for _, field := range fields.Names() {
@@ -234,7 +250,7 @@ func (s *FieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fields
 	return nil
 }
 
-func (s *FieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, error) {
+func (s *SimpleTextFieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, error) {
 	if norms == nil {
 		return 1, nil
 	}
@@ -248,10 +264,10 @@ func (s *FieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, er
 	return norms.LongValue()
 }
 
-func (s *FieldsWriter) write(field []byte) error {
+func (s *SimpleTextFieldsWriter) write(field []byte) error {
 	return WriteBytes(s.out, field)
 }
 
-func (s *FieldsWriter) newline() error {
+func (s *SimpleTextFieldsWriter) newline() error {
 	return WriteNewline(s.out)
 }
