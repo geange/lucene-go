@@ -87,3 +87,36 @@ func (c *CompetitiveImpactAccumulator) AddAll(acc *CompetitiveImpactAccumulator)
 		c.add(&entry, c.otherFreqNormPairs)
 	}
 }
+
+// GetCompetitiveFreqNormPairs Get the set of competitive freq and norm pairs, ordered by increasing freq and norm.
+func (c *CompetitiveImpactAccumulator) GetCompetitiveFreqNormPairs() []*Impact {
+	impacts := make([]*Impact, 0)
+	maxFreqForLowerNorms := 0
+	for i := range c.maxFreqs {
+		maxFreq := c.maxFreqs[i]
+		if maxFreq > maxFreqForLowerNorms {
+			impacts = append(impacts, NewImpact(maxFreq, int64(i)))
+			maxFreqForLowerNorms = maxFreq
+		}
+	}
+
+	if c.otherFreqNormPairs.Size() == 0 {
+		// Common case: all norms are bytes
+		return impacts
+	}
+
+	freqNormPairs := treeset.NewWith(ImpactComparator, c.otherFreqNormPairs.Values()...)
+	for i := range impacts {
+		impact := impacts[i]
+		c.add(impact, freqNormPairs)
+	}
+
+	items := freqNormPairs.Values()
+	impacts = impacts[:0]
+	for i := range items {
+		v := items[i].(*Impact)
+		impacts = append(impacts, v)
+	}
+
+	return impacts
+}

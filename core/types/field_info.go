@@ -1,5 +1,10 @@
 package types
 
+import (
+	"errors"
+	"fmt"
+)
+
 // FieldInfo Access to the Field Info file that describes document fields and whether or not they are indexed.
 // Each segment has a separate Field Info file. Objects of this class are thread-safe for multiple readers,
 // but only one thread can be adding documents at a time, with no other reader or writer threads accessing this object.
@@ -66,13 +71,18 @@ func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayl
 
 // Performs internal consistency checks. Always returns nil (or throws IllegalStateException)
 func (f *FieldInfo) checkConsistency() error {
-	panic("")
+	return nil
 }
 
 // SetPointDimensions Record that this field is indexed with points, with the specified number of
 // dimensions and bytes per dimension.
 func (f *FieldInfo) SetPointDimensions(dimensionCount, indexDimensionCount, numBytes int) error {
-	panic("")
+
+	f.pointDimensionCount = dimensionCount
+	f.pointIndexDimensionCount = indexDimensionCount
+	f.pointNumBytes = numBytes
+
+	return f.checkConsistency()
 }
 
 // GetPointDimensionCount Return point data dimension count
@@ -92,7 +102,8 @@ func (f *FieldInfo) GetPointNumBytes() int {
 
 // SetDocValuesType Record that this field is indexed with docvalues, with the specified types
 func (f *FieldInfo) SetDocValuesType(_type DocValuesType) error {
-	panic("")
+	f.docValuesType = _type
+	return f.checkConsistency()
 }
 
 // GetIndexOptions Returns IndexOptions for the field, or IndexOptions.NONE if the field is not indexed
@@ -102,7 +113,14 @@ func (f *FieldInfo) GetIndexOptions() IndexOptions {
 
 // SetIndexOptions Record the IndexOptions to use with this field.
 func (f *FieldInfo) SetIndexOptions(newIndexOptions IndexOptions) error {
-	panic("")
+	f.indexOptions = newIndexOptions
+
+	if f.indexOptions == INDEX_OPTIONS_NONE || f.indexOptions < INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS {
+		// cannot store payloads if we don't store positions:
+		f.storePayloads = false
+	}
+
+	return f.checkConsistency()
 }
 
 // GetDocValuesType Returns DocValuesType of the docValues; this is DocValuesType.NONE if the field has no docvalues.
@@ -112,7 +130,8 @@ func (f *FieldInfo) GetDocValuesType() DocValuesType {
 
 // SetDocValuesGen Sets the docValues generation of this field.
 func (f *FieldInfo) SetDocValuesGen(dvGen int64) error {
-	panic("")
+	f.dvGen = dvGen
+	return f.checkConsistency()
 }
 
 // GetDocValuesGen Returns the docValues generation of this field, or -1 if no docValues updates exist for it.
@@ -121,11 +140,15 @@ func (f *FieldInfo) GetDocValuesGen() int64 {
 }
 
 func (f *FieldInfo) SetStoreTermVectors() error {
-	panic("")
+	f.storeTermVector = true
+	return f.checkConsistency()
 }
 
 func (f *FieldInfo) SetStorePayloads() error {
-	panic("")
+	if f.indexOptions != INDEX_OPTIONS_NONE && f.indexOptions >= INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS {
+		f.storePayloads = true
+	}
+	return f.checkConsistency()
 }
 
 // OmitsNorms Returns true if norms are explicitly omitted for this field
@@ -135,7 +158,11 @@ func (f *FieldInfo) OmitsNorms() bool {
 
 // SetOmitsNorms Omit norms for this field.
 func (f *FieldInfo) SetOmitsNorms() error {
-	panic("")
+	if f.indexOptions == INDEX_OPTIONS_NONE {
+		return errors.New("cannot omit norms: this field is not indexed")
+	}
+	f.omitNorms = true
+	return f.checkConsistency()
 }
 
 // HasNorms Returns true if this field actually has any norms.
@@ -177,4 +204,55 @@ func (f *FieldInfo) Attributes() map[string]string {
 // See IndexWriterConfig.softDeletesField
 func (f *FieldInfo) IsSoftDeletesField() bool {
 	return f.softDeletesField
+}
+
+// should only be called by FieldInfos#addOrUpdate
+func (f *FieldInfo) Update(storeTermVector, omitNorms, storePayloads bool, indexOptions IndexOptions,
+	attributes map[string]string, dimensionCount, indexDimensionCount, dimensionNumBytes int) error {
+
+	if f.indexOptions != indexOptions {
+		if f.indexOptions == INDEX_OPTIONS_NONE {
+			f.indexOptions = indexOptions
+		} else if f.indexOptions != INDEX_OPTIONS_NONE {
+			return fmt.Errorf(
+				`cannot change field "%s" from index options=%s to inconsistent index options=%s`,
+				f.Name, f.indexOptions, indexOptions,
+			)
+		}
+	}
+
+	if f.pointDimensionCount == 0 && dimensionCount != 0 {
+		f.pointDimensionCount = dimensionCount
+		f.pointIndexDimensionCount = indexDimensionCount
+		f.pointNumBytes = dimensionNumBytes
+	} else if dimensionCount != 0 &&
+		(f.pointDimensionCount != dimensionCount ||
+			f.pointIndexDimensionCount != indexDimensionCount ||
+			f.pointNumBytes != dimensionNumBytes) {
+
+		return fmt.Errorf(`cannot change field "%s" from points dimensionCount=%d, indexDimensionCount=%d`,
+			f.Name, f.pointDimensionCount, f.pointIndexDimensionCount,
+		)
+	}
+
+	if f.indexOptions != INDEX_OPTIONS_NONE { // if updated field data is not for indexing, leave the updates out
+		f.storeTermVector = f.storeTermVector || storeTermVector // once vector, always vector
+		f.storePayloads = f.storePayloads || storePayloads
+
+		// Awkward: only drop norms if incoming update is indexed:
+		if indexOptions != INDEX_OPTIONS_NONE && f.omitNorms != omitNorms {
+			f.omitNorms = true // if one require omitNorms at least once, it remains off for life
+		}
+	}
+
+	if f.indexOptions == INDEX_OPTIONS_NONE || f.indexOptions < INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS {
+		// cannot store payloads if we don't store positions:
+		f.storePayloads = false
+	}
+
+	for k, v := range attributes {
+		f.attributes[k] = v
+	}
+
+	return f.checkConsistency()
 }

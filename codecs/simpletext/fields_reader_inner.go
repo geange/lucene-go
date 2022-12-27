@@ -26,7 +26,7 @@ type fieldsReaderTerm struct {
 	scratch *bytes.Buffer
 }
 
-func (r *FieldsReader) newFieldsReaderTerm(field string, termsStart int64, maxDoc int) (*fieldsReaderTerm, error) {
+func (r *SimpleTextFieldsReader) newFieldsReaderTerm(field string, termsStart int64, maxDoc int) (*fieldsReaderTerm, error) {
 	info := r.fieldInfos.FieldInfo(field)
 	term := &fieldsReaderTerm{
 		termsStart: termsStart,
@@ -39,7 +39,7 @@ func (r *FieldsReader) newFieldsReaderTerm(field string, termsStart int64, maxDo
 	return term, nil
 }
 
-func (r *FieldsReader) loadTerms(term *fieldsReaderTerm) error {
+func (r *SimpleTextFieldsReader) loadTerms(term *fieldsReaderTerm) error {
 	posIntOutputs := fst.NewPositiveIntOutputs()
 	outputsOuter := fst.NewPairOutputs[int64, int64](posIntOutputs, posIntOutputs)
 	outputsInner := fst.NewPairOutputs[int64, int64](posIntOutputs, posIntOutputs)
@@ -182,7 +182,7 @@ func (f *fieldsReaderTerm) GetMax() ([]byte, error) {
 	panic("implement me")
 }
 
-var _ index.BaseTermsEnum = &termsEnum{}
+var _ index.TermsEnum = &termsEnum{}
 
 type EnumPair fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]
 

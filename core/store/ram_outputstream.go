@@ -184,3 +184,16 @@ func (r *RAMOutputStream) GetFilePointer() int64 {
 func (r *RAMOutputStream) GetChecksum() (uint32, error) {
 	return r.crc.Sum32(), nil
 }
+
+// Reset Resets this to an empty file.
+func (r *RAMOutputStream) Reset() {
+	r.currentBuffer = nil
+	r.currentBufferIndex = -1
+	r.bufferPosition = 0
+	r.bufferStart = 0
+	r.bufferLength = 0
+	r.file.setLength(0)
+	if r.crc != nil {
+		r.crc.Reset()
+	}
+}

@@ -46,6 +46,25 @@ type SegmentInfo struct {
 	minVersion *util.Version
 }
 
+func NewSegmentInfo(dir store.Directory, version, minVersion *util.Version, name string,
+	maxDoc int, isCompoundFile bool, codec Codec, diagnostics map[string]string,
+	id []byte, attributes map[string]string, indexSort *types.Sort) *SegmentInfo {
+
+	return &SegmentInfo{
+		Name:           name,
+		Dir:            dir,
+		maxDoc:         maxDoc,
+		isCompoundFile: isCompoundFile,
+		id:             id,
+		codec:          codec,
+		diagnostics:    diagnostics,
+		attributes:     attributes,
+		indexSort:      indexSort,
+		version:        version,
+		minVersion:     minVersion,
+	}
+}
+
 // MaxDoc Returns number of documents in this segment (deletions are not taken into account).
 func (s *SegmentInfo) MaxDoc() (int, error) {
 	if s.maxDoc == -1 {

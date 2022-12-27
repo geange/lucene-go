@@ -37,7 +37,8 @@ func (o *OnHeapFSTStore) Init(in store.DataInput, numBytes int64) error {
 
 	// FST fits into a single block: use ByteArrayBytesStoreReader for less overhead
 	o.bytesArray = make([]byte, numBytes)
-	return in.ReadBytes(o.bytesArray)
+	_, err := in.Read(o.bytesArray)
+	return err
 }
 
 func (o *OnHeapFSTStore) Size() int64 {
@@ -69,5 +70,6 @@ func (o *OnHeapFSTStore) WriteTo(out store.DataOutput) error {
 	if err := out.WriteUvarint(uint64(len(o.bytesArray))); err != nil {
 		return err
 	}
-	return out.WriteBytes(o.bytesArray)
+	_, err := out.Write(o.bytesArray)
+	return err
 }

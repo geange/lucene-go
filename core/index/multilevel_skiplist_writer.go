@@ -1,6 +1,9 @@
 package index
 
-import "github.com/geange/lucene-go/core/store"
+import (
+	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util"
+)
 
 // MultiLevelSkipListWriter This abstract class writes skip lists with multiple levels.
 //
@@ -40,7 +43,7 @@ type MultiLevelSkipListWriterExt interface {
 	Init()
 
 	// ResetSkip Creates new buffers or empties the existing ones
-	ResetSkip() error
+	ResetSkip()
 
 	// BufferSkip Writes the current skip data to the buffers. The current document frequency
 	// determines the max level is skip data is to be written to.
@@ -51,7 +54,7 @@ type MultiLevelSkipListWriterExt interface {
 	// WriteSkip Writes the buffered skip lists to the given output.
 	// Params: 	output – the IndexOutput the skip lists shall be written to
 	// Returns: the pointer the skip list starts
-	WriteSkip(output store.IndexOutput) error
+	WriteSkip(output store.IndexOutput) (int64, error)
 
 	// WriteLevelLength Writes the length of a level to the given output.
 	// Params: 	levelLength – the length of a level
@@ -66,9 +69,21 @@ type MultiLevelSkipListWriterExt interface {
 
 //var _ MultiLevelSkipListWriterExt = &MultiLevelSkipListWriterImp{}
 
-type MultiLevelSkipListWriterImp struct {
+type MultiLevelSkipListWriterDefaultConfig struct {
+	SkipInterval   int
+	SkipMultiplier int
+	MaxSkipLevels  int
+	DF             int
+
+	WriteSkipData func(level int, skipBuffer store.IndexOutput) error
+
+	WriteLevelLength  func(levelLength int64, output store.IndexOutput) error
+	WriteChildPointer func(childPointer int64, skipBuffer store.DataOutput) error
+}
+
+type MultiLevelSkipListWriterDefault struct {
 	// number of levels in this skip list
-	numberOfSkipLevels int
+	NumberOfSkipLevels int
 
 	// the skip interval in the list with level = 0
 	skipInterval int
@@ -77,15 +92,131 @@ type MultiLevelSkipListWriterImp struct {
 	skipMultiplier int
 
 	// for every skip level a different buffer is used
-	skipBuffer []store.RAMOutputStream
+	skipBuffer []*store.RAMOutputStream
+
+	// Subclasses must implement the actual skip data encoding in this method.
+	// level – the level skip data shall be writing for
+	// skipBuffer – the skip buffer to write to
+	writeSkipData func(level int, skipBuffer store.IndexOutput) error
+
+	fnWriteLevelLength  func(levelLength int64, output store.IndexOutput) error
+	fnWriteChildPointer func(childPointer int64, skipBuffer store.DataOutput) error
 }
 
-func (m *MultiLevelSkipListWriterImp) WriteSkip(output store.IndexOutput) error {
-	//TODO implement me
-	panic("implement me")
+func NewMultiLevelSkipListWriterDefault(cfg *MultiLevelSkipListWriterDefaultConfig) *MultiLevelSkipListWriterDefault {
+	this := &MultiLevelSkipListWriterDefault{}
+
+	this.skipInterval = cfg.SkipInterval
+	this.skipMultiplier = cfg.SkipMultiplier
+
+	numberOfSkipLevels := 0
+	// calculate the maximum number of skip levels for this document frequency
+	if cfg.DF <= cfg.SkipInterval {
+		numberOfSkipLevels = 1
+	} else {
+		numberOfSkipLevels = 1 + util.Log(cfg.DF/cfg.SkipInterval, cfg.SkipMultiplier)
+	}
+
+	// make sure it does not exceed maxSkipLevels
+	if numberOfSkipLevels > cfg.MaxSkipLevels {
+		numberOfSkipLevels = cfg.MaxSkipLevels
+	}
+	this.NumberOfSkipLevels = numberOfSkipLevels
+	return this
 }
 
-func (m *MultiLevelSkipListWriterImp) BufferSkip(df int) error {
-	//TODO implement me
-	panic("implement me")
+func (m *MultiLevelSkipListWriterDefault) Init() {
+	m.skipBuffer = make([]*store.RAMOutputStream, 0, m.NumberOfSkipLevels)
+	for i := 0; i < m.NumberOfSkipLevels; i++ {
+		m.skipBuffer = append(m.skipBuffer, store.NewRAMOutputStream())
+	}
+}
+
+// ResetSkip Creates new buffers or empties the existing ones
+func (m *MultiLevelSkipListWriterDefault) ResetSkip() {
+	if len(m.skipBuffer) == 0 {
+		m.Init()
+	} else {
+		for i := 0; i < len(m.skipBuffer); i++ {
+			m.skipBuffer[i].Reset()
+		}
+	}
+}
+
+// WriteSkip Creates new buffers or empties the existing ones
+func (m *MultiLevelSkipListWriterDefault) WriteSkip(output store.IndexOutput) (int64, error) {
+	skipPointer := output.GetFilePointer()
+	if len(m.skipBuffer) == 0 {
+		return skipPointer, nil
+	}
+
+	for level := m.NumberOfSkipLevels - 1; level > 0; level-- {
+		length := m.skipBuffer[level].GetFilePointer()
+		if length > 0 {
+			if err := m.writeLevelLength(length, output); err != nil {
+				return 0, err
+			}
+			if err := m.skipBuffer[level].WriteTo(output); err != nil {
+				return 0, err
+			}
+		}
+	}
+	if err := m.skipBuffer[0].WriteTo(output); err != nil {
+		return 0, err
+	}
+
+	return skipPointer, nil
+}
+
+func (m *MultiLevelSkipListWriterDefault) BufferSkip(df int) error {
+	//assert df % skipInterval == 0;
+	numLevels := 1
+	df /= m.skipInterval
+
+	// determine max level
+	for (df%m.skipMultiplier) == 0 && numLevels < m.NumberOfSkipLevels {
+		numLevels++
+		df /= m.skipMultiplier
+	}
+
+	childPointer := 0
+
+	for level := 0; level < numLevels; level++ {
+		if err := m.writeSkipData(level, m.skipBuffer[level]); err != nil {
+			return err
+		}
+
+		newChildPointer := m.skipBuffer[level].GetFilePointer()
+
+		if level != 0 {
+			// store child pointers for all levels except the lowest
+			if err := m.writeChildPointer(int64(childPointer), m.skipBuffer[level]); err != nil {
+				return err
+			}
+		}
+
+		//remember the childPointer for the next level
+		childPointer = int(newChildPointer)
+	}
+	return nil
+}
+
+// Writes the length of a level to the given output.
+// levelLength – the length of a level
+// output – the IndexOutput the length shall be written to
+func (m *MultiLevelSkipListWriterDefault) writeLevelLength(levelLength int64, output store.IndexOutput) error {
+	if m.fnWriteLevelLength != nil {
+		return m.fnWriteLevelLength(levelLength, output)
+	}
+	return output.WriteUvarint(uint64(levelLength))
+}
+
+// Writes the child pointer of a block to the given output.
+// childPointer – block of higher level point to the lower level
+// skipBuffer – the skip buffer to write to
+func (m *MultiLevelSkipListWriterDefault) writeChildPointer(childPointer int64, skipBuffer store.DataOutput) error {
+	if m.fnWriteChildPointer != nil {
+		return m.fnWriteChildPointer(childPointer, skipBuffer)
+	}
+	return skipBuffer.WriteUvarint(uint64(childPointer))
 }

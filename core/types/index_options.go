@@ -23,3 +23,20 @@ const (
 	// offsets. Character offsets are encoded alongside the positions.
 	INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 )
+
+func (i IndexOptions) String() string {
+	switch i {
+	case INDEX_OPTIONS_NONE:
+		return "INDEX_OPTIONS_NONE"
+	case INDEX_OPTIONS_DOCS:
+		return "INDEX_OPTIONS_DOCS"
+	case INDEX_OPTIONS_DOCS_AND_FREQS:
+		return "INDEX_OPTIONS_DOCS_AND_FREQS"
+	case INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS:
+		return "INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS"
+	case INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS:
+		return "INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS"
+	default:
+		return "Unsupported IndexOptions"
+	}
+}

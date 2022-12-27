@@ -12,7 +12,7 @@ import (
 var _ index.Terms = &textTerms{}
 
 type textTerms struct {
-	reader *FieldsReader
+	reader *SimpleTextFieldsReader
 
 	termsStart       int64
 	fieldInfo        *types.FieldInfo
@@ -25,7 +25,7 @@ type textTerms struct {
 	scratch          *bytes.Buffer
 }
 
-func (r *FieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc int) *textTerms {
+func (r *SimpleTextFieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc int) *textTerms {
 	terms := &textTerms{
 		reader:           r,
 		termsStart:       termsStart,

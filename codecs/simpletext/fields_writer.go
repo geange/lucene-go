@@ -1,8 +1,10 @@
 package simpletext
 
 import (
+	"errors"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"io"
 	"strconv"
 )
 
@@ -21,7 +23,7 @@ var (
 var _ index.FieldsConsumer = &SimpleTextFieldsWriter{}
 
 type SimpleTextFieldsWriter struct {
-	*index.FieldsConsumerImp
+	*index.FieldsConsumerDefault // TODO: fix it
 
 	out        store.IndexOutput
 	writeState *index.SegmentWriteState
@@ -33,14 +35,27 @@ type SimpleTextFieldsWriter struct {
 	lastDocFilePointer           int64
 }
 
-func NewFieldsWriter(writeState *index.SegmentWriteState) (*SimpleTextFieldsWriter, error) {
-	//fileName := getPostingsFileName(writeState.SegmentInfo.Name, writeState.SegmentSuffix)
-	//out, err := writeState.Directory.CreateOutput(fileName, writeState.Context)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//NewSk()
-	panic("")
+func NewSimpleTextFieldsWriter(writeState *index.SegmentWriteState) (*SimpleTextFieldsWriter, error) {
+	fileName := getPostingsFileName(writeState.SegmentInfo.Name, writeState.SegmentSuffix)
+	out, err := writeState.Directory.CreateOutput(fileName, writeState.Context)
+	if err != nil {
+		return nil, err
+	}
+
+	skipWriter, err := NewSimpleTextSkipWriter(writeState)
+	if err != nil {
+		return nil, err
+	}
+	return &SimpleTextFieldsWriter{
+		FieldsConsumerDefault:        nil,
+		out:                          out,
+		writeState:                   writeState,
+		segment:                      writeState.SegmentInfo.Name,
+		docCount:                     0,
+		skipWriter:                   skipWriter,
+		competitiveImpactAccumulator: index.NewCompetitiveImpactAccumulator(),
+		lastDocFilePointer:           0,
+	}, nil
 }
 
 func (s *SimpleTextFieldsWriter) Close() error {
@@ -63,9 +78,14 @@ func (s *SimpleTextFieldsWriter) Write(fields index.Fields, norms index.NormsPro
 func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fields,
 	normsProducer index.NormsProducer) error {
 
-	for _, field := range fields.Names() {
+	names := fields.Names()
+
+	for _, field := range names {
 		terms, err := fields.Terms(field)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				continue
+			}
 			return err
 		}
 		if terms == nil {
@@ -115,17 +135,14 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields in
 		for {
 			term, err := termsEnum.Next()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
 				return err
-			}
-
-			if term == nil {
-				break
 			}
 
 			docCount := 0
-			if err := s.skipWriter.ResetSkip(); err != nil {
-				return err
-			}
+			s.skipWriter.ResetSkip()
 			s.competitiveImpactAccumulator.Clear()
 			s.lastDocFilePointer = -1
 
@@ -140,10 +157,10 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields in
 			for {
 				doc, err := postingsEnum.NextDoc()
 				if err != nil {
-					break
-				}
-				if doc == index.NO_MORE_DOCS {
-					break
+					if errors.Is(err, io.EOF) {
+						break
+					}
+					return err
 				}
 
 				if !wroteTerm {
@@ -241,7 +258,7 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields in
 				}
 			}
 			if docCount >= BLOCK_SIZE {
-				if err := s.skipWriter.WriteSkip(s.out); err != nil {
+				if _, err := s.skipWriter.WriteSkip(s.out); err != nil {
 					return err
 				}
 			}

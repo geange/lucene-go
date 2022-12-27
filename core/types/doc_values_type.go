@@ -28,3 +28,22 @@ const (
 	// Values must be <= 32766 bytes.
 	DOC_VALUES_TYPE_SORTED_SET
 )
+
+func (d DocValuesType) String() string {
+	switch d {
+	case DOC_VALUES_TYPE_NONE:
+		return "DOC_VALUES_TYPE_NONE"
+	case DOC_VALUES_TYPE_NUMERIC:
+		return "DOC_VALUES_TYPE_NUMERIC"
+	case DOC_VALUES_TYPE_BINARY:
+		return "DOC_VALUES_TYPE_BINARY"
+	case DOC_VALUES_TYPE_SORTED:
+		return "DOC_VALUES_TYPE_SORTED"
+	case DOC_VALUES_TYPE_SORTED_NUMERIC:
+		return "DOC_VALUES_TYPE_SORTED_NUMERIC"
+	case DOC_VALUES_TYPE_SORTED_SET:
+		return "DOC_VALUES_TYPE_SORTED_SET"
+	default:
+		return "Unsupported DocValuesType"
+	}
+}

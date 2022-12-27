@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	_ index.FieldsProducer = &FieldsReader{}
-	_ index.Fields         = &FieldsReader{}
+	_ index.FieldsProducer = &SimpleTextFieldsReader{}
+	_ index.Fields         = &SimpleTextFieldsReader{}
 )
 
-type FieldsReader struct {
+type SimpleTextFieldsReader struct {
 	fields     *treemap.Map
 	in         store.IndexInput
 	fieldInfos *index.FieldInfos
@@ -21,7 +21,7 @@ type FieldsReader struct {
 	termsCache map[string]*fieldsReaderTerm
 }
 
-func (r *FieldsReader) Names() []string {
+func (r *SimpleTextFieldsReader) Names() []string {
 	keys := make([]string, 0)
 	r.fields.All(func(key interface{}, value interface{}) bool {
 		keys = append(keys, key.(string))
@@ -30,7 +30,7 @@ func (r *FieldsReader) Names() []string {
 	return keys
 }
 
-func (r *FieldsReader) Terms(field string) (index.Terms, error) {
+func (r *SimpleTextFieldsReader) Terms(field string) (index.Terms, error) {
 	v, ok := r.termsCache[field]
 	if !ok {
 		fp, ok := r.fields.Get(field)
@@ -47,11 +47,11 @@ func (r *FieldsReader) Terms(field string) (index.Terms, error) {
 	return v, nil
 }
 
-func (r *FieldsReader) Size() int {
+func (r *SimpleTextFieldsReader) Size() int {
 	return -1
 }
 
-func NewFieldsReader(state *index.SegmentReadState) (*FieldsReader, error) {
+func NewSimpleTextFieldsReader(state *index.SegmentReadState) (*SimpleTextFieldsReader, error) {
 	maxDoc, err := state.SegmentInfo.MaxDoc()
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func NewFieldsReader(state *index.SegmentReadState) (*FieldsReader, error) {
 		return nil, err
 	}
 
-	reader := &FieldsReader{
+	reader := &SimpleTextFieldsReader{
 		fields:     nil,
 		in:         input,
 		fieldInfos: state.FieldInfos,
@@ -80,7 +80,7 @@ func NewFieldsReader(state *index.SegmentReadState) (*FieldsReader, error) {
 	return reader, nil
 }
 
-func (r *FieldsReader) readFields(in store.IndexInput) (*treemap.Map, error) {
+func (r *SimpleTextFieldsReader) readFields(in store.IndexInput) (*treemap.Map, error) {
 	input := store.NewBufferedChecksumIndexInput(in)
 	scratch := new(bytes.Buffer)
 	fields := treemap.NewWithStringComparator()
@@ -101,14 +101,14 @@ func (r *FieldsReader) readFields(in store.IndexInput) (*treemap.Map, error) {
 	}
 }
 
-func (r *FieldsReader) Close() error {
+func (r *SimpleTextFieldsReader) Close() error {
 	return r.in.Close()
 }
 
-func (r *FieldsReader) CheckIntegrity() error {
+func (r *SimpleTextFieldsReader) CheckIntegrity() error {
 	return nil
 }
 
-func (r *FieldsReader) GetMergeInstance() index.FieldsProducer {
+func (r *SimpleTextFieldsReader) GetMergeInstance() index.FieldsProducer {
 	return nil
 }

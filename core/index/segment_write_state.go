@@ -37,3 +37,19 @@ type SegmentWriteState struct {
 	// IOContext for all writes; you should pass this to Directory.createOutput(String, IOContext).
 	Context *store.IOContext
 }
+
+func NewSegmentWriteState(directory store.Directory, segmentInfo *SegmentInfo, fieldInfos *FieldInfos,
+	segUpdates *BufferedUpdates, context *store.IOContext) *SegmentWriteState {
+
+	return &SegmentWriteState{
+		Directory:           directory,
+		SegmentInfo:         segmentInfo,
+		FieldInfos:          fieldInfos,
+		DelCountOnFlush:     0,
+		SoftDelCountOnFlush: 0,
+		SegUpdates:          segUpdates,
+		LiveDocs:            nil,
+		SegmentSuffix:       "",
+		Context:             context,
+	}
+}

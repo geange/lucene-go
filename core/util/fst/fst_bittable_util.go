@@ -235,7 +235,7 @@ func readUpTo8Bytes(numBytes int64, reader BytesReader) (int64, error) {
 	}
 
 	bs := make([]byte, numBytes)
-	if err := reader.ReadBytes(bs); err != nil {
+	if _, err := reader.Read(bs); err != nil {
 		return 0, err
 	}
 
@@ -251,7 +251,7 @@ func readUpTo8Bytes(numBytes int64, reader BytesReader) (int64, error) {
 
 func read8Bytes(reader BytesReader) (int64, error) {
 	bs := make([]byte, 8)
-	if err := reader.ReadBytes(bs); err != nil {
+	if _, err := reader.Read(bs); err != nil {
 		return 0, err
 	}
 

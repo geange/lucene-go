@@ -26,6 +26,9 @@ func WriteBytes(out store.DataOutput, bs []byte) error {
 				return err
 			}
 		}
+		if err := out.WriteByte(bs[i]); err != nil {
+			return err
+		}
 	}
 	return nil
 }

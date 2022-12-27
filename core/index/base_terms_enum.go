@@ -9,27 +9,43 @@ import "github.com/geange/lucene-go/core/tokenattributes"
 // * seekExact(BytesRef, TermState)
 // In some cases, the default implementation may be slow and consume huge memory, so subclass
 // SHOULD have its own implementation if possible.
-type BaseTermsEnum interface {
-	TermsEnum
+type BaseTermsEnum struct {
+	atts     *tokenattributes.AttributeSource
+	seekCeil func(text []byte) (SeekStatus, error)
 }
 
-type BaseTermsEnumImp struct {
-	atts *tokenattributes.AttributeSource
+type BaseTermsEnumConfig struct {
+	SeekCeil func(text []byte) (SeekStatus, error)
 }
 
-func (b *BaseTermsEnumImp) TermState() (TermState, error) {
-	panic("")
+func NewBaseTermsEnum(cfg *BaseTermsEnumConfig) *BaseTermsEnum {
+	return &BaseTermsEnum{
+		atts:     tokenattributes.NewAttributeSource(),
+		seekCeil: cfg.SeekCeil,
+	}
 }
 
-func (b *BaseTermsEnumImp) SeekExact(text []byte) (bool, error) {
-	panic("")
+func (b *BaseTermsEnum) TermState() (TermState, error) {
+	return &innerTermState{}, nil
 }
 
-func (b *BaseTermsEnumImp) SeekExactExpert(term []byte, state TermState) error {
-	panic("")
+func (b *BaseTermsEnum) SeekExact(text []byte) (bool, error) {
+	status, err := b.seekCeil(text)
+	if err != nil {
+		return false, err
+	}
+	return status == SEEK_STATUS_FOUND, nil
 }
 
-func (b *BaseTermsEnumImp) Attributes() *tokenattributes.AttributeSource {
+func (b *BaseTermsEnum) SeekExactExpert(term []byte, state TermState) error {
+	_, err := b.SeekExact(term)
+	return err
+}
+
+func (b *BaseTermsEnum) Attributes() *tokenattributes.AttributeSource {
+	if b.atts == nil {
+		b.atts = tokenattributes.NewAttributeSource()
+	}
 	return b.atts
 }
 

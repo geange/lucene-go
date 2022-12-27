@@ -32,13 +32,20 @@ type FieldsConsumerExt interface {
 	Merge(mergeState *MergeState, norms NormsProducer) error
 }
 
-var _ FieldsConsumerExt = &FieldsConsumerImp{}
+var _ FieldsConsumerExt = &FieldsConsumerDefault{}
 
-type FieldsConsumerImp struct {
-	FieldsConsumerBase
+type FieldsConsumerDefault struct {
+
+	// Merges in the fields from the readers in mergeState.
+	// The default implementation skips and maps around deleted documents,
+	// and calls write(Fields, NormsProducer). Implementations can override
+	// this method for more sophisticated merging (bulk-byte copying, etc).
+	Write func(fields Fields, norms NormsProducer) error
+
+	// NOTE: strange but necessary so javadocs linting is happy:
+	Closer func() error
 }
 
-func (f *FieldsConsumerImp) Merge(mergeState *MergeState, norms NormsProducer) error {
-	//TODO implement me
-	panic("implement me")
+func (f *FieldsConsumerDefault) Merge(mergeState *MergeState, norms NormsProducer) error {
+	return nil
 }
