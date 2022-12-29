@@ -24,3 +24,15 @@ type SegmentReadState struct {
 	// using this suffix (use IndexFileNames.segmentFileName(String, String, String)).
 	SegmentSuffix string
 }
+
+func NewSegmentReadState(dir store.Directory, info *SegmentInfo,
+	fieldInfos *FieldInfos, context *store.IOContext, segmentSuffix string) *SegmentReadState {
+
+	return &SegmentReadState{
+		Directory:     dir,
+		SegmentInfo:   info,
+		FieldInfos:    fieldInfos,
+		Context:       context,
+		SegmentSuffix: segmentSuffix,
+	}
+}

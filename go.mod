@@ -16,3 +16,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 )
+
+//replace (
+//	github.com/emirpasic/gods v1.18.1 => github.com/geange/gods latest
+//)

@@ -81,12 +81,17 @@ func NewBufferedIndexInputDefault(cfg *BufferedIndexInputDefaultConfig) *Buffere
 }
 
 func (r *BufferedIndexInputDefault) Clone(cfg *BufferedIndexInputDefaultConfig) *BufferedIndexInputDefault {
+	var buffer *bytes.Buffer
+	if r.buffer != nil {
+		buffer = bytes.NewBuffer(r.buffer.Bytes())
+	}
+
 	return &BufferedIndexInputDefault{
 		IndexInputDefault: r.IndexInputDefault.Clone(&cfg.IndexInputDefaultConfig),
 		bufferSize:        r.bufferSize,
 		bufferStart:       r.bufferStart,
 		bufferPosition:    r.bufferPosition,
-		buffer:            bytes.NewBuffer(r.buffer.Bytes()),
+		buffer:            buffer,
 		readInternal:      cfg.ReadInternal,
 		seekInternal:      cfg.SeekInternal,
 	}
@@ -120,10 +125,6 @@ func (r *BufferedIndexInputDefault) Read(b []byte) (n int, err error) {
 	if size <= available {
 		r.bufferSize += size
 		return r.buffer.Read(b)
-	}
-
-	if available <= 0 {
-		return 0, nil
 	}
 
 	// the buffer does not have enough data. First serve all we've got.

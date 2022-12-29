@@ -79,3 +79,7 @@ func (b *BufferedChecksumIndexInput) Read(bs []byte) (int, error) {
 func (b *BufferedChecksumIndexInput) GetChecksum() uint32 {
 	return b.digest.Sum32()
 }
+
+func (b *BufferedChecksumIndexInput) Close() error {
+	return b.main.Close()
+}

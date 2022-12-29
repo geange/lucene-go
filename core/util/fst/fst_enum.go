@@ -43,8 +43,8 @@ func NewFstEnum[T PairAble](fst *FST[T]) (*FstEnum[T], error) {
 		fst:       fst,
 		fstReader: reader,
 		noOutput:  noOutput,
-		arcs:      []*Arc[T]{},
-		output:    []T{},
+		arcs:      []*Arc[T]{&Arc[T]{}},
+		output:    []T{noOutput},
 	}
 
 	if _, err := fst.GetFirstArc(enum.arcs[0]); err != nil {
@@ -57,13 +57,13 @@ func NewFstEnum[T PairAble](fst *FST[T]) (*FstEnum[T], error) {
 // Rewinds enum state to match the shared prefix between current term and target term
 // 倒回枚举状态，以匹配当前term和目标term之间的共享前缀
 func (f *FstEnum[T]) rewindPrefix() error {
-	if len(f.arcs) == 0 {
-		f.arcs = append(f.arcs, &Arc[T]{}, &Arc[T]{})
+	if len(f.arcs) == 1 {
+		f.arcs = append(f.arcs, &Arc[T]{})
 		_, err := f.fst.ReadFirstTargetArc(f.arcs[0], f.arcs[1], f.fstReader)
 		return err
 	}
 
-	currentLimit := len(f.arcs)
+	currentLimit := len(f.arcs) - 1
 	i := 1
 
 	for ; i < currentLimit && i < f.targetLength+1; i++ {
@@ -86,6 +86,9 @@ func (f *FstEnum[T]) rewindPrefix() error {
 		if cmp > 0 {
 			// seek backwards -- reset this arc to the first arc
 			// 向后搜索
+			if len(f.arcs) <= i {
+				f.arcs = append(f.arcs, &Arc[T]{})
+			}
 			if _, err := f.fst.ReadFirstTargetArc(f.arcs[i-1], f.arcs[i], f.fstReader); err != nil {
 				return err
 			}
@@ -93,16 +96,17 @@ func (f *FstEnum[T]) rewindPrefix() error {
 		}
 	}
 
-	f.arcs = f.arcs[:i+1]
+	if i <= currentLimit {
+		f.arcs = f.arcs[:i+1]
+	}
 
 	return nil
 }
 
 func (f *FstEnum[T]) doNext() error {
 	//System.out.println("FE: next upto=" + upto);
-	if len(f.arcs) == 0 {
+	if len(f.arcs) == 1 {
 		//System.out.println("  init");
-		f.arcs = append(f.arcs, &Arc[T]{})
 		f.arcs = append(f.arcs, &Arc[T]{})
 		f.fst.ReadFirstTargetArc(f.getArc(0), f.getArc(1), f.fstReader)
 	} else {
@@ -131,7 +135,9 @@ func (f *FstEnum[T]) doSeekCeil() error {
 
 	// Save time by starting at the end of the shared prefix
 	// b/w our current term & the target:
-	f.rewindPrefix()
+	if err := f.rewindPrefix(); err != nil {
+		return err
+	}
 
 	arc := f.lastArc()
 
@@ -227,7 +233,7 @@ func (f *FstEnum[T]) doSeekFloorList(arc *Arc[T], targetLabel int) (*Arc[T], err
 	panic("")
 }
 
-// Seeks to exactly target term.
+// DoSeekExact Seeks to exactly target term.
 func (f *FstEnum[T]) DoSeekExact() (bool, error) {
 	// TODO: possibly caller could/should provide common
 	// prefix length?  ie this work may be redundant if
@@ -236,11 +242,11 @@ func (f *FstEnum[T]) DoSeekExact() (bool, error) {
 
 	// Save time by starting at the end of the shared prefix
 	// b/w our current term & the target:
-	if err := f.rewindPrefix(); err != nil {
-		return false, err
-	}
+	//if err := f.rewindPrefix(); err != nil {
+	//	return false, err
+	//}
 
-	arc := f.getArc(len(f.arcs) - 2)
+	arc := f.arcs[0]
 	targetLabel, err := f.GetTargetLabel()
 	if err != nil {
 		return false, err
@@ -252,42 +258,45 @@ func (f *FstEnum[T]) DoSeekExact() (bool, error) {
 	}
 
 	for {
-		//System.out.println("  cycle target=" + (targetLabel == -1 ? "-1" : (char) targetLabel));
-		nextArc, err := f.fst.FindTargetArc(targetLabel, arc, f.lastArc(), fstReader)
+		next, err := f.fst.FindTarget(targetLabel, arc, fstReader)
 		if err != nil {
 			return false, err
 		}
-		if nextArc == nil {
-			// short circuit
-			//upto--;
-			//upto = 0;
-			f.fst.ReadFirstTargetArc(arc, f.lastArc(), fstReader)
-			//System.out.println("  no match upto=" + upto);
+		f.arcs = append(f.arcs, next)
+
+		if next == nil {
+			next, err := f.fst.ReadFirstTarget(arc, fstReader)
+			if err != nil {
+				return false, err
+			}
+			f.arcs = append(f.arcs, next)
 			return false, nil
 		}
 
-		upto := len(f.arcs) - 1
-		// Match -- recurse:
-		f.output[upto], err = f.fst.outputs.Add(f.output[upto-1], nextArc.Output())
+		currentOutput := f.noOutput
+		if len(f.output) > 0 {
+			currentOutput = f.output[len(f.output)-1]
+		}
+
+		newOutput, err := f.fst.outputs.Add(currentOutput, next.Output())
 		if err != nil {
 			return false, err
 		}
+		f.output = append(f.output, newOutput)
+
 		if targetLabel == END_LABEL {
-			//System.out.println("  return found; upto=" + upto + " output=" + output[upto] + " nextArc=" + nextArc.isLast());
+			//System.out.println("  return found; upto=" + upto + " output=" + output[upto] + " next=" + next.isLast());
 			return true, nil
 		}
-		f.SetCurrentLabel(targetLabel)
-		f.arcs = append(f.arcs, &Arc[T]{})
+		if err = f.SetCurrentLabel(targetLabel); err != nil {
+			return false, err
+		}
 		targetLabel, err = f.GetTargetLabel()
 		if err != nil {
 			return false, err
 		}
-		arc = nextArc
+		arc = next
 	}
-}
-
-func (f *FstEnum[T]) incr() {
-	return
 }
 
 // Appends current arc, and then recurses from its target,

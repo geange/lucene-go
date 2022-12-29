@@ -4,6 +4,7 @@ package index
 // internal/experimental API (see FieldsProducer), although it is also used to expose the set of term
 // vectors per document.
 type Fields interface {
+
 	// Iterator Returns an iterator that will step through all fields names. This will not return null.
 	//Iterator() func() string
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/geange/lucene-go/codecs/simpletext"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
@@ -21,7 +22,7 @@ func main() {
 	}
 
 	builder := index.NewFieldInfosBuilder(index.NewFieldNumbers(""))
-	field, err := index.NewFieldData("field", builder, terms, true, false)
+	field, err := index.NewFieldData("field", builder, terms, true, true)
 	if err != nil {
 		panic(err)
 	}
@@ -56,6 +57,55 @@ func main() {
 	if err != nil {
 		return
 	}
+
+	readState := index.NewSegmentReadState(dir, segment, fieldInfos, nil, "")
+	reader, err := simpletext.NewSimpleTextFieldsReader(readState)
+	if err != nil {
+		panic(err)
+	}
+	term, err := reader.Terms("field")
+	if err != nil {
+		panic(err)
+	}
+
+	{
+		iterator, err := term.Iterator()
+		if err != nil {
+			panic(err)
+		}
+
+		ok, err := iterator.SeekExact([]byte("11"))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(ok)
+	}
+
+	{
+		iterator, err := term.Iterator()
+		if err != nil {
+			panic(err)
+		}
+
+		ok, err := iterator.SeekExact([]byte("89"))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(ok)
+	}
+
+	{
+		iterator, err := term.Iterator()
+		if err != nil {
+			panic(err)
+		}
+
+		ok, err := iterator.SeekExact([]byte("5"))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(ok)
+	}
 }
 
 var _ index.NormsProducer = &MyNormsProducer{}
@@ -83,15 +133,20 @@ func (m *MyNormsProducer) GetMergeInstance() index.NormsProducer {
 var _ index.NumericDocValues = &MyNumericDocValues{}
 
 type MyNumericDocValues struct {
+	*index.DocIdSetIteratorDefault
+
 	doc int
 	si  *index.SegmentInfo
 }
 
 func NewMyNumericDocValues(si *index.SegmentInfo) *MyNumericDocValues {
-	return &MyNumericDocValues{
+	values := &MyNumericDocValues{
 		doc: -1,
 		si:  si,
 	}
+	values.DocIdSetIteratorDefault = index.NewDocIdSetIteratorDefault(
+		&index.DocIdSetIteratorDefaultConfig{NextDoc: values.NextDoc})
+	return values
 }
 
 func (m *MyNumericDocValues) DocID() int {
@@ -113,18 +168,6 @@ func (m *MyNumericDocValues) Advance(target int) (int, error) {
 		m.doc = target
 		return target, nil
 	}
-}
-
-func (m *MyNumericDocValues) SlowAdvance(target int) (int, error) {
-	doc := 0
-	var err error
-	for doc < target {
-		doc, err = m.NextDoc()
-		if err != nil {
-			return 0, nil
-		}
-	}
-	return doc, nil
 }
 
 func (m *MyNumericDocValues) Cost() int64 {

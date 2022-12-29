@@ -62,7 +62,7 @@ func (u *UnCompiledNode[T]) IsCompiled() bool {
 func (u *UnCompiledNode[T]) Clear() {
 	u.Arcs = u.Arcs[:0]
 	u.IsFinal = false
-	//u.Output = nil
+	u.Output = u.Owner.noOutput
 	u.InputCount = 0
 
 	// We don't clear the depth here because it never changes

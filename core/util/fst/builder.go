@@ -102,6 +102,7 @@ func NewBuilderV1[T PairAble](inputType INPUT_TYPE, minSuffixCount1, minSuffixCo
 		fst:                      NewFST[T](inputType, outputs, bytesPageBits),
 		frontier:                 make([]*UnCompiledNode[T], 0, 10),
 		fixedLengthArcsBuffer:    NewFixedLengthArcsBuffer(),
+		noOutput:                 outputs.GetNoOutput(),
 	}
 
 	builder.bytes = builder.fst.bytes
@@ -321,6 +322,9 @@ func (b *Builder[T]) Add(input []rune, output T) error {
 	//if b.fst.output.IsNoOutput(output) {
 	//	output = b.noOutput
 	//}
+	if b.fst.outputs.IsNoOutput(output) {
+		output = b.noOutput
+	}
 
 	if len(input) == 0 {
 		// empty input: only allowed as first input.  we have

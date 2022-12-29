@@ -875,6 +875,28 @@ func (f *FST[T]) ReadFirstTargetArc(follow, arc *Arc[T], in BytesReader) (*Arc[T
 	}
 }
 
+func (f *FST[T]) ReadFirstTarget(follow *Arc[T], in BytesReader) (*Arc[T], error) {
+	arc := &Arc[T]{}
+
+	if follow.IsFinal() {
+		// Insert "fake" final first arc:
+		arc.label = END_LABEL
+		arc.output = follow.NextFinalOutput()
+		arc.flags = BIT_FINAL_ARC
+		if follow.Target() <= 0 {
+			arc.flags |= BIT_LAST_ARC
+		} else {
+			// NOTE: nextArc is a node (not an address!) in this case:
+			arc.nextArc = follow.Target()
+		}
+		arc.target = FINAL_END_NODE
+		arc.nodeFlags = arc.flags
+		return arc, nil
+	} else {
+		return f.ReadFirstRealTargetArc(follow.Target(), arc, in)
+	}
+}
+
 func (f *FST[T]) ReadFirstRealTargetArc(nodeAddress int64, arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	err := in.SetPosition(nodeAddress)
 	if err != nil {
@@ -1366,6 +1388,140 @@ func (f *FST[T]) FindTargetArc(labelToMatch int, follow, arc *Arc[T], in BytesRe
 			return nil, nil
 		} else {
 			if _, err := f.ReadNextRealArc(arc, in); err != nil {
+				return nil, err
+			}
+		}
+	}
+}
+
+func (f *FST[T]) FindTarget(labelToMatch int, current *Arc[T], in BytesReader) (*Arc[T], error) {
+	targetArc := &Arc[T]{}
+
+	if labelToMatch == END_LABEL {
+		if current.IsFinal() {
+			if current.Target() <= 0 {
+				targetArc.flags = BIT_LAST_ARC
+			} else {
+				targetArc.flags = 0
+				// NOTE: nextArc is a node (not an address!) in this case:
+				targetArc.nextArc = current.Target()
+			}
+			targetArc.output = current.NextFinalOutput()
+			targetArc.label = END_LABEL
+			targetArc.nodeFlags = targetArc.flags
+			return targetArc, nil
+		} else {
+			return nil, nil
+		}
+	}
+
+	if !TargetHasArcs(current) {
+		return nil, nil
+	}
+
+	if err := in.SetPosition(current.Target()); err != nil {
+		return nil, err
+	}
+
+	flags, err := in.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+	targetArc.nodeFlags = flags
+
+	switch flags {
+	case ARCS_FOR_DIRECT_ADDRESSING:
+		numArcs, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		targetArc.numArcs = int64(numArcs) // This is in fact the label range.
+
+		bytesPerArc, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		targetArc.bytesPerArc = int(bytesPerArc)
+		if err := f.readPresenceBytes(targetArc, in); err != nil {
+			return nil, err
+		}
+		targetArc.firstLabel, err = f.ReadLabel(in)
+		if err != nil {
+			return nil, err
+		}
+		targetArc.posArcsStart = in.GetPosition()
+
+		arcIndex := labelToMatch - targetArc.FirstLabel()
+		if arcIndex < 0 || arcIndex >= int(targetArc.NumArcs()) {
+			return nil, nil // Before or after label range.
+		}
+
+		if ok, err := IsBitSet(arcIndex, targetArc, in); err != nil {
+			return nil, err
+		} else if !ok {
+			return nil, nil // Arc missing in the range.
+		}
+
+		return f.ReadArcByDirectAddressing(targetArc, in, arcIndex)
+	case ARCS_FOR_BINARY_SEARCH:
+		numArcs, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		targetArc.numArcs = int64(numArcs)
+
+		bytesPerArc, err := in.ReadUvarint()
+		if err != nil {
+			return nil, err
+		}
+		targetArc.bytesPerArc = int(bytesPerArc)
+		targetArc.posArcsStart = in.GetPosition()
+
+		// Array is sparse; do binary search:
+		low := 0
+		high := int(targetArc.NumArcs() - 1)
+		for low <= high {
+			mid := (low + high) >> 1
+			// +1 to skip over flags
+			if err := in.SetPosition(targetArc.PosArcsStart() - int64(targetArc.BytesPerArc()*mid+1)); err != nil {
+				return nil, err
+			}
+			midLabel, err := f.ReadLabel(in)
+			if err != nil {
+				return nil, err
+			}
+			cmp := midLabel - labelToMatch
+			if cmp < 0 {
+				low = mid + 1
+			} else if cmp > 0 {
+				high = mid - 1
+			} else {
+				targetArc.arcIdx = mid - 1
+				//System.out.println("    found!");
+				return f.ReadNextRealArc(targetArc, in)
+			}
+		}
+		return nil, nil
+	}
+
+	// Linear scan
+	if _, err := f.ReadFirstRealTargetArc(current.Target(), targetArc, in); err != nil {
+		return nil, err
+	}
+
+	for {
+		// TODO: we should fix this code to not have to create
+		// object for the output of every targetArc we scan... only
+		// for the matching targetArc, if found
+		if targetArc.Label() == labelToMatch {
+			//System.out.println("    found!");
+			return targetArc, nil
+		} else if targetArc.Label() > labelToMatch {
+			return nil, nil
+		} else if targetArc.IsLast() {
+			return nil, nil
+		} else {
+			if _, err := f.ReadNextRealArc(targetArc, in); err != nil {
 				return nil, err
 			}
 		}

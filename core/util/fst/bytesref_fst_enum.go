@@ -17,6 +17,7 @@ func NewBytesRefFSTEnum[T PairAble](fst *FST[T]) *BytesRefFSTEnum[T] {
 
 	refEnum := &BytesRefFSTEnum[T]{
 		FstEnum: fstEnum,
+		result:  new(InputOutput[T]),
 	}
 	refEnum.result.Input = refEnum.current
 
@@ -63,21 +64,19 @@ func (b *BytesRefFSTEnum[T]) SeekExact(target []byte) (*InputOutput[T], error) {
 }
 
 func (b *BytesRefFSTEnum[T]) setResult() *InputOutput[T] {
-	upto := len(b.arcs) - 1
-	if upto == 0 {
-		return nil
-	}
-	b.current = b.current[:upto-1]
-	b.result.Output = b.output[upto]
+	size := len(b.output)
+	b.current = b.current[:size]
+	b.result.Output = b.output[size-1]
 	return b.result
 }
 
 func (b *BytesRefFSTEnum[T]) getTargetLabel() (int, error) {
-	upto := len(b.arcs) - 1
-	if upto-1 == len(b.target) {
+	size := len(b.arcs)
+	if size-1 == len(b.target) {
 		return END_LABEL, nil
 	}
-	return int(b.target[upto-1] & 0xFF), nil
+
+	return int(b.target[size-1] & 0xFF), nil
 }
 
 func (b *BytesRefFSTEnum[T]) getCurrentLabel() (int, error) {

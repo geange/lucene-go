@@ -201,6 +201,5 @@ func (d *DataInputDefault) SkipBytes(numBytes int) error {
 }
 
 func (d *DataInputDefault) Close() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }

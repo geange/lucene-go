@@ -84,13 +84,14 @@ func NewNIOFSIndexInput(file *os.File, ctx *IOContext) *NIOFSIndexInput {
 
 func (n *NIOFSIndexInput) ReadInternal(buf *bytes.Buffer, size int) error {
 	bs := make([]byte, size)
-	num, err := n.Read(bs)
+	num, err := n.file.Read(bs)
 	if err != nil {
 		if num > 0 && errors.Is(err, io.EOF) {
-			buf.Write(bs)
+			buf.Write(bs[:num])
 			return nil
 		}
 	}
+	buf.Write(bs)
 	return err
 }
 
@@ -123,33 +124,33 @@ func (n *NIOFSIndexInput) Clone() IndexInput {
 			Slice:          input.Slice,
 			Length:         input.Length,
 		},
-		ReadInternal: input.readInternal,
-		SeekInternal: input.seekInternal,
+		ReadInternal: input.ReadInternal,
+		SeekInternal: input.SeekInternal,
 	}
 	input.BufferedIndexInputDefault = n.BufferedIndexInputDefault.Clone(cfg)
 	return input
 }
 
-func (n *NIOFSIndexInput) ReadByte() (byte, error) {
-	bs := [1]byte{}
-	_, err := n.file.ReadAt(bs[:], n.pointer)
-	if err != nil {
-		return 0, err
-	}
-	n.pointer++
-	return bs[0], nil
-}
-
-func (n *NIOFSIndexInput) Read(b []byte) (int, error) {
-	num, err := n.file.ReadAt(b, n.pointer)
-	if err != nil {
-		if err != io.EOF {
-			return 0, err
-		}
-	}
-	n.pointer += int64(num)
-	return len(b), err
-}
+//func (n *NIOFSIndexInput) ReadByte() (byte, error) {
+//	bs := [1]byte{}
+//	_, err := n.file.ReadAt(bs[:], n.pointer)
+//	if err != nil {
+//		return 0, err
+//	}
+//	n.pointer++
+//	return bs[0], nil
+//}
+//
+//func (n *NIOFSIndexInput) Read(b []byte) (int, error) {
+//	num, err := n.file.ReadAt(b, n.pointer)
+//	if err != nil {
+//		if err != io.EOF {
+//			return 0, err
+//		}
+//	}
+//	n.pointer += int64(num)
+//	return len(b), err
+//}
 
 func (n *NIOFSIndexInput) Close() error {
 	return n.file.Close()

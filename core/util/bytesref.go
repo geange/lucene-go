@@ -36,10 +36,6 @@ func NewBytesRefV1(bytes []byte) *BytesRef {
 	return NewBytesRef(bytes, 0, len(bytes))
 }
 
-func NewBytesRefV2() {
-
-}
-
 type BytesRefIterator interface {
 	// Next Increments the iteration to the next BytesRef in the iterator. Returns the resulting BytesRef or
 	// null if the end of the iterator is reached. The returned BytesRef may be re-used across calls to next.

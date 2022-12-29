@@ -8,6 +8,7 @@ import (
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/fst"
+	"io"
 	"strconv"
 )
 
@@ -32,6 +33,7 @@ func (r *SimpleTextFieldsReader) newFieldsReaderTerm(field string, termsStart in
 		termsStart: termsStart,
 		fieldInfo:  info,
 		maxDoc:     maxDoc,
+		scratch:    new(bytes.Buffer),
 	}
 	if err := r.loadTerms(term); err != nil {
 		return nil, err
@@ -123,8 +125,12 @@ func (r *SimpleTextFieldsReader) loadTerms(term *fieldsReaderTerm) error {
 }
 
 func (f *fieldsReaderTerm) Iterator() (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
+
+	if f.fst != nil {
+		return newTermsEnum(f.fst, f.fieldInfo.GetIndexOptions()), nil
+	} else {
+		return nil, io.EOF
+	}
 }
 
 func (f *fieldsReaderTerm) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
@@ -195,10 +201,10 @@ type termsEnum struct {
 	docsStart     int64
 	skipPointer   int64
 	ended         bool
-	fstEnum       *fst.BytesRefFSTEnum[*EnumPair]
+	fstEnum       *fst.BytesRefFSTEnum[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]]
 }
 
-func newTermsEnum(fstInstance *fst.FST[*EnumPair], indexOptions types.IndexOptions) *termsEnum {
+func newTermsEnum(fstInstance *fst.FST[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]], indexOptions types.IndexOptions) *termsEnum {
 	return &termsEnum{
 		indexOptions: indexOptions,
 		fstEnum:      fst.NewBytesRefFSTEnum(fstInstance),

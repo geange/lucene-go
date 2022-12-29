@@ -52,3 +52,27 @@ type DocIdSetIterator interface {
 const (
 	NO_MORE_DOCS = math.MaxInt32
 )
+
+type DocIdSetIteratorDefault struct {
+	NextDoc func() (int, error)
+}
+
+type DocIdSetIteratorDefaultConfig struct {
+	NextDoc func() (int, error)
+}
+
+func NewDocIdSetIteratorDefault(cfg *DocIdSetIteratorDefaultConfig) *DocIdSetIteratorDefault {
+	return &DocIdSetIteratorDefault{NextDoc: cfg.NextDoc}
+}
+
+func (m *DocIdSetIteratorDefault) SlowAdvance(target int) (int, error) {
+	doc := 0
+	var err error
+	for doc < target {
+		doc, err = m.NextDoc()
+		if err != nil {
+			return 0, nil
+		}
+	}
+	return doc, nil
+}

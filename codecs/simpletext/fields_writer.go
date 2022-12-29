@@ -88,9 +88,6 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields in
 			}
 			return err
 		}
-		if terms == nil {
-			continue
-		}
 
 		fieldInfo := fieldInfos.FieldInfo(field)
 
@@ -167,33 +164,37 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields in
 
 					if !wroteField {
 						// we lazily do this, in case the field had no terms
-						s.write(FIELDS_FIELD)
-						s.write([]byte(field))
-						s.newline()
+						if err := s.writeValue(FIELDS_FIELD, []byte(field)); err != nil {
+							return err
+						}
+
 						wroteField = true
 					}
 
 					// we lazily do this, in case the term had
 					// zero docs
-					s.write(FIELDS_TERM)
-					s.write(term)
-					s.newline()
+					if err := s.writeValue(FIELDS_TERM, term); err != nil {
+						return err
+					}
+
 					wroteTerm = true
 				}
 				if s.lastDocFilePointer == -1 {
 					s.lastDocFilePointer = s.out.GetFilePointer()
 				}
-				s.write(FIELDS_DOC)
-				s.write([]byte(strconv.Itoa(doc)))
-				s.newline()
+				if err := s.writeValue(FIELDS_DOC, []byte(strconv.Itoa(doc))); err != nil {
+					return err
+				}
+
 				if hasFreqs {
 					freq, err := postingsEnum.Freq()
 					if err != nil {
 						return err
 					}
-					s.write(FIELDS_FREQ)
-					s.write([]byte(strconv.Itoa(freq)))
-					s.newline()
+
+					if err := s.writeValue(FIELDS_FREQ, []byte(strconv.Itoa(freq))); err != nil {
+						return err
+					}
 
 					if hasPositions {
 						// for assert:
@@ -206,9 +207,9 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields in
 								return err
 							}
 
-							s.write(FIELDS_POS)
-							s.write([]byte(strconv.Itoa(position)))
-							s.newline()
+							if err := s.writeValue(FIELDS_POS, []byte(strconv.Itoa(position))); err != nil {
+								return err
+							}
 
 							if hasOffsets {
 								startOffset, err := postingsEnum.StartOffset()
@@ -221,20 +222,21 @@ func (s *SimpleTextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields in
 								}
 
 								//lastStartOffset = startOffset
-								s.write(FIELDS_START_OFFSET)
-								s.write([]byte(strconv.Itoa(startOffset)))
-								s.newline()
-								s.write(FIELDS_END_OFFSET)
-								s.write([]byte(strconv.Itoa(endOffset)))
-								s.newline()
+								if err := s.writeValue(FIELDS_START_OFFSET, []byte(strconv.Itoa(startOffset))); err != nil {
+									return err
+								}
+
+								if err := s.writeValue(FIELDS_END_OFFSET, []byte(strconv.Itoa(endOffset))); err != nil {
+									return err
+								}
 							}
 
 							payload, err := postingsEnum.GetPayload()
 
 							if payload != nil && len(payload) > 0 {
-								s.write(FIELDS_PAYLOAD)
-								s.write(payload)
-								s.newline()
+								if err := s.writeValue(FIELDS_PAYLOAD, payload); err != nil {
+									return err
+								}
 							}
 						}
 					}
@@ -279,6 +281,16 @@ func (s *SimpleTextFieldsWriter) getNorm(doc int, norms index.NumericDocValues) 
 		return 1, nil
 	}
 	return norms.LongValue()
+}
+
+func (s *SimpleTextFieldsWriter) writeValue(label, value []byte) error {
+	if err := WriteBytes(s.out, label); err != nil {
+		return err
+	}
+	if err := WriteBytes(s.out, value); err != nil {
+		return err
+	}
+	return WriteNewline(s.out)
 }
 
 func (s *SimpleTextFieldsWriter) write(field []byte) error {
