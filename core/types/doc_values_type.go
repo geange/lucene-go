@@ -32,18 +32,37 @@ const (
 func (d DocValuesType) String() string {
 	switch d {
 	case DOC_VALUES_TYPE_NONE:
-		return "DOC_VALUES_TYPE_NONE"
+		return "NONE"
 	case DOC_VALUES_TYPE_NUMERIC:
-		return "DOC_VALUES_TYPE_NUMERIC"
+		return "NUMERIC"
 	case DOC_VALUES_TYPE_BINARY:
-		return "DOC_VALUES_TYPE_BINARY"
+		return "BINARY"
 	case DOC_VALUES_TYPE_SORTED:
-		return "DOC_VALUES_TYPE_SORTED"
+		return "SORTED"
 	case DOC_VALUES_TYPE_SORTED_NUMERIC:
-		return "DOC_VALUES_TYPE_SORTED_NUMERIC"
+		return "SORTED_NUMERIC"
 	case DOC_VALUES_TYPE_SORTED_SET:
-		return "DOC_VALUES_TYPE_SORTED_SET"
+		return "SORTED_SET"
 	default:
-		return "Unsupported DocValuesType"
+		return "NONE"
+	}
+}
+
+func StringToDocValuesType(value string) DocValuesType {
+	switch value {
+	case "NONE":
+		return DOC_VALUES_TYPE_NONE
+	case "NUMERIC":
+		return DOC_VALUES_TYPE_NUMERIC
+	case "BINARY":
+		return DOC_VALUES_TYPE_BINARY
+	case "SORTED":
+		return DOC_VALUES_TYPE_SORTED
+	case "SORTED_NUMERIC":
+		return DOC_VALUES_TYPE_SORTED_NUMERIC
+	case "SORTED_SET":
+		return DOC_VALUES_TYPE_SORTED_SET
+	default:
+		return DOC_VALUES_TYPE_NONE
 	}
 }

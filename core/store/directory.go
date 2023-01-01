@@ -98,23 +98,15 @@ type Directory interface {
 	GetPendingDeletions() (map[string]struct{}, error)
 }
 
-type DirectoryNeed interface {
-	OpenInput(name string, context *IOContext) (IndexInput, error)
-}
-
-type DirectoryImp struct {
-	DirectoryNeed
-}
-
-func (d *DirectoryImp) OpenChecksumInput(name string, context *IOContext) (ChecksumIndexInput, error) {
-	input, err := d.OpenInput(name, context)
+func OpenChecksumInput(dir Directory, name string, context *IOContext) (ChecksumIndexInput, error) {
+	input, err := dir.OpenInput(name, context)
 	if err != nil {
 		return nil, err
 	}
 	return NewBufferedChecksumIndexInput(input), nil
 }
 
-func (d *DirectoryImp) CopyFrom(from Directory, src, dest string, context *IOContext) error {
+func CopyFrom(from Directory, src, dest string, context *IOContext) error {
 	is, err := from.OpenInput(src, context)
 	if err != nil {
 		return err

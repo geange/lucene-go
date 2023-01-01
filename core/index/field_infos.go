@@ -116,3 +116,11 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 func (f *FieldInfos) FieldInfo(fieldName string) *types.FieldInfo {
 	return f.byName[fieldName]
 }
+
+func (f *FieldInfos) Size() int {
+	return len(f.byName)
+}
+
+func (f *FieldInfos) List() []*types.FieldInfo {
+	return f.values
+}

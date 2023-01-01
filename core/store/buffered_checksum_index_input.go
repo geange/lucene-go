@@ -52,7 +52,7 @@ func (b *BufferedChecksumIndexInput) Seek(pos int64, whence int) (int64, error) 
 }
 
 func (b *BufferedChecksumIndexInput) Length() int64 {
-	return b.Length()
+	return b.main.Length()
 }
 
 func (b *BufferedChecksumIndexInput) ReadByte() (byte, error) {
@@ -67,10 +67,11 @@ func (b *BufferedChecksumIndexInput) ReadByte() (byte, error) {
 }
 
 func (b *BufferedChecksumIndexInput) Read(bs []byte) (int, error) {
-	if _, err := b.main.Read(bs); err != nil {
+	n, err := b.main.Read(bs)
+	if err != nil {
 		return 0, err
 	}
-	if _, err := b.digest.Write(bs); err != nil {
+	if _, err := b.digest.Write(bs[:n]); err != nil {
 		return 0, err
 	}
 	return len(bs), nil

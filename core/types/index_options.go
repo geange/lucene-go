@@ -27,16 +27,33 @@ const (
 func (i IndexOptions) String() string {
 	switch i {
 	case INDEX_OPTIONS_NONE:
-		return "INDEX_OPTIONS_NONE"
+		return "NONE"
 	case INDEX_OPTIONS_DOCS:
-		return "INDEX_OPTIONS_DOCS"
+		return "DOCS"
 	case INDEX_OPTIONS_DOCS_AND_FREQS:
-		return "INDEX_OPTIONS_DOCS_AND_FREQS"
+		return "DOCS_AND_FREQS"
 	case INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS:
-		return "INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS"
+		return "DOCS_AND_FREQS_AND_POSITIONS"
 	case INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS:
-		return "INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS"
+		return "DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS"
 	default:
-		return "Unsupported IndexOptions"
+		return "NONE"
+	}
+}
+
+func StringToIndexOptions(value string) IndexOptions {
+	switch value {
+	case "NONE":
+		return INDEX_OPTIONS_NONE
+	case "DOCS":
+		return INDEX_OPTIONS_DOCS
+	case "DOCS_AND_FREQS":
+		return INDEX_OPTIONS_DOCS_AND_FREQS
+	case "DOCS_AND_FREQS_AND_POSITIONS":
+		return INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+	case "DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS":
+		return INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+	default:
+		return INDEX_OPTIONS_NONE
 	}
 }

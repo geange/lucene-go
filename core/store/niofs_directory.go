@@ -169,3 +169,8 @@ func (n *NIOFSIndexInput) Slice(sliceDescription string, offset, length int64) (
 	//TODO implement me
 	panic("implement me")
 }
+
+func (n *NIOFSIndexInput) GetFilePointer() int64 {
+	stat, _ := n.file.Stat()
+	return stat.Size()
+}

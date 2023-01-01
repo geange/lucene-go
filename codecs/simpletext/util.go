@@ -63,10 +63,14 @@ func ReadLine(in store.IndexInput, buf *bytes.Buffer) error {
 }
 
 func WriteChecksum(out store.IndexOutput) error {
+	checksum, err := out.GetChecksum()
+	if err != nil {
+		return err
+	}
+
 	if err := WriteBytes(out, CHECKSUM); err != nil {
 		return err
 	}
-	checksum, err := out.GetChecksum()
 	if err != nil {
 		return err
 	}
@@ -79,6 +83,8 @@ func WriteChecksum(out store.IndexOutput) error {
 func CheckFooter(input store.ChecksumIndexInput) error {
 	scratch := new(bytes.Buffer)
 
+	checksum := input.GetChecksum()
+
 	if err := ReadLine(input, scratch); err != nil {
 		return err
 	}
@@ -89,7 +95,7 @@ func CheckFooter(input store.ChecksumIndexInput) error {
 		return fmt.Errorf("simpleText failure: expected checksum line but got (%s)", string(line))
 	}
 
-	expectedChecksum := []byte(fmt.Sprintf("%020d", input.GetChecksum()))
+	expectedChecksum := []byte(fmt.Sprintf("%020d", checksum))
 	actualChecksum := line[len(CHECKSUM):]
 	if !bytes.Equal(expectedChecksum, actualChecksum) {
 		return fmt.Errorf("simpleText checksum failure: (%s) != (%s)", expectedChecksum, actualChecksum)
