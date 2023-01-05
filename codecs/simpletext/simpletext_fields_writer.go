@@ -36,7 +36,7 @@ type SimpleTextFieldsWriter struct {
 }
 
 func NewSimpleTextFieldsWriter(writeState *index.SegmentWriteState) (*SimpleTextFieldsWriter, error) {
-	fileName := getPostingsFileName(writeState.SegmentInfo.Name, writeState.SegmentSuffix)
+	fileName := getPostingsFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix)
 	out, err := writeState.Directory.CreateOutput(fileName, writeState.Context)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func NewSimpleTextFieldsWriter(writeState *index.SegmentWriteState) (*SimpleText
 		FieldsConsumerDefault:        nil,
 		out:                          out,
 		writeState:                   writeState,
-		segment:                      writeState.SegmentInfo.Name,
+		segment:                      writeState.SegmentInfo.Name(),
 		docCount:                     0,
 		skipWriter:                   skipWriter,
 		competitiveImpactAccumulator: index.NewCompetitiveImpactAccumulator(),

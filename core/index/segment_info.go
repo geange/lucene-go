@@ -20,8 +20,8 @@ const (
 
 // SegmentInfo Information about a segment such as its name, directory, and files related to the segment.
 type SegmentInfo struct {
-	Name string          // Unique segment name in the directory.
-	Dir  store.Directory // Where this segment resides.
+	name string          // Unique segment name in the directory.
+	dir  store.Directory // Where this segment resides.
 
 	maxDoc         int    // number of docs in seg
 	isCompoundFile bool   //
@@ -44,6 +44,8 @@ type SegmentInfo struct {
 	// this is the minimum minVersion of all the segments that have been merged
 	// into this segment
 	minVersion *util.Version
+
+	setFiles map[string]struct{}
 }
 
 func NewSegmentInfo(dir store.Directory, version, minVersion *util.Version, name string,
@@ -51,8 +53,8 @@ func NewSegmentInfo(dir store.Directory, version, minVersion *util.Version, name
 	id []byte, attributes map[string]string, indexSort *types.Sort) *SegmentInfo {
 
 	return &SegmentInfo{
-		Name:           name,
-		Dir:            dir,
+		name:           name,
+		dir:            dir,
 		maxDoc:         maxDoc,
 		isCompoundFile: isCompoundFile,
 		id:             id,
@@ -63,6 +65,14 @@ func NewSegmentInfo(dir store.Directory, version, minVersion *util.Version, name
 		version:        version,
 		minVersion:     minVersion,
 	}
+}
+
+func (s *SegmentInfo) Name() string {
+	return s.name
+}
+
+func (s *SegmentInfo) Dir() store.Directory {
+	return s.dir
 }
 
 // MaxDoc Returns number of documents in this segment (deletions are not taken into account).
@@ -79,4 +89,11 @@ func (s *SegmentInfo) SetMaxDoc(maxDoc int) error {
 	}
 	s.maxDoc = maxDoc
 	return nil
+}
+
+func (s *SegmentInfo) SetFiles(files map[string]struct{}) {
+	s.setFiles = make(map[string]struct{})
+	for file := range files {
+		s.setFiles[file] = struct{}{}
+	}
 }

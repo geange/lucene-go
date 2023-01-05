@@ -2,15 +2,13 @@ package simpletext
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/geange/lucene-go/codecs"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"strconv"
 )
 
-var _ codecs.FieldInfosFormat = &SimpleTextFieldInfosFormat{}
+var _ index.FieldInfosFormat = &SimpleTextFieldInfosFormat{}
 
 const (
 	// FIELD_INFOS_EXTENSION Extension of field infos
@@ -50,7 +48,7 @@ func NewSimpleTextFieldInfosFormat() *SimpleTextFieldInfosFormat {
 }
 
 func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo *index.SegmentInfo, segmentSuffix string, ctx *store.IOContext) (*index.FieldInfos, error) {
-	fileName := store.SegmentFileName(segmentInfo.Name, segmentSuffix, FIELD_INFOS_EXTENSION)
+	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
 	input, err := store.OpenChecksumInput(directory, fileName, ctx)
 	if err != nil {
 		return nil, err
@@ -182,7 +180,7 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 
 func (s *SimpleTextFieldInfosFormat) Write(directory store.Directory, segmentInfo *index.SegmentInfo,
 	segmentSuffix string, infos *index.FieldInfos, context *store.IOContext) error {
-	fileName := store.SegmentFileName(segmentInfo.Name, segmentSuffix, FIELD_INFOS_EXTENSION)
+	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
 	out, err := directory.CreateOutput(fileName, context)
 	if err != nil {
 		return err
@@ -266,22 +264,6 @@ func (s *SimpleTextFieldInfosFormat) Write(directory store.Directory, segmentInf
 
 	return WriteChecksum(out)
 
-}
-
-func readValue(out store.IndexInput, label []byte, buf *bytes.Buffer) (string, error) {
-	buf.Reset()
-	if err := ReadLine(out, buf); err != nil {
-		return "", err
-	}
-
-	if !bytes.HasPrefix(buf.Bytes(), label) {
-		return "", fmt.Errorf("label not found:%s", string(label))
-	}
-	buf.Next(len(label))
-	//
-	//buf.Truncate(len(label))
-
-	return buf.String(), nil
 }
 
 func writeValue[T int | int64 | string | bool](out store.DataOutput, label []byte, value T) error {

@@ -12,6 +12,22 @@ var (
 	CHECKSUM = []byte("checksum ")
 )
 
+func readValue(out store.IndexInput, label []byte, buf *bytes.Buffer) (string, error) {
+	buf.Reset()
+	if err := ReadLine(out, buf); err != nil {
+		return "", err
+	}
+
+	if !bytes.HasPrefix(buf.Bytes(), label) {
+		return "", fmt.Errorf("label not found:%s", string(label))
+	}
+	buf.Next(len(label))
+	//
+	//buf.Truncate(len(label))
+
+	return buf.String(), nil
+}
+
 func WriteString(out store.DataOutput, s string) error {
 	return WriteBytes(out, []byte(s))
 }

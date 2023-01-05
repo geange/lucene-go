@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 )
 
@@ -106,23 +107,39 @@ func OpenChecksumInput(dir Directory, name string, context *IOContext) (Checksum
 	return NewBufferedChecksumIndexInput(input), nil
 }
 
-func CopyFrom(from Directory, src, dest string, context *IOContext) error {
-	is, err := from.OpenInput(src, context)
+type DirectoryDefault struct {
+	DeleteFile func(name string) error
+}
+
+func (d *DirectoryDefault) CopyFrom(from Directory, src, dest string, context *IOContext) error {
+	err := func() error {
+		is, err := from.OpenInput(src, context)
+		if err != nil {
+			return err
+		}
+
+		os, err := from.CreateOutput(dest, context)
+		if err != nil {
+			return err
+		}
+
+		if err := os.CopyBytes(is, int(is.Length())); err != nil {
+			// IOUtils.deleteFilesIgnoringExceptions(this, dest)
+			// TODO: 删除目标文件
+			return err
+		}
+		return nil
+	}()
+
 	if err != nil {
+		err1 := d.DeleteFile(dest)
+		if err1 != nil {
+			err = errors.WithMessage(err, err1.Error())
+		}
 		return err
 	}
 
-	os, err := from.CreateOutput(dest, context)
-	if err != nil {
-		return err
-	}
-
-	if err := os.CopyBytes(is, int(is.Length())); err != nil {
-		// IOUtils.deleteFilesIgnoringExceptions(this, dest)
-		// TODO: 删除目标文件
-		return err
-	}
-	return nil
+	return err
 }
 
 // Creates a file name for a temporary file. The name will start with prefix, end with suffix and have a reserved file extension .tmp.

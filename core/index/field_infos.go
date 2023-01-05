@@ -18,7 +18,7 @@ type FieldInfos struct {
 	softDeletesField string
 
 	// used only by fieldInfo(int)
-	byNumber []types.FieldInfo
+	byNumber []*types.FieldInfo
 
 	byName map[string]*types.FieldInfo
 	values []*types.FieldInfo // for an unmodifiable iterator
@@ -115,6 +115,10 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 
 func (f *FieldInfos) FieldInfo(fieldName string) *types.FieldInfo {
 	return f.byName[fieldName]
+}
+
+func (f *FieldInfos) FieldInfoByNumber(fieldNumber int) *types.FieldInfo {
+	return f.byNumber[fieldNumber]
 }
 
 func (f *FieldInfos) Size() int {

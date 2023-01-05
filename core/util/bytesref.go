@@ -1,5 +1,12 @@
 package util
 
+import (
+	"bytes"
+	"fmt"
+	"strconv"
+	"strings"
+)
+
 var (
 	EMPTY_BYTES []byte
 )
@@ -43,4 +50,42 @@ type BytesRefIterator interface {
 	// Returns: the next BytesRef in the iterator or null if the end of the iterator is reached.
 	// Throws: 	IOException – If there is a low-level I/O error.
 	Next() ([]byte, error)
+}
+
+func BytesToString(values []byte) string {
+	sb := new(bytes.Buffer)
+
+	sb.WriteByte('[')
+
+	for i, value := range values {
+		if i > 0 {
+			sb.WriteByte(' ')
+		}
+		sb.WriteString(fmt.Sprintf("0x%x", value))
+	}
+
+	sb.WriteByte(']')
+	return sb.String()
+}
+
+func StringToBytes(value string) ([]byte, error) {
+	if len(value) < 2 {
+		return nil, fmt.Errorf("string '%s'  was not created from BytesToString", value)
+	}
+
+	if !strings.HasPrefix(value, "[") || !strings.HasSuffix(value, "]") {
+		return nil, fmt.Errorf("string '%s'  was not created from BytesToString", value)
+	}
+
+	parts := strings.Split(value[1:len(value)-1], " ")
+
+	bs := make([]byte, 0, len(parts))
+	for _, part := range parts {
+		parseInt, err := strconv.ParseInt(strings.ReplaceAll(part, "0x", ""), 16, 16)
+		if err != nil {
+			return nil, err
+		}
+		bs = append(bs, byte(parseInt&0xFF))
+	}
+	return bs, nil
 }

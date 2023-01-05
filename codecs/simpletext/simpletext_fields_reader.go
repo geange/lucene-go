@@ -57,7 +57,7 @@ func NewSimpleTextFieldsReader(state *index.SegmentReadState) (*SimpleTextFields
 		return nil, err
 	}
 
-	name := getPostingsFileName(state.SegmentInfo.Name, state.SegmentSuffix)
+	name := getPostingsFileName(state.SegmentInfo.Name(), state.SegmentSuffix)
 	input, err := state.Directory.OpenInput(name, state.Context)
 	if err != nil {
 		return nil, err
