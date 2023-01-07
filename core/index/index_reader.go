@@ -107,56 +107,67 @@ type IndexReader interface {
 	GetSumTotalTermFreq(field string) (int64, error)
 }
 
-type IndexReaderNeedImpl interface {
-	GetTermVectors(docID int) (Fields, error)
-
-	NumDocs() int
-
-	MaxDoc() int
-
-	DocumentV1(docID int, visitor document.StoredFieldVisitor) (*document.Document, error)
-
-	GetContext() IndexReaderContext
-
-	DoClose() error
-
-	GetReaderCacheHelper() CacheHelper
-
-	DocFreq(term Term) (int, error)
-
-	TotalTermFreq(term *Term) (int64, error)
-
-	GetSumDocFreq(field string) (int64, error)
-
-	GetDocCount(field string) (int, error)
-
-	GetSumTotalTermFreq(field string) (int64, error)
+type IndexReaderDefaultConfig struct {
+	GetTermVectors       func(docID int) (Fields, error)
+	NumDocs              func() int
+	MaxDoc               func() int
+	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) (*document.Document, error)
+	GetContext           func() IndexReaderContext
+	DoClose              func() error
+	GetReaderCacheHelper func() CacheHelper
+	DocFreq              func(term Term) (int, error)
+	TotalTermFreq        func(term *Term) (int64, error)
+	GetSumDocFreq        func(field string) (int64, error)
+	GetDocCount          func(field string) (int, error)
+	GetSumTotalTermFreq  func(field string) (int64, error)
 }
 
-type IndexReaderImp struct {
-	IndexReaderNeedImpl
+type IndexReaderDefault struct {
+	GetTermVectors       func(docID int) (Fields, error)
+	NumDocs              func() int
+	MaxDoc               func() int
+	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) (*document.Document, error)
+	GetContext           func() IndexReaderContext
+	DoClose              func() error
+	GetReaderCacheHelper func() CacheHelper
+	DocFreq              func(term Term) (int, error)
+	TotalTermFreq        func(term *Term) (int64, error)
+	GetSumDocFreq        func(field string) (int64, error)
+	GetDocCount          func(field string) (int, error)
+	GetSumTotalTermFreq  func(field string) (int64, error)
 
-	sync.Mutex
 	closed        bool
 	closedByChild bool
 	refCount      *atomic.Int64
 	parentReaders map[IndexReader]struct{}
+	sync.Mutex
 }
 
-func NewIndexReaderImp(needImpl IndexReaderNeedImpl) *IndexReaderImp {
-	return &IndexReaderImp{
-		IndexReaderNeedImpl: needImpl,
-		refCount:            atomic.NewInt64(0),
-		parentReaders:       make(map[IndexReader]struct{}),
+func NewIndexReaderDefault(cfg *IndexReaderDefaultConfig) *IndexReaderDefault {
+	return &IndexReaderDefault{
+		refCount:             atomic.NewInt64(0),
+		parentReaders:        make(map[IndexReader]struct{}),
+		GetTermVectors:       cfg.GetTermVectors,
+		NumDocs:              cfg.NumDocs,
+		MaxDoc:               cfg.MaxDoc,
+		DocumentV1:           cfg.DocumentV1,
+		GetContext:           cfg.GetContext,
+		DoClose:              cfg.DoClose,
+		GetReaderCacheHelper: cfg.GetReaderCacheHelper,
+		DocFreq:              cfg.DocFreq,
+		TotalTermFreq:        cfg.TotalTermFreq,
+		GetSumDocFreq:        cfg.GetSumDocFreq,
+		GetDocCount:          cfg.GetDocCount,
+		GetSumTotalTermFreq:  cfg.GetSumTotalTermFreq,
 	}
 }
 
-func (r *IndexReaderImp) Close() error {
+func (r *IndexReaderDefault) Close() error {
 	r.closed = true
 	return r.DoClose()
 }
 
-func (r *IndexReaderImp) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
+func (r *IndexReaderDefault) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitorV1(fieldsToLoad)
 	_, err := r.DocumentV1(docID, visitor)
 	if err != nil {
@@ -169,30 +180,31 @@ func (r *IndexReaderImp) DocumentV2(docID int, fieldsToLoad map[string]struct{})
 // (e.g. CompositeReader or FilterLeafReader) to register the parent at the child (this reader) on
 // construction of the parent. When this reader is closed, it will mark all registered parents as closed,
 // too. The references to parent readers are weak only, so they can be GCed once they are no longer in use.
-func (r *IndexReaderImp) RegisterParentReader(reader IndexReader) {
+func (r *IndexReaderDefault) RegisterParentReader(reader IndexReader) {
 	r.parentReaders[reader] = struct{}{}
 }
 
 // NotifyReaderClosedListeners overridden by StandardDirectoryReader and SegmentReader
-func (r *IndexReaderImp) NotifyReaderClosedListeners() error {
+func (r *IndexReaderDefault) NotifyReaderClosedListeners() error {
 	return nil
 }
 
-func (r *IndexReaderImp) reportCloseToParentReaders() error {
-	for parent, _ := range r.parentReaders {
-		if p, ok := parent.(*IndexReaderImp); ok {
-			p.closedByChild = true
-			//p.refCount.Add(0)
-			err := p.reportCloseToParentReaders()
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+func (r *IndexReaderDefault) reportCloseToParentReaders() error {
+	//for parent, _ := range r.parentReaders {
+	//	if p, ok := parent.(*IndexReaderDefault); ok {
+	//		p.closedByChild = true
+	//		//p.refCount.Add(0)
+	//		err := p.reportCloseToParentReaders()
+	//		if err != nil {
+	//			return err
+	//		}
+	//	}
+	//}
+	//return nil
+	panic("")
 }
 
-func (r *IndexReaderImp) GetTermVector(docID int, field string) (Terms, error) {
+func (r *IndexReaderDefault) GetTermVector(docID int, field string) (Terms, error) {
 	vectors, err := r.GetTermVectors(docID)
 	if err != nil {
 		return nil, err
@@ -200,11 +212,11 @@ func (r *IndexReaderImp) GetTermVector(docID int, field string) (Terms, error) {
 	return vectors.Terms(field)
 }
 
-func (r *IndexReaderImp) NumDeletedDocs() int {
+func (r *IndexReaderDefault) NumDeletedDocs() int {
 	return r.MaxDoc() - r.NumDocs()
 }
 
-func (r *IndexReaderImp) Document(docID int) (*document.Document, error) {
+func (r *IndexReaderDefault) Document(docID int) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitor()
 	_, err := r.DocumentV1(docID, visitor)
 	if err != nil {
@@ -213,11 +225,11 @@ func (r *IndexReaderImp) Document(docID int) (*document.Document, error) {
 	return visitor.GetDocument(), nil
 }
 
-func (r *IndexReaderImp) HasDeletions() bool {
+func (r *IndexReaderDefault) HasDeletions() bool {
 	return r.NumDeletedDocs() > 0
 }
 
-func (r *IndexReaderImp) Leaves() ([]*LeafReaderContext, error) {
+func (r *IndexReaderDefault) Leaves() ([]*LeafReaderContext, error) {
 	return r.GetContext().Leaves()
 }
 

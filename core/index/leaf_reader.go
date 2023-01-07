@@ -63,29 +63,46 @@ type LeafReader interface {
 	GetMetaData() *LeafMetaData
 }
 
-type LeafReaderNeedImp interface {
-	Terms(field string) (Terms, error)
-}
+type LeafReaderDefault struct {
+	*IndexReaderDefault
 
-type LeafReaderImp struct {
-	LeafReaderNeedImp
-
-	*IndexReaderImp
-
+	Terms         func(field string) (Terms, error)
 	readerContext *LeafReaderContext
 }
 
-func NewLeafReaderImp(leafReaderNeedImp LeafReaderNeedImp,
-	indexReaderNeedImpl IndexReaderNeedImpl, readerContext *LeafReaderContext) *LeafReaderImp {
-	return &LeafReaderImp{
-
-		LeafReaderNeedImp: leafReaderNeedImp,
-		IndexReaderImp:    NewIndexReaderImp(indexReaderNeedImpl),
-		readerContext:     readerContext,
-	}
+type LeafReaderDefaultConfig struct {
+	Terms         func(field string) (Terms, error)
+	ReaderContext *LeafReaderContext
+	IndexReaderDefaultConfig
 }
 
-func (r *LeafReaderImp) Postings(term *Term, flags int) (PostingsEnum, error) {
+func NewLeafReaderDefault(cfg *LeafReaderDefaultConfig) *LeafReaderDefault {
+	leafReader := &LeafReaderDefault{
+		Terms:         cfg.Terms,
+		readerContext: cfg.ReaderContext,
+	}
+
+	config := &IndexReaderDefaultConfig{
+		GetTermVectors:       cfg.GetTermVectors,
+		NumDocs:              cfg.NumDocs,
+		MaxDoc:               cfg.MaxDoc,
+		DocumentV1:           cfg.DocumentV1,
+		DoClose:              cfg.DoClose,
+		GetReaderCacheHelper: cfg.GetReaderCacheHelper,
+		GetContext:           leafReader.GetContext,
+		DocFreq:              leafReader.DocFreq,
+		TotalTermFreq:        leafReader.TotalTermFreq,
+		GetSumDocFreq:        leafReader.GetSumDocFreq,
+		GetDocCount:          leafReader.GetDocCount,
+		GetSumTotalTermFreq:  leafReader.GetSumTotalTermFreq,
+	}
+
+	leafReader.IndexReaderDefault = NewIndexReaderDefault(config)
+
+	return leafReader
+}
+
+func (r *LeafReaderDefault) Postings(term *Term, flags int) (PostingsEnum, error) {
 	terms, err := r.Terms(term.Field())
 	if err != nil {
 		return nil, err
@@ -106,11 +123,11 @@ func (r *LeafReaderImp) Postings(term *Term, flags int) (PostingsEnum, error) {
 	return nil, nil
 }
 
-func (r *LeafReaderImp) GetContext() IndexReaderContext {
+func (r *LeafReaderDefault) GetContext() IndexReaderContext {
 	return r.readerContext
 }
 
-func (r *LeafReaderImp) DocFreq(term Term) (int, error) {
+func (r *LeafReaderDefault) DocFreq(term Term) (int, error) {
 	terms, err := r.Terms(term.Field())
 	if err != nil {
 		return 0, err
@@ -130,7 +147,7 @@ func (r *LeafReaderImp) DocFreq(term Term) (int, error) {
 	}
 }
 
-func (r *LeafReaderImp) TotalTermFreq(term *Term) (int64, error) {
+func (r *LeafReaderDefault) TotalTermFreq(term *Term) (int64, error) {
 	terms, err := r.Terms(term.Field())
 	if err != nil {
 		return 0, err
@@ -150,7 +167,7 @@ func (r *LeafReaderImp) TotalTermFreq(term *Term) (int64, error) {
 	}
 }
 
-func (r *LeafReaderImp) GetSumDocFreq(field string) (int64, error) {
+func (r *LeafReaderDefault) GetSumDocFreq(field string) (int64, error) {
 	terms, err := r.Terms(field)
 	if err != nil {
 		return 0, err
@@ -162,7 +179,7 @@ func (r *LeafReaderImp) GetSumDocFreq(field string) (int64, error) {
 	return terms.GetSumDocFreq()
 }
 
-func (r *LeafReaderImp) GetDocCount(field string) (int, error) {
+func (r *LeafReaderDefault) GetDocCount(field string) (int, error) {
 	terms, err := r.Terms(field)
 	if err != nil {
 		return 0, err
@@ -174,7 +191,7 @@ func (r *LeafReaderImp) GetDocCount(field string) (int, error) {
 	return terms.GetDocCount()
 }
 
-func (r *LeafReaderImp) GetSumTotalTermFreq(field string) (int64, error) {
+func (r *LeafReaderDefault) GetSumTotalTermFreq(field string) (int64, error) {
 	terms, err := r.Terms(field)
 	if err != nil {
 		return 0, err

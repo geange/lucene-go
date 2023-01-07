@@ -1,9 +1,5 @@
 package store
 
-var (
-	_ FilterDirectory = &NRTCachingDirectory{}
-)
-
 // NRTCachingDirectory Wraps a RAMDirectory around any provided delegate directory, to be used during NRT search.
 // This class is likely only useful in a near-real-time context, where indexing rate is lowish but reopen rate is highish, resulting in many tiny files being written. This directory keeps such segments (as well as the segments produced by merging them, as long as they are small enough), in RAM.
 // This is safe to use: when your app calls {IndexWriter#commit}, all cached files will be flushed from the cached and sync'd.

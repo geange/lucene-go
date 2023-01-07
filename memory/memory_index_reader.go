@@ -16,7 +16,7 @@ var _ index.LeafReader = &MemoryIndexReader{}
 // MemoryIndexReader Search support for Lucene framework integration; implements all methods required by the Lucene
 // IndexReader contracts.
 type MemoryIndexReader struct {
-	*index.LeafReaderImp
+	*index.LeafReaderDefault
 
 	memoryFields *MemoryFields
 	fieldInfos   *index.FieldInfos
@@ -27,25 +27,37 @@ type MemoryIndexReader struct {
 }
 
 func (m *MemoryIndex) NewMemoryIndexReader(fields *treemap.Map) *MemoryIndexReader {
-	fieldInfosArr := make([]types.FieldInfo, fields.Size())
+	fieldInfosArr := make([]*types.FieldInfo, fields.Size())
 	i := 0
 	it := fields.Iterator()
 
 	for it.Next() {
 		info := it.Value().(*Info)
 		info.prepareDocValuesAndPointValues()
-		fieldInfosArr[i] = *info.fieldInfo
+		fieldInfosArr[i] = info.fieldInfo
 		i++
 	}
 
 	reader := &MemoryIndexReader{
-		LeafReaderImp: nil,
-		memoryFields:  m.NewMemoryFields(fields),
-		fieldInfos:    index.NewFieldInfos(fieldInfosArr),
-		fields:        fields,
+		memoryFields: m.NewMemoryFields(fields),
+		fieldInfos:   index.NewFieldInfos(fieldInfosArr),
+		fields:       fields,
 	}
 
-	reader.LeafReaderImp = index.NewLeafReaderImp(reader, reader, index.NewLeafReaderContext(reader))
+	leafReader := index.NewLeafReaderDefault(&index.LeafReaderDefaultConfig{
+		Terms:         reader.Terms,
+		ReaderContext: index.NewLeafReaderContext(reader),
+		IndexReaderDefaultConfig: index.IndexReaderDefaultConfig{
+			GetTermVectors:       reader.GetTermVectors,
+			NumDocs:              reader.NumDocs,
+			MaxDoc:               reader.MaxDoc,
+			DocumentV1:           reader.DocumentV1,
+			DoClose:              reader.DoClose,
+			GetReaderCacheHelper: reader.GetReaderCacheHelper,
+		},
+	})
+	reader.LeafReaderDefault = leafReader
+
 	return reader
 }
 

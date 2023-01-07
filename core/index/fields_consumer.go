@@ -1,15 +1,8 @@
 package index
 
-import (
-	"io"
-)
+import "io"
 
 type FieldsConsumer interface {
-	FieldsConsumerBase
-	FieldsConsumerExt
-}
-
-type FieldsConsumerBase interface {
 	io.Closer
 
 	// Write all fields, terms and postings. This the "pull" API, allowing you to iterate more than once
@@ -23,6 +16,11 @@ type FieldsConsumerBase interface {
 	// * The provided Fields instance is limited: you cannot call any methods that return statistics/counts;
 	//	 you cannot pass a non-null live docs when pulling docs/positions enums.
 	Write(fields Fields, norms NormsProducer) error
+
+	// Merge Merges in the fields from the readers in mergeState. The default implementation skips and
+	// maps around deleted documents, and calls write(Fields, NormsProducer). Implementations can override
+	// this method for more sophisticated merging (bulk-byte copying, etc).
+	Merge(mergeState *MergeState, norms NormsProducer) error
 }
 
 type FieldsConsumerExt interface {
@@ -46,6 +44,9 @@ type FieldsConsumerDefault struct {
 	Closer func() error
 }
 
+// Merge Merges in the fields from the readers in mergeState. The default implementation skips and
+// maps around deleted documents, and calls write(Fields, NormsProducer). Implementations can override
+// this method for more sophisticated merging (bulk-byte copying, etc).
 func (f *FieldsConsumerDefault) Merge(mergeState *MergeState, norms NormsProducer) error {
 	return nil
 }
