@@ -1,4 +1,4 @@
-package index
+package document
 
 import "github.com/geange/lucene-go/core/types"
 
@@ -18,19 +18,19 @@ type StoredFieldVisitor interface {
 	// @param value newly allocated byte array with the binary contents.
 	BinaryField(fieldInfo *types.FieldInfo, value []byte) error
 
-	// Process a string field; the provided byte[] value is a UTF-8 encoded string value.
+	// StringField Process a string field; the provided byte[] value is a UTF-8 encoded string value.
 	StringField(fieldInfo *types.FieldInfo, value []byte) error
 
-	// Process a int numeric field.
+	// Int32Field Process a int numeric field.
 	Int32Field(fieldInfo *types.FieldInfo, value int32) error
 
-	// Process a long numeric field.
+	// Int64Field Process a long numeric field.
 	Int64Field(fieldInfo *types.FieldInfo, value int64) error
 
-	// Process a float numeric field.
+	// Float32Field Process a float numeric field.
 	Float32Field(fieldInfo *types.FieldInfo, value float32) error
 
-	// Process a double numeric field.
+	// Float64Field Process a double numeric field.
 	Float64Field(fieldInfo *types.FieldInfo, value float64) error
 
 	// NeedsField Hook before processing a field. Before a field is processed, this method is invoked

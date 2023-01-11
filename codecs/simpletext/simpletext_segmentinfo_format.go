@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"strconv"
 )
@@ -175,7 +174,7 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 	if err != nil {
 		return nil, err
 	}
-	sortField := make([]*types.SortField, 0)
+	sortField := make([]*index.SortField, 0)
 	for i := 0; i < numSortFields; i++ {
 		provider, err := readValue(input, SI_SORT_NAME, scratch)
 		if err != nil {
@@ -203,9 +202,9 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 		sortField = append(sortField, field)
 	}
 
-	var indexSort *types.Sort
+	var indexSort *index.Sort
 	if len(sortField) > 0 {
-		indexSort = types.NewSort(sortField)
+		indexSort = index.NewSort(sortField)
 	}
 
 	if err := CheckFooter(input); err != nil {

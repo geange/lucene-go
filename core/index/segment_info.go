@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -30,7 +29,7 @@ type SegmentInfo struct {
 
 	diagnostics map[string]string
 	attributes  map[string]string
-	indexSort   *types.Sort
+	indexSort   *Sort
 
 	// Tracks the Lucene version this segment was created with, since 3.1. Null
 	// indicates an older than 3.0 index, and it's used to detect a too old index.
@@ -50,7 +49,7 @@ type SegmentInfo struct {
 
 func NewSegmentInfo(dir store.Directory, version, minVersion *util.Version, name string,
 	maxDoc int, isCompoundFile bool, codec Codec, diagnostics map[string]string,
-	id []byte, attributes map[string]string, indexSort *types.Sort) *SegmentInfo {
+	id []byte, attributes map[string]string, indexSort *Sort) *SegmentInfo {
 
 	return &SegmentInfo{
 		name:           name,

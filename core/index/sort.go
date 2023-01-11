@@ -1,4 +1,4 @@
-package types
+package index
 
 type Sort struct {
 }

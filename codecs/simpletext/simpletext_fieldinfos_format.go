@@ -266,7 +266,7 @@ func (s *SimpleTextFieldInfosFormat) Write(directory store.Directory, segmentInf
 
 }
 
-func writeValue[T int | int64 | string | bool](out store.DataOutput, label []byte, value T) error {
+func writeValue[T int | int64 | string | bool | []byte](out store.DataOutput, label []byte, value T) error {
 	if err := WriteBytes(out, label); err != nil {
 		return err
 	}
@@ -288,6 +288,10 @@ func writeValue[T int | int64 | string | bool](out store.DataOutput, label []byt
 		}
 	case int64:
 		if err := WriteString(out, strconv.FormatInt(obj.(int64), 10)); err != nil {
+			return err
+		}
+	case []byte:
+		if err := WriteBytes(out, obj.([]byte)); err != nil {
 			return err
 		}
 	}

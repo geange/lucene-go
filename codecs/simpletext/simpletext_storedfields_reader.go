@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
@@ -75,7 +76,7 @@ func (s *SimpleTextStoredFieldsReader) Close() error {
 	panic("implement me")
 }
 
-func (s *SimpleTextStoredFieldsReader) VisitDocument(docID int, visitor index.StoredFieldVisitor) error {
+func (s *SimpleTextStoredFieldsReader) VisitDocument(docID int, visitor document.StoredFieldVisitor) error {
 	if _, err := s.in.Seek(s.offsets[docID], io.SeekStart); err != nil {
 		return err
 	}
@@ -134,18 +135,18 @@ func (s *SimpleTextStoredFieldsReader) VisitDocument(docID int, visitor index.St
 		}
 
 		switch status {
-		case index.STORED_FIELD_VISITOR_YES:
+		case document.STORED_FIELD_VISITOR_YES:
 			if err := s.readField(dataType, fieldInfo, visitor); err != nil {
 				return err
 			}
-		case index.STORED_FIELD_VISITOR_NO:
+		case document.STORED_FIELD_VISITOR_NO:
 			if err := s.readLine(); err != nil {
 				return err
 			}
 			if !bytes.HasPrefix(s.scratch.Bytes(), STORED_FIELD_VALUE) {
 				return fmt.Errorf("get value error: %s", s.scratch.String())
 			}
-		case index.STORED_FIELD_VISITOR_STOP:
+		case document.STORED_FIELD_VISITOR_STOP:
 			return nil
 		default:
 			return errors.New("unknown status")
@@ -155,7 +156,7 @@ func (s *SimpleTextStoredFieldsReader) VisitDocument(docID int, visitor index.St
 }
 
 func (s *SimpleTextStoredFieldsReader) readField(
-	dataType []byte, fieldInfo *types.FieldInfo, visitor index.StoredFieldVisitor) error {
+	dataType []byte, fieldInfo *types.FieldInfo, visitor document.StoredFieldVisitor) error {
 
 	if err := s.readLine(); err != nil {
 		return err

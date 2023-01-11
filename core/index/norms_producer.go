@@ -1,9 +1,13 @@
 package index
 
-import "github.com/geange/lucene-go/core/types"
+import (
+	"github.com/geange/lucene-go/core/types"
+	"io"
+)
 
 // NormsProducer Abstract API that produces field normalization values
 type NormsProducer interface {
+	io.Closer
 
 	// GetNorms Returns NumericDocValues for this field. The returned instance need not be thread-safe:
 	// it will only be used by a single thread.

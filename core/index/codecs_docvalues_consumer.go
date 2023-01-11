@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/types"
+	"io"
 )
 
 // DocValuesConsumer Abstract API that consumes numeric, binary and sorted docvalues.
@@ -17,6 +18,8 @@ import (
 //
 // lucene.experimental
 type DocValuesConsumer interface {
+	io.Closer
+
 	// AddNumericField Writes numeric docvalues for a field.
 	// @param field field information
 	// @param valuesProducer Numeric values to write.

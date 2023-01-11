@@ -41,3 +41,9 @@ func NewStoredFieldWithFloat(name string, value float64, _type types.IndexableFi
 		NewFieldWithAny(name, _type, value),
 	}
 }
+
+func NewStoredFieldAny(name string, value any, _type types.IndexableFieldType) *StoredField {
+	return &StoredField{
+		NewFieldWithAny(name, _type, value),
+	}
+}

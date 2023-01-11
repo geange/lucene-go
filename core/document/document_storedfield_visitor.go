@@ -4,6 +4,8 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
+var _ StoredFieldVisitor = &DocumentStoredFieldVisitor{}
+
 type DocumentStoredFieldVisitor struct {
 	doc         *Document
 	fieldsToAdd map[string]struct{}
@@ -53,20 +55,30 @@ func (r *DocumentStoredFieldVisitor) StringField(fieldInfo *types.FieldInfo, val
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) IntField(fieldInfo *types.FieldInfo, value int) error {
-	r.doc.Add(NewStoredFieldWithInt(fieldInfo.Name, value, TYPE))
+func (r *DocumentStoredFieldVisitor) Int32Field(fieldInfo *types.FieldInfo, value int32) error {
+	r.doc.Add(NewStoredFieldAny(fieldInfo.Name, value, TYPE))
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) FloatField(fieldInfo *types.FieldInfo, value float64) error {
-	r.doc.Add(NewStoredFieldWithFloat(fieldInfo.Name, value, TYPE))
+func (r *DocumentStoredFieldVisitor) Int64Field(fieldInfo *types.FieldInfo, value int64) error {
+	r.doc.Add(NewStoredFieldAny(fieldInfo.Name, value, TYPE))
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) NeedsField(fieldInfo *types.FieldInfo) StoredFieldVisitorStatus {
+func (r *DocumentStoredFieldVisitor) Float32Field(fieldInfo *types.FieldInfo, value float32) error {
+	r.doc.Add(NewStoredFieldAny(fieldInfo.Name, value, TYPE))
+	return nil
+}
+
+func (r *DocumentStoredFieldVisitor) Float64Field(fieldInfo *types.FieldInfo, value float64) error {
+	r.doc.Add(NewStoredFieldAny(fieldInfo.Name, value, TYPE))
+	return nil
+}
+
+func (r *DocumentStoredFieldVisitor) NeedsField(fieldInfo *types.FieldInfo) (STORED_FIELD_VISITOR_STATUS, error) {
 	_, ok := r.fieldsToAdd[fieldInfo.Name]
 	if ok {
-		return SFV_STATUS_YES
+		return STORED_FIELD_VISITOR_YES, nil
 	}
-	return SFV_STATUS_NO
+	return STORED_FIELD_VISITOR_NO, nil
 }

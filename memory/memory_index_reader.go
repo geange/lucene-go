@@ -77,8 +77,8 @@ func (m *MemoryIndexReader) MaxDoc() int {
 	return 1
 }
 
-func (m *MemoryIndexReader) DocumentV1(docID int, visitor document.StoredFieldVisitor) (*document.Document, error) {
-	return nil, nil
+func (m *MemoryIndexReader) DocumentV1(docID int, visitor document.StoredFieldVisitor) error {
+	return nil
 }
 
 func (m *MemoryIndexReader) DoClose() error {

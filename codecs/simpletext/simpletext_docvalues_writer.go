@@ -58,3 +58,8 @@ func (s *SimpleTextDocValuesWriter) AddSortedSetField(field *types.FieldInfo, va
 	//TODO implement me
 	panic("implement me")
 }
+
+func (s *SimpleTextDocValuesWriter) Close() error {
+	//TODO implement me
+	panic("implement me")
+}

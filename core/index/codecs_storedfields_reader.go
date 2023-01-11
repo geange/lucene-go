@@ -1,12 +1,15 @@
 package index
 
-import "io"
+import (
+	"github.com/geange/lucene-go/core/document"
+	"io"
+)
 
 type StoredFieldsReader interface {
 	io.Closer
 
 	// VisitDocument Visit the stored fields for document docID
-	VisitDocument(docID int, visitor StoredFieldVisitor) error
+	VisitDocument(docID int, visitor document.StoredFieldVisitor) error
 
 	Clone() StoredFieldsReader
 

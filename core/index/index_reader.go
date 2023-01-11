@@ -46,7 +46,7 @@ type IndexReader interface {
 	// DocumentV1 Expert: visits the fields of a stored document, for custom processing/loading of each field.
 	// If you simply want to load all fields, use document(int). If you want to load a subset,
 	// use DocumentStoredFieldVisitor.
-	DocumentV1(docID int, visitor document.StoredFieldVisitor) (*document.Document, error)
+	DocumentV1(docID int, visitor document.StoredFieldVisitor) error
 
 	// DocumentV2 Like document(int) but only loads the specified fields. Note that this is simply sugar for
 	// DocumentStoredFieldVisitor.DocumentStoredFieldVisitor(Set).
@@ -111,7 +111,7 @@ type IndexReaderDefaultConfig struct {
 	GetTermVectors       func(docID int) (Fields, error)
 	NumDocs              func() int
 	MaxDoc               func() int
-	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) (*document.Document, error)
+	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) error
 	GetContext           func() IndexReaderContext
 	DoClose              func() error
 	GetReaderCacheHelper func() CacheHelper
@@ -126,7 +126,7 @@ type IndexReaderDefault struct {
 	GetTermVectors       func(docID int) (Fields, error)
 	NumDocs              func() int
 	MaxDoc               func() int
-	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) (*document.Document, error)
+	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) error
 	GetContext           func() IndexReaderContext
 	DoClose              func() error
 	GetReaderCacheHelper func() CacheHelper
@@ -169,8 +169,7 @@ func (r *IndexReaderDefault) Close() error {
 
 func (r *IndexReaderDefault) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitorV1(fieldsToLoad)
-	_, err := r.DocumentV1(docID, visitor)
-	if err != nil {
+	if err := r.DocumentV1(docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil
@@ -218,8 +217,7 @@ func (r *IndexReaderDefault) NumDeletedDocs() int {
 
 func (r *IndexReaderDefault) Document(docID int) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitor()
-	_, err := r.DocumentV1(docID, visitor)
-	if err != nil {
+	if err := r.DocumentV1(docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil
