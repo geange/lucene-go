@@ -48,7 +48,7 @@ type TermsEnum interface {
 	Term() ([]byte, error)
 
 	// Ord Returns ordinal position for current term. This is an optional method (the codec may throw
-	// UnsupportedOperationException). Do not call this when the enum is unpositioned.
+	// ErrUnsupportedOperation). Do not call this when the enum is unpositioned.
 	Ord() (int64, error)
 
 	// DocFreq Returns the number of documents containing the current term. Do not call this when the

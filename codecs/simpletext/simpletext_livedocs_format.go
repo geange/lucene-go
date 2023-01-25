@@ -26,6 +26,10 @@ var _ index.LiveDocsFormat = &SimpleTextLiveDocsFormat{}
 type SimpleTextLiveDocsFormat struct {
 }
 
+func NewSimpleTextLiveDocsFormat() *SimpleTextLiveDocsFormat {
+	return &SimpleTextLiveDocsFormat{}
+}
+
 func (s *SimpleTextLiveDocsFormat) ReadLiveDocs(dir store.Directory, info index.SegmentCommitInfo, context *store.IOContext) (util.Bits, error) {
 	if !info.HasDeletions() {
 		return nil, errors.New("hasDeletions")

@@ -12,7 +12,7 @@ type IndexReaderContext interface {
 	// an LeafReaderContext this returns itself as the only leaf.
 	// Note: this is convenience method since leaves can always be obtained by walking the context tree
 	// using children().
-	// Throws: UnsupportedOperationException – if this is not a top-level context.
+	// Throws: ErrUnsupportedOperation – if this is not a top-level context.
 	// See Also: children()
 	Leaves() ([]*LeafReaderContext, error)
 

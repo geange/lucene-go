@@ -1,7 +1,6 @@
 package simpletext
 
 import (
-	"bytes"
 	"errors"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
@@ -36,10 +35,27 @@ var (
 type SimpleTextTermVectorsWriter struct {
 	out            store.IndexOutput
 	numDocsWritten int
-	scratch        *bytes.Buffer
 	offsets        bool
 	positions      bool
 	payloads       bool
+}
+
+func NewSimpleTextTermVectorsWriter(dir store.Directory,
+	segment string, context *store.IOContext) (*SimpleTextTermVectorsWriter, error) {
+
+	fileName := store.SegmentFileName(segment, "", VECTORS_EXTENSION)
+	out, err := dir.CreateOutput(fileName, context)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SimpleTextTermVectorsWriter{
+		out:            out,
+		numDocsWritten: 0,
+		offsets:        false,
+		positions:      false,
+		payloads:       false,
+	}, nil
 }
 
 func (s *SimpleTextTermVectorsWriter) Close() error {

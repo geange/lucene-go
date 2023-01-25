@@ -2,6 +2,8 @@ package simpletext
 
 import "github.com/geange/lucene-go/core/index"
 
+var _ index.DocValuesFormat = &SimpleTextDocValuesFormat{}
+
 // SimpleTextDocValuesFormat
 /**
 plain text doc values format.
@@ -90,12 +92,21 @@ for sorted set this is a fixed-width file very similar to the SORTED case, for e
  lucene.experimental
 */
 type SimpleTextDocValuesFormat struct {
+	name string
 }
 
-func (s *SimpleTextDocValuesFormat) fieldsConsumer(state *index.SegmentWriteState) (index.DocValuesConsumer, error) {
+func NewSimpleTextDocValuesFormat() *SimpleTextDocValuesFormat {
+	return &SimpleTextDocValuesFormat{name: "SimpleText"}
+}
+
+func (s *SimpleTextDocValuesFormat) GetName() string {
+	return s.name
+}
+
+func (s *SimpleTextDocValuesFormat) FieldsConsumer(state *index.SegmentWriteState) (index.DocValuesConsumer, error) {
 	return NewSimpleTextDocValuesWriter(state, "dat")
 }
 
-func (s *SimpleTextDocValuesFormat) fieldsProducer(state *index.SegmentReadState) (index.DocValuesProducer, error) {
+func (s *SimpleTextDocValuesFormat) FieldsProducer(state *index.SegmentReadState) (index.DocValuesProducer, error) {
 	return NewSimpleTextDocValuesReader(state, "dat")
 }

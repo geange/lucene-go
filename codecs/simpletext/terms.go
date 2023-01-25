@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/fst"
 	"strconv"
 )
@@ -12,6 +11,8 @@ import (
 var _ index.Terms = &textTerms{}
 
 type textTerms struct {
+	*index.TermsDefault
+
 	reader *SimpleTextFieldsReader
 
 	termsStart       int64
@@ -38,6 +39,10 @@ func (r *SimpleTextFieldsReader) newSimpleTextTerms(field string, termsStart int
 		termCount:        0,
 		scratch:          new(bytes.Buffer),
 	}
+	terms.TermsDefault = index.NewTermsDefault(&index.TermsDefaultConfig{
+		Iterator: terms.Iterator,
+		Size:     terms.Size,
+	})
 	return terms
 }
 
@@ -139,11 +144,6 @@ func (s *textTerms) Iterator() (index.TermsEnum, error) {
 	panic("")
 }
 
-func (s *textTerms) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (s *textTerms) Size() (int, error) {
 	//TODO implement me
 	panic("implement me")
@@ -180,16 +180,6 @@ func (s *textTerms) HasPositions() bool {
 }
 
 func (s *textTerms) HasPayloads() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *textTerms) GetMin() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *textTerms) GetMax() ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }

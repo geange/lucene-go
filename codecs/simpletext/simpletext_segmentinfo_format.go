@@ -36,6 +36,10 @@ var (
 type SimpleTextSegmentInfoFormat struct {
 }
 
+func NewSimpleTextSegmentInfoFormat() *SimpleTextSegmentInfoFormat {
+	return &SimpleTextSegmentInfoFormat{}
+}
+
 func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName string,
 	segmentID []byte, context *store.IOContext) (*index.SegmentInfo, error) {
 
@@ -195,7 +199,7 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 			return nil, err
 		}
 		output := store.NewByteArrayDataInput(toBytes)
-		field, err := index.LooksUpSortFieldProviderByName(provider).ReadSortField(output)
+		field, err := index.SingleSortFieldProvider.MustForName(provider).ReadSortField(output)
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +222,144 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 }
 
 func (s *SimpleTextSegmentInfoFormat) Write(dir store.Directory,
-	info *index.SegmentInfo, ioContext *store.IOContext) error {
-	//TODO implement me
-	panic("implement me")
+	si *index.SegmentInfo, ioContext *store.IOContext) error {
+
+	segFileName := store.SegmentFileName(si.Name(), "", SI_EXTENSION)
+
+	output, err := dir.CreateOutput(segFileName, ioContext)
+	if err != nil {
+		return err
+	}
+
+	// Only add the file once we've successfully created it, else IFD assert can trip:
+	if err := si.AddFile(segFileName); err != nil {
+		return err
+	}
+	WriteBytes(output, SI_VERSION)
+	WriteString(output, si.GetVersion().String())
+	WriteNewline(output)
+
+	WriteBytes(output, SI_MIN_VERSION)
+	minVersion := si.GetMinVersion()
+	if minVersion == nil {
+		WriteString(output, "null")
+	} else {
+		WriteString(output, minVersion.String())
+	}
+	WriteNewline(output)
+
+	WriteBytes(output, SI_DOCCOUNT)
+	maxDoc, _ := si.MaxDoc()
+	WriteString(output, strconv.Itoa(maxDoc))
+	WriteNewline(output)
+
+	WriteBytes(output, SI_USECOMPOUND)
+	WriteString(output, strconv.FormatBool(si.GetUseCompoundFile()))
+	WriteNewline(output)
+
+	diagnostics := si.GetDiagnostics()
+	numDiagnostics := len(diagnostics)
+	WriteBytes(output, SI_NUM_DIAG)
+	WriteString(output, strconv.Itoa(numDiagnostics))
+	WriteNewline(output)
+
+	for k, v := range diagnostics {
+		WriteBytes(output, SI_DIAG_KEY)
+		WriteString(output, k)
+		WriteNewline(output)
+
+		WriteBytes(output, SI_DIAG_VALUE)
+		WriteString(output, v)
+		WriteNewline(output)
+	}
+
+	attributes := si.GetAttributes()
+	WriteBytes(output, SI_NUM_ATT)
+	WriteString(output, strconv.Itoa(len(attributes)))
+	WriteNewline(output)
+
+	for k, v := range attributes {
+		WriteBytes(output, SI_ATT_KEY)
+		WriteString(output, k)
+		WriteNewline(output)
+
+		WriteBytes(output, SI_ATT_VALUE)
+		WriteString(output, v)
+		WriteNewline(output)
+	}
+
+	files := si.Files()
+	WriteBytes(output, SI_NUM_FILES)
+	WriteString(output, strconv.Itoa(len(files)))
+	WriteNewline(output)
+
+	for fileName := range files {
+		WriteBytes(output, SI_FILE)
+		WriteString(output, fileName)
+		WriteNewline(output)
+	}
+
+	WriteBytes(output, SI_ID)
+	WriteBytes(output, si.GetID())
+	WriteNewline(output)
+
+	indexSort := si.GetIndexSort()
+	WriteBytes(output, SI_SORT)
+	numSortFields := 0
+	if indexSort != nil {
+		sortFields := indexSort.GetSort()
+		numSortFields = len(sortFields)
+	}
+	WriteString(output, strconv.Itoa(numSortFields))
+	WriteNewline(output)
+
+	if numSortFields > 0 {
+		for _, sortField := range indexSort.GetSort() {
+			sorter := sortField.GetIndexSorter()
+			if sorter == nil {
+				return errors.New("cannot serialize sort")
+			}
+
+			WriteBytes(output, SI_SORT_NAME)
+			WriteString(output, sorter.GetProviderName())
+			WriteNewline(output)
+
+			WriteBytes(output, SI_SORT_TYPE)
+			WriteString(output, sortField.String())
+			WriteNewline(output)
+
+			WriteBytes(output, SI_SORT_BYTES)
+			buf := NewBytesOutput()
+			index.SingleSortFieldProvider.Write(sortField, buf)
+			WriteBytes(output, buf.bytes.Bytes())
+			WriteNewline(output)
+		}
+	}
+
+	return WriteChecksum(output)
+}
+
+var _ store.DataOutput = &BytesOutput{}
+
+type BytesOutput struct {
+	*store.DataOutputDefault
+
+	bytes *bytes.Buffer
+}
+
+func NewBytesOutput() *BytesOutput {
+	output := &BytesOutput{bytes: new(bytes.Buffer)}
+	output.DataOutputDefault = store.NewDataOutputDefault(&store.DataOutputDefaultConfig{
+		WriteByte:  output.WriteByte,
+		WriteBytes: output.Write,
+	})
+	return output
+}
+
+func (b *BytesOutput) WriteByte(c byte) error {
+	return b.bytes.WriteByte(c)
+}
+
+func (b *BytesOutput) Write(bs []byte) (n int, err error) {
+	return b.bytes.Write(bs)
 }

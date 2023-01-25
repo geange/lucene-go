@@ -27,14 +27,15 @@ const (
 // supporting values ranging from Integer.MIN_VALUE to Integer.MAX_VALUE, ordered consistent with
 // Integer.compareTo(Integer). In addition to indexing support, point classes also contain static methods
 // (such as IntPoint.newRangeQuery(String, int, int)) for creating common queries. For example:
-//     // add year 1970 to document
-//     document.add(new IntPoint("year", 1970));
-//     // index document
-//     writer.addDocument(document);
-//     ...
-//     // issue range query of 1960-1980
-//     Query query = IntPoint.newRangeQuery("year", 1960, 1980);
-//     TopDocs docs = searcher.search(query, ...);
+//
+//	// add year 1970 to document
+//	document.add(new IntPoint("year", 1970));
+//	// index document
+//	writer.addDocument(document);
+//	...
+//	// issue range query of 1960-1980
+//	Query query = IntPoint.newRangeQuery("year", 1960, 1980);
+//	TopDocs docs = searcher.search(query, ...);
 //
 // Geospatial Point Types
 // Although basic point types such as DoublePoint support points in multi-dimensional space too, Lucene has
@@ -92,4 +93,29 @@ type IntersectVisitor interface {
 
 	// Grow Notifies the caller that this many documents are about to be visited
 	Grow(count int)
+}
+
+var _ IntersectVisitor = &IntersectVisitorDefault{}
+
+type IntersectVisitorDefault struct {
+	FnVisitByDocID func(docID int) error
+	FnVisit        func(docID int, packedValue []byte) error
+	FnCompare      func(minPackedValue, maxPackedValue []byte) Relation
+	FnGrow         func(count int)
+}
+
+func (i *IntersectVisitorDefault) VisitByDocID(docID int) error {
+	return i.FnVisitByDocID(docID)
+}
+
+func (i *IntersectVisitorDefault) Visit(docID int, packedValue []byte) error {
+	return i.FnVisit(docID, packedValue)
+}
+
+func (i *IntersectVisitorDefault) Compare(minPackedValue, maxPackedValue []byte) Relation {
+	return i.FnCompare(minPackedValue, maxPackedValue)
+}
+
+func (i *IntersectVisitorDefault) Grow(count int) {
+	i.FnGrow(count)
 }

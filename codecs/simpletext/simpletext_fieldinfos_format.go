@@ -278,6 +278,10 @@ func writeValue[T int | int64 | string | bool | []byte](out store.DataOutput, la
 		if err := WriteString(out, strconv.Itoa(obj.(int))); err != nil {
 			return err
 		}
+	case int32:
+		if err := WriteString(out, strconv.Itoa(int(obj.(int32)))); err != nil {
+			return err
+		}
 	case string:
 		if err := WriteString(out, obj.(string)); err != nil {
 			return err

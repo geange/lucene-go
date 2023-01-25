@@ -53,6 +53,16 @@ func NewSimpleTextStoredFieldsReader(
 	return reader, nil
 }
 
+func newSimpleTextStoredFieldsReader(offsets []int64,
+	in store.IndexInput, fieldInfos *index.FieldInfos) *SimpleTextStoredFieldsReader {
+
+	return &SimpleTextStoredFieldsReader{
+		offsets:    offsets,
+		in:         in,
+		fieldInfos: fieldInfos,
+	}
+}
+
 func (s *SimpleTextStoredFieldsReader) readIndex(size int) error {
 	input := store.NewBufferedChecksumIndexInput(s.in)
 	s.offsets = make([]int64, 0, size)
@@ -72,8 +82,12 @@ func (s *SimpleTextStoredFieldsReader) readIndex(size int) error {
 }
 
 func (s *SimpleTextStoredFieldsReader) Close() error {
-	//TODO implement me
-	panic("implement me")
+	if err := s.in.Close(); err != nil {
+		return err
+	}
+	s.in = nil
+	s.offsets = nil
+	return nil
 }
 
 func (s *SimpleTextStoredFieldsReader) VisitDocument(docID int, visitor document.StoredFieldVisitor) error {
@@ -206,18 +220,18 @@ func (s *SimpleTextStoredFieldsReader) readLine() error {
 }
 
 func (s *SimpleTextStoredFieldsReader) Clone() index.StoredFieldsReader {
-	//TODO implement me
-	panic("implement me")
+	if s.in == nil {
+		panic("closed!")
+	}
+	return newSimpleTextStoredFieldsReader(s.offsets, s.in.Clone(), s.fieldInfos)
 }
 
 func (s *SimpleTextStoredFieldsReader) CheckIntegrity() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (s *SimpleTextStoredFieldsReader) GetMergeInstance() index.StoredFieldsReader {
-	//TODO implement me
-	panic("implement me")
+	return s
 }
 
 func parseInt(size int, values []byte) (int, error) {

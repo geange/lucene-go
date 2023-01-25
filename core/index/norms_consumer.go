@@ -9,7 +9,7 @@ import (
 // NormsConsumer Abstract API that consumes normalization values. Concrete implementations of this actually do "something" with the norms (write it into the index in a specific format).
 // The lifecycle is:
 // NormsConsumer is created by NormsFormat.normsConsumer(SegmentWriteState).
-// addNormsField is called for each field with normalization values. The API is a "pull" rather than "push", and the implementation is free to iterate over the values multiple times (Iterable.iterator()).
+// FnAddNormsField is called for each field with normalization values. The API is a "pull" rather than "push", and the implementation is free to iterate over the values multiple times (Iterable.iterator()).
 // After all fields are added, the consumer is closed.
 type NormsConsumer interface {
 	io.Closer
@@ -28,13 +28,13 @@ type NormsConsumer interface {
 	Merge(mergeState *MergeState) error
 
 	// MergeNormsField Merges the norms from toMerge.
-	// The default implementation calls addNormsField, passing an Iterable
+	// The default implementation calls FnAddNormsField, passing an Iterable
 	// that merges and filters deleted documents on the fly.
 	MergeNormsField(mergeFieldInfo *types.FieldInfo, mergeState *MergeState) error
 }
 
 type NormsConsumerDefault struct {
-	addNormsField func(field *types.FieldInfo, normsProducer NormsProducer) error
+	FnAddNormsField func(field *types.FieldInfo, normsProducer NormsProducer) error
 }
 
 func (n *NormsConsumerDefault) Merge(mergeState *MergeState) error {
@@ -57,7 +57,7 @@ func (n *NormsConsumerDefault) Merge(mergeState *MergeState) error {
 
 func (n *NormsConsumerDefault) MergeNormsField(mergeFieldInfo *types.FieldInfo, mergeState *MergeState) error {
 	// TODO: try to share code with default merge of DVConsumer by passing MatchAllBits ?
-	return n.addNormsField(mergeFieldInfo, &innerNormsProducer{
+	return n.FnAddNormsField(mergeFieldInfo, &innerNormsProducer{
 		mergeFieldInfo: mergeFieldInfo,
 		mergeState:     mergeState,
 	})

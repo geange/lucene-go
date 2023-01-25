@@ -110,5 +110,5 @@ func (r *SimpleTextFieldsReader) CheckIntegrity() error {
 }
 
 func (r *SimpleTextFieldsReader) GetMergeInstance() index.FieldsProducer {
-	return nil
+	return r
 }

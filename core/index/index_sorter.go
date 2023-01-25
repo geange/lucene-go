@@ -1,6 +1,10 @@
 package index
 
-import "math"
+import (
+	"errors"
+	"io"
+	"math"
+)
 
 // IndexSorter Handles how documents should be sorted in an index, both within a segment and
 // between segments. Implementers must provide the following methods:
@@ -385,6 +389,9 @@ func (d *DoubleSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocCompa
 	for {
 		docID, err := dvs.NextDoc()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return nil, err
 		}
 		if docID == NO_MORE_DOCS {

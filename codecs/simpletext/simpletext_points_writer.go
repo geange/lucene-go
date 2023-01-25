@@ -41,6 +41,10 @@ type SimpleTextPointsWriter struct {
 	indexFPs   map[string]int64
 }
 
+func NewSimpleTextPointsWriter(writeState *index.SegmentWriteState) (*SimpleTextPointsWriter, error) {
+	panic("")
+}
+
 func (s *SimpleTextPointsWriter) Close() error {
 	//TODO implement me
 	panic("implement me")

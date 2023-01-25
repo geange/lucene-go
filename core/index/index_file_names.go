@@ -2,7 +2,9 @@ package index
 
 import (
 	"bytes"
+	"regexp"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -41,10 +43,35 @@ func FileNameFromGeneration(base, ext string, gen int64) string {
 	}
 }
 
-// SegmentFileName Returns a file name that includes the given segment name, your own custom name and extension. The format of the filename is: <segmentName>(_<name>)(.<ext>).
+// SegmentFileName Returns a file name that includes the given segment name, your own custom name and
+// extension. The format of the filename is: <segmentName>(_<name>)(.<ext>).
 // NOTE: .<ext> is added to the result file name only if ext is not empty.
 // NOTE: _<segmentSuffix> is added to the result file name only if it's not the empty string
-// NOTE: all custom files should be named using this method, or otherwise some structures may fail to handle them properly (such as if they are added to compound files).
+// NOTE: all custom files should be named using this method, or otherwise some structures may fail to
+// handle them properly (such as if they are added to compound files).
 func SegmentFileName(segmentName, segmentSuffix, ext string) string {
-	panic("")
+	if len(ext) > 0 || len(segmentSuffix) > 0 {
+		if strings.HasPrefix(ext, ".") {
+			return segmentName
+		}
+
+		sb := new(bytes.Buffer)
+		sb.WriteString(segmentName)
+		if len(segmentSuffix) > 0 {
+			sb.WriteString("_")
+			sb.WriteString(segmentSuffix)
+		}
+		if len(ext) > 0 {
+			sb.WriteString(".")
+			sb.WriteString(ext)
+		}
+		return sb.String()
+	}
+
+	return segmentName
 }
+
+// CODEC_FILE_PATTERN All files created by codecs much match this pattern (checked in SegmentInfo).
+var (
+	CODEC_FILE_PATTERN = regexp.MustCompilePOSIX("_[a-z0-9]+(_.*)?\\..*")
+)

@@ -16,14 +16,16 @@ const (
 type SimpleTextNormsFormat struct {
 }
 
+func NewSimpleTextNormsFormat() *SimpleTextNormsFormat {
+	return &SimpleTextNormsFormat{}
+}
+
 func (s *SimpleTextNormsFormat) NormsConsumer(state *index.SegmentWriteState) (index.NormsConsumer, error) {
-	//TODO implement me
-	panic("implement me")
+	return NewSimpleTextNormsConsumer(state)
 }
 
 func (s *SimpleTextNormsFormat) NormsProducer(state *index.SegmentReadState) (index.NormsProducer, error) {
-	//TODO implement me
-	panic("implement me")
+	return NewSimpleTextNormsProducer(state)
 }
 
 var _ index.NormsProducer = &SimpleTextNormsProducer{}
@@ -64,6 +66,20 @@ type SimpleTextNormsConsumer struct {
 	*index.NormsConsumerDefault
 
 	impl *SimpleTextDocValuesWriter
+}
+
+func NewSimpleTextNormsConsumer(state *index.SegmentWriteState) (*SimpleTextNormsConsumer, error) {
+	writer, err := NewSimpleTextDocValuesWriter(state, NORMS_SEG_EXTENSION)
+	if err != nil {
+		return nil, err
+	}
+	consumer := &SimpleTextNormsConsumer{
+		impl: writer,
+	}
+	consumer.NormsConsumerDefault = &index.NormsConsumerDefault{
+		FnAddNormsField: consumer.AddNormsField,
+	}
+	return consumer, nil
 }
 
 func (s *SimpleTextNormsConsumer) Close() error {

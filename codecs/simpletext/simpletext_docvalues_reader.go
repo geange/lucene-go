@@ -2,12 +2,26 @@ package simpletext
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 )
 
 var _ index.DocValuesProducer = &SimpleTextDocValuesReader{}
 
 type SimpleTextDocValuesReader struct {
+	maxDoc int
+	data   store.IndexInput
+	fields map[string]*OneField
+}
+
+type OneField struct {
+	dataStartFilePointer int64
+	pattern              string
+	ordPattern           string
+	maxLength            int
+	fixedLength          bool
+	minValue             int64
+	numValues            int64
 }
 
 func NewSimpleTextDocValuesReader(state *index.SegmentReadState, ext string) (*SimpleTextDocValuesReader, error) {

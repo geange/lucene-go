@@ -5,7 +5,7 @@ import (
 )
 
 type Terms struct {
-	*index.TermsImp
+	*index.TermsDefault
 
 	info          *Info
 	storeOffsets  bool
@@ -19,7 +19,10 @@ func (m *MemoryIndex) NewTerms(info *Info) *Terms {
 		info:        info,
 		MemoryIndex: m,
 	}
-	terms.TermsImp = index.NewTermsImp(terms)
+	terms.TermsDefault = index.NewTermsDefault(&index.TermsDefaultConfig{
+		Iterator: terms.Iterator,
+		Size:     terms.Size,
+	})
 	return terms
 }
 

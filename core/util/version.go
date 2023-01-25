@@ -90,6 +90,13 @@ func ParseVersion(version string) (*Version, error) {
 	return nil, fmt.Errorf("parse '%s' error", version)
 }
 
+func (v *Version) String() string {
+	if v.Prerelease == 0 {
+		return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Bugfix)
+	}
+	return fmt.Sprintf("%d.%d.%d.%d", v.Major, v.Minor, v.Bugfix, v.Prerelease)
+}
+
 var (
 	VersionLast = NewVersion(8, 11, 1)
 )

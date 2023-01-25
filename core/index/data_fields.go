@@ -3,7 +3,6 @@ package index
 import (
 	"bytes"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/automaton"
 	"io"
 )
 
@@ -41,6 +40,8 @@ func (d *DataFields) Size() int {
 var _ Terms = &DataTerms{}
 
 type DataTerms struct {
+	*TermsDefault
+
 	fieldData *FieldData
 }
 
@@ -48,16 +49,15 @@ func NewDataTerms(fieldData *FieldData) *DataTerms {
 	dataTerms := &DataTerms{
 		fieldData: fieldData,
 	}
+	dataTerms.TermsDefault = NewTermsDefault(&TermsDefaultConfig{
+		Iterator: dataTerms.Iterator,
+		Size:     dataTerms.Size,
+	})
 	return dataTerms
 }
 
 func (d *DataTerms) Iterator() (TermsEnum, error) {
 	return NewDataTermsEnum(d.fieldData), nil
-}
-
-func (d *DataTerms) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (d *DataTerms) Size() (int, error) {
@@ -97,16 +97,6 @@ func (d *DataTerms) HasPositions() bool {
 
 func (d *DataTerms) HasPayloads() bool {
 	return d.fieldData.fieldInfo.HasPayloads()
-}
-
-func (d *DataTerms) GetMin() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (d *DataTerms) GetMax() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 var _ TermsEnum = &DataTermsEnum{}

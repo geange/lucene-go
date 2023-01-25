@@ -56,20 +56,24 @@ type Terms interface {
 	GetMax() ([]byte, error)
 }
 
-type TermsExtra interface {
-	Iterator() (TermsEnum, error)
-	Size() (int, error)
+type TermsDefaultConfig struct {
+	Iterator func() (TermsEnum, error)
+	Size     func() (int, error)
 }
 
-type TermsImp struct {
-	TermsExtra
+type TermsDefault struct {
+	Iterator func() (TermsEnum, error)
+	Size     func() (int, error)
 }
 
-func NewTermsImp(termsExtra TermsExtra) *TermsImp {
-	return &TermsImp{TermsExtra: termsExtra}
+func NewTermsDefault(cfg *TermsDefaultConfig) *TermsDefault {
+	return &TermsDefault{
+		Iterator: cfg.Iterator,
+		Size:     cfg.Size,
+	}
 }
 
-func (t *TermsImp) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error) {
+func (t *TermsDefault) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error) {
 	// TODO: could we factor out a common interface b/w
 	// CompiledAutomaton and FST?  Then we could pass FST there too,
 	// and likely speed up resolving terms to deleted docs ... but
@@ -79,10 +83,24 @@ func (t *TermsImp) Intersect(compiled *automaton.CompiledAutomaton, startTerm []
 	// TODO: eventually we could support seekCeil/Exact on
 	// the returned enum, instead of only being able to seek
 	// at the start
+
+	//termsEnum, err := t.Iterator()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//if compiled.Type() != automaton.AUTOMATON_TYPE_NORMAL {
+	//	return nil, errors.New("please use CompiledAutomaton.getTermsEnum instead")
+	//}
+	//
+	//if len(startTerm) > 0 {
+	//	//
+	//	//return nAutomatonTermsEnum(termsEnum, compiled);
+	//}
 	panic("")
 }
 
-func (t *TermsImp) GetMin() ([]byte, error) {
+func (t *TermsDefault) GetMin() ([]byte, error) {
 	iterator, err := t.Iterator()
 	if err != nil {
 		return nil, err
@@ -90,7 +108,7 @@ func (t *TermsImp) GetMin() ([]byte, error) {
 	return iterator.Next()
 }
 
-func (t *TermsImp) GetMax() ([]byte, error) {
+func (t *TermsDefault) GetMax() ([]byte, error) {
 	size, err := t.Size()
 	if err != nil {
 		return nil, err

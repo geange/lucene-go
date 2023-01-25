@@ -3,7 +3,7 @@ package index
 // PostingsFormat Encodes/decodes terms, postings, and proximity data.
 // Note, when extending this class, the name (getName) may written into the index in certain
 // configurations. In order for the segment to be read, the name must resolve to your
-// implementation via forName(String). This method uses Java's Service Provider Interface (SPI)
+// implementation via forName(String). This method uses Java's Service SortFieldProvider Interface (SPI)
 // to resolve format names.
 //
 // If you implement your own format, make sure that it has a no-arg constructor so SPI can load it.

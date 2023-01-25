@@ -6,7 +6,6 @@ import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/fst"
 	"io"
 	"strconv"
@@ -15,6 +14,8 @@ import (
 var _ index.Terms = &fieldsReaderTerm{}
 
 type fieldsReaderTerm struct {
+	*index.TermsDefault
+
 	termsStart       int64
 	fieldInfo        *types.FieldInfo
 	maxDoc           int
@@ -35,6 +36,12 @@ func (r *SimpleTextFieldsReader) newFieldsReaderTerm(field string, termsStart in
 		maxDoc:     maxDoc,
 		scratch:    new(bytes.Buffer),
 	}
+
+	term.TermsDefault = index.NewTermsDefault(&index.TermsDefaultConfig{
+		Iterator: term.Iterator,
+		Size:     term.Size,
+	})
+
 	if err := r.loadTerms(term); err != nil {
 		return nil, err
 	}
@@ -125,17 +132,10 @@ func (r *SimpleTextFieldsReader) loadTerms(term *fieldsReaderTerm) error {
 }
 
 func (f *fieldsReaderTerm) Iterator() (index.TermsEnum, error) {
-
 	if f.fst != nil {
 		return newTermsEnum(f.fst, f.fieldInfo.GetIndexOptions()), nil
-	} else {
-		return nil, io.EOF
 	}
-}
-
-func (f *fieldsReaderTerm) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, io.EOF
 }
 
 func (f *fieldsReaderTerm) Size() (int, error) {
@@ -174,16 +174,6 @@ func (f *fieldsReaderTerm) HasPositions() bool {
 }
 
 func (f *fieldsReaderTerm) HasPayloads() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (f *fieldsReaderTerm) GetMin() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (f *fieldsReaderTerm) GetMax() ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -257,7 +247,7 @@ func (t *termsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
 }
 
 func (t *termsEnum) SeekExactByOrd(ord int64) error {
-	return errors.New("UnsupportedOperationException")
+	return errors.New("ErrUnsupportedOperation")
 }
 
 func (t *termsEnum) Term() ([]byte, error) {
@@ -266,7 +256,7 @@ func (t *termsEnum) Term() ([]byte, error) {
 }
 
 func (t *termsEnum) Ord() (int64, error) {
-	return 0, errors.New("UnsupportedOperationException")
+	return 0, errors.New("ErrUnsupportedOperation")
 }
 
 func (t *termsEnum) DocFreq() (int, error) {
@@ -288,7 +278,4 @@ func (t *termsEnum) Postings(reuse index.PostingsEnum, flags int) (index.Posting
 func (t *termsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 	//TODO implement me
 	panic("implement me")
-}
-
-type BytesRefFSTEnum interface {
 }

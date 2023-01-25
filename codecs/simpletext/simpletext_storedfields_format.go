@@ -10,6 +10,10 @@ var _ index.StoredFieldsFormat = &SimpleTextStoredFieldsFormat{}
 type SimpleTextStoredFieldsFormat struct {
 }
 
+func NewSimpleTextStoredFieldsFormat() *SimpleTextStoredFieldsFormat {
+	return &SimpleTextStoredFieldsFormat{}
+}
+
 func (s *SimpleTextStoredFieldsFormat) FieldsReader(directory store.Directory, si *index.SegmentInfo,
 	fn *index.FieldInfos, context *store.IOContext) (index.StoredFieldsReader, error) {
 
