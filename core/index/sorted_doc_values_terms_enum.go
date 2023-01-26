@@ -8,6 +8,10 @@ import (
 type SortedDocValuesTermsEnum struct {
 }
 
+func NewSortedDocValuesTermsEnum(values SortedDocValues) *SortedDocValuesTermsEnum {
+	return &SortedDocValuesTermsEnum{}
+}
+
 func (s *SortedDocValuesTermsEnum) Next() ([]byte, error) {
 	//TODO implement me
 	panic("implement me")

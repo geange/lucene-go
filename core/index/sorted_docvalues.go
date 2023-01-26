@@ -11,9 +11,23 @@ import (
 // unique values. A pointer to the dictionary value (ordinal) can be retrieved for each document. Ordinals
 // are dense and in increasing sorted order.
 type SortedDocValues interface {
-	SortedDocValuesExtra
-
 	BinaryDocValues
+
+	// OrdValue Returns the ordinal for the current docID. It is illegal to call this method after
+	// advanceExact(int) returned false.
+	// Returns: ordinal for the document: this is dense, starts at 0, then increments by 1 for the
+	// next value in sorted order.
+	OrdValue() (int, error)
+
+	// LookupOrd Retrieves the value for the specified ordinal. The returned BytesRef may be re-used
+	// across calls to lookupOrd(int) so make sure to copy it if you want to keep it around.
+	// Params: ord – ordinal to lookup (must be >= 0 and < FnGetValueCount())
+	// See Also: FnOrdValue()
+	LookupOrd(ord int) ([]byte, error)
+
+	// GetValueCount Returns the number of unique values.
+	// Returns: number of unique values in this SortedDocValues. This is also equivalent to one plus the maximum ordinal.
+	GetValueCount() int
 
 	// LookupTerm If key exists, returns its ordinal, else returns -insertionPoint-1, like Arrays.binarySearch.
 	// Params: key – Key to look up
@@ -26,34 +40,30 @@ type SortedDocValues interface {
 	Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error)
 }
 
-type SortedDocValuesExtra interface {
-	// OrdValue Returns the ordinal for the current docID. It is illegal to call this method after
-	// advanceExact(int) returned false.
-	// Returns: ordinal for the document: this is dense, starts at 0, then increments by 1 for the
-	// next value in sorted order.
-	OrdValue() (int, error)
-
-	// LookupOrd Retrieves the value for the specified ordinal. The returned BytesRef may be re-used
-	// across calls to lookupOrd(int) so make sure to copy it if you want to keep it around.
-	// Params: ord – ordinal to lookup (must be >= 0 and < getValueCount())
-	// See Also: ordValue()
-	LookupOrd(ord int) ([]byte, error)
-
-	// GetValueCount Returns the number of unique values.
-	// Returns: number of unique values in this SortedDocValues. This is also equivalent to one plus the maximum ordinal.
-	GetValueCount() int
+type SortedDocValuesDefaultConfig struct {
+	OrdValue      func() (int, error)
+	LookupOrd     func(ord int) ([]byte, error)
+	GetValueCount func() int
 }
 
-type SortedDocValuesImp struct {
-	extra SortedDocValuesExtra
+type SortedDocValuesDefault struct {
+	BinaryDocValuesDefault
+
+	FnOrdValue      func() (int, error)
+	FnLookupOrd     func(ord int) ([]byte, error)
+	FnGetValueCount func() int
 }
 
-func NewSortedDocValuesImp(extra SortedDocValuesExtra) *SortedDocValuesImp {
-	return &SortedDocValuesImp{extra: extra}
+func NewSortedDocValuesDefault(cfg *SortedDocValuesDefaultConfig) *SortedDocValuesDefault {
+	return &SortedDocValuesDefault{
+		FnOrdValue:      cfg.OrdValue,
+		FnLookupOrd:     cfg.LookupOrd,
+		FnGetValueCount: cfg.GetValueCount,
+	}
 }
 
-func (r *SortedDocValuesImp) BinaryValue() ([]byte, error) {
-	ord, err := r.extra.OrdValue()
+func (r *SortedDocValuesDefault) BinaryValue() ([]byte, error) {
+	ord, err := r.FnOrdValue()
 	if err != nil {
 		return nil, err
 	}
@@ -61,16 +71,16 @@ func (r *SortedDocValuesImp) BinaryValue() ([]byte, error) {
 	if ord == -1 {
 		return []byte{}, nil
 	}
-	return r.extra.LookupOrd(ord)
+	return r.FnLookupOrd(ord)
 }
 
-func (r *SortedDocValuesImp) LookupTerm(key []byte) (int, error) {
+func (r *SortedDocValuesDefault) LookupTerm(key []byte) (int, error) {
 	low := 0
-	high := r.extra.GetValueCount() - 1
+	high := r.FnGetValueCount() - 1
 
 	for low <= high {
 		mid := (low + high) >> 1
-		term, err := r.extra.LookupOrd(mid)
+		term, err := r.FnLookupOrd(mid)
 		if err != nil {
 			return 0, err
 		}
@@ -89,12 +99,7 @@ func (r *SortedDocValuesImp) LookupTerm(key []byte) (int, error) {
 	return -(low + 1), nil // key not found.
 }
 
-func (r *SortedDocValuesImp) TermsEnum() (TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *SortedDocValuesImp) Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error) {
+func (r *SortedDocValuesDefault) Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error) {
 	//TODO implement me
 	panic("implement me")
 }

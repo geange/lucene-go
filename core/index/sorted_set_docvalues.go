@@ -13,3 +13,7 @@ type SortedSetDocValues interface {
 
 	GetValueCount() int64
 }
+
+const (
+	NO_MORE_ORDS = -1
+)

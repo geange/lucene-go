@@ -7,19 +7,27 @@ import (
 var _ index.SortedDocValues = &innerSortedDocValues{}
 
 type innerSortedDocValues struct {
-	*index.SortedDocValuesImp
+	*index.SortedDocValuesDefault
 
 	value []byte
 	it    *memoryDocValuesIterator
 }
 
+func (i *innerSortedDocValues) TermsEnum() (index.TermsEnum, error) {
+	return index.NewSortedDocValuesTermsEnum(i), nil
+}
+
 func newInnerSortedDocValues(value []byte) *innerSortedDocValues {
 	values := &innerSortedDocValues{
-		SortedDocValuesImp: nil,
-		value:              value,
-		it:                 newMemoryDocValuesIterator(),
+		SortedDocValuesDefault: nil,
+		value:                  value,
+		it:                     newMemoryDocValuesIterator(),
 	}
-	values.SortedDocValuesImp = index.NewSortedDocValuesImp(values)
+	values.SortedDocValuesDefault = index.NewSortedDocValuesDefault(&index.SortedDocValuesDefaultConfig{
+		OrdValue:      values.OrdValue,
+		LookupOrd:     values.LookupOrd,
+		GetValueCount: values.GetValueCount,
+	})
 	return values
 }
 
