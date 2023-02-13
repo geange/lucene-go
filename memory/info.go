@@ -91,7 +91,7 @@ func (r *Info) getNormDocValues() index.NumericDocValues {
 	if r.norm == nil {
 		invertState := index.NewFieldInvertState(
 			util.VersionLast.Major,
-			r.fieldInfo.Name,
+			r.fieldInfo.Name(),
 			r.fieldInfo.GetIndexOptions(),
 			r.lastPosition,
 			r.numTokens,

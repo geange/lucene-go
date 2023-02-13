@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"errors"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
@@ -51,7 +52,9 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 		return nil, err
 	}
 
-	value, err := readValue(input, SI_VERSION, scratch)
+	r := utils.NewTextReader(input, scratch)
+
+	value, err := r.ReadLabel(SI_VERSION)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +64,7 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 	}
 
 	var minVersion *util.Version
-	value, err = readValue(input, SI_MIN_VERSION, scratch)
+	value, err = r.ReadLabel(SI_MIN_VERSION)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +77,7 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 		}
 	}
 
-	value, err = readValue(input, SI_DOCCOUNT, scratch)
+	value, err = r.ReadLabel(SI_DOCCOUNT)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +86,7 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 		return nil, err
 	}
 
-	value, err = readValue(input, SI_USECOMPOUND, scratch)
+	value, err = r.ReadLabel(SI_USECOMPOUND)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +95,7 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 		return nil, err
 	}
 
-	value, err = readValue(input, SI_NUM_DIAG, scratch)
+	value, err = r.ReadLabel(SI_NUM_DIAG)
 	if err != nil {
 		return nil, err
 	}
@@ -104,19 +107,19 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 	diagnostics := make(map[string]string)
 
 	for i := 0; i < numDiag; i++ {
-		key, err := readValue(input, SI_DIAG_KEY, scratch)
+		key, err := r.ReadLabel(SI_DIAG_KEY)
 		if err != nil {
 			return nil, err
 		}
 
-		value, err := readValue(input, SI_DIAG_VALUE, scratch)
+		value, err := r.ReadLabel(SI_DIAG_VALUE)
 		if err != nil {
 			return nil, err
 		}
 		diagnostics[key] = value
 	}
 
-	value, err = readValue(input, SI_NUM_ATT, scratch)
+	value, err = r.ReadLabel(SI_NUM_ATT)
 	if err != nil {
 		return nil, err
 	}
@@ -128,19 +131,19 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 	attributes := make(map[string]string)
 
 	for i := 0; i < numAtt; i++ {
-		key, err := readValue(input, SI_ATT_KEY, scratch)
+		key, err := r.ReadLabel(SI_ATT_KEY)
 		if err != nil {
 			return nil, err
 		}
 
-		value, err := readValue(input, SI_ATT_VALUE, scratch)
+		value, err := r.ReadLabel(SI_ATT_VALUE)
 		if err != nil {
 			return nil, err
 		}
 		attributes[key] = value
 	}
 
-	value, err = readValue(input, SI_NUM_FILES, scratch)
+	value, err = r.ReadLabel(SI_NUM_FILES)
 	if err != nil {
 		return nil, err
 	}
@@ -151,14 +154,14 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 
 	files := make(map[string]struct{}, numFiles)
 	for i := 0; i < numFiles; i++ {
-		fileName, err := readValue(input, SI_ATT_KEY, scratch)
+		fileName, err := r.ReadLabel(SI_ATT_KEY)
 		if err != nil {
 			return nil, err
 		}
 		files[fileName] = struct{}{}
 	}
 
-	value, err = readValue(input, SI_ID, scratch)
+	value, err = r.ReadLabel(SI_ID)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +173,7 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 	id := make([]byte, len([]byte(value)))
 	copy(id, []byte(value))
 
-	value, err = readValue(input, SI_SORT, scratch)
+	value, err = r.ReadLabel(SI_SORT)
 	if err != nil {
 		return nil, err
 	}
@@ -180,17 +183,17 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 	}
 	sortField := make([]*index.SortField, 0)
 	for i := 0; i < numSortFields; i++ {
-		provider, err := readValue(input, SI_SORT_NAME, scratch)
+		provider, err := r.ReadLabel(SI_SORT_NAME)
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = readValue(input, SI_SORT_TYPE, scratch)
+		_, err = r.ReadLabel(SI_SORT_TYPE)
 		if err != nil {
 			return nil, err
 		}
 
-		value, err = readValue(input, SI_SORT_BYTES, scratch)
+		value, err = r.ReadLabel(SI_SORT_BYTES)
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +214,7 @@ func (s *SimpleTextSegmentInfoFormat) Read(dir store.Directory, segmentName stri
 		indexSort = index.NewSort(sortField)
 	}
 
-	if err := CheckFooter(input); err != nil {
+	if err := utils.CheckFooter(input); err != nil {
 		return nil, err
 	}
 
@@ -235,83 +238,83 @@ func (s *SimpleTextSegmentInfoFormat) Write(dir store.Directory,
 	if err := si.AddFile(segFileName); err != nil {
 		return err
 	}
-	WriteBytes(output, SI_VERSION)
-	WriteString(output, si.GetVersion().String())
-	WriteNewline(output)
+	utils.WriteBytes(output, SI_VERSION)
+	utils.WriteString(output, si.GetVersion().String())
+	utils.WriteNewline(output)
 
-	WriteBytes(output, SI_MIN_VERSION)
+	utils.WriteBytes(output, SI_MIN_VERSION)
 	minVersion := si.GetMinVersion()
 	if minVersion == nil {
-		WriteString(output, "null")
+		utils.WriteString(output, "null")
 	} else {
-		WriteString(output, minVersion.String())
+		utils.WriteString(output, minVersion.String())
 	}
-	WriteNewline(output)
+	utils.WriteNewline(output)
 
-	WriteBytes(output, SI_DOCCOUNT)
+	utils.WriteBytes(output, SI_DOCCOUNT)
 	maxDoc, _ := si.MaxDoc()
-	WriteString(output, strconv.Itoa(maxDoc))
-	WriteNewline(output)
+	utils.WriteString(output, strconv.Itoa(maxDoc))
+	utils.WriteNewline(output)
 
-	WriteBytes(output, SI_USECOMPOUND)
-	WriteString(output, strconv.FormatBool(si.GetUseCompoundFile()))
-	WriteNewline(output)
+	utils.WriteBytes(output, SI_USECOMPOUND)
+	utils.WriteString(output, strconv.FormatBool(si.GetUseCompoundFile()))
+	utils.WriteNewline(output)
 
 	diagnostics := si.GetDiagnostics()
 	numDiagnostics := len(diagnostics)
-	WriteBytes(output, SI_NUM_DIAG)
-	WriteString(output, strconv.Itoa(numDiagnostics))
-	WriteNewline(output)
+	utils.WriteBytes(output, SI_NUM_DIAG)
+	utils.WriteString(output, strconv.Itoa(numDiagnostics))
+	utils.WriteNewline(output)
 
 	for k, v := range diagnostics {
-		WriteBytes(output, SI_DIAG_KEY)
-		WriteString(output, k)
-		WriteNewline(output)
+		utils.WriteBytes(output, SI_DIAG_KEY)
+		utils.WriteString(output, k)
+		utils.WriteNewline(output)
 
-		WriteBytes(output, SI_DIAG_VALUE)
-		WriteString(output, v)
-		WriteNewline(output)
+		utils.WriteBytes(output, SI_DIAG_VALUE)
+		utils.WriteString(output, v)
+		utils.WriteNewline(output)
 	}
 
 	attributes := si.GetAttributes()
-	WriteBytes(output, SI_NUM_ATT)
-	WriteString(output, strconv.Itoa(len(attributes)))
-	WriteNewline(output)
+	utils.WriteBytes(output, SI_NUM_ATT)
+	utils.WriteString(output, strconv.Itoa(len(attributes)))
+	utils.WriteNewline(output)
 
 	for k, v := range attributes {
-		WriteBytes(output, SI_ATT_KEY)
-		WriteString(output, k)
-		WriteNewline(output)
+		utils.WriteBytes(output, SI_ATT_KEY)
+		utils.WriteString(output, k)
+		utils.WriteNewline(output)
 
-		WriteBytes(output, SI_ATT_VALUE)
-		WriteString(output, v)
-		WriteNewline(output)
+		utils.WriteBytes(output, SI_ATT_VALUE)
+		utils.WriteString(output, v)
+		utils.WriteNewline(output)
 	}
 
 	files := si.Files()
-	WriteBytes(output, SI_NUM_FILES)
-	WriteString(output, strconv.Itoa(len(files)))
-	WriteNewline(output)
+	utils.WriteBytes(output, SI_NUM_FILES)
+	utils.WriteString(output, strconv.Itoa(len(files)))
+	utils.WriteNewline(output)
 
 	for fileName := range files {
-		WriteBytes(output, SI_FILE)
-		WriteString(output, fileName)
-		WriteNewline(output)
+		utils.WriteBytes(output, SI_FILE)
+		utils.WriteString(output, fileName)
+		utils.WriteNewline(output)
 	}
 
-	WriteBytes(output, SI_ID)
-	WriteBytes(output, si.GetID())
-	WriteNewline(output)
+	utils.WriteBytes(output, SI_ID)
+	utils.WriteBytes(output, si.GetID())
+	utils.WriteNewline(output)
 
 	indexSort := si.GetIndexSort()
-	WriteBytes(output, SI_SORT)
+	utils.WriteBytes(output, SI_SORT)
 	numSortFields := 0
 	if indexSort != nil {
 		sortFields := indexSort.GetSort()
 		numSortFields = len(sortFields)
 	}
-	WriteString(output, strconv.Itoa(numSortFields))
-	WriteNewline(output)
+	utils.WriteString(output, strconv.Itoa(numSortFields))
+	utils.WriteNewline(output)
 
 	if numSortFields > 0 {
 		for _, sortField := range indexSort.GetSort() {
@@ -320,23 +323,23 @@ func (s *SimpleTextSegmentInfoFormat) Write(dir store.Directory,
 				return errors.New("cannot serialize sort")
 			}
 
-			WriteBytes(output, SI_SORT_NAME)
-			WriteString(output, sorter.GetProviderName())
-			WriteNewline(output)
+			utils.WriteBytes(output, SI_SORT_NAME)
+			utils.WriteString(output, sorter.GetProviderName())
+			utils.WriteNewline(output)
 
-			WriteBytes(output, SI_SORT_TYPE)
-			WriteString(output, sortField.String())
-			WriteNewline(output)
+			utils.WriteBytes(output, SI_SORT_TYPE)
+			utils.WriteString(output, sortField.String())
+			utils.WriteNewline(output)
 
-			WriteBytes(output, SI_SORT_BYTES)
+			utils.WriteBytes(output, SI_SORT_BYTES)
 			buf := NewBytesOutput()
 			index.SingleSortFieldProvider.Write(sortField, buf)
-			WriteBytes(output, buf.bytes.Bytes())
-			WriteNewline(output)
+			utils.WriteBytes(output, buf.bytes.Bytes())
+			utils.WriteNewline(output)
 		}
 	}
 
-	return WriteChecksum(output)
+	return utils.WriteChecksum(output)
 }
 
 var _ store.DataOutput = &BytesOutput{}

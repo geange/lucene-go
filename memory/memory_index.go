@@ -6,6 +6,7 @@ import (
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
@@ -95,7 +96,7 @@ type MemoryIndex struct {
 
 	bytesUsed        *atomic.Int64
 	frozen           bool
-	normSimilarity   search.Similarity
+	normSimilarity   index.Similarity
 	defaultFieldType *document.FieldType
 }
 
@@ -230,7 +231,7 @@ func (m *MemoryIndex) AddField(field types.IndexableField, analyzer analysis.Ana
 }
 
 // SetSimilarity Set the Similarity to be used for calculating field norms
-func (m *MemoryIndex) SetSimilarity(similarity search.Similarity) error {
+func (m *MemoryIndex) SetSimilarity(similarity index.Similarity) error {
 	if m.frozen {
 		return errors.New("cannot set Similarity when MemoryIndex is frozen")
 	}
@@ -416,10 +417,10 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 }
 
 func (m *MemoryIndex) storeDocValues(info *Info, docValuesType types.DocValuesType, docValuesValue interface{}) error {
-	fieldName := info.fieldInfo.Name
+	fieldName := info.fieldInfo.Name()
 	existingDocValuesType := info.fieldInfo.GetDocValuesType()
 	if existingDocValuesType == types.DOC_VALUES_TYPE_NONE {
-		info.fieldInfo = types.NewFieldInfo(info.fieldInfo.Name, info.fieldInfo.Number, info.fieldInfo.HasVectors(),
+		info.fieldInfo = types.NewFieldInfo(info.fieldInfo.Name(), info.fieldInfo.Number(), info.fieldInfo.HasVectors(),
 			info.fieldInfo.HasPayloads(), info.fieldInfo.HasPayloads(), info.fieldInfo.GetIndexOptions(), docValuesType,
 			-1, info.fieldInfo.Attributes(), info.fieldInfo.GetPointDimensionCount(), info.fieldInfo.GetPointIndexDimensionCount(),
 			info.fieldInfo.GetPointNumBytes(), info.fieldInfo.IsSoftDeletesField())

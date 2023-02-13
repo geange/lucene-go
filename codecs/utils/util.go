@@ -1,4 +1,4 @@
-package simpletext
+package utils
 
 import (
 	"bytes"
@@ -25,6 +25,10 @@ func NewTextReader(in store.IndexInput, buf *bytes.Buffer) *TextReader {
 		in:  in,
 		buf: buf,
 	}
+}
+
+func (t *TextReader) ReadLine() error {
+	return ReadLine(t.in, t.buf)
 }
 
 func (t *TextReader) ReadLabel(label []byte) (string, error) {
@@ -57,8 +61,40 @@ func (t *TextReader) ParseInt(prefix []byte) (int, error) {
 	return strconv.Atoi(v)
 }
 
+func (t *TextReader) ParseInt64(prefix []byte) (int64, error) {
+	v, err := t.ReadLabel(prefix)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseInt(v, 10, 64)
+}
+
 type TextWriter struct {
 	out store.IndexOutput
+}
+
+func NewTextWriter(out store.IndexOutput) *TextWriter {
+	return &TextWriter{out: out}
+}
+
+func (t *TextWriter) WriteBytes(bs []byte) error {
+	return WriteBytes(t.out, bs)
+}
+
+func (t *TextWriter) WriteString(v string) error {
+	return WriteString(t.out, v)
+}
+
+func (t *TextWriter) WriteInt(v int) error {
+	return t.WriteString(strconv.Itoa(v))
+}
+
+func (t *TextWriter) WriteLong(v int64) error {
+	return t.WriteString(strconv.FormatInt(v, 10))
+}
+
+func (t *TextWriter) NewLine() error {
+	return WriteNewline(t.out)
 }
 
 func (t *TextWriter) Write(v any) error {
@@ -72,7 +108,11 @@ func (t *TextWriter) Write(v any) error {
 	}
 }
 
-func readValue(out store.IndexInput, label []byte, buf *bytes.Buffer) (string, error) {
+func (t *TextWriter) Checksum() error {
+	return WriteChecksum(t.out)
+}
+
+func ReadValue(out store.IndexInput, label []byte, buf *bytes.Buffer) (string, error) {
 	buf.Reset()
 	if err := ReadLine(out, buf); err != nil {
 		return "", err

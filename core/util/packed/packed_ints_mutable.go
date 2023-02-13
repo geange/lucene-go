@@ -8,7 +8,7 @@ import (
 // Mutable A packed integer array that can be modified.
 // lucene.internal
 type Mutable interface {
-	Reader
+	PackedIntsReader
 
 	// GetBitsPerValue Returns:
 	//the number of bits used to store any given value. Note: This does not imply that memory usage is bitsPerValue * #values as implementations are free to use non-space-optimal packing of bits.

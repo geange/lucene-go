@@ -18,7 +18,7 @@ func init() {
 	}
 }
 
-var _ Similarity = &BM25Similarity{}
+var _ index.Similarity = &BM25Similarity{}
 
 // BM25Similarity BM25 Similarity. Introduced in Stephen E. Robertson, Steve Walker, Susan Jones,
 // Micheline Hancock-Beaulieu, and Mike Gatford. Okapi at TREC-3. In Proceedings of the Third Text REtrieval
@@ -40,7 +40,9 @@ func NewBM25Similarity() (*BM25Similarity, error) {
 
 // NewBM25SimilarityV1 BM25 with the supplied parameter values.
 // Params:	k1 – Controls non-linear term frequency normalization (saturation).
-//			b – Controls to what degree document length normalizes tf values.
+//
+//	b – Controls to what degree document length normalizes tf values.
+//
 // Throws: 	IllegalArgumentException – if k1 is infinite or negative, or if b is not within the range [0..1]
 func NewBM25SimilarityV1(k1, b float64) (*BM25Similarity, error) {
 	if k1 < 0 {
@@ -84,17 +86,20 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 
 // IdfExplain Computes a Score factor for a simple term and returns an explanation for that Score factor.
 // The default implementation uses:
-//     idf(docFreq, docCount);
+//
+//	idf(docFreq, docCount);
 //
 // Note that CollectionStatistics.docCount() is used instead of IndexReader#numDocs() because
 // also TermStatistics.docFreq() is used, and when the latter is inaccurate, so is
 // CollectionStatistics.docCount(), and in the same direction. In addition, CollectionStatistics.docCount()
 // does not skew when fields are sparse.
 // Params:  collectionStats – collection-level statistics
-//			termStats – term-level statistics for the term
+//
+//	termStats – term-level statistics for the term
+//
 // Returns: an Explain object that includes both an idf Score factor and an explanation for the term.
 func (b *BM25Similarity) IdfExplain(
-	collectionStats *CollectionStatistics, termStats *TermStatistics) *Explanation {
+	collectionStats *types.CollectionStatistics, termStats *types.TermStatistics) *Explanation {
 
 	df := termStats.DocFreq()
 	docCount := collectionStats.DocCount()
@@ -114,10 +119,12 @@ func (b *BM25Similarity) IdfExplain(
 // IdfExplainV1 Computes a Score factor for a phrase.
 // The default implementation sums the idf factor for each term in the phrase.
 // Params: 	collectionStats – collection-level statistics
-//			termStats – term-level statistics for the terms in the phrase
+//
+//	termStats – term-level statistics for the terms in the phrase
+//
 // Returns: an Explain object that includes both an idf Score factor for the phrase and an explanation for each term.
 func (b *BM25Similarity) IdfExplainV1(
-	collectionStats *CollectionStatistics, termStats []TermStatistics) *Explanation {
+	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) *Explanation {
 
 	idf := 0.0
 	details := make([]Explanation, 0)
@@ -133,7 +140,7 @@ func (b *BM25Similarity) IdfExplainV1(
 }
 
 func (b *BM25Similarity) Scorer(boost float64,
-	collectionStats *CollectionStatistics, termStats []TermStatistics) SimScorer {
+	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) index.SimScorer {
 
 	var idf *Explanation
 	if len(termStats) == 1 {
@@ -164,7 +171,7 @@ func (b *BM25Similarity) GetB() float64 {
 	return b.b
 }
 
-var _ SimScorer = &BM25Scorer{}
+var _ index.SimScorer = &BM25Scorer{}
 
 type BM25Scorer struct {
 	boost  float64      // query boost
@@ -208,6 +215,6 @@ func idf(docFreq, docCount int64) float64 {
 }
 
 // The default implementation computes the average as sumTotalTermFreq / docCount
-func avgFieldLength(collectionStats *CollectionStatistics) float64 {
+func avgFieldLength(collectionStats *types.CollectionStatistics) float64 {
 	return float64(collectionStats.SumTotalTermFreq()) / float64(collectionStats.DocCount())
 }

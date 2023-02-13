@@ -9,8 +9,11 @@ import (
 // Each segment has a separate Field Info file. Objects of this class are thread-safe for multiple readers,
 // but only one thread can be adding documents at a time, with no other reader or writer threads accessing this object.
 type FieldInfo struct {
-	Name          string
-	Number        int
+	// Field's name
+	name string
+
+	// Internal field number
+	number        int
 	docValuesType DocValuesType
 
 	// True if any document indexed term vectors
@@ -42,8 +45,8 @@ func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayl
 	pointDimensionCount, pointIndexDimensionCount, pointNumBytes int, softDeletesField bool) *FieldInfo {
 
 	info := &FieldInfo{
-		Name:                     name,
-		Number:                   number,
+		name:                     name,
+		number:                   number,
 		docValuesType:            docValues,
 		storeTermVector:          storePayloads,
 		omitNorms:                false,
@@ -72,6 +75,14 @@ func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayl
 // Performs internal consistency checks. Always returns nil (or throws IllegalStateException)
 func (f *FieldInfo) checkConsistency() error {
 	return nil
+}
+
+func (f *FieldInfo) Name() string {
+	return f.name
+}
+
+func (f *FieldInfo) Number() int {
+	return f.number
 }
 
 // SetPointDimensions Record that this field is indexed with points, with the specified number of
@@ -216,7 +227,7 @@ func (f *FieldInfo) Update(storeTermVector, omitNorms, storePayloads bool, index
 		} else if f.indexOptions != INDEX_OPTIONS_NONE {
 			return fmt.Errorf(
 				`cannot change field "%s" from index options=%s to inconsistent index options=%s`,
-				f.Name, f.indexOptions, indexOptions,
+				f.Name(), f.indexOptions, indexOptions,
 			)
 		}
 	}
@@ -231,7 +242,7 @@ func (f *FieldInfo) Update(storeTermVector, omitNorms, storePayloads bool, index
 			f.pointNumBytes != dimensionNumBytes) {
 
 		return fmt.Errorf(`cannot change field "%s" from points dimensionCount=%d, indexDimensionCount=%d`,
-			f.Name, f.pointDimensionCount, f.pointIndexDimensionCount,
+			f.Name(), f.pointDimensionCount, f.pointIndexDimensionCount,
 		)
 	}
 

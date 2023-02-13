@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/codecs/utils"
 
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/index"
@@ -86,7 +87,7 @@ func (r *SimpleTextFieldsReader) readFields(in store.IndexInput) (*treemap.Map, 
 	fields := treemap.NewWithStringComparator()
 
 	for {
-		if err := ReadLine(input, scratch); err != nil {
+		if err := utils.ReadLine(input, scratch); err != nil {
 			return nil, err
 		}
 

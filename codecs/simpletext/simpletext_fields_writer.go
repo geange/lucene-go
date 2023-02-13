@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"io"
@@ -65,7 +66,7 @@ func (s *SimpleTextFieldsWriter) Close() error {
 	if err := s.newline(); err != nil {
 		return err
 	}
-	if err := WriteChecksum(s.out); err != nil {
+	if err := utils.WriteChecksum(s.out); err != nil {
 		return err
 	}
 	return s.out.Close()
@@ -284,19 +285,19 @@ func (s *SimpleTextFieldsWriter) getNorm(doc int, norms index.NumericDocValues) 
 }
 
 func (s *SimpleTextFieldsWriter) writeValue(label, value []byte) error {
-	if err := WriteBytes(s.out, label); err != nil {
+	if err := utils.WriteBytes(s.out, label); err != nil {
 		return err
 	}
-	if err := WriteBytes(s.out, value); err != nil {
+	if err := utils.WriteBytes(s.out, value); err != nil {
 		return err
 	}
-	return WriteNewline(s.out)
+	return utils.WriteNewline(s.out)
 }
 
 func (s *SimpleTextFieldsWriter) write(field []byte) error {
-	return WriteBytes(s.out, field)
+	return utils.WriteBytes(s.out, field)
 }
 
 func (s *SimpleTextFieldsWriter) newline() error {
-	return WriteNewline(s.out)
+	return utils.WriteNewline(s.out)
 }

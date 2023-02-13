@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
@@ -58,7 +59,7 @@ func NewSimpleTextDocValuesWriter(state *index.SegmentWriteState, ext string) (*
 }
 
 func (s *SimpleTextDocValuesWriter) AddNumericField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
-	if err := s.fieldSeen(field.Name); err != nil {
+	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
 
@@ -108,7 +109,7 @@ func (s *SimpleTextDocValuesWriter) AddNumericField(field *types.FieldInfo, valu
 	// write our minimum value to the .dat, all entries are deltas from that
 	writeValue(s.data, DOC_VALUES_MINVALUE, minValue)
 
-	// build up our fixed-width "simple text packed ints"
+	// buildV1 up our fixed-width "simple text packed ints"
 	// format
 	diffBig := maxValue - minValue
 	maxBytesPerValue := len(strconv.FormatInt(diffBig, 10))
@@ -150,15 +151,15 @@ func (s *SimpleTextDocValuesWriter) AddNumericField(field *types.FieldInfo, valu
 			panic("")
 		}
 
-		WriteString(s.data, fmt.Sprintf(fmtStr, value-minValue))
-		WriteNewline(s.data)
+		utils.WriteString(s.data, fmt.Sprintf(fmtStr, value-minValue))
+		utils.WriteNewline(s.data)
 
 		if values.DocID() != i {
-			WriteString(s.data, "F")
+			utils.WriteString(s.data, "F")
 		} else {
-			WriteString(s.data, "T")
+			utils.WriteString(s.data, "T")
 		}
-		WriteNewline(s.data)
+		utils.WriteNewline(s.data)
 		numDocsWritten++
 		if numDocsWritten <= s.numDocs {
 			panic("")
@@ -172,7 +173,7 @@ func (s *SimpleTextDocValuesWriter) AddNumericField(field *types.FieldInfo, valu
 }
 
 func (s *SimpleTextDocValuesWriter) AddBinaryField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
-	if err := s.fieldSeen(field.Name); err != nil {
+	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
 
@@ -252,21 +253,21 @@ func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *types.FieldInfo, val
 			if err != nil {
 				return err
 			}
-			WriteBytes(s.data, bs)
+			utils.WriteBytes(s.data, bs)
 		}
 
 		// pad to fit
 		for j := length; j < maxLength; j++ {
 			s.data.WriteByte(' ')
 		}
-		WriteNewline(s.data)
+		utils.WriteNewline(s.data)
 
 		if values.DocID() != i {
-			WriteString(s.data, "F")
+			utils.WriteString(s.data, "F")
 		} else {
-			WriteString(s.data, "T")
+			utils.WriteString(s.data, "T")
 		}
-		WriteNewline(s.data)
+		utils.WriteNewline(s.data)
 		numDocsWritten++
 	}
 
@@ -277,7 +278,7 @@ func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *types.FieldInfo, val
 }
 
 func (s *SimpleTextDocValuesWriter) AddSortedField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
-	if err := s.fieldSeen(field.Name); err != nil {
+	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
 
@@ -358,7 +359,7 @@ func (s *SimpleTextDocValuesWriter) AddSortedField(field *types.FieldInfo, value
 		for i := len(value); i < maxLength; i++ {
 			s.data.WriteByte(' ')
 		}
-		WriteNewline(s.data)
+		utils.WriteNewline(s.data)
 		valuesSeen++
 
 		if valuesSeen > valueCount {
@@ -389,14 +390,14 @@ func (s *SimpleTextDocValuesWriter) AddSortedField(field *types.FieldInfo, value
 				return err
 			}
 		}
-		WriteString(s.data, fmt.Sprintf(ordEncoderFmt, ord+1))
-		WriteNewline(s.data)
+		utils.WriteString(s.data, fmt.Sprintf(ordEncoderFmt, ord+1))
+		utils.WriteNewline(s.data)
 	}
 	return nil
 }
 
 func (s *SimpleTextDocValuesWriter) AddSortedNumericField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
-	if err := s.fieldSeen(field.Name); err != nil {
+	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
 
@@ -517,19 +518,19 @@ func (s *SimpleTextDocValuesWriter) fieldSeen(field string) error {
 }
 
 func (s *SimpleTextDocValuesWriter) writeFieldEntry(field *types.FieldInfo, _type types.DocValuesType) error {
-	WriteBytes(s.data, DOC_VALUES_FIELD)
-	WriteString(s.data, field.Name)
-	WriteNewline(s.data)
+	utils.WriteBytes(s.data, DOC_VALUES_FIELD)
+	utils.WriteString(s.data, field.Name())
+	utils.WriteNewline(s.data)
 
-	WriteBytes(s.data, DOC_VALUES_TYPE)
-	WriteString(s.data, _type.String())
-	return WriteNewline(s.data)
+	utils.WriteBytes(s.data, DOC_VALUES_TYPE)
+	utils.WriteString(s.data, _type.String())
+	return utils.WriteNewline(s.data)
 }
 
 func (s *SimpleTextDocValuesWriter) Close() error {
 	if s.data != nil {
-		WriteBytes(s.data, DOC_VALUES_END)
-		WriteNewline(s.data)
+		utils.WriteBytes(s.data, DOC_VALUES_END)
+		utils.WriteNewline(s.data)
 		if err := s.data.Close(); err != nil {
 			return err
 		}

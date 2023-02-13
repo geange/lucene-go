@@ -57,10 +57,10 @@ func (f *FieldInfosBuilder) GetOrAdd(name string) (*types.FieldInfo, error) {
 			0, 0, 0, isSoftDeletesField)
 		//assert !byName.containsKey(fi.name);
 		if err := f.globalFieldNumbers.verifyConsistentDocValuesType(
-			fi.Number, fi.Name, types.DOC_VALUES_TYPE_NONE); err != nil {
+			fi.Number(), fi.Name(), types.DOC_VALUES_TYPE_NONE); err != nil {
 			return nil, err
 		}
-		f.byName[fi.Name] = fi
+		f.byName[fi.Name()] = fi
 	}
 
 	return fi, nil
@@ -72,7 +72,7 @@ func (f *FieldInfosBuilder) AddFieldInfo(fi *types.FieldInfo) (*types.FieldInfo,
 
 func (f *FieldInfosBuilder) AddFieldInfoV(fi *types.FieldInfo, dvGen int64) (*types.FieldInfo, error) {
 	// IMPORTANT - reuse the field number if possible for consistent field numbers across segments
-	return f.addOrUpdateInternal(fi.Name, fi.Number, fi.HasVectors(),
+	return f.addOrUpdateInternal(fi.Name(), fi.Number(), fi.HasVectors(),
 		fi.OmitsNorms(), fi.HasPayloads(),
 		fi.GetIndexOptions(), fi.GetDocValuesType(), dvGen,
 		fi.Attributes(),
@@ -109,10 +109,10 @@ func (f *FieldInfosBuilder) addOrUpdateInternal(name string, preferredFieldNumbe
 			storePayloads, indexOptions, docValues, dvGen, attributes, dataDimensionCount,
 			indexDimensionCount, dimensionNumBytes, isSoftDeletesField)
 		//assert !byName.containsKey(fi.name);
-		if err := f.globalFieldNumbers.verifyConsistentDocValuesType(fi.Number, fi.Name, fi.GetDocValuesType()); err != nil {
+		if err := f.globalFieldNumbers.verifyConsistentDocValuesType(fi.Number(), fi.Name(), fi.GetDocValuesType()); err != nil {
 			return nil, err
 		}
-		f.byName[fi.Name] = fi
+		f.byName[fi.Name()] = fi
 	} else {
 		if err := fi.Update(storeTermVector, omitNorms, storePayloads,
 			indexOptions, attributes, dataDimensionCount,
@@ -127,7 +127,7 @@ func (f *FieldInfosBuilder) addOrUpdateInternal(name string, preferredFieldNumbe
 				// Must also update docValuesType map so it's
 				// aware of this field's DocValuesType.  This will throw IllegalArgumentException if
 				// an illegal type change was attempted.
-				if err := f.globalFieldNumbers.setDocValuesType(fi.Number, name, docValues); err != nil {
+				if err := f.globalFieldNumbers.setDocValuesType(fi.Number(), name, docValues); err != nil {
 					return nil, err
 				}
 			}

@@ -14,11 +14,11 @@ func newMemoryIndexPointValues(info *Info) *MemoryIndexPointValues {
 	return &MemoryIndexPointValues{info: info}
 }
 
-func (m *MemoryIndexPointValues) Intersect(visitor index.IntersectVisitor) error {
+func (m *MemoryIndexPointValues) Intersect(visitor *index.IntersectVisitor) error {
 	values := m.info.pointValues
 	visitor.Grow(m.info.pointValuesCount)
 	for i := 0; i < m.info.pointValuesCount; i++ {
-		err := visitor.Visit(0, values[i])
+		err := visitor.VisitLeaf(0, values[i])
 		if err != nil {
 			return err
 		}
@@ -26,7 +26,7 @@ func (m *MemoryIndexPointValues) Intersect(visitor index.IntersectVisitor) error
 	return nil
 }
 
-func (m *MemoryIndexPointValues) EstimatePointCount(visitor index.IntersectVisitor) int64 {
+func (m *MemoryIndexPointValues) EstimatePointCount(visitor *index.IntersectVisitor) int64 {
 	return 1
 }
 

@@ -28,3 +28,7 @@ type IndexableField interface {
 	// Value 内容信息
 	Value() interface{}
 }
+
+type IndexableFieldIterator interface {
+	Iterator() func() IndexableField
+}

@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"reflect"
 )
 
@@ -40,7 +41,7 @@ type IndexSearcher struct {
 	//executor
 
 	// the default Similarity
-	similarity Similarity
+	similarity index.Similarity
 
 	queryCache         QueryCache
 	queryCachingPolicy QueryCachingPolicy
@@ -71,7 +72,7 @@ func (r *IndexSearcher) GetTopReaderContext() index.IndexReaderContext {
 	return r.readerContext
 }
 
-func (r *IndexSearcher) SetSimilarity(similarity Similarity) {
+func (r *IndexSearcher) SetSimilarity(similarity index.Similarity) {
 	r.similarity = similarity
 }
 
@@ -149,12 +150,12 @@ func (r *IndexSearcher) Rewrite(query Query) (Query, error) {
 
 // GetSimilarity Expert: Get the Similarity to use to compute scores. This returns the Similarity
 // that has been set through setSimilarity(Similarity) or the default Similarity if none has been set explicitly.
-func (r *IndexSearcher) GetSimilarity() Similarity {
+func (r *IndexSearcher) GetSimilarity() index.Similarity {
 	return r.similarity
 }
 
 // CollectionStatistics Returns CollectionStatistics for a field, or null if the field does not exist (has no indexed terms) This can be overridden for example, to return a field's statistics across a distributed collection.
-func (r *IndexSearcher) CollectionStatistics(field string) (*CollectionStatistics, error) {
+func (r *IndexSearcher) CollectionStatistics(field string) (*types.CollectionStatistics, error) {
 	docCount := 0
 	sumTotalTermFreq := int64(0)
 	sumDocFreq := int64(0)
@@ -196,18 +197,18 @@ func (r *IndexSearcher) CollectionStatistics(field string) (*CollectionStatistic
 		return nil, nil
 	}
 
-	return NewCollectionStatistics(field, int64(r.reader.MaxDoc()), int64(docCount), sumTotalTermFreq, sumDocFreq)
+	return types.NewCollectionStatistics(field, int64(r.reader.MaxDoc()), int64(docCount), sumTotalTermFreq, sumDocFreq)
 }
 
 // TermStatistics Returns TermStatistics for a term.
-//This can be overridden for example, to return a term's statistics across a distributed collection.
-//Params:
-//docFreq – The document frequency of the term. It must be greater or equal to 1.
-//totalTermFreq – The total term frequency.
-//Returns:
-//A TermStatistics (never null).
-func (r *IndexSearcher) TermStatistics(term *index.Term, docFreq, totalTermFreq int) (*TermStatistics, error) {
-	return NewTermStatistics(term.Bytes(), int64(docFreq), int64(totalTermFreq))
+// This can be overridden for example, to return a term's statistics across a distributed collection.
+// Params:
+// docFreq – The document frequency of the term. It must be greater or equal to 1.
+// totalTermFreq – The total term frequency.
+// Returns:
+// A TermStatistics (never null).
+func (r *IndexSearcher) TermStatistics(term *index.Term, docFreq, totalTermFreq int) (*types.TermStatistics, error) {
+	return types.NewTermStatistics(term.Bytes(), int64(docFreq), int64(totalTermFreq))
 }
 
 type LeafSlice struct {

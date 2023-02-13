@@ -38,9 +38,9 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 	tmap := treeset.NewWith(func(a, b interface{}) int {
 		info1 := a.(*types.FieldInfo)
 		info2 := b.(*types.FieldInfo)
-		if info1.Number == info2.Number {
+		if info1.Number() == info2.Number() {
 			return 0
-		} else if info1.Number > info2.Number {
+		} else if info1.Number() > info2.Number() {
 			return 1
 		} else {
 			return -1
@@ -49,8 +49,8 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 
 	max := 0
 	for _, info := range infos {
-		if info.Number > max {
-			max = info.Number
+		if info.Number() > max {
+			max = info.Number()
 		}
 	}
 
@@ -59,7 +59,7 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 	}
 
 	for _, info := range infos {
-		if info.Number < 0 {
+		if info.Number() < 0 {
 			panic("")
 		}
 
@@ -69,10 +69,10 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 
 		tmap.Add(info)
 
-		if _, ok := this.byName[info.Name]; ok {
+		if _, ok := this.byName[info.Name()]; ok {
 			panic("")
 		} else {
-			this.byName[info.Name] = info
+			this.byName[info.Name()] = info
 		}
 
 		hasVectors = hasVectors || info.HasVectors()
@@ -85,10 +85,10 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 		hasPointValues = hasPointValues || info.GetPointDimensionCount() != 0
 
 		if info.IsSoftDeletesField() {
-			if softDeletesField == info.Name {
+			if softDeletesField == info.Name() {
 				panic("")
 			}
-			softDeletesField = info.Name
+			softDeletesField = info.Name()
 		}
 	}
 

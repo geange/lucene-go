@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"fmt"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"io"
@@ -66,13 +67,13 @@ func (s *SimpleTextCompoundFormat) Write(dir store.Directory, si *index.SegmentI
 
 	for i, name := range names {
 		// write header for file
-		if err := WriteBytes(out, COMPOUND_FORMAT_HEADER); err != nil {
+		if err := utils.WriteBytes(out, COMPOUND_FORMAT_HEADER); err != nil {
 			return err
 		}
-		if err := WriteString(out, name); err != nil {
+		if err := utils.WriteString(out, name); err != nil {
 			return err
 		}
-		if err := WriteNewline(out); err != nil {
+		if err := utils.WriteNewline(out); err != nil {
 			return err
 		}
 
@@ -91,56 +92,56 @@ func (s *SimpleTextCompoundFormat) Write(dir store.Directory, si *index.SegmentI
 
 	tocPos := out.GetFilePointer()
 
-	if err := WriteBytes(out, COMPOUND_FORMAT_TABLE); err != nil {
+	if err := utils.WriteBytes(out, COMPOUND_FORMAT_TABLE); err != nil {
 		return err
 	}
-	if err := WriteString(out, strconv.Itoa(numFiles)); err != nil {
+	if err := utils.WriteString(out, strconv.Itoa(numFiles)); err != nil {
 		return err
 	}
-	if err := WriteNewline(out); err != nil {
+	if err := utils.WriteNewline(out); err != nil {
 		return err
 	}
 
 	for i, name := range names {
-		if err := WriteBytes(out, COMPOUND_FORMAT_TABLENAME); err != nil {
+		if err := utils.WriteBytes(out, COMPOUND_FORMAT_TABLENAME); err != nil {
 			return err
 		}
-		if err := WriteString(out, name); err != nil {
+		if err := utils.WriteString(out, name); err != nil {
 			return err
 		}
-		if err := WriteNewline(out); err != nil {
-			return err
-		}
-
-		if err := WriteBytes(out, COMPOUND_FORMAT_TABLESTART); err != nil {
-			return err
-		}
-		if err := WriteString(out, strconv.Itoa(int(startOffsets[i]))); err != nil {
-			return err
-		}
-		if err := WriteNewline(out); err != nil {
+		if err := utils.WriteNewline(out); err != nil {
 			return err
 		}
 
-		if err := WriteBytes(out, COMPOUND_FORMAT_TABLEEND); err != nil {
+		if err := utils.WriteBytes(out, COMPOUND_FORMAT_TABLESTART); err != nil {
 			return err
 		}
-		if err := WriteString(out, strconv.Itoa(int(endOffsets[i]))); err != nil {
+		if err := utils.WriteString(out, strconv.Itoa(int(startOffsets[i]))); err != nil {
 			return err
 		}
-		if err := WriteNewline(out); err != nil {
+		if err := utils.WriteNewline(out); err != nil {
+			return err
+		}
+
+		if err := utils.WriteBytes(out, COMPOUND_FORMAT_TABLEEND); err != nil {
+			return err
+		}
+		if err := utils.WriteString(out, strconv.Itoa(int(endOffsets[i]))); err != nil {
+			return err
+		}
+		if err := utils.WriteNewline(out); err != nil {
 			return err
 		}
 	}
 
-	if err := WriteBytes(out, COMPOUND_FORMAT_TABLEPOS); err != nil {
+	if err := utils.WriteBytes(out, COMPOUND_FORMAT_TABLEPOS); err != nil {
 		return err
 	}
 	fmtStr := fmt.Sprintf("%%0%dd", len(OFFSETPATTERN))
-	if err := WriteString(out, fmt.Sprintf(fmtStr, tocPos)); err != nil {
+	if err := utils.WriteString(out, fmt.Sprintf(fmtStr, tocPos)); err != nil {
 		return err
 	}
-	return WriteNewline(out)
+	return utils.WriteNewline(out)
 }
 
 func (s *SimpleTextCompoundFormat) GetCompoundReader(dir store.Directory, si *index.SegmentInfo, context *store.IOContext) (index.CompoundDirectory, error) {
@@ -158,7 +159,7 @@ func (s *SimpleTextCompoundFormat) GetCompoundReader(dir store.Directory, si *in
 		return nil, err
 	}
 
-	reader := NewTextReader(in, scratch)
+	reader := utils.NewTextReader(in, scratch)
 	value, err := reader.ReadLabel(COMPOUND_FORMAT_TABLEPOS)
 	if err != nil {
 		return nil, err

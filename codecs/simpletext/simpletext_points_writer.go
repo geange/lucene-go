@@ -2,6 +2,9 @@ package simpletext
 
 import (
 	"bytes"
+	"errors"
+	"github.com/geange/lucene-go/codecs/bkd"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
@@ -42,39 +45,123 @@ type SimpleTextPointsWriter struct {
 }
 
 func NewSimpleTextPointsWriter(writeState *index.SegmentWriteState) (*SimpleTextPointsWriter, error) {
-	panic("")
+	fileName := store.SegmentFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix, POINT_EXTENSION)
+	out, err := writeState.Directory.CreateOutput(fileName, writeState.Context)
+	if err != nil {
+		return nil, err
+	}
+	writer := &SimpleTextPointsWriter{
+		PointsWriterDefault: nil,
+		dataOut:             out,
+		scratch:             new(bytes.Buffer),
+		writeState:          writeState,
+		indexFPs:            make(map[string]int64),
+	}
+	writer.PointsWriterDefault = &index.PointsWriterDefault{
+		WriteField: writer.WriteField,
+		Finish:     writer.Finish,
+	}
+	return writer, nil
 }
 
 func (s *SimpleTextPointsWriter) Close() error {
-	//TODO implement me
-	panic("implement me")
+	if s.dataOut == nil {
+		return nil
+	}
+
+	if err := s.dataOut.Close(); err != nil {
+		return err
+	}
+	s.dataOut = nil
+
+	fileName := store.SegmentFileName(s.writeState.SegmentInfo.Name(),
+		s.writeState.SegmentSuffix, POINT_INDEX_EXTENSION)
+
+	indexOut, err := s.writeState.Directory.CreateOutput(fileName, s.writeState.Context)
+	if err != nil {
+		return err
+	}
+	count := len(s.indexFPs)
+
+	w := utils.NewTextWriter(indexOut)
+	w.WriteBytes(FIELD_COUNT)
+	w.WriteInt(count)
+	w.NewLine()
+
+	for k, v := range s.indexFPs {
+		w.WriteBytes(FIELD_FP_NAME)
+		w.WriteString(k)
+		w.NewLine()
+
+		w.WriteBytes(FIELD_FP)
+		w.WriteInt(int(v))
+		w.NewLine()
+	}
+	return w.Checksum()
 }
 
 func (s *SimpleTextPointsWriter) WriteField(fieldInfo *types.FieldInfo, reader index.PointsReader) error {
-	//values, err := reader.GetValues(fieldInfo.Name)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//config, err := bkd.NewBKDConfig(
-	//	fieldInfo.GetPointDimensionCount(),
-	//	fieldInfo.GetPointIndexDimensionCount(),
-	//	fieldInfo.GetPointNumBytes(),
-	//	bkd.DEFAULT_MAX_POINTS_IN_LEAF_NODE,
-	//)
-	//if err != nil {
-	//	return err
-	//}
+	values, err := reader.GetValues(fieldInfo.Name())
+	if err != nil {
+		return err
+	}
 
-	panic("")
+	config, err := bkd.NewBKDConfig(
+		fieldInfo.GetPointDimensionCount(),
+		fieldInfo.GetPointIndexDimensionCount(),
+		fieldInfo.GetPointNumBytes(),
+		bkd.DEFAULT_MAX_POINTS_IN_LEAF_NODE,
+	)
+	if err != nil {
+		return err
+	}
+
+	maxDoc, err := s.writeState.SegmentInfo.MaxDoc()
+	if err != nil {
+		return err
+	}
+	writer := NewSimpleTextBKDWriter(maxDoc,
+		s.writeState.Directory,
+		s.writeState.SegmentInfo.Name(),
+		config,
+		DEFAULT_MAX_MB_SORT_IN_HEAP,
+		values.Size())
+
+	err = values.Intersect(&index.IntersectVisitor{
+		VisitByDocID: func(docID int) error {
+			return errors.New("illegal State")
+		},
+		VisitLeaf: func(docID int, packedValue []byte) error {
+			return writer.Add(packedValue, docID)
+		},
+		Compare: func(minPackedValue, maxPackedValue []byte) index.Relation {
+			return index.CELL_CROSSES_QUERY
+		},
+		Grow: func(count int) {
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// We could have 0 points on merge since all docs with points may be deleted:
+	if writer.GetPointCount() > 0 {
+		fp, err := writer.Finish(s.dataOut)
+		if err != nil {
+			return err
+		}
+		s.indexFPs[fieldInfo.Name()] = fp
+	}
+
+	return s.dataOut.Close()
 }
 
 func (s *SimpleTextPointsWriter) Finish() error {
-	if err := WriteBytes(s.dataOut, END); err != nil {
+	if err := utils.WriteBytes(s.dataOut, END); err != nil {
 		return err
 	}
-	if err := WriteNewline(s.dataOut); err != nil {
+	if err := utils.WriteNewline(s.dataOut); err != nil {
 		return err
 	}
-	return WriteChecksum(s.dataOut)
+	return utils.WriteChecksum(s.dataOut)
 }

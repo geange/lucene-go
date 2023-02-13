@@ -1,4 +1,4 @@
-package search
+package types
 
 import (
 	"errors"
@@ -25,11 +25,14 @@ type TermStatistics struct {
 
 // NewTermStatistics Creates statistics instance for a term.
 // Params: 	term – Term bytes
-//			docFreq – number of documents containing the term in the collection.
-//			totalTermFreq – number of occurrences of the term in the collection.
+//
+//	docFreq – number of documents containing the term in the collection.
+//	totalTermFreq – number of occurrences of the term in the collection.
+//
 // Throws: 	NullPointerException – if term is null.
-//			IllegalArgumentException – if docFreq is negative or zero.
-//			IllegalArgumentException – if totalTermFreq is less than docFreq.
+//
+//	IllegalArgumentException – if docFreq is negative or zero.
+//	IllegalArgumentException – if totalTermFreq is less than docFreq.
 func NewTermStatistics(term []byte, docFreq, totalTermFreq int64) (*TermStatistics, error) {
 	if len(term) == 0 {
 		return nil, errors.New("term require not nil")

@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 // TermQuery A Query that matches documents containing a term. This may be combined with other terms with a BooleanQuery.
@@ -53,8 +54,8 @@ var _ Weight = &TermWeight{}
 type TermWeight struct {
 	*WeightImp
 
-	similarity Similarity
-	simScorer  SimScorer
+	similarity index.Similarity
+	simScorer  index.SimScorer
 	termStates *index.TermStates
 	scoreMode  *ScoreMode
 
@@ -142,8 +143,8 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 
 	weight.WeightImp = NewWeightImp(weight, weight)
 
-	var collectionStats *CollectionStatistics
-	var termStats *TermStatistics
+	var collectionStats *types.CollectionStatistics
+	var termStats *types.TermStatistics
 	var err error
 	if scoreMode.NeedsScores() {
 		collectionStats, err = searcher.CollectionStatistics(t.term.Field())
@@ -173,11 +174,11 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 		}
 	} else {
 		var err error
-		collectionStats, err = NewCollectionStatistics(t.term.Field(), 1, 1, 1, 1)
+		collectionStats, err = types.NewCollectionStatistics(t.term.Field(), 1, 1, 1, 1)
 		if err != nil {
 			return nil, err
 		}
-		termStats, err = NewTermStatistics(t.term.Bytes(), 1, 1)
+		termStats, err = types.NewTermStatistics(t.term.Bytes(), 1, 1)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +187,7 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 	if termStats == nil {
 		weight.simScorer = nil
 	} else {
-		weight.simScorer = weight.similarity.Scorer(boost, collectionStats, []TermStatistics{*termStats})
+		weight.simScorer = weight.similarity.Scorer(boost, collectionStats, []types.TermStatistics{*termStats})
 	}
 	return weight, nil
 }

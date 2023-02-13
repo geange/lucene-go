@@ -5,11 +5,11 @@ import (
 )
 
 type LeafSimScorer struct {
-	scorer SimScorer
+	scorer index.SimScorer
 	norms  index.NumericDocValues
 }
 
-func NewLeafSimScorer(scorer SimScorer, reader index.LeafReader,
+func NewLeafSimScorer(scorer index.SimScorer, reader index.LeafReader,
 	field string, needsScores bool) (*LeafSimScorer, error) {
 	leafSimScorer := &LeafSimScorer{scorer: scorer}
 	var err error
@@ -22,7 +22,7 @@ func NewLeafSimScorer(scorer SimScorer, reader index.LeafReader,
 	return leafSimScorer, nil
 }
 
-func (r *LeafSimScorer) GetSimScorer() SimScorer {
+func (r *LeafSimScorer) GetSimScorer() index.SimScorer {
 	return r.scorer
 }
 

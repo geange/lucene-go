@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/fst"
@@ -72,7 +73,7 @@ func (s *textTerms) loadTerms() error {
 	for {
 		s.scratch.Reset()
 
-		if err := ReadLine(in, s.scratch); err != nil {
+		if err := utils.ReadLine(in, s.scratch); err != nil {
 			return err
 		}
 

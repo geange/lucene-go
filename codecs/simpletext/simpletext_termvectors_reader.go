@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"github.com/emirpasic/gods/maps/treemap"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"io"
@@ -55,12 +56,12 @@ func (s *SimpleTextTermVectorsReader) readIndex(size int) error {
 		}
 
 	}
-	return CheckFooter(input)
+	return utils.CheckFooter(input)
 }
 
 func (s *SimpleTextTermVectorsReader) readLine() error {
 	s.scratch.Reset()
-	return ReadLine(s.in, s.scratch)
+	return utils.ReadLine(s.in, s.scratch)
 }
 
 func (s *SimpleTextTermVectorsReader) Close() error {
@@ -78,7 +79,9 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 		return nil, err
 	}
 
-	value, err := readValue(s.in, VECTORS_NUMFIELDS, s.scratch)
+	r := utils.NewTextReader(s.in, s.scratch)
+
+	value, err := r.ReadLabel(VECTORS_NUMFIELDS)
 	if err != nil {
 		return nil, err
 	}
@@ -92,17 +95,17 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 
 	for i := 0; i < numFields; i++ {
 		// skip fieldNumber:
-		_, err := readValue(s.in, VECTORS_FIELD, s.scratch)
+		_, err := r.ReadLabel(VECTORS_FIELD)
 		if err != nil {
 			return nil, err
 		}
 
-		fieldName, err := readValue(s.in, VECTORS_FIELDNAME, s.scratch)
+		fieldName, err := r.ReadLabel(VECTORS_FIELDNAME)
 		if err != nil {
 			return nil, err
 		}
 
-		value, err = readValue(s.in, VECTORS_FIELDPOSITIONS, s.scratch)
+		value, err = r.ReadLabel(VECTORS_FIELDPOSITIONS)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +114,7 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 			return nil, err
 		}
 
-		value, err = readValue(s.in, VECTORS_FIELDOFFSETS, s.scratch)
+		value, err = r.ReadLabel(VECTORS_FIELDOFFSETS)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +123,7 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 			return nil, err
 		}
 
-		value, err = readValue(s.in, VECTORS_FIELDPAYLOADS, s.scratch)
+		value, err = r.ReadLabel(VECTORS_FIELDPAYLOADS)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +132,7 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 			return nil, err
 		}
 
-		value, err = readValue(s.in, VECTORS_FIELDTERMCOUNT, s.scratch)
+		value, err = r.ReadLabel(VECTORS_FIELDTERMCOUNT)
 		if err != nil {
 			return nil, err
 		}
@@ -142,14 +145,14 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 		fields.Put(fieldName, terms)
 
 		for j := 0; j < termCount; j++ {
-			value, err := readValue(s.in, VECTORS_TERMTEXT, s.scratch)
+			value, err := r.ReadLabel(VECTORS_TERMTEXT)
 			if err != nil {
 				return nil, err
 			}
 			postings := NewSimpleTVPostings()
 
 			terms.terms.Put(value, postings)
-			value, err = readValue(s.in, VECTORS_TERMFREQ, s.scratch)
+			value, err = r.ReadLabel(VECTORS_TERMFREQ)
 			if err != nil {
 				return nil, err
 			}
@@ -174,7 +177,7 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 
 				for k := 0; k < postings.freq; k++ {
 					if positions {
-						v, err := readValue(s.in, VECTORS_POSITION, s.scratch)
+						v, err := r.ReadLabel(VECTORS_POSITION)
 						if err != nil {
 							return nil, err
 						}
@@ -183,7 +186,7 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 							return nil, err
 						}
 						if payloads {
-							value, err := readValue(s.in, VECTORS_PAYLOAD, s.scratch)
+							value, err := r.ReadLabel(VECTORS_PAYLOAD)
 							if err != nil {
 								return nil, err
 							}
@@ -195,7 +198,7 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 					}
 
 					if offsets {
-						value, err := readValue(s.in, VECTORS_STARTOFFSET, s.scratch)
+						value, err := r.ReadLabel(VECTORS_STARTOFFSET)
 						if err != nil {
 							return nil, err
 						}
@@ -204,7 +207,7 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 							return nil, err
 						}
 
-						value, err = readValue(s.in, VECTORS_ENDOFFSET, s.scratch)
+						value, err = r.ReadLabel(VECTORS_ENDOFFSET)
 						if err != nil {
 							return nil, err
 						}

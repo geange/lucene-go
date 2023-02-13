@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
@@ -44,7 +45,9 @@ func (s *SimpleTextLiveDocsFormat) ReadLiveDocs(dir store.Directory, info index.
 	}
 	defer in.Close()
 
-	value, err := readValue(in, LIVE_DOCS_FORMAT_SIZE, scratch)
+	r := utils.NewTextReader(in, scratch)
+
+	value, err := r.ReadLabel(LIVE_DOCS_FORMAT_SIZE)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +58,7 @@ func (s *SimpleTextLiveDocsFormat) ReadLiveDocs(dir store.Directory, info index.
 
 	bits := bitset.New(uint(size))
 
-	if err := ReadLine(in, scratch); err != nil {
+	if err := r.ReadLine(); err != nil {
 		return nil, err
 	}
 	for !bytes.HasPrefix(scratch.Bytes(), LIVE_DOCS_FORMAT_END) {
@@ -66,11 +69,11 @@ func (s *SimpleTextLiveDocsFormat) ReadLiveDocs(dir store.Directory, info index.
 		}
 		bits.Set(uint(docid))
 
-		if err := ReadLine(in, scratch); err != nil {
+		if err := r.ReadLine(); err != nil {
 			return nil, err
 		}
 	}
-	if err := CheckFooter(in); err != nil {
+	if err := utils.CheckFooter(in); err != nil {
 		return nil, err
 	}
 	return NewSimpleTextBits(bits, size), nil
@@ -97,13 +100,13 @@ func (s *SimpleTextLiveDocsFormat) WriteLiveDocs(bits util.Bits, dir store.Direc
 		}
 	}
 
-	if err := WriteBytes(out, LIVE_DOCS_FORMAT_END); err != nil {
+	if err := utils.WriteBytes(out, LIVE_DOCS_FORMAT_END); err != nil {
 		return err
 	}
-	if err := WriteNewline(out); err != nil {
+	if err := utils.WriteNewline(out); err != nil {
 		return err
 	}
-	if err := WriteChecksum(out); err != nil {
+	if err := utils.WriteChecksum(out); err != nil {
 		return err
 	}
 	return nil

@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"errors"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
@@ -12,8 +13,6 @@ import (
 var _ index.PointValues = &SimpleTextBKDReader{}
 
 type SimpleTextBKDReader struct {
-	*TextReader
-
 	splitPackedValues      []byte
 	leafBlockFPs           []int64
 	leafNodeOffset         int
@@ -32,7 +31,46 @@ type SimpleTextBKDReader struct {
 	packedIndexBytesLength int
 }
 
-func (s *SimpleTextBKDReader) Intersect(visitor index.IntersectVisitor) error {
+func NewSimpleTextBKDReader(in store.IndexInput, numDims, numIndexDims, maxPointsInLeafNode, bytesPerDim int,
+	leafBlockFPs []int64, splitPackedValues []byte, minPackedValue, maxPackedValue []byte,
+	pointCount int64, docCount int) (*SimpleTextBKDReader, error) {
+
+	bytesPerIndexEntry := bytesPerDim + 1
+	if numIndexDims == 1 {
+		bytesPerIndexEntry = bytesPerDim
+	}
+
+	reader := &SimpleTextBKDReader{
+		splitPackedValues:      splitPackedValues,
+		leafBlockFPs:           leafBlockFPs,
+		leafNodeOffset:         len(leafBlockFPs),
+		numDims:                numDims,
+		numIndexDims:           numIndexDims,
+		bytesPerDim:            bytesPerDim,
+		bytesPerIndexEntry:     bytesPerIndexEntry,
+		in:                     in,
+		maxPointsInLeafNode:    maxPointsInLeafNode,
+		minPackedValue:         minPackedValue,
+		maxPackedValue:         maxPackedValue,
+		pointCount:             pointCount,
+		docCount:               docCount,
+		version:                VERSION_CURRENT,
+		packedBytesLength:      numDims * bytesPerDim,
+		packedIndexBytesLength: numIndexDims * bytesPerDim,
+	}
+
+	if len(minPackedValue) != reader.packedIndexBytesLength {
+		return nil, errors.New("len(minPackedValue) != reader.packedIndexBytesLength")
+	}
+
+	if len(maxPackedValue) != reader.packedIndexBytesLength {
+		return nil, errors.New("len(maxPackedValue) != reader.packedIndexBytesLength")
+	}
+
+	return reader, nil
+}
+
+func (s *SimpleTextBKDReader) Intersect(visitor *index.IntersectVisitor) error {
 	return s.intersect(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue)
 }
 
@@ -51,7 +89,7 @@ func (s *SimpleTextBKDReader) addAll(state *IntersectState, nodeID int) error {
 }
 
 // Create a new SimpleTextBKDReader.IntersectState
-func (s *SimpleTextBKDReader) getIntersectState(visitor index.IntersectVisitor) *IntersectState {
+func (s *SimpleTextBKDReader) getIntersectState(visitor *index.IntersectVisitor) *IntersectState {
 	return s.NewIntersectState(s.in.Clone(), s.numDims,
 		s.packedBytesLength, s.maxPointsInLeafNode, visitor)
 }
@@ -131,27 +169,27 @@ func (s *SimpleTextBKDReader) intersect(state *IntersectState, nodeID int, cellM
 	return nil
 }
 
-func (s *SimpleTextBKDReader) visitDocIDs(in store.IndexInput, blockFP int64, visitor index.IntersectVisitor) error {
+func (s *SimpleTextBKDReader) visitDocIDs(in store.IndexInput, blockFP int64, visitor *index.IntersectVisitor) error {
 	scratch := new(bytes.Buffer)
 	if _, err := in.Seek(blockFP, io.SeekStart); err != nil {
 		return err
 	}
 
-	if err := ReadLine(in, scratch); err != nil {
+	if err := utils.ReadLine(in, scratch); err != nil {
 		return err
 	}
 
-	count, err := ParseInt(scratch, BLOCK_COUNT)
+	count, err := utils.ParseInt(scratch, BLOCK_COUNT)
 	if err != nil {
 		return err
 	}
 
 	visitor.Grow(count)
 	for i := 0; i < count; i++ {
-		if err := ReadLine(in, scratch); err != nil {
+		if err := utils.ReadLine(in, scratch); err != nil {
 			return err
 		}
-		docID, err := ParseInt(scratch, BLOCK_DOC_ID)
+		docID, err := utils.ParseInt(scratch, BLOCK_DOC_ID)
 		if err != nil {
 			return err
 		}
@@ -169,20 +207,20 @@ func (s *SimpleTextBKDReader) readDocIDs(in store.IndexInput, blockFP int64, doc
 		return 0, err
 	}
 
-	if err := ReadLine(in, scratch); err != nil {
+	if err := utils.ReadLine(in, scratch); err != nil {
 		return 0, err
 	}
 
-	count, err := ParseInt(scratch, BLOCK_COUNT)
+	count, err := utils.ParseInt(scratch, BLOCK_COUNT)
 	if err != nil {
 		return 0, err
 	}
 
 	for idx := 0; idx < count; idx++ {
-		if err := ReadLine(in, scratch); err != nil {
+		if err := utils.ReadLine(in, scratch); err != nil {
 			return 0, err
 		}
-		docID, err := ParseInt(scratch, BLOCK_DOC_ID)
+		docID, err := utils.ParseInt(scratch, BLOCK_DOC_ID)
 		if err != nil {
 			return 0, err
 		}
@@ -192,7 +230,7 @@ func (s *SimpleTextBKDReader) readDocIDs(in store.IndexInput, blockFP int64, doc
 }
 
 func (s *SimpleTextBKDReader) visitDocValues(commonPrefixLengths []int, scratchPackedValue []byte,
-	in store.IndexInput, docIDs []int, count int, visitor index.IntersectVisitor) error {
+	in store.IndexInput, docIDs []int, count int, visitor *index.IntersectVisitor) error {
 
 	visitor.Grow(count)
 	// NOTE: we don't do prefix coding, so we ignore commonPrefixLengths
@@ -200,7 +238,7 @@ func (s *SimpleTextBKDReader) visitDocValues(commonPrefixLengths []int, scratchP
 
 	scratch := new(bytes.Buffer)
 	for idx := 0; idx < count; idx++ {
-		if err := ReadLine(in, scratch); err != nil {
+		if err := utils.ReadLine(in, scratch); err != nil {
 			return err
 		}
 
@@ -220,14 +258,14 @@ func (s *SimpleTextBKDReader) visitDocValues(commonPrefixLengths []int, scratchP
 		}
 
 		copy(scratchPackedValue, br)
-		if err := visitor.Visit(docIDs[idx], scratchPackedValue); err != nil {
+		if err := visitor.VisitLeaf(docIDs[idx], scratchPackedValue); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *SimpleTextBKDReader) EstimatePointCount(visitor index.IntersectVisitor) int64 {
+func (s *SimpleTextBKDReader) EstimatePointCount(visitor *index.IntersectVisitor) int64 {
 	return s.estimatePointCount(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue)
 }
 
@@ -309,12 +347,12 @@ type IntersectState struct {
 	scratchDocIDs       []int
 	scratchPackedValue  []byte
 	commonPrefixLengths []int
-	visitor             index.IntersectVisitor
+	visitor             *index.IntersectVisitor
 }
 
 func (s *SimpleTextBKDReader) NewIntersectState(in store.IndexInput,
 	numDims, packedBytesLength, maxPointsInLeafNode int,
-	visitor index.IntersectVisitor) *IntersectState {
+	visitor *index.IntersectVisitor) *IntersectState {
 
 	return &IntersectState{
 		reader:              s,

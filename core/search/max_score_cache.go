@@ -8,12 +8,12 @@ import (
 // expensive similarity score computations multiple times on the same data.
 type MaxScoreCache struct {
 	impactsSource     index.ImpactsSource
-	scorer            SimScorer
+	scorer            index.SimScorer
 	maxScoreCache     []float64
 	maxScoreCacheUpTo []int
 }
 
-func NewMaxScoreCache(impactsSource index.ImpactsSource, scorer SimScorer) *MaxScoreCache {
+func NewMaxScoreCache(impactsSource index.ImpactsSource, scorer index.SimScorer) *MaxScoreCache {
 	return &MaxScoreCache{
 		impactsSource:     impactsSource,
 		scorer:            scorer,

@@ -35,6 +35,10 @@ func NewSimpleTextCodec() *SimpleTextCodec {
 	}
 }
 
+func (s *SimpleTextCodec) GetName() string {
+	return "SimpleText"
+}
+
 func (s *SimpleTextCodec) PostingsFormat() index.PostingsFormat {
 	return s.postings
 }

@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"errors"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -22,6 +23,17 @@ type PagedBytes struct {
 	upto              int
 	currentBlock      []byte
 	bytesUsedPerBlock int64
+}
+
+func NewPagedBytes(blockBits int) *PagedBytes {
+	blockSize := 1 << blockBits
+	return &PagedBytes{
+		blockSize: blockSize,
+		blockBits: blockBits,
+		blockMask: blockSize - 1,
+		upto:      blockSize,
+		numBlocks: 0,
+	}
 }
 
 func (r *PagedBytes) GetPointer() int64 {
@@ -87,8 +99,87 @@ func (r *PagedBytes) CopyV2(bytes []byte, out *bytes.Buffer) error {
 	return nil
 }
 
+// Freeze Commits final byte[], trimming it if necessary and if trim=true
+func (r *PagedBytes) Freeze(trim bool) (*PagedBytesReader, error) {
+	if r.frozen {
+		return nil, errors.New("already frozen")
+	}
+
+	if r.didSkipBytes {
+		return nil, errors.New("cannot freeze when copy(BytesRef, BytesRef) was used")
+	}
+
+	if trim && r.upto < r.blockSize {
+		newBlock := make([]byte, r.upto)
+		copy(newBlock, r.currentBlock[:r.upto])
+		r.currentBlock = newBlock
+	}
+
+	r.addBlock(r.currentBlock)
+	r.frozen = true
+	r.currentBlock = nil
+	return NewPagedBytesReader(r), nil
+}
+
+func (r *PagedBytes) GetDataInput() *PagedBytesDataInput {
+	input := NewPagedBytesDataInput(r)
+	input.DataInputDefault = store.NewDataInputDefault(&store.DataInputDefaultConfig{
+		ReadByte: input.ReadByte,
+		Read:     input.Read,
+	})
+	return input
+}
+
 // PagedBytesReader Provides methods to read BytesRefs from a frozen PagedBytes.
 type PagedBytesReader struct {
+	blocks            [][]byte
+	blockBits         int
+	blockMask         int
+	blockSize         int
+	bytesUsedPerBlock int64
+}
+
+func NewPagedBytesReader(pagedBytes *PagedBytes) *PagedBytesReader {
+	reader := &PagedBytesReader{
+		blocks:            make([][]byte, 0, len(pagedBytes.blocks)),
+		blockBits:         pagedBytes.blockBits,
+		blockMask:         pagedBytes.blockMask,
+		blockSize:         pagedBytes.blockSize,
+		bytesUsedPerBlock: pagedBytes.bytesUsedPerBlock,
+	}
+
+	for _, block := range pagedBytes.blocks {
+		newBlock := make([]byte, len(block))
+		copy(newBlock, block)
+		reader.blocks = append(reader.blocks, newBlock)
+	}
+	return reader
+}
+
+func (p *PagedBytesReader) GetByte(o int64) byte {
+	index := int(o >> p.blockBits)
+	offset := int(o & int64(p.blockMask))
+	return p.blocks[index][offset]
+}
+
+// FillSlice Gets a slice out of PagedBytes starting at start with a given length.
+// Iff the slice spans across a block border this method will allocate sufficient
+// resources and copy the paged data.
+// Slices spanning more than two blocks are not supported.
+// lucene.internal
+func (p *PagedBytesReader) FillSlice(b *bytes.Buffer, start, length int) {
+	b.Reset()
+
+	index := (int)(start >> p.blockBits)
+	offset := start & p.blockMask
+	if p.blockSize-offset >= length {
+		// Within block
+		b.Write(p.blocks[index][offset : offset+length])
+	} else {
+		// Split
+		b.Write(p.blocks[index][offset:])
+		b.Write(p.blocks[index+1][:length-(p.blockSize-offset)])
+	}
 }
 
 var _ store.DataInput = &PagedBytesDataInput{}
@@ -159,6 +250,15 @@ var _ store.DataOutput = &PagedBytesDataOutput{}
 type PagedBytesDataOutput struct {
 	*store.DataOutputDefault
 	*PagedBytes
+}
+
+func (r *PagedBytes) GetDataOutput() *PagedBytesDataOutput {
+	output := &PagedBytesDataOutput{PagedBytes: r}
+	output.DataOutputDefault = store.NewDataOutputDefault(&store.DataOutputDefaultConfig{
+		WriteByte:  output.WriteByte,
+		WriteBytes: output.Write,
+	})
+	return output
 }
 
 func (r *PagedBytesDataOutput) WriteByte(b byte) error {

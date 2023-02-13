@@ -7,6 +7,19 @@ type TrackingDirectoryWrapper struct {
 	createdFileNames map[string]struct{}
 }
 
+func NewTrackingDirectoryWrapper(dir Directory) *TrackingDirectoryWrapper {
+	wrapper := &TrackingDirectoryWrapper{
+
+		FilterDirectory: &FilterDirectory{
+			DirectoryDefault: &DirectoryDefault{},
+			in:               dir,
+		},
+		createdFileNames: nil,
+	}
+	wrapper.DirectoryDefault.DeleteFile = wrapper.DeleteFile
+	return wrapper
+}
+
 func (t *TrackingDirectoryWrapper) DeleteFile(name string) error {
 	if err := t.in.DeleteFile(name); err != nil {
 		return err

@@ -1,4 +1,4 @@
-package codecs
+package utils
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 
 const (
 	CODEC_MAGIC  = 0x3fd76c17
-	FOOTER_MAGIC = ^CODEC_MAGIC
+	FOOTER_MAGIC = 0xc02893e8
 )
 
 // WriteHeader Writes a codec header, which records both a string to identify the file and a version number. This header can be parsed and validated with checkHeader().
@@ -76,4 +76,48 @@ func CheckHeaderNoMagic(in store.DataInput, codec string, minVersion, maxVersion
 		return 0, errors.New("IndexFormatTooOld")
 	}
 	return int(actualVersion), nil
+}
+
+// FooterLength Computes the length of a codec footer.
+// Returns: length of the entire codec footer.
+// See Also: writeFooter(IndexOutput)
+func FooterLength() int {
+	return 16
+}
+
+//const (
+//	CODEC_MAGIC = 0x3fd76c17
+//
+//)
+
+// WriteFooter Writes a codec footer, which records both a checksum algorithm ID and a checksum. This footer can be parsed and validated with checkFooter().
+// CodecFooter --> Magic,AlgorithmID,Checksum
+// Magic --> Uint32. This identifies the start of the footer. It is always -1071082520.
+// AlgorithmID --> Uint32. This indicates the checksum algorithm used. Currently this is always 0, for zlib-crc32.
+// Checksum --> Uint64. The actual checksum value for all previous bytes in the stream, including the bytes from Magic and AlgorithmID.
+// Params: out – Output stream
+// Throws: IOException – If there is an I/O error writing to the underlying medium.
+func WriteFooter(out store.IndexOutput) error {
+	if err := out.WriteUint32(FOOTER_MAGIC); err != nil {
+		return err
+	}
+
+	if err := out.WriteUint32(0); err != nil {
+		return err
+	}
+
+	return writeCRC(out)
+}
+
+func writeCRC(output store.IndexOutput) error {
+	value, err := output.GetChecksum()
+	if err != nil {
+		return err
+	}
+
+	// TODO: fix it
+	//if (int(value) & 0xFFFFFFFF00000000) != 0 {
+	//	return fmt.Errorf("illegal CRC-32 checksum: %d (resource=%+v)", value, output)
+	//}
+	return output.WriteUint64(uint64(value))
 }

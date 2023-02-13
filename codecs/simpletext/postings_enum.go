@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"strconv"
@@ -48,7 +49,7 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 	var err error
 	for {
 		lineStart := s.in.GetFilePointer()
-		if err := ReadLine(s.in, s.scratch); err != nil {
+		if err := utils.ReadLine(s.in, s.scratch); err != nil {
 			return 0, err
 		}
 		//System.out.println("NEXT DOC: " + scratch.utf8ToString());
@@ -147,7 +148,7 @@ func (s *SimpleTextPostingsEnum) Freq() (int, error) {
 
 func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 	if s.readPositions {
-		if err := ReadLine(s.in, s.scratch); err != nil {
+		if err := utils.ReadLine(s.in, s.scratch); err != nil {
 			return 0, err
 		}
 		s.scratchUTF16_2.Reset()
@@ -162,7 +163,7 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 	}
 
 	if s.readOffsets {
-		if err := ReadLine(s.in, s.scratch); err != nil {
+		if err := utils.ReadLine(s.in, s.scratch); err != nil {
 			return 0, err
 		}
 		s.scratchUTF16_2.Reset()
@@ -173,7 +174,7 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 			return 0, err
 		}
 
-		if err := ReadLine(s.in, s.scratch); err != nil {
+		if err := utils.ReadLine(s.in, s.scratch); err != nil {
 			return 0, err
 		}
 		s.scratchUTF16_2.Reset()
@@ -186,7 +187,7 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 	}
 
 	fp := s.in.GetFilePointer()
-	if err := ReadLine(s.in, s.scratch); err != nil {
+	if err := utils.ReadLine(s.in, s.scratch); err != nil {
 		return 0, err
 	}
 	if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_PAYLOAD) {

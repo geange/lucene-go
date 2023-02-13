@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
@@ -80,10 +81,10 @@ func (s *SimpleTextTermVectorsWriter) FinishDocument() error {
 }
 
 func (s *SimpleTextTermVectorsWriter) StartField(info *types.FieldInfo, numTerms int, positions, offsets, payloads bool) error {
-	if err := writeValue(s.out, VECTORS_FIELD, info.Number); err != nil {
+	if err := writeValue(s.out, VECTORS_FIELD, info.Number()); err != nil {
 		return err
 	}
-	if err := writeValue(s.out, VECTORS_FIELDNAME, info.Name); err != nil {
+	if err := writeValue(s.out, VECTORS_FIELDNAME, info.Name()); err != nil {
 		return err
 	}
 	if err := writeValue(s.out, VECTORS_FIELDPOSITIONS, positions); err != nil {
@@ -154,11 +155,11 @@ func (s *SimpleTextTermVectorsWriter) Finish(fis *index.FieldInfos, numDocs int)
 	if s.numDocsWritten != numDocs {
 		return errors.New("mergeVectors produced an invalid result")
 	}
-	if err := WriteBytes(s.out, VECTORS_END); err != nil {
+	if err := utils.WriteBytes(s.out, VECTORS_END); err != nil {
 		return err
 	}
-	if err := WriteNewline(s.out); err != nil {
+	if err := utils.WriteNewline(s.out); err != nil {
 		return err
 	}
-	return WriteChecksum(s.out)
+	return utils.WriteChecksum(s.out)
 }

@@ -1,8 +1,6 @@
-package search
+package index
 
-import (
-	"github.com/geange/lucene-go/core/index"
-)
+import "github.com/geange/lucene-go/core/types"
 
 // Similarity defines the components of Lucene scoring.
 // Expert: Scoring API.
@@ -52,14 +50,14 @@ type Similarity interface {
 	// 0 is not a legal norm, so 1 is the norm that produces the highest scores.
 	// Params: state – current processing state for this field
 	// Returns: computed norm value
-	ComputeNorm(state *index.FieldInvertState) int64
+	ComputeNorm(state *FieldInvertState) int64
 
 	// Scorer Compute any collection-level weight (e.g. IDF, average document length, etc) needed for scoring a query.
 	// Params: 	boost – a multiplicative factor to apply to the produces scores
 	//			collectionStats – collection-level statistics, such as the number of tokens in the collection.
 	//			termStats – term-level statistics, such as the document frequency of a term across the collection.
 	// Returns: SimWeight object with the information this Similarity needs to Score a query.
-	Scorer(boost float64, collectionStats *CollectionStatistics, termStats []TermStatistics) SimScorer
+	Scorer(boost float64, collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) SimScorer
 }
 
 // SimScorer Stores the weight for a query across the indexed collection. This abstract implementation is empty;

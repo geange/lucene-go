@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"fmt"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -71,19 +72,19 @@ func NewSimpleTextSkipWriter(writeState *index.SegmentWriteState) (*SimpleTextSk
 func (s *SimpleTextSkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) error {
 	wroteHeader := s.wroteHeaderPerLevelMap[level]
 	if !wroteHeader {
-		WriteBytes(skipBuffer, LEVEL)
-		WriteString(skipBuffer, fmt.Sprintf("%d", level))
-		WriteNewline(skipBuffer)
+		utils.WriteBytes(skipBuffer, LEVEL)
+		utils.WriteString(skipBuffer, fmt.Sprintf("%d", level))
+		utils.WriteNewline(skipBuffer)
 
 		s.wroteHeaderPerLevelMap[level] = true
 	}
-	WriteBytes(skipBuffer, SKIP_DOC)
-	WriteString(skipBuffer, fmt.Sprintf("%d", s.curDoc))
-	WriteNewline(skipBuffer)
+	utils.WriteBytes(skipBuffer, SKIP_DOC)
+	utils.WriteString(skipBuffer, fmt.Sprintf("%d", s.curDoc))
+	utils.WriteNewline(skipBuffer)
 
-	WriteBytes(skipBuffer, SKIP_DOC_FP)
-	WriteString(skipBuffer, fmt.Sprintf("%d", s.curDocFilePointer))
-	WriteNewline(skipBuffer)
+	utils.WriteBytes(skipBuffer, SKIP_DOC_FP)
+	utils.WriteString(skipBuffer, fmt.Sprintf("%d", s.curDocFilePointer))
+	utils.WriteNewline(skipBuffer)
 
 	competitiveFreqNorms := s.curCompetitiveFreqNorms[level]
 	impacts := competitiveFreqNorms.GetCompetitiveFreqNormPairs()
@@ -91,20 +92,20 @@ func (s *SimpleTextSkipWriter) WriteSkipData(level int, skipBuffer store.IndexOu
 	if level+1 < s.NumberOfSkipLevels {
 		s.curCompetitiveFreqNorms[level+1].AddAll(competitiveFreqNorms)
 	}
-	WriteBytes(skipBuffer, IMPACTS)
-	WriteNewline(skipBuffer)
+	utils.WriteBytes(skipBuffer, IMPACTS)
+	utils.WriteNewline(skipBuffer)
 	for _, impact := range impacts {
-		WriteBytes(skipBuffer, IMPACT)
-		WriteNewline(skipBuffer)
-		WriteBytes(skipBuffer, FREQ)
-		WriteString(skipBuffer, fmt.Sprintf("%d", impact.Freq))
-		WriteNewline(skipBuffer)
-		WriteBytes(skipBuffer, NORM)
-		WriteString(skipBuffer, fmt.Sprintf("%d", impact.Norm))
-		WriteNewline(skipBuffer)
+		utils.WriteBytes(skipBuffer, IMPACT)
+		utils.WriteNewline(skipBuffer)
+		utils.WriteBytes(skipBuffer, FREQ)
+		utils.WriteString(skipBuffer, fmt.Sprintf("%d", impact.Freq))
+		utils.WriteNewline(skipBuffer)
+		utils.WriteBytes(skipBuffer, NORM)
+		utils.WriteString(skipBuffer, fmt.Sprintf("%d", impact.Norm))
+		utils.WriteNewline(skipBuffer)
 	}
-	WriteBytes(skipBuffer, IMPACTS_END)
-	WriteNewline(skipBuffer)
+	utils.WriteBytes(skipBuffer, IMPACTS_END)
+	utils.WriteNewline(skipBuffer)
 	competitiveFreqNorms.Clear()
 
 	return nil
@@ -123,10 +124,10 @@ func (s *SimpleTextSkipWriter) ResetSkip() {
 
 func (s *SimpleTextSkipWriter) WriteSkip(output store.IndexOutput) (int64, error) {
 	skipOffset := output.GetFilePointer()
-	if err := WriteBytes(output, SKIP_LIST); err != nil {
+	if err := utils.WriteBytes(output, SKIP_LIST); err != nil {
 		return 0, err
 	}
-	if err := WriteNewline(output); err != nil {
+	if err := utils.WriteNewline(output); err != nil {
 		return 0, err
 	}
 	if _, err := s.MultiLevelSkipListWriterDefault.WriteSkip(output); err != nil {
@@ -144,16 +145,16 @@ func (s *SimpleTextSkipWriter) WriteSkip(output store.IndexOutput) (int64, error
 //}
 
 func (s *SimpleTextSkipWriter) WriteLevelLength(levelLength int64, output store.IndexOutput) error {
-	WriteBytes(output, LEVEL_LENGTH)
-	WriteString(output, fmt.Sprintf("%d", levelLength))
-	WriteNewline(output)
+	utils.WriteBytes(output, LEVEL_LENGTH)
+	utils.WriteString(output, fmt.Sprintf("%d", levelLength))
+	utils.WriteNewline(output)
 	return nil
 }
 
 func (s *SimpleTextSkipWriter) WriteChildPointer(childPointer int64, skipBuffer store.DataOutput) error {
-	WriteBytes(skipBuffer, CHILD_POINTER)
-	WriteString(skipBuffer, fmt.Sprintf("%d", childPointer))
-	WriteNewline(skipBuffer)
+	utils.WriteBytes(skipBuffer, CHILD_POINTER)
+	utils.WriteString(skipBuffer, fmt.Sprintf("%d", childPointer))
+	utils.WriteNewline(skipBuffer)
 	return nil
 }
 

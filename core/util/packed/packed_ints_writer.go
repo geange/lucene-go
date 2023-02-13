@@ -1,7 +1,7 @@
 package packed
 
 import (
-	"github.com/geange/lucene-go/codecs"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -46,7 +46,7 @@ func newWriter(out store.DataOutput, valueCount int, bitsPerValue int) *writer {
 }
 
 func (w *writer) WriteHeader() error {
-	err := codecs.WriteHeader(w.out, CODEC_NAME, VERSION_CURRENT)
+	err := utils.WriteHeader(w.out, CODEC_NAME, VERSION_CURRENT)
 	if err != nil {
 		return err
 	}

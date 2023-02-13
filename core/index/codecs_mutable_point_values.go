@@ -1,10 +1,12 @@
 package index
 
+import "bytes"
+
 type MutablePointValues interface {
 	PointValues
 
 	// GetValue Set packedValue with a reference to the packed bytes of the i-th value.
-	GetValue(i int) (packedValue []byte)
+	GetValue(i int, packedValue *bytes.Buffer)
 
 	// GetByteAt Get the k-th byte of the i-th value.
 	GetByteAt(i, k int) byte

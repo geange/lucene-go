@@ -86,7 +86,7 @@ func (p *PackedWriter) Finish() error {
 func (p *PackedWriter) flush() error {
 	p.encoder.EncodeLongToBytes(p.nextValues[0:], p.nextBlocks[0:], p.iterations)
 	blockCount := p.format.ByteCount(VERSION_CURRENT, p.off, p.bitsPerValue)
-	err := p.out.WriteBytes(p.nextBlocks[:blockCount])
+	_, err := p.out.Write(p.nextBlocks[:blockCount])
 	if err != nil {
 		return err
 	}

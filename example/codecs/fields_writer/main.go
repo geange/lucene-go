@@ -114,6 +114,10 @@ type MyNormsProducer struct {
 	si *index.SegmentInfo
 }
 
+func (m *MyNormsProducer) Close() error {
+	return m.si.Dir().Close()
+}
+
 func NewMyNormsProducer(si *index.SegmentInfo) *MyNormsProducer {
 	return &MyNormsProducer{si: si}
 }

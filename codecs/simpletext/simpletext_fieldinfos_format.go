@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
@@ -58,7 +59,7 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 	}()
 	scratch := new(bytes.Buffer)
 
-	value, err := readValue(input, NUMFIELDS, scratch)
+	value, err := utils.ReadValue(input, NUMFIELDS, scratch)
 	if err != nil {
 		return nil, err
 	}
@@ -69,56 +70,56 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 	infos := make([]*types.FieldInfo, 0, size)
 
 	for i := 0; i < size; i++ {
-		value, err := readValue(input, NAME, scratch)
+		value, err := utils.ReadValue(input, NAME, scratch)
 		if err != nil {
 			return nil, err
 		}
 		name := value
 
-		value, err = readValue(input, NUMBER, scratch)
+		value, err = utils.ReadValue(input, NUMBER, scratch)
 		if err != nil {
 			return nil, err
 		}
 		fieldNumber, _ := strconv.Atoi(value)
 
-		value, err = readValue(input, INDEXOPTIONS, scratch)
+		value, err = utils.ReadValue(input, INDEXOPTIONS, scratch)
 		if err != nil {
 			return nil, err
 		}
 		indexOptions := types.StringToIndexOptions(value)
 
-		value, err = readValue(input, STORETV, scratch)
+		value, err = utils.ReadValue(input, STORETV, scratch)
 		if err != nil {
 			return nil, err
 		}
 		storeTermVector, _ := strconv.ParseBool(value)
 
-		value, err = readValue(input, PAYLOADS, scratch)
+		value, err = utils.ReadValue(input, PAYLOADS, scratch)
 		if err != nil {
 			return nil, err
 		}
 		storePayloads, _ := strconv.ParseBool(value)
 
-		value, err = readValue(input, NORMS, scratch)
+		value, err = utils.ReadValue(input, NORMS, scratch)
 		if err != nil {
 			return nil, err
 		}
 		v, _ := strconv.ParseBool(value)
 		omitNorms := !v
 
-		value, err = readValue(input, DOCVALUES, scratch)
+		value, err = utils.ReadValue(input, DOCVALUES, scratch)
 		if err != nil {
 			return nil, err
 		}
 		docValuesType := types.StringToDocValuesType(value)
 
-		value, err = readValue(input, DOCVALUES_GEN, scratch)
+		value, err = utils.ReadValue(input, DOCVALUES_GEN, scratch)
 		if err != nil {
 			return nil, err
 		}
 		dvGen, _ := strconv.Atoi(value)
 
-		value, err = readValue(input, NUM_ATTS, scratch)
+		value, err = utils.ReadValue(input, NUM_ATTS, scratch)
 		if err != nil {
 			return nil, err
 		}
@@ -127,12 +128,12 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 		atts := make(map[string]string, numAtts)
 
 		for j := 0; j < numAtts; j++ {
-			key, err := readValue(input, ATT_KEY, scratch)
+			key, err := utils.ReadValue(input, ATT_KEY, scratch)
 			if err != nil {
 				return nil, err
 			}
 
-			value, err := readValue(input, ATT_VALUE, scratch)
+			value, err := utils.ReadValue(input, ATT_VALUE, scratch)
 			if err != nil {
 				return nil, err
 			}
@@ -140,25 +141,25 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 			atts[key] = value
 		}
 
-		value, err = readValue(input, DATA_DIM_COUNT, scratch)
+		value, err = utils.ReadValue(input, DATA_DIM_COUNT, scratch)
 		if err != nil {
 			return nil, err
 		}
 		dimensionalCount, _ := strconv.Atoi(value)
 
-		value, err = readValue(input, INDEX_DIM_COUNT, scratch)
+		value, err = utils.ReadValue(input, INDEX_DIM_COUNT, scratch)
 		if err != nil {
 			return nil, err
 		}
 		indexDimensionalCount, _ := strconv.Atoi(value)
 
-		value, err = readValue(input, DIM_NUM_BYTES, scratch)
+		value, err = utils.ReadValue(input, DIM_NUM_BYTES, scratch)
 		if err != nil {
 			return nil, err
 		}
 		dimensionalNumBytes, _ := strconv.Atoi(value)
 
-		value, err = readValue(input, SOFT_DELETES, scratch)
+		value, err = utils.ReadValue(input, SOFT_DELETES, scratch)
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +171,7 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 		infos = append(infos, info)
 	}
 
-	if err := CheckFooter(input); err != nil {
+	if err := utils.CheckFooter(input); err != nil {
 		return nil, err
 	}
 
@@ -194,11 +195,11 @@ func (s *SimpleTextFieldInfosFormat) Write(directory store.Directory, segmentInf
 	}
 
 	for _, fi := range infos.List() {
-		if err := writeValue(out, NAME, fi.Name); err != nil {
+		if err := writeValue(out, NAME, fi.Name()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, NUMBER, fi.Number); err != nil {
+		if err := writeValue(out, NUMBER, fi.Number()); err != nil {
 			return err
 		}
 
@@ -262,12 +263,12 @@ func (s *SimpleTextFieldInfosFormat) Write(directory store.Directory, segmentInf
 		}
 	}
 
-	return WriteChecksum(out)
+	return utils.WriteChecksum(out)
 
 }
 
 func writeValue[T int | int64 | string | bool | []byte](out store.DataOutput, label []byte, value T) error {
-	if err := WriteBytes(out, label); err != nil {
+	if err := utils.WriteBytes(out, label); err != nil {
 		return err
 	}
 
@@ -275,30 +276,30 @@ func writeValue[T int | int64 | string | bool | []byte](out store.DataOutput, la
 
 	switch obj.(type) {
 	case int:
-		if err := WriteString(out, strconv.Itoa(obj.(int))); err != nil {
+		if err := utils.WriteString(out, strconv.Itoa(obj.(int))); err != nil {
 			return err
 		}
 	case int32:
-		if err := WriteString(out, strconv.Itoa(int(obj.(int32)))); err != nil {
+		if err := utils.WriteString(out, strconv.Itoa(int(obj.(int32)))); err != nil {
 			return err
 		}
 	case string:
-		if err := WriteString(out, obj.(string)); err != nil {
+		if err := utils.WriteString(out, obj.(string)); err != nil {
 			return err
 		}
 	case bool:
-		if err := WriteString(out, strconv.FormatBool(obj.(bool))); err != nil {
+		if err := utils.WriteString(out, strconv.FormatBool(obj.(bool))); err != nil {
 			return err
 		}
 	case int64:
-		if err := WriteString(out, strconv.FormatInt(obj.(int64), 10)); err != nil {
+		if err := utils.WriteString(out, strconv.FormatInt(obj.(int64), 10)); err != nil {
 			return err
 		}
 	case []byte:
-		if err := WriteBytes(out, obj.([]byte)); err != nil {
+		if err := utils.WriteBytes(out, obj.([]byte)); err != nil {
 			return err
 		}
 	}
 
-	return WriteNewline(out)
+	return utils.WriteNewline(out)
 }

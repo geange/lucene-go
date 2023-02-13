@@ -12,6 +12,10 @@ type FilterDirectory struct {
 	in Directory
 }
 
+func NewFilterDirectory() {
+
+}
+
 func (f *FilterDirectory) ListAll() ([]string, error) {
 	return f.in.ListAll()
 }

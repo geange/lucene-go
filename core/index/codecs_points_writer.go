@@ -31,9 +31,9 @@ func (p *PointsWriterDefault) MergeOneField(mergeState *MergeState, fieldInfo *t
 
 	for i, pointsReader := range mergeState.PointsReaders {
 		if pointsReader != nil {
-			readerFieldInfo := mergeState.FieldInfos[i].FieldInfo(fieldInfo.Name)
+			readerFieldInfo := mergeState.FieldInfos[i].FieldInfo(fieldInfo.Name())
 			if readerFieldInfo != nil && readerFieldInfo.GetPointIndexDimensionCount() > 0 {
-				values, err := pointsReader.GetValues(fieldInfo.Name)
+				values, err := pointsReader.GetValues(fieldInfo.Name())
 				if err != nil {
 					return err
 				}
@@ -84,12 +84,12 @@ type innerPointValues struct {
 	docCount int
 }
 
-func (i *innerPointValues) Intersect(visitor IntersectVisitor) error {
+func (i *innerPointValues) Intersect(visitor *IntersectVisitor) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (i *innerPointValues) EstimatePointCount(visitor IntersectVisitor) int64 {
+func (i *innerPointValues) EstimatePointCount(visitor *IntersectVisitor) int64 {
 	//TODO implement me
 	panic("implement me")
 }

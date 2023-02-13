@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"strconv"
@@ -60,7 +61,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 	var err error
 	for {
 		lineStart := s.in.GetFilePointer()
-		if err := ReadLine(s.in, s.scratch); err != nil {
+		if err := utils.ReadLine(s.in, s.scratch); err != nil {
 			return 0, err
 		}
 

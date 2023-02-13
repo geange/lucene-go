@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"errors"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
@@ -68,7 +69,7 @@ func (r *SimpleTextFieldsReader) loadTerms(term *fieldsReaderTerm) error {
 
 	visitedDocs := make(map[int]struct{}, term.maxDoc)
 	for {
-		if err := ReadLine(in, term.scratch); err != nil {
+		if err := utils.ReadLine(in, term.scratch); err != nil {
 			return err
 		}
 

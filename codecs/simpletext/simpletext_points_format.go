@@ -22,3 +22,11 @@ func (s *SimpleTextPointsFormat) FieldsWriter(state *index.SegmentWriteState) (i
 func (s *SimpleTextPointsFormat) FieldsReader(state *index.SegmentReadState) (index.PointsReader, error) {
 	return NewSimpleTextPointsReader(state)
 }
+
+const (
+	// POINT_EXTENSION Extension of points data file
+	POINT_EXTENSION = "dim"
+
+	// POINT_INDEX_EXTENSION Extension of points index file
+	POINT_INDEX_EXTENSION = "dii"
+)

@@ -5,6 +5,7 @@ import "fmt"
 // BKDConfig Basic parameters for indexing points on the BKD tree.
 type BKDConfig struct {
 	// How many dimensions we are storing at the leaf (data) nodes
+	// 我们在叶（数据）节点上存储了多少维度
 	NumDims int
 
 	// How many dimensions we are indexing in the internal nodes

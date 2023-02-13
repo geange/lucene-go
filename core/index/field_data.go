@@ -58,7 +58,7 @@ func (f FieldDataList) Len() int {
 }
 
 func (f FieldDataList) Less(i, j int) bool {
-	return strings.Compare(f[i].fieldInfo.Name, f[j].fieldInfo.Name) < 0
+	return strings.Compare(f[i].fieldInfo.Name(), f[j].fieldInfo.Name()) < 0
 }
 
 func (f FieldDataList) Swap(i, j int) {

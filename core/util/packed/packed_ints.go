@@ -101,9 +101,9 @@ func fastestFormatAndBits(valueCount, bitsPerValue int, acceptableOverheadRatio 
 	return NewFormatAndBits(format, actualBitsPerValue)
 }
 
-// Reader A read-only random access array of positive integers.
+// PackedIntsReader A read-only random access array of positive integers.
 // lucene.internal
-type Reader interface {
+type PackedIntsReader interface {
 	// Get the long at the given index. Behavior is undefined for out-of-range indices.
 	Get(index int) uint64
 
@@ -115,7 +115,7 @@ type Reader interface {
 	Size() int
 }
 
-func GetBulk(reader Reader, index int, arr []uint64) int {
+func GetBulk(reader PackedIntsReader, index int, arr []uint64) int {
 	gets := Min(reader.Size()-index, len(arr))
 
 	for i, o, end := index, 0, index+gets; i < end; {
@@ -130,7 +130,7 @@ func GetBulk(reader Reader, index int, arr []uint64) int {
 type ReaderIterator interface {
 }
 
-// NullReader A PackedInts.Reader which has all its values equal to 0 (bitsPerValue = 0).
+// NullReader A PackedInts.PackedIntsReader which has all its values equal to 0 (bitsPerValue = 0).
 type NullReader struct {
 }
 
@@ -148,7 +148,7 @@ func numBlocks(size, blockSize int) (int, error) {
 }
 
 // PackedIntsCopy Copy src[srcPos:srcPos+len] into dest[destPos:destPos+len] using at most mem bytes.
-func PackedIntsCopy(src Reader, srcPos int, dest Mutable, destPos, size, mem int) {
+func PackedIntsCopy(src PackedIntsReader, srcPos int, dest Mutable, destPos, size, mem int) {
 	capacity := mem >> 3
 	if capacity == 0 {
 		for i := 0; i < size; i++ {
@@ -165,7 +165,7 @@ func PackedIntsCopy(src Reader, srcPos int, dest Mutable, destPos, size, mem int
 	}
 }
 
-func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int, buf []uint64) {
+func PackedIntsCopyBuff(src PackedIntsReader, srcPos int, dest Mutable, destPos, size int, buf []uint64) {
 	remaining := 0
 	for size > 0 {
 		read := src.GetBulk(srcPos, buf[0:Min(size, len(buf)-remaining)])

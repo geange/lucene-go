@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
@@ -78,7 +79,7 @@ func (s *SimpleTextStoredFieldsReader) readIndex(size int) error {
 		}
 
 	}
-	return CheckFooter(input)
+	return utils.CheckFooter(input)
 }
 
 func (s *SimpleTextStoredFieldsReader) Close() error {
@@ -216,7 +217,7 @@ func (s *SimpleTextStoredFieldsReader) readField(
 
 func (s *SimpleTextStoredFieldsReader) readLine() error {
 	s.scratch.Reset()
-	return ReadLine(s.in, s.scratch)
+	return utils.ReadLine(s.in, s.scratch)
 }
 
 func (s *SimpleTextStoredFieldsReader) Clone() index.StoredFieldsReader {

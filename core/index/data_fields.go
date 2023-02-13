@@ -19,14 +19,14 @@ func NewDataFields(fields []*FieldData) *DataFields {
 func (d *DataFields) Names() []string {
 	values := make([]string, 0)
 	for _, field := range d.fields {
-		values = append(values, field.fieldInfo.Name)
+		values = append(values, field.fieldInfo.Name())
 	}
 	return values
 }
 
 func (d *DataFields) Terms(field string) (Terms, error) {
 	for _, fieldData := range d.fields {
-		if fieldData.fieldInfo.Name == field {
+		if fieldData.fieldInfo.Name() == field {
 			return NewDataTerms(fieldData), nil
 		}
 	}

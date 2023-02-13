@@ -20,7 +20,7 @@ type ImpactsDISI struct {
 	maxScore            float64
 }
 
-func NewImpactsDISI(in index.DocIdSetIterator, impactsSource index.ImpactsSource, scorer SimScorer) *ImpactsDISI {
+func NewImpactsDISI(in index.DocIdSetIterator, impactsSource index.ImpactsSource, scorer index.SimScorer) *ImpactsDISI {
 	return &ImpactsDISI{
 		in:             in,
 		impactsSource:  impactsSource,

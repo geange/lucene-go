@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
@@ -74,7 +75,7 @@ func (s *SimpleTextStoredFieldsWriter) WriteField(info *types.FieldInfo, field t
 	if err := s.write(STORED_FIELD_FIELD); err != nil {
 		return err
 	}
-	if err := s.write(info.Number); err != nil {
+	if err := s.write(info.Number()); err != nil {
 		return err
 	}
 	if err := s.newLine(); err != nil {
@@ -84,7 +85,7 @@ func (s *SimpleTextStoredFieldsWriter) WriteField(info *types.FieldInfo, field t
 	if err := s.write(STORED_FIELD_NAME); err != nil {
 		return err
 	}
-	if err := s.write(info.Name); err != nil {
+	if err := s.write(info.Name()); err != nil {
 		return err
 	}
 	if err := s.newLine(); err != nil {
@@ -126,39 +127,39 @@ func (s *SimpleTextStoredFieldsWriter) Finish(fis index.FieldInfos, numDocs int)
 	if err := s.newLine(); err != nil {
 		return err
 	}
-	return WriteChecksum(s.out)
+	return utils.WriteChecksum(s.out)
 }
 
 func (s *SimpleTextStoredFieldsWriter) writeValue(valueType []byte, value string) error {
-	if err := WriteBytes(s.out, valueType); err != nil {
+	if err := utils.WriteBytes(s.out, valueType); err != nil {
 		return err
 	}
-	if err := WriteNewline(s.out); err != nil {
+	if err := utils.WriteNewline(s.out); err != nil {
 		return err
 	}
-	if err := WriteBytes(s.out, STORED_FIELD_VALUE); err != nil {
+	if err := utils.WriteBytes(s.out, STORED_FIELD_VALUE); err != nil {
 		return err
 	}
 
-	if err := WriteString(s.out, value); err != nil {
+	if err := utils.WriteString(s.out, value); err != nil {
 		return err
 	}
-	return WriteNewline(s.out)
+	return utils.WriteNewline(s.out)
 }
 
 func (s *SimpleTextStoredFieldsWriter) write(value any) error {
 	switch value.(type) {
 	case []byte:
-		return WriteBytes(s.out, value.([]byte))
+		return utils.WriteBytes(s.out, value.([]byte))
 	case string:
-		return WriteString(s.out, value.(string))
+		return utils.WriteString(s.out, value.(string))
 	case int:
-		return WriteString(s.out, strconv.Itoa(value.(int)))
+		return utils.WriteString(s.out, strconv.Itoa(value.(int)))
 	default:
 		return nil
 	}
 }
 
 func (s *SimpleTextStoredFieldsWriter) newLine() error {
-	return WriteNewline(s.out)
+	return utils.WriteNewline(s.out)
 }

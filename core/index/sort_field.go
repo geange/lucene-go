@@ -200,6 +200,14 @@ func (s *SortField) serialize(out store.DataOutput) error {
 	}
 }
 
+func (s *SortField) Equals(other *SortField) bool {
+	return s.field == other.field &&
+		s._type == other._type &&
+		s.reverse == other.reverse &&
+		s.canUsePoints == other.canUsePoints &&
+		s.missingValue == other.missingValue
+}
+
 // SortFieldType Specifies the type of the terms to be sorted, or special types such as CUSTOM
 type SortFieldType int
 

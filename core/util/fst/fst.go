@@ -3,9 +3,9 @@ package fst
 import (
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/codecs/utils"
 	"os"
 
-	"github.com/geange/lucene-go/codecs"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/math"
@@ -64,7 +64,7 @@ func NewFSTV2[T any](metaIn, in store.DataInput, outputs Outputs[T], fstStore St
 
 	// NOTE: only reads formats VERSION_START up to VERSION_CURRENT; we don't have
 	// back-compat promise for FSTs (they are experimental), but we are sometimes able to offer it
-	if _, err := codecs.CheckHeader(metaIn, FILE_FORMAT_NAME, VERSION_START, VERSION_CURRENT); err != nil {
+	if _, err := utils.CheckHeader(metaIn, FILE_FORMAT_NAME, VERSION_START, VERSION_CURRENT); err != nil {
 		return nil, err
 	}
 	if b, err := metaIn.ReadByte(); err == nil && b == 1 {
@@ -147,7 +147,7 @@ func (f *FST[T]) Save(metaOut store.DataOutput, out store.DataOutput) error {
 		return errors.New("call finish first")
 	}
 
-	err := codecs.WriteHeader(metaOut, FILE_FORMAT_NAME, VERSION_CURRENT)
+	err := utils.WriteHeader(metaOut, FILE_FORMAT_NAME, VERSION_CURRENT)
 	if err != nil {
 		return err
 	}

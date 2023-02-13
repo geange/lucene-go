@@ -1,5 +1,10 @@
 package index
 
+import (
+	"errors"
+	"io"
+)
+
 type Relation int
 
 const (
@@ -49,11 +54,15 @@ const (
 // Custom structures can be created on top of single- or multi- dimensional basic types, on top of BinaryPoint
 // for more flexibility, or via custom Field subclasses.
 type PointValues interface {
-	// Intersect Finds all documents and points matching the provided visitor. This method does not enforce live documents, so it's up to the caller to test whether each document is deleted, if necessary.
-	Intersect(visitor IntersectVisitor) error
+	// Intersect Finds all documents and points matching the provided visitor.
+	// This method does not enforce live documents,
+	// so it's up to the caller to test whether each document is deleted, if necessary.
+	Intersect(visitor *IntersectVisitor) error
 
-	// EstimatePointCount Estimate the number of points that would be visited by intersect with the given PointValues.IntersectVisitor. This should run many times faster than intersect(PointValues.IntersectVisitor).
-	EstimatePointCount(visitor IntersectVisitor) int64
+	// EstimatePointCount Estimate the number of points that would be visited
+	// by intersect with the given PointValues.IntersectVisitor.
+	// This should run many times faster than intersect(PointValues.IntersectVisitor).
+	EstimatePointCount(visitor *IntersectVisitor) int64
 
 	// GetMinPackedValue Returns minimum value for each dimension, packed, or null if size is 0
 	GetMinPackedValue() ([]byte, error)
@@ -77,45 +86,35 @@ type PointValues interface {
 	GetDocCount() int
 }
 
-// IntersectVisitor We recurse the BKD tree, using a provided instance of this to guide the recursion.
-type IntersectVisitor interface {
+type IntersectVisitor struct {
 	// VisitByDocID Called for all documents in a leaf cell that's fully contained by the query. The consumer
 	// should blindly accept the docID.
-	VisitByDocID(docID int) error
+	VisitByDocID func(docID int) error
 
 	// Visit Called for all documents in a leaf cell that crosses the query. The consumer should scrutinize the
 	// packedValue to decide whether to accept it. In the 1D case, values are visited in increasing order,
 	// and in the case of ties, in increasing docID order.
-	Visit(docID int, packedValue []byte) error
+	VisitLeaf func(docID int, packedValue []byte) error
 
-	// Compare Called for non-leaf cells to test how the cell relates to the query, to determine how to further recurse down the tree.
-	Compare(minPackedValue, maxPackedValue []byte) Relation
+	// Compare Called for non-leaf cells to test how the cell relates to the query,
+	// to determine how to further recurse down the tree.
+	Compare func(minPackedValue, maxPackedValue []byte) Relation
 
 	// Grow Notifies the caller that this many documents are about to be visited
-	Grow(count int)
+	Grow func(count int)
 }
 
-var _ IntersectVisitor = &IntersectVisitorDefault{}
-
-type IntersectVisitorDefault struct {
-	FnVisitByDocID func(docID int) error
-	FnVisit        func(docID int, packedValue []byte) error
-	FnCompare      func(minPackedValue, maxPackedValue []byte) Relation
-	FnGrow         func(count int)
-}
-
-func (i *IntersectVisitorDefault) VisitByDocID(docID int) error {
-	return i.FnVisitByDocID(docID)
-}
-
-func (i *IntersectVisitorDefault) Visit(docID int, packedValue []byte) error {
-	return i.FnVisit(docID, packedValue)
-}
-
-func (i *IntersectVisitorDefault) Compare(minPackedValue, maxPackedValue []byte) Relation {
-	return i.FnCompare(minPackedValue, maxPackedValue)
-}
-
-func (i *IntersectVisitorDefault) Grow(count int) {
-	i.FnGrow(count)
+func (i *IntersectVisitor) Visit(iterator DocValuesIterator, packedValue []byte) error {
+	for {
+		docID, err := iterator.NextDoc()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
+		}
+		if err := i.VisitLeaf(docID, packedValue); err != nil {
+			return err
+		}
+	}
 }
