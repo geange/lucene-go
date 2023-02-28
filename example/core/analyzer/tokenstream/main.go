@@ -12,7 +12,7 @@ func main() {
 	set.Add("\n")
 	set.Add("\t")
 
-	analyzer := standard.NewAnalyzer(set)
+	analyzer := standard.NewStandardAnalyzer(set)
 
 	imp := analysis.NewAnalyzerImp(analyzer)
 

@@ -12,7 +12,7 @@ func TestNewMemoryIndex(t *testing.T) {
 	set.Add(" ")
 	set.Add("\n")
 	set.Add("\t")
-	newAnalyzer := standard.NewAnalyzer(set)
+	newAnalyzer := standard.NewStandardAnalyzer(set)
 	analyzer := analysis.NewAnalyzerImp(newAnalyzer)
 
 	doc := document.NewDocument()

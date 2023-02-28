@@ -157,6 +157,7 @@ func (n *NIOFSIndexInput) Close() error {
 }
 
 func (n *NIOFSIndexInput) Seek(pos int64, whence int) (int64, error) {
+	n.buffer = nil
 	return n.file.Seek(pos, io.SeekStart)
 }
 

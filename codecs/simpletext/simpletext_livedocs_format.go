@@ -103,7 +103,7 @@ func (s *SimpleTextLiveDocsFormat) WriteLiveDocs(bits util.Bits, dir store.Direc
 	if err := utils.WriteBytes(out, LIVE_DOCS_FORMAT_END); err != nil {
 		return err
 	}
-	if err := utils.WriteNewline(out); err != nil {
+	if err := utils.Newline(out); err != nil {
 		return err
 	}
 	if err := utils.WriteChecksum(out); err != nil {

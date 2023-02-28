@@ -25,6 +25,17 @@ func NewCharArraySet() *CharArraySet {
 	}
 }
 
+var (
+	EMPTY_SET = &CharArraySet{
+		RWMutex: sync.RWMutex{},
+		values: map[string]struct{}{
+			" ":  {},
+			"\n": {},
+			"\t": {},
+		},
+	}
+)
+
 func (r *CharArraySet) Add(key any) {
 	r.RLock()
 	defer r.RUnlock()

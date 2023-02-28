@@ -12,7 +12,7 @@ type StandardAnalyzer struct {
 	maxTokenLength int
 }
 
-func NewAnalyzer(set *analysis.CharArraySet) *StandardAnalyzer {
+func NewStandardAnalyzer(set *analysis.CharArraySet) *StandardAnalyzer {
 	analyzer := &StandardAnalyzer{
 		StopWordAnalyzerBaseImp: analysis.NewStopWordAnalyzerBaseImp(set),
 		maxTokenLength:          255,

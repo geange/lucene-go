@@ -57,9 +57,12 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 	defer func() {
 		input.Close()
 	}()
+
 	scratch := new(bytes.Buffer)
 
-	value, err := utils.ReadValue(input, NUMFIELDS, scratch)
+	r := utils.NewTextReader(input, scratch)
+
+	value, err := r.ReadLabel(NUMFIELDS)
 	if err != nil {
 		return nil, err
 	}
@@ -70,56 +73,56 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 	infos := make([]*types.FieldInfo, 0, size)
 
 	for i := 0; i < size; i++ {
-		value, err := utils.ReadValue(input, NAME, scratch)
+		value, err := r.ReadLabel(NAME)
 		if err != nil {
 			return nil, err
 		}
 		name := value
 
-		value, err = utils.ReadValue(input, NUMBER, scratch)
+		value, err = r.ReadLabel(NUMBER)
 		if err != nil {
 			return nil, err
 		}
 		fieldNumber, _ := strconv.Atoi(value)
 
-		value, err = utils.ReadValue(input, INDEXOPTIONS, scratch)
+		value, err = r.ReadLabel(INDEXOPTIONS)
 		if err != nil {
 			return nil, err
 		}
 		indexOptions := types.StringToIndexOptions(value)
 
-		value, err = utils.ReadValue(input, STORETV, scratch)
+		value, err = r.ReadLabel(STORETV)
 		if err != nil {
 			return nil, err
 		}
 		storeTermVector, _ := strconv.ParseBool(value)
 
-		value, err = utils.ReadValue(input, PAYLOADS, scratch)
+		value, err = r.ReadLabel(PAYLOADS)
 		if err != nil {
 			return nil, err
 		}
 		storePayloads, _ := strconv.ParseBool(value)
 
-		value, err = utils.ReadValue(input, NORMS, scratch)
+		value, err = r.ReadLabel(NORMS)
 		if err != nil {
 			return nil, err
 		}
 		v, _ := strconv.ParseBool(value)
 		omitNorms := !v
 
-		value, err = utils.ReadValue(input, DOCVALUES, scratch)
+		value, err = r.ReadLabel(DOCVALUES)
 		if err != nil {
 			return nil, err
 		}
 		docValuesType := types.StringToDocValuesType(value)
 
-		value, err = utils.ReadValue(input, DOCVALUES_GEN, scratch)
+		value, err = r.ReadLabel(DOCVALUES_GEN)
 		if err != nil {
 			return nil, err
 		}
 		dvGen, _ := strconv.Atoi(value)
 
-		value, err = utils.ReadValue(input, NUM_ATTS, scratch)
+		value, err = r.ReadLabel(NUM_ATTS)
 		if err != nil {
 			return nil, err
 		}
@@ -128,12 +131,12 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 		atts := make(map[string]string, numAtts)
 
 		for j := 0; j < numAtts; j++ {
-			key, err := utils.ReadValue(input, ATT_KEY, scratch)
+			key, err := r.ReadLabel(ATT_KEY)
 			if err != nil {
 				return nil, err
 			}
 
-			value, err := utils.ReadValue(input, ATT_VALUE, scratch)
+			value, err := r.ReadLabel(ATT_VALUE)
 			if err != nil {
 				return nil, err
 			}
@@ -141,25 +144,25 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 			atts[key] = value
 		}
 
-		value, err = utils.ReadValue(input, DATA_DIM_COUNT, scratch)
+		value, err = r.ReadLabel(DATA_DIM_COUNT)
 		if err != nil {
 			return nil, err
 		}
 		dimensionalCount, _ := strconv.Atoi(value)
 
-		value, err = utils.ReadValue(input, INDEX_DIM_COUNT, scratch)
+		value, err = r.ReadLabel(INDEX_DIM_COUNT)
 		if err != nil {
 			return nil, err
 		}
 		indexDimensionalCount, _ := strconv.Atoi(value)
 
-		value, err = utils.ReadValue(input, DIM_NUM_BYTES, scratch)
+		value, err = r.ReadLabel(DIM_NUM_BYTES)
 		if err != nil {
 			return nil, err
 		}
 		dimensionalNumBytes, _ := strconv.Atoi(value)
 
-		value, err = utils.ReadValue(input, SOFT_DELETES, scratch)
+		value, err = r.ReadLabel(SOFT_DELETES)
 		if err != nil {
 			return nil, err
 		}
@@ -190,75 +193,77 @@ func (s *SimpleTextFieldInfosFormat) Write(directory store.Directory, segmentInf
 		_ = out.Close()
 	}()
 
-	if err := writeValue(out, NUMFIELDS, strconv.Itoa(infos.Size())); err != nil {
+	w := utils.NewTextWriter(out)
+
+	if err := w.WriteLabelInt(NUMFIELDS, infos.Size()); err != nil {
 		return err
 	}
 
 	for _, fi := range infos.List() {
-		if err := writeValue(out, NAME, fi.Name()); err != nil {
+		if err := w.WriteLabelString(NAME, fi.Name()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, NUMBER, fi.Number()); err != nil {
+		if err := w.WriteLabelInt(NUMBER, fi.Number()); err != nil {
 			return err
 		}
 
 		indexOptions := fi.GetIndexOptions()
 		//assert indexOptions.compareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0 || !fi.hasPayloads();
-		if err := writeValue(out, INDEXOPTIONS, indexOptions.String()); err != nil {
+		if err := w.WriteLabelString(INDEXOPTIONS, indexOptions.String()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, STORETV, fi.HasVectors()); err != nil {
+		if err := w.WriteLabelBool(STORETV, fi.HasVectors()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, PAYLOADS, fi.HasPayloads()); err != nil {
+		if err := w.WriteLabelBool(PAYLOADS, fi.HasPayloads()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, NORMS, !fi.OmitsNorms()); err != nil {
+		if err := w.WriteLabelBool(NORMS, !fi.OmitsNorms()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, DOCVALUES, fi.GetDocValuesType().String()); err != nil {
+		if err := w.WriteLabelString(DOCVALUES, fi.GetDocValuesType().String()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, DOCVALUES_GEN, fi.GetDocValuesGen()); err != nil {
+		if err := w.WriteLabelLong(DOCVALUES_GEN, fi.GetDocValuesGen()); err != nil {
 			return err
 		}
 
 		atts := fi.Attributes()
 		numAtts := len(atts)
-		if err := writeValue(out, NUM_ATTS, numAtts); err != nil {
+		if err := w.WriteLabelInt(NUM_ATTS, numAtts); err != nil {
 			return err
 		}
 
 		if numAtts > 0 {
 			for k, v := range atts {
-				if err := writeValue(out, ATT_KEY, k); err != nil {
+				if err := w.WriteLabelString(ATT_KEY, k); err != nil {
 					return err
 				}
-				if err := writeValue(out, ATT_VALUE, v); err != nil {
+				if err := w.WriteLabelString(ATT_VALUE, v); err != nil {
 					return err
 				}
 			}
 		}
 
-		if err := writeValue(out, DATA_DIM_COUNT, fi.GetPointDimensionCount()); err != nil {
+		if err := w.WriteLabelInt(DATA_DIM_COUNT, fi.GetPointDimensionCount()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, INDEX_DIM_COUNT, fi.GetPointIndexDimensionCount()); err != nil {
+		if err := w.WriteLabelInt(INDEX_DIM_COUNT, fi.GetPointIndexDimensionCount()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, DIM_NUM_BYTES, fi.GetPointNumBytes()); err != nil {
+		if err := w.WriteLabelInt(DIM_NUM_BYTES, fi.GetPointNumBytes()); err != nil {
 			return err
 		}
 
-		if err := writeValue(out, SOFT_DELETES, fi.IsSoftDeletesField()); err != nil {
+		if err := w.WriteLabelBool(SOFT_DELETES, fi.IsSoftDeletesField()); err != nil {
 			return err
 		}
 	}
@@ -301,5 +306,5 @@ func writeValue[T int | int64 | string | bool | []byte](out store.DataOutput, la
 		}
 	}
 
-	return utils.WriteNewline(out)
+	return utils.Newline(out)
 }

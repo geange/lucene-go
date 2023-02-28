@@ -25,7 +25,7 @@ type IntBlockPool struct {
 	buffer []int
 
 	// Current head offset
-	intOffset int
+	IntOffset int
 
 	allocator IntsAllocator
 }
@@ -36,7 +36,7 @@ type IntBlockPool struct {
 //		bufferUpto: -1,
 //		intUpto:    INT_BLOCK_SIZE,
 //		buffer:     make([]int, 0),
-//		intOffset:  -INT_BLOCK_SIZE,
+//		IntOffset:  -INT_BLOCK_SIZE,
 //		allocator:  NewDirectIntsAllocator(INT_BLOCK_SIZE),
 //	}
 //}
@@ -47,7 +47,7 @@ func NewIntBlockPool(allocator IntsAllocator) *IntBlockPool {
 		bufferUpto: -1,
 		intUpto:    INT_BLOCK_SIZE,
 		buffer:     make([]int, 0),
-		intOffset:  -INT_BLOCK_SIZE,
+		IntOffset:  -INT_BLOCK_SIZE,
 		allocator:  allocator,
 	}
 	if allocator == nil {
@@ -56,11 +56,24 @@ func NewIntBlockPool(allocator IntsAllocator) *IntBlockPool {
 	return pool
 }
 
+func (i *IntBlockPool) Get(index int) []int {
+	return i.buffers[index]
+}
+
+func (i *IntBlockPool) IntUpto() int {
+	return i.intUpto
+}
+
+func (i *IntBlockPool) AddIntUpto(v int) {
+	i.intUpto += v
+}
+
 // Reset Expert: Resets the pool to its initial state reusing the first buffer.
 // Params: 	zeroFillBuffers – if true the buffers are filled with 0. This should be set to true if this pool
-//			is used with IntBlockPool.SliceWriter.
-//			reuseFirst – if true the first buffer will be reused and calling nextBuffer() is not needed after
-//			reset iff the block pool was used before ie. nextBuffer() was called before.
+//
+//	is used with IntBlockPool.SliceWriter.
+//	reuseFirst – if true the first buffer will be reused and calling nextBuffer() is not needed after
+//	reset iff the block pool was used before ie. nextBuffer() was called before.
 func (i *IntBlockPool) Reset(zeroFillBuffers, reuseFirst bool) {
 	if i.bufferUpto != -1 {
 		// We allocated at least one buffer
@@ -91,12 +104,12 @@ func (i *IntBlockPool) Reset(zeroFillBuffers, reuseFirst bool) {
 			// Re-use the first buffer
 			i.bufferUpto = 0
 			i.intUpto = 0
-			i.intOffset = 0
+			i.IntOffset = 0
 			i.buffer = i.buffers[0]
 		} else {
 			i.bufferUpto = -1
 			i.intUpto = INT_BLOCK_SIZE
-			i.intOffset = -INT_BLOCK_SIZE
+			i.IntOffset = -INT_BLOCK_SIZE
 			i.buffer = nil
 		}
 	}
@@ -110,7 +123,7 @@ func (i *IntBlockPool) NextBuffer() {
 	i.buffer = i.buffers[i.bufferUpto+1]
 	i.bufferUpto++
 	i.intUpto = 0
-	i.intOffset += INT_BLOCK_SIZE
+	i.IntOffset += INT_BLOCK_SIZE
 }
 
 // Creates a new int slice with the given starting size and returns the slices offset in the pool.
@@ -127,27 +140,27 @@ func (i *IntBlockPool) newSlice(size int) int {
 }
 
 var (
-	// NEXT_LEVEL_ARRAY An array holding the offset into the LEVEL_SIZE_ARRAY to quickly navigate to the next slice level.
-	NEXT_LEVEL_ARRAY = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 9}
+	// INT_NEXT_LEVEL_ARRAY An array holding the offset into the INT_LEVEL_SIZE_ARRAY to quickly navigate to the next slice level.
+	INT_NEXT_LEVEL_ARRAY = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 9}
 
-	// LEVEL_SIZE_ARRAY An array holding the level sizes for int slices.
-	LEVEL_SIZE_ARRAY = []int{2, 4, 8, 16, 16, 32, 32, 64, 64, 128}
+	// INT_LEVEL_SIZE_ARRAY An array holding the level sizes for int slices.
+	INT_LEVEL_SIZE_ARRAY = []int{2, 4, 8, 16, 16, 32, 32, 64, 64, 128}
 
-	// FIRST_LEVEL_SIZE The first level size for new slices
-	FIRST_LEVEL_SIZE = LEVEL_SIZE_ARRAY[0]
+	// INT_FIRST_LEVEL_SIZE The first level size for new slices
+	INT_FIRST_LEVEL_SIZE = INT_LEVEL_SIZE_ARRAY[0]
 )
 
 // Allocates a new slice from the given offset
 func (i *IntBlockPool) allocSlice(slice []int, sliceOffset int) int {
 	level := slice[sliceOffset] & 15
-	newLevel := NEXT_LEVEL_ARRAY[level]
-	newSize := LEVEL_SIZE_ARRAY[newLevel]
+	newLevel := INT_NEXT_LEVEL_ARRAY[level]
+	newSize := INT_LEVEL_SIZE_ARRAY[newLevel]
 	if i.intUpto > INT_BLOCK_SIZE-newSize {
 		i.NextBuffer()
 	}
 
 	newUpto := i.intUpto
-	offset := newUpto + i.intOffset
+	offset := newUpto + i.IntOffset
 	i.intUpto += newSize
 	// Write forwarding address at end of last slice:
 	slice[sliceOffset] = offset
@@ -156,6 +169,10 @@ func (i *IntBlockPool) allocSlice(slice []int, sliceOffset int) int {
 	i.buffer[i.intUpto-1] = 16 | newLevel
 
 	return newUpto
+}
+
+func (i *IntBlockPool) Buffer() []int {
+	return i.buffer
 }
 
 // SliceWriter A IntBlockPool.SliceWriter that allows to write multiple integer slices into a given IntBlockPool.
@@ -181,7 +198,7 @@ func (s *SliceWriter) WriteInt(value int) {
 
 		relativeOffset = s.pool.allocSlice(ints, relativeOffset)
 		ints = s.pool.buffer
-		s.offset = relativeOffset + s.pool.intOffset
+		s.offset = relativeOffset + s.pool.IntOffset
 	}
 
 	ints[relativeOffset] = value
@@ -191,7 +208,7 @@ func (s *SliceWriter) WriteInt(value int) {
 // StartNewSlice starts a new slice and returns the start offset. The returned value should be used as the
 // start offset to initialize a IntBlockPool.SliceReader.
 func (s *SliceWriter) StartNewSlice() int {
-	s.offset = s.pool.newSlice(FIRST_LEVEL_SIZE) + s.pool.intOffset
+	s.offset = s.pool.newSlice(INT_FIRST_LEVEL_SIZE) + s.pool.IntOffset
 	return s.offset
 }
 
@@ -272,7 +289,7 @@ func (s *SliceReader) Reset(startOffset, endOffset int) {
 	s.buffer = s.pool.buffers[s.bufferUpto]
 	s.upto = startOffset & INT_BLOCK_MASK
 
-	firstSize := LEVEL_SIZE_ARRAY[0]
+	firstSize := INT_LEVEL_SIZE_ARRAY[0]
 	if startOffset+firstSize >= endOffset {
 		// There is only this one slice to read
 		s.limit = endOffset & INT_BLOCK_MASK
@@ -302,8 +319,8 @@ func (s *SliceReader) ReadInt() int {
 func (s *SliceReader) nextSlice() {
 	// Skip to our next slice
 	nextIndex := s.buffer[s.limit]
-	s.level = NEXT_LEVEL_ARRAY[s.level]
-	newSize := LEVEL_SIZE_ARRAY[s.level]
+	s.level = INT_NEXT_LEVEL_ARRAY[s.level]
+	newSize := INT_LEVEL_SIZE_ARRAY[s.level]
 
 	s.bufferUpto = nextIndex / INT_BLOCK_SIZE
 	s.bufferOffset = s.bufferUpto * INT_BLOCK_SIZE

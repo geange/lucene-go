@@ -6,6 +6,18 @@ const (
 	BYTE_BLOCK_MASK  = BYTE_BLOCK_SIZE - 1
 )
 
+var (
+	// BYTE_NEXT_LEVEL_ARRAY An array holding the offset into the LEVEL_SIZE_ARRAY to quickly navigate to the next slice level.
+	BYTE_NEXT_LEVEL_ARRAY = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 9}
+
+	// BYTE_LEVEL_SIZE_ARRAY An array holding the level sizes for byte slices.
+	BYTE_LEVEL_SIZE_ARRAY = []int{5, 14, 20, 30, 40, 40, 80, 80, 120, 200}
+
+	// BYTE_FIRST_LEVEL_SIZE The first level size for new slices
+	// See Also: NewSlice(int)
+	BYTE_FIRST_LEVEL_SIZE = 5
+)
+
 // ByteBlockPool Class that Posting and PostingVector use to write byte streams into shared fixed-size
 // byte[] arrays. The idea is to allocate slices of increasing lengths For example, the first slice is 5
 // bytes, the next slice is 14, etc. We start by writing our bytes into the first 5 bytes. When we hit
@@ -28,31 +40,29 @@ type ByteBlockPool struct {
 	buffer []byte
 
 	// Current head offset
-	byteOffset int
+	ByteOffset int
 
 	allocator BytesAllocator
 
-	// An array holding the offset into the LEVEL_SIZE_ARRAY to quickly navigate to the next slice level.
-	NEXT_LEVEL_ARRAY []int
+	//NEXT_LEVEL_ARRAY []int
 
-	// An array holding the level sizes for byte slices.
-	LEVEL_SIZE_ARRAY []int
+	//LEVEL_SIZE_ARRAY []int
 
 	// The first level size for new slices
 	// See Also: NewSlice(int)
-	FIRST_LEVEL_SIZE int
+	//FIRST_LEVEL_SIZE int
 }
 
 func NewByteBlockPool(allocator BytesAllocator) *ByteBlockPool {
 	return &ByteBlockPool{
-		buffers:          make([][]byte, 0, 10),
-		bufferUpto:       -1,
-		byteUpto:         BYTE_BLOCK_SIZE,
-		byteOffset:       -BYTE_BLOCK_SIZE,
-		allocator:        allocator,
-		NEXT_LEVEL_ARRAY: []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 9},
-		LEVEL_SIZE_ARRAY: []int{5, 14, 20, 30, 40, 40, 80, 80, 120, 200},
-		FIRST_LEVEL_SIZE: 5,
+		buffers:    make([][]byte, 0, 10),
+		bufferUpto: -1,
+		byteUpto:   BYTE_BLOCK_SIZE,
+		ByteOffset: -BYTE_BLOCK_SIZE,
+		allocator:  allocator,
+		//NEXT_LEVEL_ARRAY: []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 9},
+		//LEVEL_SIZE_ARRAY: []int{5, 14, 20, 30, 40, 40, 80, 80, 120, 200},
+		//FIRST_LEVEL_SIZE: 5,
 	}
 }
 
@@ -93,12 +103,12 @@ func (r *ByteBlockPool) Reset(zeroFillBuffers, reuseFirst bool) {
 			// Re-use the first buffer
 			r.bufferUpto = 0
 			r.byteUpto = 0
-			r.byteOffset = 0
+			r.ByteOffset = 0
 			r.buffer = r.buffers[0]
 		} else {
 			r.bufferUpto = -1
 			r.byteUpto = BYTE_BLOCK_SIZE
-			r.byteOffset = -BYTE_BLOCK_SIZE
+			r.ByteOffset = -BYTE_BLOCK_SIZE
 			r.buffer = nil
 		}
 	}
@@ -112,7 +122,7 @@ func (r *ByteBlockPool) NextBuffer() {
 	r.buffer = r.buffers[r.bufferUpto+1]
 	r.bufferUpto++
 	r.byteUpto = 0
-	r.byteOffset += BYTE_BLOCK_SIZE
+	r.ByteOffset += BYTE_BLOCK_SIZE
 }
 
 // NewSlice Allocates a new slice with the given size.
@@ -131,8 +141,8 @@ func (r *ByteBlockPool) NewSlice(size int) int {
 // AllocSlice Creates a new byte slice with the given starting size and returns the slices offset in the pool.
 func (r *ByteBlockPool) AllocSlice(slice []byte, upto int) int {
 	level := slice[upto] & 15
-	newLevel := r.NEXT_LEVEL_ARRAY[level]
-	newSize := r.LEVEL_SIZE_ARRAY[newLevel]
+	newLevel := BYTE_NEXT_LEVEL_ARRAY[level]
+	newSize := BYTE_LEVEL_SIZE_ARRAY[newLevel]
 
 	// Maybe allocate another block
 	if r.byteUpto > BYTE_BLOCK_SIZE-newSize {
@@ -140,7 +150,7 @@ func (r *ByteBlockPool) AllocSlice(slice []byte, upto int) int {
 	}
 
 	newUpto := r.byteUpto
-	offset := newUpto + r.byteOffset
+	offset := newUpto + r.ByteOffset
 	r.byteUpto += newSize
 
 	// Copy forward the past 3 bytes (which we are about
@@ -181,6 +191,14 @@ func (r *ByteBlockPool) SetBytesRefV1(builder *BytesRefBuilder, result []byte, o
 	//	result.Offset = 0
 	//	r.ReadBytes(offset, result.Bytes, 0, length)
 	//}
+}
+
+func (r *ByteBlockPool) Get(index int) []byte {
+	return r.buffers[index]
+}
+
+func (r *ByteBlockPool) ByteUpto() int {
+	return r.byteUpto
 }
 
 func (r *ByteBlockPool) GetBytes(textStart int) []byte {
@@ -273,6 +291,10 @@ func (r *ByteBlockPool) Append(bytes []byte) {
 			offset += bufferLeft
 		}
 	}
+}
+
+func (r *ByteBlockPool) Current() []byte {
+	return r.buffer
 }
 
 type BytesAllocator interface {

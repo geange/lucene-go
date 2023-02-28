@@ -18,6 +18,8 @@ type BufferedUpdates struct {
 	numFieldUpdates *atomic.Int64
 	deleteTerms     *treemap.Map
 	deleteQueries   *treemap.Map
+	gen             int64
+	segmentName     string
 }
 
 func NewBufferedUpdates() *BufferedUpdates {
@@ -25,6 +27,15 @@ func NewBufferedUpdates() *BufferedUpdates {
 		numTermDeletes:  nil,
 		numFieldUpdates: nil,
 		deleteTerms:     treemap.NewWith(TermComparator),
+	}
+}
+
+func NewBufferedUpdatesV1(segmentName string) *BufferedUpdates {
+	return &BufferedUpdates{
+		numTermDeletes:  nil,
+		numFieldUpdates: nil,
+		deleteTerms:     treemap.NewWith(TermComparator),
+		segmentName:     segmentName,
 	}
 }
 

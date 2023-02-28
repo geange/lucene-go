@@ -49,7 +49,7 @@ func (p *PointValuesWriter) AddPackedValue(docID int, value []byte) error {
 	return nil
 }
 
-func (p *PointValuesWriter) Flush(writer PointsWriter) error {
+func (p *PointValuesWriter) Flush(state *SegmentWriteState, docMap *DocMap, writer PointsWriter) error {
 	bytesReader, err := p.bytes.Freeze(false)
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (r *innerMutablePointValues) Intersect(visitor *IntersectVisitor) error {
 	scratch := new(bytes.Buffer)
 	packedValue := make([]byte, r.pw.packedBytesLength)
 
-	for i := 0; i < int(r.numPoints); i++ {
+	for i := 0; i < r.numPoints; i++ {
 		r.GetValue(i, scratch)
 		copy(packedValue, scratch.Bytes())
 		if err := visitor.VisitLeaf(r.GetDocID(i), packedValue); err != nil {

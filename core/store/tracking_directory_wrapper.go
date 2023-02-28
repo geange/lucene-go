@@ -14,7 +14,7 @@ func NewTrackingDirectoryWrapper(dir Directory) *TrackingDirectoryWrapper {
 			DirectoryDefault: &DirectoryDefault{},
 			in:               dir,
 		},
-		createdFileNames: nil,
+		createdFileNames: map[string]struct{}{},
 	}
 	wrapper.DirectoryDefault.DeleteFile = wrapper.DeleteFile
 	return wrapper

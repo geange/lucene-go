@@ -38,6 +38,11 @@ func NewBM25Similarity() (*BM25Similarity, error) {
 	return NewBM25SimilarityV1(1.2, 0.75)
 }
 
+func NewCastBM25Similarity() *BM25Similarity {
+	similarity, _ := NewBM25SimilarityV1(1.2, 0.75)
+	return similarity
+}
+
 // NewBM25SimilarityV1 BM25 with the supplied parameter values.
 // Params:	k1 – Controls non-linear term frequency normalization (saturation).
 //

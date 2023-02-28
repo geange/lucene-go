@@ -5,10 +5,10 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-var _ Writer = &PackedWriter{}
+var _ PackIntsWriter = &PackedWriter{}
 
 type PackedWriter struct {
-	*writer
+	*PackIntsWriterDefault
 
 	finished bool
 	format   Format
@@ -32,17 +32,23 @@ func NewPackedWriter(format Format, out store.DataOutput, valueCount, bitsPerVal
 	iterations := op.computeIterations(valueCount, mem)
 
 	packedWriter := &PackedWriter{
-		writer:     nil,
-		finished:   false,
-		format:     format,
-		encoder:    encoder,
-		nextBlocks: make([]byte, iterations*encoder.ByteBlockCount()),
-		nextValues: make([]uint64, iterations*encoder.ByteValueCount()),
-		iterations: iterations,
-		off:        0,
-		written:    0,
+		PackIntsWriterDefault: nil,
+		finished:              false,
+		format:                format,
+		encoder:               encoder,
+		nextBlocks:            make([]byte, iterations*encoder.ByteBlockCount()),
+		nextValues:            make([]uint64, iterations*encoder.ByteValueCount()),
+		iterations:            iterations,
+		off:                   0,
+		written:               0,
 	}
-	packedWriter.writer = newWriter(out, valueCount, bitsPerValue)
+	packedWriter.PackIntsWriterDefault = NewPackIntsWriterDefault(&PackIntsWriterDefaultConfig{
+		GetFormat:    packedWriter.GetFormat,
+		out:          out,
+		valueCount:   valueCount,
+		bitsPerValue: bitsPerValue,
+	})
+
 	return packedWriter
 }
 

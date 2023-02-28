@@ -2,12 +2,14 @@ package index
 
 import (
 	"errors"
+	"fmt"
 	"github.com/emirpasic/gods/maps/hashmap"
 	"github.com/emirpasic/gods/sets/hashset"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"go.uber.org/atomic"
 	"math"
+	"strconv"
 	"sync"
 )
 
@@ -91,14 +93,38 @@ type IndexWriter struct {
 	flushDeletesCount        *atomic.Int64
 	readerPool               *ReaderPool
 	mergeFinishedGen         *atomic.Int64
-	config                   *LiveIndexWriterConfig
+	config                   *IndexWriterConfig
 	startCommitTime          int64
 	pendingNumDocs           *atomic.Int64
 	softDeletesEnabled       bool
 }
 
 func NewIndexWriter(d store.Directory, conf *IndexWriterConfig) (*IndexWriter, error) {
-	panic("")
+	writer := &IndexWriter{
+		changeCount:    atomic.NewInt64(0),
+		pendingNumDocs: atomic.NewInt64(0),
+	}
+	conf.setIndexWriter(writer)
+	writer.config = conf
+	writer.softDeletesEnabled = conf.getSoftDeletesField() != ""
+
+	writer.directoryOrig = d
+	writer.directory = d
+
+	//files, err := writer.directory.ListAll()
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	writer.segmentInfos = NewSegmentInfos(conf.getIndexCreatedVersionMajor())
+
+	writer.globalFieldNumberMap = writer.getFieldNumberMap()
+
+	writer.docWriter = NewDocumentsWriter(writer.segmentInfos.getIndexCreatedVersionMajor(), writer.pendingNumDocs,
+		writer.enableTestPoints, writer.newSegmentName,
+		writer.config.LiveIndexWriterConfig, writer.directoryOrig, writer.directory, writer.globalFieldNumberMap)
+
+	return writer, nil
 }
 
 // Confirms that the incoming index sort (if any) matches the existing index sort (if any).
@@ -157,7 +183,7 @@ type Merges struct {
 // Throws:  CorruptIndexException – if the index is corrupt
 //
 //	IOException – if there is a low-level IO error
-func (i *IndexWriter) AddDocument(doc types.IndexableFieldIterator) (int64, error) {
+func (i *IndexWriter) AddDocument(doc *document.Document) (int64, error) {
 	return i.UpdateDocument(nil, doc)
 }
 
@@ -169,15 +195,15 @@ func (i *IndexWriter) AddDocument(doc types.IndexableFieldIterator) (int64, erro
 // Throws: 	CorruptIndexException – if the index is corrupt
 //
 //	IOException – if there is a low-level IO error
-func (i *IndexWriter) UpdateDocument(term *Term, doc types.IndexableFieldIterator) (int64, error) {
+func (i *IndexWriter) UpdateDocument(term *Term, doc *document.Document) (int64, error) {
 	var node Node
 	if term != nil {
 		node = &TermNode{item: term}
 	}
-	return i.updateDocuments(node, []types.IndexableFieldIterator{doc})
+	return i.updateDocuments(node, []*document.Document{doc})
 }
 
-func (i *IndexWriter) updateDocuments(delNode Node, docs []types.IndexableFieldIterator) (int64, error) {
+func (i *IndexWriter) updateDocuments(delNode Node, docs []*document.Document) (int64, error) {
 	seqNo, err := i.docWriter.updateDocuments(docs, delNode)
 	if err != nil {
 		return 0, err
@@ -240,6 +266,38 @@ func (i *IndexWriter) executeMerge(trigger MergeTrigger) error {
 func (i *IndexWriter) updatePendingMerges(policy *MergePolicy, trigger MergeTrigger, segments int) *MergeSpecification {
 	// TODO: impl it
 	return nil
+}
+
+func (i *IndexWriter) newSegmentName() string {
+	i.changeCount.Inc()
+	i.segmentInfos.Changed()
+	v := i.segmentInfos.counter
+	i.segmentInfos.counter++
+	return fmt.Sprintf("_%s", strconv.FormatInt(v, 36))
+}
+
+func (i *IndexWriter) getFieldNumberMap() *FieldNumbers {
+	mp := NewFieldNumbers(i.config.softDeletesField)
+
+	for _, info := range i.segmentInfos.segments {
+		fis := readFieldInfos(info)
+		for _, fi := range fis.values {
+			mp.AddOrGet(fi.Name(), fi.Number(), fi.GetIndexOptions(), fi.GetDocValuesType(),
+				fi.GetPointDimensionCount(), fi.GetPointIndexDimensionCount(),
+				fi.GetPointNumBytes(), fi.IsSoftDeletesField())
+		}
+	}
+	return mp
+}
+
+func readFieldInfos(si *SegmentCommitInfo) *FieldInfos {
+	//codec := si.info.GetCodec()
+	//reader := codec.FieldInfosFormat()
+	panic("")
+}
+
+func GetActualMaxDocs() int {
+	return actualMaxDocs
 }
 
 type IndexReaderWarmer func(reader LeafReader) error

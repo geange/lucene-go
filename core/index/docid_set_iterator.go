@@ -71,7 +71,7 @@ func (m *DocIdSetIteratorDefault) SlowAdvance(target int) (int, error) {
 	for doc < target {
 		doc, err = m.NextDoc()
 		if err != nil {
-			return 0, nil
+			return 0, err
 		}
 	}
 	return doc, nil

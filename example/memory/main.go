@@ -21,7 +21,7 @@ func main() {
 	set.Add("\n")
 	set.Add("\t")
 
-	analyzer := standard.NewAnalyzer(set)
+	analyzer := standard.NewStandardAnalyzer(set)
 
 	err = mi.AddField(document.NewTextFieldByString("f1", "some text", false), analyzer)
 	if err != nil {

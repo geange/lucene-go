@@ -84,20 +84,41 @@ func (s *SimpleTextPointsWriter) Close() error {
 	count := len(s.indexFPs)
 
 	w := utils.NewTextWriter(indexOut)
-	w.WriteBytes(FIELD_COUNT)
-	w.WriteInt(count)
-	w.NewLine()
+	if err := w.WriteBytes(FIELD_COUNT); err != nil {
+		return err
+	}
+	if err := w.WriteInt(count); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
 	for k, v := range s.indexFPs {
-		w.WriteBytes(FIELD_FP_NAME)
-		w.WriteString(k)
-		w.NewLine()
+		if err := w.WriteBytes(FIELD_FP_NAME); err != nil {
+			return err
+		}
+		if err := w.WriteString(k); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
 
-		w.WriteBytes(FIELD_FP)
-		w.WriteInt(int(v))
-		w.NewLine()
+		if err := w.WriteBytes(FIELD_FP); err != nil {
+			return err
+		}
+		if err := w.WriteInt(int(v)); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
 	}
-	return w.Checksum()
+	if err := w.Checksum(); err != nil {
+		return err
+	}
+	return indexOut.Close()
 }
 
 func (s *SimpleTextPointsWriter) WriteField(fieldInfo *types.FieldInfo, reader index.PointsReader) error {
@@ -153,14 +174,14 @@ func (s *SimpleTextPointsWriter) WriteField(fieldInfo *types.FieldInfo, reader i
 		s.indexFPs[fieldInfo.Name()] = fp
 	}
 
-	return s.dataOut.Close()
+	return nil
 }
 
 func (s *SimpleTextPointsWriter) Finish() error {
 	if err := utils.WriteBytes(s.dataOut, END); err != nil {
 		return err
 	}
-	if err := utils.WriteNewline(s.dataOut); err != nil {
+	if err := utils.Newline(s.dataOut); err != nil {
 		return err
 	}
 	return utils.WriteChecksum(s.dataOut)

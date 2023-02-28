@@ -6,7 +6,7 @@ import (
 )
 
 type BinaryDocValuesProducer struct {
-	dvBytesValuesSet *util.BytesRefHash
+	dvBytesValuesSet *util.BytesHash
 	bytesIds         []int
 }
 

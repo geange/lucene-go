@@ -20,7 +20,7 @@ type FieldInvertState struct {
 	// we must track these across field instances (multi-valued case)
 	lastStartOffset int
 	lastPosition    int
-	attributeSource *tokenattributes.AttributeSourceV2
+	attributeSource *tokenattributes.AttributeSource
 
 	offsetAttribute   tokenattributes.OffsetAttribute
 	posIncrAttribute  tokenattributes.PositionIncrementAttribute
@@ -29,6 +29,7 @@ type FieldInvertState struct {
 	termFreqAttribute tokenattributes.TermFrequencyAttribute
 }
 
+// NewFieldInvertState Creates {code FieldInvertState} for the specified field name and values for all fields.
 func NewFieldInvertState(indexCreatedVersionMajor int, name string, indexOptions types.IndexOptions, position int, length int, numOverlap int, offset int, maxTermFrequency int, uniqueTermCount int) *FieldInvertState {
 	return &FieldInvertState{
 		indexCreatedVersionMajor: indexCreatedVersionMajor,
@@ -40,6 +41,36 @@ func NewFieldInvertState(indexCreatedVersionMajor int, name string, indexOptions
 		offset:                   offset,
 		maxTermFrequency:         maxTermFrequency,
 		uniqueTermCount:          uniqueTermCount,
+	}
+}
+
+func NewFieldInvertStateV1(indexCreatedVersionMajor int, name string, indexOptions types.IndexOptions) *FieldInvertState {
+	return &FieldInvertState{
+		indexCreatedVersionMajor: indexCreatedVersionMajor,
+		name:                     name,
+		indexOptions:             indexOptions,
+	}
+}
+
+func (f *FieldInvertState) Reset() {
+	f.position = -1
+	f.length = 0
+	f.numOverlap = 0
+	f.offset = 0
+	f.maxTermFrequency = 0
+	f.uniqueTermCount = 0
+	f.lastStartOffset = 0
+	f.lastPosition = 0
+}
+
+func (f *FieldInvertState) SetAttributeSource(attributeSource *tokenattributes.AttributeSource) {
+	if f.attributeSource != attributeSource {
+		f.attributeSource = attributeSource
+		f.termAttribute = attributeSource.TermToBytesRef()
+		f.termFreqAttribute = attributeSource.TermFrequency()
+		f.posIncrAttribute = attributeSource.PositionIncrement()
+		f.offsetAttribute = attributeSource.Offset()
+		f.payloadAttribute = attributeSource.Payload()
 	}
 }
 
@@ -89,7 +120,7 @@ func (f *FieldInvertState) GetUniqueTermCount() int {
 }
 
 // GetAttributeSource Returns the AttributeSourceV2 from the TokenStream that provided the indexed tokens for this field.
-func (f *FieldInvertState) GetAttributeSource() *tokenattributes.AttributeSourceV2 {
+func (f *FieldInvertState) GetAttributeSource() *tokenattributes.AttributeSource {
 	return f.attributeSource
 }
 

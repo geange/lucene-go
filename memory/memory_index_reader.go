@@ -195,7 +195,7 @@ func (m *MemoryIndexReader) GetMetaData() *index.LeafMetaData {
 	return index.NewLeafMetaData(util.VersionLast.Major, util.VersionLast)
 }
 
-func sortedSetDocValues(values *util.BytesRefHash, bytesIds []int) index.SortedSetDocValues {
+func sortedSetDocValues(values *util.BytesHash, bytesIds []int) index.SortedSetDocValues {
 	it := newMemoryDocValuesIterator()
 	return newInnerSortedSetDocValues(values, bytesIds, it)
 }

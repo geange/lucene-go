@@ -158,7 +158,7 @@ func (s *SimpleTextTermVectorsWriter) Finish(fis *index.FieldInfos, numDocs int)
 	if err := utils.WriteBytes(s.out, VECTORS_END); err != nil {
 		return err
 	}
-	if err := utils.WriteNewline(s.out); err != nil {
+	if err := utils.Newline(s.out); err != nil {
 		return err
 	}
 	return utils.WriteChecksum(s.out)

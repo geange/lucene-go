@@ -45,8 +45,3 @@ type MergeState struct {
 	// Indicates if the index needs to be sorted
 	NeedsIndexSort bool
 }
-
-type DocMap interface {
-	// Get Return the mapped docID or -1 if the given doc is not mapped.
-	Get(docID int) int
-}

@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"go.uber.org/atomic"
 	"sort"
@@ -11,15 +10,15 @@ import (
 	"github.com/spaolacci/murmur3"
 )
 
-// BytesRefHash is a special purpose hash-map like data-structure optimized for BytesRef instances. BytesRefHash
+// BytesHash is a special purpose hash-map like data-structure optimized for BytesRef instances. BytesHash
 // maintains mappings of byte arrays to ids (Map<BytesRef,int>) storing the hashed bytes efficiently in continuous
-// storage. The mapping to the id is encapsulated inside BytesRefHash and is guaranteed to be increased for each
+// storage. The mapping to the id is encapsulated inside BytesHash and is guaranteed to be increased for each
 // added BytesRef.
 // Note: The maximum capacity BytesRef instance passed to add(BytesRef) must not be longer than
 // ByteBlockPool.BYTE_BLOCK_SIZE-2. The internal storage is limited to 2GB total byte storage.
-type BytesRefHash struct {
-	BASE_RAM_BYTES   int
-	DEFAULT_CAPACITY int
+type BytesHash struct {
+	//BASE_RAM_BYTES   int
+	//DEFAULT_CAPACITY int
 
 	pool            *ByteBlockPool
 	bytesStart      []int
@@ -36,11 +35,11 @@ const (
 	DEFAULT_CAPACITY = 16
 )
 
-func NewBytesRefHash(pool *ByteBlockPool) *BytesRefHash {
+func NewBytesRefHash(pool *ByteBlockPool) *BytesHash {
 	return NewBytesRefHashV1(pool, 16, NewDirectBytesStartArray(16))
 }
 
-func NewBytesRefHashV1(pool *ByteBlockPool, capacity int, bytesStartArray BytesStartArray) *BytesRefHash {
+func NewBytesRefHashV1(pool *ByteBlockPool, capacity int, bytesStartArray BytesStartArray) *BytesHash {
 	hash := newBytesRefHash()
 	hash.hashSize = capacity
 	hash.hashHalfSize = hash.hashSize >> 1
@@ -55,25 +54,25 @@ func NewBytesRefHashV1(pool *ByteBlockPool, capacity int, bytesStartArray BytesS
 	return hash
 }
 
-func newBytesRefHash() *BytesRefHash {
-	return &BytesRefHash{
-		BASE_RAM_BYTES:   binary.Size(BytesRefHash{}) + 8,
-		DEFAULT_CAPACITY: 16,
-		pool:             nil,
-		bytesStart:       make([]int, 0),
-		hashSize:         0,
-		hashHalfSize:     0,
-		hashMask:         0,
-		count:            0,
-		lastCount:        -1,
-		ids:              make([]int, 0),
-		bytesStartArray:  nil,
+func newBytesRefHash() *BytesHash {
+	return &BytesHash{
+		//BASE_RAM_BYTES:   binary.Size(BytesHash{}) + 8,
+		//DEFAULT_CAPACITY: 16,
+		pool:            nil,
+		bytesStart:      make([]int, 0),
+		hashSize:        0,
+		hashHalfSize:    0,
+		hashMask:        0,
+		count:           0,
+		lastCount:       -1,
+		ids:             make([]int, 0),
+		bytesStartArray: nil,
 	}
 }
 
-// Size Returns the number of BytesRef values in this BytesRefHash.
-// Returns: the number of BytesRef values in this BytesRefHash.
-func (r *BytesRefHash) Size() int {
+// Size Returns the number of BytesRef values in this BytesHash.
+// Returns: the number of BytesRef values in this BytesHash.
+func (r *BytesHash) Size() int {
 	return r.count
 }
 
@@ -84,13 +83,13 @@ func (r *BytesRefHash) Size() int {
 //	ref – the BytesRef to populate
 //
 // Returns: the given BytesRef instance populated with the bytes for the given bytesID
-func (r *BytesRefHash) Get(bytesID int) []byte {
+func (r *BytesHash) Get(bytesID int) []byte {
 	return r.pool.GetBytes(r.bytesStart[bytesID])
 }
 
 // Compact Returns the ids array in arbitrary order. Valid ids start at offset of 0 and end at a limit of size() - 1
-// Note: This is a destructive operation. clear() must be called in order to reuse this BytesRefHash instance.
-func (r *BytesRefHash) Compact() []int {
+// Note: This is a destructive operation. clear() must be called in order to reuse this BytesHash instance.
+func (r *BytesHash) Compact() []int {
 	upto := 0
 	for i := 0; i < r.hashSize; i++ {
 		if r.ids[i] != -1 {
@@ -107,13 +106,13 @@ func (r *BytesRefHash) Compact() []int {
 }
 
 // Sort Returns the values array sorted by the referenced byte values.
-// Note: This is a destructive operation. clear() must be called in order to reuse this BytesRefHash instance.
-func (r *BytesRefHash) Sort() []int {
+// Note: This is a destructive operation. clear() must be called in order to reuse this BytesHash instance.
+func (r *BytesHash) Sort() []int {
 	compact := r.Compact()
 
 	sorter := &RadixSorter{
-		Ids:          compact[0:r.count],
-		BytesRefHash: r,
+		Ids:       compact[0:r.count],
+		BytesHash: r,
 	}
 	sort.Sort(sorter)
 
@@ -122,7 +121,7 @@ func (r *BytesRefHash) Sort() []int {
 
 type RadixSorter struct {
 	Ids []int
-	*BytesRefHash
+	*BytesHash
 }
 
 func (r *RadixSorter) Len() int {
@@ -139,7 +138,7 @@ func (r *RadixSorter) Swap(i, j int) {
 	r.Ids[i], r.Ids[j] = r.Ids[j], r.Ids[i]
 }
 
-func (r *BytesRefHash) Clear(resetPool bool) {
+func (r *BytesHash) Clear(resetPool bool) {
 	r.lastCount = r.count
 	r.count = 0
 	if resetPool {
@@ -156,7 +155,7 @@ func (r *BytesRefHash) Clear(resetPool bool) {
 	}
 }
 
-func (r *BytesRefHash) Close() {
+func (r *BytesHash) Close() {
 	r.Clear(true)
 	r.ids = nil
 }
@@ -165,8 +164,8 @@ func (r *BytesRefHash) Close() {
 // Params: bytes – the bytes to hash
 // Returns: the id the given bytes are hashed if there was no mapping for the given bytes, otherwise (-(id)-1).
 // This guarantees that the return value will always be >= 0 if the given bytes haven't been hashed before.
-// Throws: BytesRefHash.MaxBytesLengthExceededException – if the given bytes are > 2 + ByteBlockPool.BYTE_BLOCK_SIZE
-func (r *BytesRefHash) Add(bytes []byte) (int, error) {
+// Throws: BytesHash.MaxBytesLengthExceededException – if the given bytes are > 2 + ByteBlockPool.BYTE_BLOCK_SIZE
+func (r *BytesHash) Add(bytes []byte) (int, error) {
 	length := len(bytes)
 
 	// final position
@@ -191,7 +190,7 @@ func (r *BytesRefHash) Add(bytes []byte) (int, error) {
 		e = r.count
 		r.count++
 
-		r.bytesStart[e] = bufferUpto + r.pool.byteOffset
+		r.bytesStart[e] = bufferUpto + r.pool.ByteOffset
 
 		// We first encode the length, followed by the
 		// bytes. Length is encoded as vInt, but will consume
@@ -219,11 +218,11 @@ func (r *BytesRefHash) Add(bytes []byte) (int, error) {
 	return -(e + 1), nil
 }
 
-func (r *BytesRefHash) Find(bytes []byte) int {
+func (r *BytesHash) Find(bytes []byte) int {
 	return r.ids[r.findHash(bytes)]
 }
 
-func (r *BytesRefHash) findHash(bytes []byte) int {
+func (r *BytesHash) findHash(bytes []byte) int {
 	code := r.doHash(bytes)
 
 	// final position
@@ -246,7 +245,7 @@ func (r *BytesRefHash) findHash(bytes []byte) int {
 	return hashPos
 }
 
-func (r *BytesRefHash) equals(id int, b []byte) bool {
+func (r *BytesHash) equals(id int, b []byte) bool {
 	textStart := r.bytesStart[id]
 	array := r.pool.buffers[textStart>>BYTE_BLOCK_SHIFT]
 	pos := textStart & BYTE_BLOCK_MASK
@@ -263,7 +262,7 @@ func (r *BytesRefHash) equals(id int, b []byte) bool {
 	return bytes.Equal(array[offset:offset+length], b)
 }
 
-func (r *BytesRefHash) shrink(targetSize int) bool {
+func (r *BytesHash) shrink(targetSize int) bool {
 	// Cannot use ArrayUtil.shrink because we require power
 	// of 2:
 	newSize := r.hashSize
@@ -287,9 +286,9 @@ func (r *BytesRefHash) shrink(targetSize int) bool {
 
 // AddByPoolOffset Adds a "arbitrary" int offset instead of a BytesRef term. This is used in the indexer to
 // hold the hash for term vectors, because they do not redundantly store the byte[] term directly and instead
-// reference the byte[] term already stored by the postings BytesRefHash. See add(int textStart) in
+// reference the byte[] term already stored by the postings BytesHash. See add(int textStart) in
 // TermsHashPerField.
-func (r *BytesRefHash) AddByPoolOffset(offset int) int {
+func (r *BytesHash) AddByPoolOffset(offset int) int {
 	// final position
 	code := offset
 	hashPos := offset & r.hashMask
@@ -326,8 +325,8 @@ func (r *BytesRefHash) AddByPoolOffset(offset int) int {
 	return -(e + 1)
 }
 
-// Reinit reinitializes the BytesRefHash after a previous clear() call. If clear() has not been called previously this method has no effect.
-func (r *BytesRefHash) Reinit() {
+// Reinit reinitializes the BytesHash after a previous clear() call. If clear() has not been called previously this method has no effect.
+func (r *BytesHash) Reinit() {
 	if r.bytesStart == nil {
 		r.bytesStart = r.bytesStartArray.Init()
 	}
@@ -340,12 +339,12 @@ func (r *BytesRefHash) Reinit() {
 // ByteStart Returns the bytesStart offset into the internally used ByteBlockPool for the given bytesID
 // Params: bytesID – the id to look up
 // Returns: the bytesStart offset into the internally used ByteBlockPool for the given id
-func (r *BytesRefHash) ByteStart(bytesID int) int {
+func (r *BytesHash) ByteStart(bytesID int) int {
 	return r.bytesStart[bytesID]
 }
 
 // Called when hash is too small (> 50% occupied) or too large (< 20% occupied).
-func (r *BytesRefHash) rehash(newSize int, hashOnData bool) {
+func (r *BytesHash) rehash(newSize int, hashOnData bool) {
 	newMask := newSize - 1
 	newHash := make([]int, newSize)
 	for i := 0; i < len(newHash); i++ {
@@ -393,7 +392,7 @@ var (
 	GOOD_FAST_HASH_SEED = time.Now().Unix()
 )
 
-func (r *BytesRefHash) doHash(bytes []byte) int {
+func (r *BytesHash) doHash(bytes []byte) int {
 	hasher := murmur3.New32WithSeed(uint32(GOOD_FAST_HASH_SEED))
 	_, _ = hasher.Write(bytes)
 	return int(hasher.Sum32())
@@ -404,21 +403,21 @@ type BytesStartArray interface {
 	// Returns: the initialized bytes start array
 	Init() []int
 
-	// Grow Grows the BytesRefHash.BytesStartArray
+	// Grow Grows the BytesHash.BytesStartArray
 	// Returns: the grown array
 	Grow() []int
 
-	// Clear clears the BytesRefHash.BytesStartArray and returns the cleared instance.
+	// Clear clears the BytesHash.BytesStartArray and returns the cleared instance.
 	// Returns: the cleared instance, this might be null
 	Clear() []int
 
-	// BytesUsed A Counter reference holding the number of bytes used by this BytesRefHash.BytesStartArray.
-	// The BytesRefHash uses this reference to track it memory usage
-	// Returns: a AtomicLong reference holding the number of bytes used by this BytesRefHash.BytesStartArray.
-	BytesUsed() *atomic.Int64
+	// BytesUsed A Counter reference holding the number of bytes used by this BytesHash.BytesStartArray.
+	// The BytesHash uses this reference to track it memory usage
+	// Returns: a AtomicLong reference holding the number of bytes used by this BytesHash.BytesStartArray.
+	// BytesUsed() *atomic.Int64
 }
 
-// DirectBytesStartArray A simple BytesRefHash.BytesStartArray that tracks memory allocation using a
+// DirectBytesStartArray A simple BytesHash.BytesStartArray that tracks memory allocation using a
 // private Counter instance.
 type DirectBytesStartArray struct {
 	// TODO: can't we just merge this w/

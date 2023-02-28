@@ -4,12 +4,12 @@ import "github.com/geange/lucene-go/core/util"
 
 type innerSortedSetDocValues struct {
 	ord      int64
-	values   *util.BytesRefHash
+	values   *util.BytesHash
 	bytesIds []int
 	it       *memoryDocValuesIterator
 }
 
-func newInnerSortedSetDocValues(values *util.BytesRefHash, bytesIds []int, it *memoryDocValuesIterator) *innerSortedSetDocValues {
+func newInnerSortedSetDocValues(values *util.BytesHash, bytesIds []int, it *memoryDocValuesIterator) *innerSortedSetDocValues {
 	return &innerSortedSetDocValues{values: values, bytesIds: bytesIds, it: it}
 }
 

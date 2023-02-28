@@ -127,7 +127,7 @@ func (m *MultiLevelSkipListReaderDefault) loadNextSkip(level int) (bool, error) 
 
 	m.numSkipped[level] += m.skipInterval[level]
 
-	// numSkipped may overflow a signed int, so compare as unsigned.
+	// numSkipped may overflow a signed int, so Compare as unsigned.
 	if m.numSkipped[level] > m.docCount {
 		// this skip list is exhausted
 		m.SkipDoc[level] = math.MaxInt32

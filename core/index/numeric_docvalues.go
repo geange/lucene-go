@@ -1,5 +1,6 @@
 package index
 
+// NumericDocValues A per-document numeric value.
 type NumericDocValues interface {
 	DocValuesIterator
 

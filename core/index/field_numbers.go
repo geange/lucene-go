@@ -202,6 +202,11 @@ func (f *FieldNumbers) setDocValuesType(number int, name string, dvType types.Do
 	return nil
 }
 
+func (f *FieldNumbers) SetDimensions(number int, name string, dimensionCount, indexDimensionCount, dimensionNumBytes int) {
+	//f.verifyConsistentDimensions(number, name, dimensionCount, indexDimensionCount, dimensionNumBytes);
+	f.dimensions[name] = NewFieldDimensions(dimensionCount, indexDimensionCount, dimensionNumBytes)
+}
+
 type FieldDimensions struct {
 	DimensionCount      int
 	IndexDimensionCount int

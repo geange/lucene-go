@@ -101,20 +101,6 @@ func fastestFormatAndBits(valueCount, bitsPerValue int, acceptableOverheadRatio 
 	return NewFormatAndBits(format, actualBitsPerValue)
 }
 
-// PackedIntsReader A read-only random access array of positive integers.
-// lucene.internal
-type PackedIntsReader interface {
-	// Get the long at the given index. Behavior is undefined for out-of-range indices.
-	Get(index int) uint64
-
-	// GetBulk Bulk get: read at least one and at most len longs starting from index into
-	// arr[off:off+len] and return the actual number of values that have been read.
-	GetBulk(index int, arr []uint64) int
-
-	// Size Returns: the number of values.
-	Size() int
-}
-
 func GetBulk(reader PackedIntsReader, index int, arr []uint64) int {
 	gets := Min(reader.Size()-index, len(arr))
 
@@ -248,7 +234,7 @@ func getMutable(valueCount, bitsPerValue int, format Format) Mutable {
 	}
 }
 
-func getWriterNoHeader(out store.DataOutput, format Format, valueCount, bitsPerValue, mem int) Writer {
+func getWriterNoHeader(out store.DataOutput, format Format, valueCount, bitsPerValue, mem int) PackIntsWriter {
 	return NewPackedWriter(format, out, valueCount, bitsPerValue, mem)
 }
 

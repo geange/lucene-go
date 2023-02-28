@@ -14,8 +14,8 @@ type Info struct {
 
 	// TODO
 	// Term strings and their positions for this field: Map <String termText, ArrayIntList positions>
-	// private BytesRefHash terms;
-	terms *util.BytesRefHash
+	// private BytesHash terms;
+	terms *util.BytesHash
 	// private SliceByteStartArray sliceArray;
 	sliceArray *SliceByteStartArray
 

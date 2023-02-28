@@ -117,7 +117,7 @@ func (s *SimpleTextStoredFieldsWriter) WriteField(info *types.FieldInfo, field t
 	return errors.New("cannot store type")
 }
 
-func (s *SimpleTextStoredFieldsWriter) Finish(fis index.FieldInfos, numDocs int) error {
+func (s *SimpleTextStoredFieldsWriter) Finish(fis *index.FieldInfos, numDocs int) error {
 	if s.numDocsWritten != numDocs {
 		return errors.New("mergeFields produced an invalid result")
 	}
@@ -134,7 +134,7 @@ func (s *SimpleTextStoredFieldsWriter) writeValue(valueType []byte, value string
 	if err := utils.WriteBytes(s.out, valueType); err != nil {
 		return err
 	}
-	if err := utils.WriteNewline(s.out); err != nil {
+	if err := utils.Newline(s.out); err != nil {
 		return err
 	}
 	if err := utils.WriteBytes(s.out, STORED_FIELD_VALUE); err != nil {
@@ -144,7 +144,7 @@ func (s *SimpleTextStoredFieldsWriter) writeValue(valueType []byte, value string
 	if err := utils.WriteString(s.out, value); err != nil {
 		return err
 	}
-	return utils.WriteNewline(s.out)
+	return utils.Newline(s.out)
 }
 
 func (s *SimpleTextStoredFieldsWriter) write(value any) error {
@@ -161,5 +161,5 @@ func (s *SimpleTextStoredFieldsWriter) write(value any) error {
 }
 
 func (s *SimpleTextStoredFieldsWriter) newLine() error {
-	return utils.WriteNewline(s.out)
+	return utils.Newline(s.out)
 }

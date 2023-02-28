@@ -70,11 +70,15 @@ func main() {
 		panic(err)
 	}
 
-	err = w.Flush(writer)
+	err = w.Flush(writeState, nil, writer)
 	if err != nil {
 		panic(err)
 	}
 
+	err = writer.Close()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func Point(values ...int) []byte {

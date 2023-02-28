@@ -29,7 +29,7 @@ func (m *MemoryIndex) NewMemoryTermsEnum(info *Info) *MemoryTermsEnum {
 	}
 }
 
-func (m *MemoryTermsEnum) binarySearch(b []byte, low, high int, hash *util.BytesRefHash, ords []int) int {
+func (m *MemoryTermsEnum) binarySearch(b []byte, low, high int, hash *util.BytesHash, ords []int) int {
 	mid := 0
 	for low <= high {
 		mid = (low + high) >> 1

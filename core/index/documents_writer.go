@@ -1,8 +1,10 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/store"
 	"go.uber.org/atomic"
+	"io"
 )
 
 // DocumentsWriter This class accepts multiple added documents and directly writes segment files.
@@ -35,10 +37,64 @@ import (
 type DocumentsWriter struct {
 	pendingNumDocs     *atomic.Int64
 	flushNotifications FlushNotifications
+	closed             bool
+	infoStream         io.Writer
+	config             *LiveIndexWriterConfig
+	numDocsInRAM       *atomic.Int64
+
+	// TODO: cut over to BytesHash in BufferedDeletes
+	deleteQueue *DocumentsWriterDeleteQueue
+	ticketQueue *DocumentsWriterFlushQueue
+
+	// we preserve changes during a full flush since IW might not checkout before
+	// we release all changes. NRT Readers otherwise suddenly return true from
+	// isCurrent while there are actually changes currently committed. See also
+	// #anyChanges() & #flushAllThreads
+	pendingChangesInCurrentFullFlush bool
+
+	perThreadPool *DocumentsWriterPerThreadPool
+	flushControl  *DocumentsWriterFlushControl
 }
 
-func (d *DocumentsWriter) updateDocuments(docs []types.IndexableFieldIterator, delNode Node) (int64, error) {
+func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int64, enableTestPoints bool,
+	segmentName func() string, config *LiveIndexWriterConfig, directoryOrig, directory store.Directory,
+	globalFieldNumberMap *FieldNumbers) *DocumentsWriter {
+
+	infos := NewFieldInfosBuilder(globalFieldNumberMap)
+
+	return &DocumentsWriter{
+		pendingNumDocs:                   pendingNumDocs,
+		flushNotifications:               nil,
+		closed:                           false,
+		infoStream:                       nil,
+		config:                           config,
+		numDocsInRAM:                     nil,
+		deleteQueue:                      nil,
+		ticketQueue:                      nil,
+		pendingChangesInCurrentFullFlush: false,
+		perThreadPool:                    nil,
+		flushControl: &DocumentsWriterFlushControl{
+			perThread: NewDocumentsWriterPerThread(indexCreatedVersionMajor,
+				segmentName(), directoryOrig,
+				directory, config, nil, infos,
+				pendingNumDocs, enableTestPoints)},
+	}
+}
+
+func (d *DocumentsWriter) preUpdate() (bool, error) {
 	panic("")
+}
+
+// TODO: fix it
+func (d *DocumentsWriter) updateDocuments(docs []*document.Document, delNode Node) (int64, error) {
+	dwpt := d.flushControl.obtainAndLock()
+	dwptNumDocs := dwpt.GetNumDocsInRAM()
+	seqNo, err := dwpt.updateDocuments(docs, delNode)
+	if err != nil {
+		return 0, err
+	}
+	d.numDocsInRAM.Add(int64(dwpt.GetNumDocsInRAM() - dwptNumDocs))
+	return seqNo, nil
 }
 
 type FlushNotifications interface {

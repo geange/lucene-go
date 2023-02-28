@@ -175,6 +175,10 @@ func (s *SegmentInfo) GetIndexSort() *Sort {
 	return s.indexSort
 }
 
+func (s *SegmentInfo) GetCodec() Codec {
+	return s.codec
+}
+
 func checkFileNames(files []string) error {
 	for _, file := range files {
 		if !CODEC_FILE_PATTERN.MatchString(file) {

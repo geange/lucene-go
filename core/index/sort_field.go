@@ -139,21 +139,28 @@ const (
 // the sort in index segment headers
 // lucene.experimental
 func (s *SortField) GetIndexSorter() IndexSorter {
+	sorter := &EmptyNumericDocValuesProvider{
+		FnGet: func(reader LeafReader) (NumericDocValues, error) {
+			return GetNumeric(reader, s.field)
+		},
+	}
+
 	switch s._type {
 	case STRING:
-		return nil
+		sorter := &EmptySortedDocValuesProvider{
+			FnGet: func(reader LeafReader) (SortedDocValues, error) {
+				return GetSorted(reader, s.field)
+			},
+		}
+		return NewStringSorter(ProviderName, s.missingValue.(string), s.reverse, sorter)
 	case INT:
-		return NewIntSorter(ProviderName, s.missingValue.(int32), s.reverse, func(reader LeafReader) (NumericDocValues, error) {
-			return nil, nil
-		})
+		return NewIntSorter(ProviderName, s.missingValue.(int32), s.reverse, sorter)
 	case LONG:
-		return NewLongSorter(ProviderName, s.missingValue.(int64), s.reverse, func(reader LeafReader) (NumericDocValues, error) {
-			return nil, nil
-		})
+		return NewLongSorter(ProviderName, s.missingValue.(int64), s.reverse, sorter)
 	case DOUBLE:
-		return nil
+		return NewDoubleSorter(ProviderName, s.missingValue.(float64), s.reverse, sorter)
 	case FLOAT:
-		return nil
+		return NewFloatSorter(ProviderName, s.missingValue.(float32), s.reverse, sorter)
 	default:
 		return nil
 	}

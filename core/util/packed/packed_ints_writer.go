@@ -5,9 +5,9 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-// Writer A write-once Writer.
+// PackIntsWriter A write-once PackIntsWriter.
 // lucene.internal
-type Writer interface {
+type PackIntsWriter interface {
 	WriteHeader() error
 
 	// GetFormat The format used to serialize values.
@@ -30,22 +30,39 @@ type WriterSpi interface {
 	GetFormat() Format
 }
 
-type writer struct {
-	spi          WriterSpi
+type PackIntsWriterDefault struct {
+	FnGetFormat func() Format
+
 	out          store.DataOutput
 	valueCount   int
 	bitsPerValue int
 }
 
-func newWriter(out store.DataOutput, valueCount int, bitsPerValue int) *writer {
-	return &writer{
+type PackIntsWriterDefaultConfig struct {
+	GetFormat    func() Format
+	out          store.DataOutput
+	valueCount   int
+	bitsPerValue int
+}
+
+func NewPackIntsWriterDefault(cfg *PackIntsWriterDefaultConfig) *PackIntsWriterDefault {
+	return &PackIntsWriterDefault{
+		FnGetFormat:  cfg.GetFormat,
+		out:          cfg.out,
+		valueCount:   cfg.valueCount,
+		bitsPerValue: cfg.bitsPerValue,
+	}
+}
+
+func newWriter(out store.DataOutput, valueCount int, bitsPerValue int) *PackIntsWriterDefault {
+	return &PackIntsWriterDefault{
 		out:          out,
 		valueCount:   valueCount,
 		bitsPerValue: bitsPerValue,
 	}
 }
 
-func (w *writer) WriteHeader() error {
+func (w *PackIntsWriterDefault) WriteHeader() error {
 	err := utils.WriteHeader(w.out, CODEC_NAME, VERSION_CURRENT)
 	if err != nil {
 		return err
@@ -61,9 +78,9 @@ func (w *writer) WriteHeader() error {
 		return err
 	}
 
-	return w.out.WriteUvarint(uint64(w.spi.GetFormat().GetId()))
+	return w.out.WriteUvarint(uint64(w.FnGetFormat().GetId()))
 }
 
-func (w *writer) BitsPerValue() int {
+func (w *PackIntsWriterDefault) BitsPerValue() int {
 	return w.bitsPerValue
 }

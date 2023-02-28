@@ -128,3 +128,7 @@ func (f *FieldInfos) Size() int {
 func (f *FieldInfos) List() []*types.FieldInfo {
 	return f.values
 }
+
+func (f *FieldInfos) HasNorms() bool {
+	return f.hasNorms
+}

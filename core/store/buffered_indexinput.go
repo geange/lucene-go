@@ -84,6 +84,8 @@ func (r *BufferedIndexInputDefault) Clone(cfg *BufferedIndexInputDefaultConfig) 
 	var buffer *bytes.Buffer
 	if r.buffer != nil {
 		buffer = bytes.NewBuffer(r.buffer.Bytes())
+	} else {
+		buffer = new(bytes.Buffer)
 	}
 
 	return &BufferedIndexInputDefault{

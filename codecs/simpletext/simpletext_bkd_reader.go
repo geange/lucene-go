@@ -78,8 +78,7 @@ func (s *SimpleTextBKDReader) Intersect(visitor *index.IntersectVisitor) error {
 func (s *SimpleTextBKDReader) addAll(state *IntersectState, nodeID int) error {
 	if nodeID >= s.leafNodeOffset {
 		// TODO: we can assert that the first value here in fact matches what the index claimed?
-		return s.visitDocIDs(state.in,
-			s.leafBlockFPs[nodeID-s.leafNodeOffset], state.visitor)
+		return s.visitDocIDs(state.in, s.leafBlockFPs[nodeID-s.leafNodeOffset], state.visitor)
 	}
 
 	if err := s.addAll(state, 2*nodeID); err != nil {
@@ -127,7 +126,6 @@ func (s *SimpleTextBKDReader) intersect(state *IntersectState, nodeID int, cellM
 				state.in, state.scratchDocIDs, count, state.visitor); err != nil {
 				return err
 			}
-
 		}
 		return nil
 	}
@@ -248,8 +246,12 @@ func (s *SimpleTextBKDReader) visitDocValues(commonPrefixLengths []int, scratchP
 
 		scratch.Next(len(BLOCK_VALUE))
 
-		value := util.BytesToString(scratch.Bytes())
-		br := []byte(value)
+		//value := util.BytesToString(scratch.Bytes())
+		//br := []byte(value)
+		br, err := util.StringToBytes(scratch.String())
+		if err != nil {
+			return err
+		}
 
 		packedBytesLength := s.packedBytesLength
 
@@ -357,9 +359,9 @@ func (s *SimpleTextBKDReader) NewIntersectState(in store.IndexInput,
 	return &IntersectState{
 		reader:              s,
 		in:                  in,
-		scratchDocIDs:       make([]int, numDims),
-		scratchPackedValue:  make([]byte, maxPointsInLeafNode),
-		commonPrefixLengths: make([]int, packedBytesLength),
+		scratchDocIDs:       make([]int, maxPointsInLeafNode),
+		scratchPackedValue:  make([]byte, packedBytesLength),
+		commonPrefixLengths: make([]int, numDims),
 		visitor:             visitor,
 	}
 }

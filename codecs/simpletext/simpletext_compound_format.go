@@ -73,7 +73,7 @@ func (s *SimpleTextCompoundFormat) Write(dir store.Directory, si *index.SegmentI
 		if err := utils.WriteString(out, name); err != nil {
 			return err
 		}
-		if err := utils.WriteNewline(out); err != nil {
+		if err := utils.Newline(out); err != nil {
 			return err
 		}
 
@@ -98,7 +98,7 @@ func (s *SimpleTextCompoundFormat) Write(dir store.Directory, si *index.SegmentI
 	if err := utils.WriteString(out, strconv.Itoa(numFiles)); err != nil {
 		return err
 	}
-	if err := utils.WriteNewline(out); err != nil {
+	if err := utils.Newline(out); err != nil {
 		return err
 	}
 
@@ -109,7 +109,7 @@ func (s *SimpleTextCompoundFormat) Write(dir store.Directory, si *index.SegmentI
 		if err := utils.WriteString(out, name); err != nil {
 			return err
 		}
-		if err := utils.WriteNewline(out); err != nil {
+		if err := utils.Newline(out); err != nil {
 			return err
 		}
 
@@ -119,7 +119,7 @@ func (s *SimpleTextCompoundFormat) Write(dir store.Directory, si *index.SegmentI
 		if err := utils.WriteString(out, strconv.Itoa(int(startOffsets[i]))); err != nil {
 			return err
 		}
-		if err := utils.WriteNewline(out); err != nil {
+		if err := utils.Newline(out); err != nil {
 			return err
 		}
 
@@ -129,7 +129,7 @@ func (s *SimpleTextCompoundFormat) Write(dir store.Directory, si *index.SegmentI
 		if err := utils.WriteString(out, strconv.Itoa(int(endOffsets[i]))); err != nil {
 			return err
 		}
-		if err := utils.WriteNewline(out); err != nil {
+		if err := utils.Newline(out); err != nil {
 			return err
 		}
 	}
@@ -141,7 +141,7 @@ func (s *SimpleTextCompoundFormat) Write(dir store.Directory, si *index.SegmentI
 	if err := utils.WriteString(out, fmt.Sprintf(fmtStr, tocPos)); err != nil {
 		return err
 	}
-	return utils.WriteNewline(out)
+	return utils.Newline(out)
 }
 
 func (s *SimpleTextCompoundFormat) GetCompoundReader(dir store.Directory, si *index.SegmentInfo, context *store.IOContext) (index.CompoundDirectory, error) {

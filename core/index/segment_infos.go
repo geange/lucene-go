@@ -38,7 +38,7 @@ const (
 //   - Footer --> CodecFooter
 //
 // Field Descriptions:
-//   - Version counts how often the index has been changed by adding or deleting documents.
+//   - Version counts how often the index has been Changed by adding or deleting documents.
 //   - NameCounter is used to generate names for new segment files.
 //   - SegName is the name of the segment, and is used as the file name prefix for all of the files that compose the segment's index.
 //   - DelGen is the generation count of the deletes file. If this is -1, there are no deletes. Anything above zero means there are deletes stored by LiveDocsFormat.
@@ -56,7 +56,7 @@ type SegmentInfos struct {
 	// Used to name new segments.
 	counter int64
 
-	// Counts how often the index has been changed.
+	// Counts how often the index has been Changed.
 	version int64
 
 	// generation of the "segments_N" for the next commit
@@ -86,4 +86,29 @@ type SegmentInfos struct {
 
 	// The Lucene version major that was used to create the index.
 	indexCreatedVersionMajor int
+}
+
+func (i *SegmentInfos) getIndexCreatedVersionMajor() int {
+	return i.indexCreatedVersionMajor
+}
+
+// Changed Call this before committing if changes have been made to the segments.
+func (i *SegmentInfos) Changed() {
+	i.version++
+}
+
+func NewSegmentInfos(indexCreatedVersionMajor int) *SegmentInfos {
+	return &SegmentInfos{
+		counter:                  0,
+		version:                  0,
+		generation:               0,
+		lastGeneration:           0,
+		userData:                 map[string]string{},
+		segments:                 make([]*SegmentCommitInfo, 0),
+		infoStream:               nil,
+		id:                       nil,
+		luceneVersion:            nil,
+		minSegmentLuceneVersion:  nil,
+		indexCreatedVersionMajor: indexCreatedVersionMajor,
+	}
 }

@@ -516,7 +516,7 @@ func (s *SimpleTextBKDWriter) writeLeafBlockPackedValues(out store.IndexOutput, 
 		if err := utils.WriteString(out, util.BytesToString(packedValue)); err != nil {
 			return err
 		}
-		if err := utils.WriteNewline(out); err != nil {
+		if err := utils.Newline(out); err != nil {
 			return err
 		}
 	}

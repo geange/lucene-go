@@ -6,7 +6,7 @@ import (
 )
 
 // LiveIndexWriterConfig Holds all the configuration used by IndexWriter with few setters for settings
-// that can be changed on an IndexWriter instance "live".
+// that can be Changed on an IndexWriter instance "live".
 // Since: 4.0
 type LiveIndexWriterConfig struct {
 	analyzer analysis.Analyzer
@@ -80,6 +80,36 @@ type LiveIndexWriterConfig struct {
 	maxFullFlushMergeWaitMillis int64
 }
 
+func NewLiveIndexWriterConfig(analyzer analysis.Analyzer, codec Codec, similarity Similarity) *LiveIndexWriterConfig {
+	return &LiveIndexWriterConfig{
+		analyzer:                    analyzer,
+		maxBufferedDocs:             DEFAULT_MAX_BUFFERED_DOCS,
+		ramBufferSizeMB:             DEFAULT_RAM_BUFFER_SIZE_MB,
+		mergedSegmentWarmer:         nil,
+		delPolicy:                   nil,
+		commit:                      nil,
+		openMode:                    CREATE_OR_APPEND,
+		createdVersionMajor:         0,
+		similarity:                  similarity,
+		mergeScheduler:              nil,
+		indexingChain:               defaultIndexingChainInstance,
+		codec:                       codec,
+		infoStream:                  nil,
+		mergePolicy:                 nil,
+		readerPooling:               DEFAULT_READER_POOLING,
+		flushPolicy:                 nil,
+		perThreadHardLimitMB:        DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB,
+		useCompoundFile:             DEFAULT_USE_COMPOUND_FILE_SYSTEM,
+		commitOnClose:               false,
+		indexSort:                   nil,
+		leafSorter:                  nil,
+		indexSortFields:             nil,
+		checkPendingFlushOnUpdate:   false,
+		softDeletesField:            "",
+		maxFullFlushMergeWaitMillis: DEFAULT_MAX_FULL_FLUSH_MERGE_WAIT_MILLIS,
+	}
+}
+
 type OpenMode int
 
 const (
@@ -99,4 +129,21 @@ func (r *LiveIndexWriterConfig) GetIndexSort() *Sort {
 
 func (r *LiveIndexWriterConfig) GetMergePolicy() *MergePolicy {
 	return r.mergePolicy
+}
+
+// GetSimilarity Expert: returns the Similarity implementation used by this IndexWriter.
+func (r *LiveIndexWriterConfig) GetSimilarity() Similarity {
+	return r.similarity
+}
+
+func (r *LiveIndexWriterConfig) GetAnalyzer() analysis.Analyzer {
+	return r.analyzer
+}
+
+func (r *LiveIndexWriterConfig) GetCodec() Codec {
+	return r.codec
+}
+
+func (r *LiveIndexWriterConfig) getIndexingChain() IndexingChain {
+	return r.indexingChain
 }

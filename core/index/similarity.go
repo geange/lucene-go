@@ -1,6 +1,8 @@
 package index
 
-import "github.com/geange/lucene-go/core/types"
+import (
+	"github.com/geange/lucene-go/core/types"
+)
 
 // Similarity defines the components of Lucene scoring.
 // Expert: Scoring API.

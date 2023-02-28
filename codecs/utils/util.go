@@ -93,8 +93,62 @@ func (t *TextWriter) WriteLong(v int64) error {
 	return t.WriteString(strconv.FormatInt(v, 10))
 }
 
+func (t *TextWriter) WriteLabelBytes(label, v []byte) error {
+	if err := t.WriteBytes(label); err != nil {
+		return err
+	}
+	if err := t.WriteBytes(v); err != nil {
+		return err
+	}
+	return t.NewLine()
+}
+
+func (t *TextWriter) WriteLabelString(label []byte, v string) error {
+	if err := t.WriteBytes(label); err != nil {
+		return err
+	}
+	if err := t.WriteString(v); err != nil {
+		return err
+	}
+	return t.NewLine()
+}
+
+func (t *TextWriter) WriteLabelInt(label []byte, v int) error {
+	if err := t.WriteBytes(label); err != nil {
+		return err
+	}
+
+	if err := t.WriteInt(v); err != nil {
+		return err
+	}
+
+	return t.NewLine()
+}
+
+func (t *TextWriter) WriteLabelLong(label []byte, v int64) error {
+	if err := t.WriteBytes(label); err != nil {
+		return err
+	}
+
+	if err := t.WriteLong(v); err != nil {
+		return err
+	}
+
+	return t.NewLine()
+}
+
+func (t *TextWriter) WriteLabelBool(label []byte, v bool) error {
+	if err := t.WriteBytes(label); err != nil {
+		return err
+	}
+	if err := t.WriteString(strconv.FormatBool(v)); err != nil {
+		return err
+	}
+	return t.NewLine()
+}
+
 func (t *TextWriter) NewLine() error {
-	return WriteNewline(t.out)
+	return Newline(t.out)
 }
 
 func (t *TextWriter) Write(v any) error {
@@ -149,7 +203,7 @@ func WriteBytes(out store.DataOutput, bs []byte) error {
 	return nil
 }
 
-func WriteNewline(out store.DataOutput) error {
+func Newline(out store.DataOutput) error {
 	return out.WriteByte(NEWLINE)
 }
 
@@ -193,7 +247,7 @@ func WriteChecksum(out store.IndexOutput) error {
 	if err := WriteString(out, fmt.Sprintf("%020d", checksum)); err != nil {
 		return err
 	}
-	return WriteNewline(out)
+	return Newline(out)
 }
 
 func CheckFooter(input store.ChecksumIndexInput) error {
