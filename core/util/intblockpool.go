@@ -228,6 +228,21 @@ type IntsArrayAllocatorNeed interface {
 	RecycleIntBlocks(blocks [][]int, start, end int)
 }
 
+var _ IntsAllocator = &IntsAllocatorDefault{}
+
+type IntsAllocatorDefault struct {
+	BlockSize          int
+	FnRecycleIntBlocks func(blocks [][]int, start, end int)
+}
+
+func (i *IntsAllocatorDefault) RecycleIntBlocks(blocks [][]int, start, end int) {
+	i.FnRecycleIntBlocks(blocks, start, end)
+}
+
+func (i *IntsAllocatorDefault) GetIntBlock() []int {
+	return make([]int, i.BlockSize)
+}
+
 // IntsAllocatorImp Abstract class for allocating and freeing int blocks.
 type IntsAllocatorImp struct {
 	blockSize int

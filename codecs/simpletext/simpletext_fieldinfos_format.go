@@ -269,7 +269,6 @@ func (s *SimpleTextFieldInfosFormat) Write(directory store.Directory, segmentInf
 	}
 
 	return utils.WriteChecksum(out)
-
 }
 
 func writeValue[T int | int64 | string | bool | []byte](out store.DataOutput, label []byte, value T) error {

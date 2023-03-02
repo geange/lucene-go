@@ -1,9 +1,12 @@
 package index
 
 import (
+	"encoding/binary"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
+
+const HASH_INIT_SIZE = 4
 
 // TermsHashPerField This class stores streams of information per term without knowing the size of the
 // stream ahead of time. Each stream typically encodes one level of information like term frequency
@@ -84,13 +87,14 @@ type TermsHashPerFieldDefault struct {
 }
 
 func NewTermsHashPerFieldDefault(streamCount int,
-	intPool *util.IntBlockPool, bytePool *util.ByteBlockPool,
-	nextPerField TermsHashPerField, fieldName string, indexOptions types.IndexOptions) *TermsHashPerFieldDefault {
+	intPool *util.IntBlockPool, bytePool, termBytePool *util.ByteBlockPool,
+	nextPerField TermsHashPerField, fieldName string, indexOptions types.IndexOptions, perField TermsHashPerField) *TermsHashPerFieldDefault {
 
-	return &TermsHashPerFieldDefault{
-		nextPerField:  nextPerField,
-		intPool:       intPool,
-		bytePool:      bytePool,
+	res := &TermsHashPerFieldDefault{
+		nextPerField: nextPerField,
+		intPool:      intPool,
+		bytePool:     bytePool,
+
 		streamCount:   streamCount,
 		fieldName:     fieldName,
 		indexOptions:  indexOptions,
@@ -99,9 +103,11 @@ func NewTermsHashPerFieldDefault(streamCount int,
 		lastDocID:     0,
 		sortedTermIDs: nil,
 		doNextCall:    false,
-		fnNewTerm:     nil,
-		fnAddTerm:     nil,
+		fnNewTerm:     perField.NewTerm,
+		fnAddTerm:     perField.AddTerm,
 	}
+
+	return res
 }
 
 func (t *TermsHashPerFieldDefault) GetPostingsArray() ParallelPostingsArray {
@@ -255,6 +261,45 @@ func (t *TermsHashPerFieldDefault) Add(termBytes []byte, docID int) error {
 		return t.nextPerField.Add2nd(termID, docID)
 	}
 	return nil
+}
+
+// Finish adding all instances of this field to the
+// current document.
+func (t *TermsHashPerFieldDefault) Finish() error {
+	if t.nextPerField != nil {
+		return t.nextPerField.Finish()
+	}
+	return nil
+}
+
+func (t *TermsHashPerFieldDefault) writeBytes(stream int, bs []byte) {
+	for _, b := range bs {
+		t.writeByte(stream, b)
+	}
+}
+
+func (t *TermsHashPerFieldDefault) writeVInt(stream, i int) {
+	buf := make([]byte, 10)
+	num := binary.PutUvarint(buf, uint64(i))
+
+	for _, b := range buf[:num] {
+		t.writeByte(stream, b)
+	}
+}
+
+func (t *TermsHashPerFieldDefault) writeByte(stream int, b byte) {
+	streamAddress := t.streamAddressOffset + stream
+	upto := t.termStreamAddressBuffer[streamAddress]
+	bytes := t.bytePool.Get(upto >> util.BYTE_BLOCK_SHIFT)
+	offset := upto & util.BYTE_BLOCK_MASK
+	if bytes[offset] != 0 {
+		// End of slice; allocate a new one
+		offset = t.bytePool.AllocSlice(bytes, offset)
+		bytes = t.bytePool.Current()
+		t.termStreamAddressBuffer[streamAddress] = offset + t.bytePool.ByteOffset
+	}
+	bytes[offset] = b
+	t.termStreamAddressBuffer[streamAddress]++
 }
 
 var _ util.BytesStartArray = &PostingsBytesStartArray{}

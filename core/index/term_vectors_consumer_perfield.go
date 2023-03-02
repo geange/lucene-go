@@ -1,7 +1,6 @@
 package index
 
 import (
-	"encoding/binary"
 	"fmt"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/types"
@@ -34,35 +33,23 @@ type TermVectorsConsumerPerField struct {
 func NewTermVectorsConsumerPerField(invertState *FieldInvertState,
 	termsHash *TermVectorsConsumer, fieldInfo *types.FieldInfo) *TermVectorsConsumerPerField {
 
+	indexOptions := fieldInfo.GetIndexOptions()
+	termBytePool := termsHash.GetTermBytePool()
+
 	perfield := &TermVectorsConsumerPerField{
-		TermsHashPerFieldDefault: &TermsHashPerFieldDefault{
-			nextPerField:            nil,
-			intPool:                 termsHash.intPool,
-			bytePool:                termsHash.bytePool,
-			termStreamAddressBuffer: nil,
-			streamAddressOffset:     0,
-			streamCount:             2,
-			fieldName:               fieldInfo.Name(),
-			indexOptions:            fieldInfo.GetIndexOptions(),
-			bytesHash:               nil,
-			postingsArray:           nil,
-			lastDocID:               0,
-			sortedTermIDs:           nil,
-			doNextCall:              false,
-			fnNewTerm:               nil,
-			fnAddTerm:               nil,
-		},
 		termsWriter:  termsHash,
 		fieldState:   invertState,
 		fieldInfo:    fieldInfo,
 		termBytePool: termsHash.termBytePool,
 	}
 
+	perfield.TermsHashPerFieldDefault = NewTermsHashPerFieldDefault(2,
+		termsHash.GetIntPool(), termsHash.GetBytePool(), termsHash.GetTermBytePool(),
+		nil, fieldInfo.Name(), indexOptions, perfield)
+
 	byteStarts := NewPostingsBytesStartArray(perfield)
-	HASH_INIT_SIZE := 4
-	perfield.bytesHash = util.NewBytesRefHashV1(termsHash.termBytePool, HASH_INIT_SIZE, byteStarts)
-	perfield.fnNewTerm = perfield.NewTerm
-	perfield.fnAddTerm = perfield.AddTerm
+	perfield.bytesHash = util.NewBytesRefHashV1(termBytePool, HASH_INIT_SIZE, byteStarts)
+
 	return perfield
 }
 
@@ -99,6 +86,93 @@ func (t *TermVectorsConsumerPerField) Finish() error {
 
 func (t *TermVectorsConsumerPerField) FinishDocument() error {
 	panic("")
+}
+
+func (t *TermVectorsConsumerPerField) Start(field types.IndexableField, first bool) bool {
+	t.TermsHashPerFieldDefault.Start(field, first)
+	t.termFreqAtt = t.fieldState.termFreqAttribute
+
+	if first {
+
+		if t.getNumTerms() != 0 {
+			// Only necessary if previous doc hit a
+			// non-aborting exception while writing vectors in
+			// this field:
+			t.Reset()
+		}
+
+		t.hasPayloads = false
+
+		t.doVectors = field.FieldType().StoreTermVectors()
+
+		if t.doVectors {
+
+			t.termsWriter.hasVectors = true
+
+			t.doVectorPositions = field.FieldType().StoreTermVectorPositions()
+
+			// Somewhat confusingly, unlike postings, you are
+			// allowed to index TV offsets without TV positions:
+			t.doVectorOffsets = field.FieldType().StoreTermVectorOffsets()
+
+			if t.doVectorPositions {
+				t.doVectorPayloads = field.FieldType().StoreTermVectorPayloads()
+			} else {
+				t.doVectorPayloads = false
+				if field.FieldType().StoreTermVectorPayloads() {
+					// TODO: move this check somewhere else, and impl the other missing ones
+					panic(fmt.Sprintf("cannot index term vector payloads without term vector positions (field='%s')", field.Name()))
+					//throw new IllegalArgumentException("cannot index term vector payloads without term vector positions (field=\"" + field.name() + "\")");
+				}
+			}
+
+		} else {
+			if field.FieldType().StoreTermVectorOffsets() {
+				panic(fmt.Sprintf("cannot index term vector offsets when term vectors are not indexed (field='%s')", field.Name()))
+				//throw new IllegalArgumentException("cannot index term vector offsets when term vectors are not indexed (field=\"" + field.name() + "\")");
+			}
+			if field.FieldType().StoreTermVectorPositions() {
+				panic(fmt.Sprintf("cannot index term vector positions when term vectors are not indexed (field='%s')", field.Name()))
+				//throw new IllegalArgumentException("cannot index term vector positions when term vectors are not indexed (field=\"" + field.name() + "\")");
+			}
+			if field.FieldType().StoreTermVectorPayloads() {
+				panic(fmt.Sprintf("cannot index term vector payloads when term vectors are not indexed (field='%s')", field.Name()))
+				//throw new IllegalArgumentException("cannot index term vector payloads when term vectors are not indexed (field=\"" + field.name() + "\")");
+			}
+		}
+	} else {
+		if t.doVectors != field.FieldType().StoreTermVectors() {
+			panic(fmt.Sprintf("all instances of a given field name must have the same term vectors settings (storeTermVectors changed for field='%s'", field.Name()))
+			//throw new IllegalArgumentException("all instances of a given field name must have the same term vectors settings (storeTermVectors changed for field=\"" + field.name() + "\")");
+		}
+		if t.doVectorPositions != field.FieldType().StoreTermVectorPositions() {
+			panic(fmt.Sprintf("all instances of a given field name must have the same term vectors settings (storeTermVectorPositions changed for field='%s'", field.Name()))
+			//throw new IllegalArgumentException("all instances of a given field name must have the same term vectors settings (storeTermVectorPositions changed for field=\"" + field.name() + "\")");
+		}
+		if t.doVectorOffsets != field.FieldType().StoreTermVectorOffsets() {
+			panic(fmt.Sprintf("all instances of a given field name must have the same term vectors settings (storeTermVectorOffsets changed for field='%s'", field.Name()))
+			//throw new IllegalArgumentException("all instances of a given field name must have the same term vectors settings (storeTermVectorOffsets changed for field=\"" + field.name() + "\")");
+		}
+		if t.doVectorPayloads != field.FieldType().StoreTermVectorPayloads() {
+			panic(fmt.Sprintf("all instances of a given field name must have the same term vectors settings (storeTermVectorPayloads changed for field='%s'", field.Name()))
+			//throw new IllegalArgumentException("all instances of a given field name must have the same term vectors settings (storeTermVectorPayloads changed for field=\"" + field.name() + "\")");
+		}
+	}
+
+	if t.doVectors {
+		if t.doVectorOffsets {
+			t.offsetAttribute = t.fieldState.offsetAttribute
+			//assert offsetAttribute != null;
+		}
+
+		if t.doVectorPayloads {
+			// Can be null:
+			t.payloadAttribute = t.fieldState.payloadAttribute
+		} else {
+			t.payloadAttribute = nil
+		}
+	}
+	return t.doVectors
 }
 
 func (t *TermVectorsConsumerPerField) NewPostingsArray() {
@@ -163,52 +237,31 @@ func (t *TermVectorsConsumerPerField) writeProx(postings *TermVectorsPostingsArr
 	return nil
 }
 
-func (t *TermVectorsConsumerPerField) writeBytes(stream int, bs []byte) {
-	for _, b := range bs {
-		t.writeByte(stream, b)
+func (t *TermVectorsConsumerPerField) Reset() error {
+	t.bytesHash.Clear(false)
+	t.sortedTermIDs = nil
+	if t.nextPerField != nil {
+		return t.nextPerField.Reset()
 	}
-}
-
-func (t *TermVectorsConsumerPerField) writeVInt(stream, i int) {
-	buf := make([]byte, 10)
-	num := binary.PutUvarint(buf, uint64(i))
-
-	for _, b := range buf[:num] {
-		t.writeByte(stream, b)
-	}
-}
-
-func (t *TermVectorsConsumerPerField) writeByte(stream int, b byte) {
-	streamAddress := t.streamAddressOffset + stream
-	upto := t.termStreamAddressBuffer[streamAddress]
-	bytes := t.bytePool.Get(upto >> util.BYTE_BLOCK_SHIFT)
-	offset := upto & util.BYTE_BLOCK_MASK
-	if bytes[offset] != 0 {
-		// End of slice; allocate a new one
-		offset = t.bytePool.AllocSlice(bytes, offset)
-		bytes = t.bytePool.Current()
-		t.termStreamAddressBuffer[streamAddress] = offset + t.bytePool.ByteOffset
-	}
-	bytes[offset] = b
-	t.termStreamAddressBuffer[streamAddress]++
+	return nil
 }
 
 func SortTermVectorsConsumerPerField(fields []*TermVectorsConsumerPerField) {
-	sort.Sort(PerFields(fields))
+	sort.Sort(TermVectorsConsumerPerFields(fields))
 }
 
-var _ sort.Interface = PerFields{}
+var _ sort.Interface = TermVectorsConsumerPerFields{}
 
-type PerFields []*TermVectorsConsumerPerField
+type TermVectorsConsumerPerFields []*TermVectorsConsumerPerField
 
-func (p PerFields) Len() int {
+func (p TermVectorsConsumerPerFields) Len() int {
 	return len(p)
 }
 
-func (p PerFields) Less(i, j int) bool {
+func (p TermVectorsConsumerPerFields) Less(i, j int) bool {
 	return strings.Compare(p[i].fieldName, p[j].fieldName) < 0
 }
 
-func (p PerFields) Swap(i, j int) {
+func (p TermVectorsConsumerPerFields) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }

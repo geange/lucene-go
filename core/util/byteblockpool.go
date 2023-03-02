@@ -1,5 +1,10 @@
 package util
 
+import (
+	"encoding/binary"
+	"io"
+)
+
 const (
 	BYTE_BLOCK_SHIFT = 15
 	BYTE_BLOCK_SIZE  = 1 << BYTE_BLOCK_SHIFT
@@ -193,6 +198,21 @@ func (r *ByteBlockPool) SetBytesRefV1(builder *BytesRefBuilder, result []byte, o
 	//}
 }
 
+func (r *ByteBlockPool) GetAddress(offset int) ([]byte, error) {
+	bufferIndex := offset >> BYTE_BLOCK_SHIFT
+	pos := offset & BYTE_BLOCK_MASK
+	values := r.buffers[bufferIndex]
+
+	size, n := binary.Uvarint(values[pos:])
+	if size == 0 {
+		return nil, io.EOF
+	}
+
+	from := pos + n
+	to := from + int(size)
+	return values[from:to], nil
+}
+
 func (r *ByteBlockPool) Get(index int) []byte {
 	return r.buffers[index]
 }
@@ -305,6 +325,25 @@ type BytesAllocator interface {
 
 type BytesAllocatorExtra interface {
 	RecycleByteBlocks(blocks [][]byte, start, end int)
+}
+
+var _ BytesAllocator = &BytesAllocatorDefault{}
+
+type BytesAllocatorDefault struct {
+	BlockSize           int
+	FnRecycleByteBlocks func(blocks [][]byte, start, end int)
+}
+
+func (b *BytesAllocatorDefault) RecycleByteBlocks(blocks [][]byte, start, end int) {
+	b.FnRecycleByteBlocks(blocks, start, end)
+}
+
+func (b *BytesAllocatorDefault) RecycleByteBlocksV1(blocks [][]byte) {
+	b.FnRecycleByteBlocks(blocks, 0, len(blocks))
+}
+
+func (b *BytesAllocatorDefault) GetByteBlock() []byte {
+	return make([]byte, b.BlockSize)
 }
 
 // BytesAllocatorImp Abstract class for allocating and freeing int blocks.

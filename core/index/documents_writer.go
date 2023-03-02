@@ -62,21 +62,23 @@ func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int
 
 	infos := NewFieldInfosBuilder(globalFieldNumberMap)
 
+	deleteQueue := NewDocumentsWriterDeleteQueue()
+
 	return &DocumentsWriter{
 		pendingNumDocs:                   pendingNumDocs,
 		flushNotifications:               nil,
 		closed:                           false,
 		infoStream:                       nil,
 		config:                           config,
-		numDocsInRAM:                     nil,
-		deleteQueue:                      nil,
+		numDocsInRAM:                     atomic.NewInt64(0),
+		deleteQueue:                      deleteQueue,
 		ticketQueue:                      nil,
 		pendingChangesInCurrentFullFlush: false,
 		perThreadPool:                    nil,
 		flushControl: &DocumentsWriterFlushControl{
 			perThread: NewDocumentsWriterPerThread(indexCreatedVersionMajor,
 				segmentName(), directoryOrig,
-				directory, config, nil, infos,
+				directory, config, deleteQueue, infos,
 				pendingNumDocs, enableTestPoints)},
 	}
 }
@@ -86,7 +88,7 @@ func (d *DocumentsWriter) preUpdate() (bool, error) {
 }
 
 // TODO: fix it
-func (d *DocumentsWriter) updateDocuments(docs []*document.Document, delNode Node) (int64, error) {
+func (d *DocumentsWriter) updateDocuments(docs []*document.Document, delNode *Node) (int64, error) {
 	dwpt := d.flushControl.obtainAndLock()
 	dwptNumDocs := dwpt.GetNumDocsInRAM()
 	seqNo, err := dwpt.updateDocuments(docs, delNode)
@@ -94,7 +96,17 @@ func (d *DocumentsWriter) updateDocuments(docs []*document.Document, delNode Nod
 		return 0, err
 	}
 	d.numDocsInRAM.Add(int64(dwpt.GetNumDocsInRAM() - dwptNumDocs))
+
 	return seqNo, nil
+}
+
+func (d *DocumentsWriter) Flush() error {
+	dwpt := d.flushControl.obtainAndLock()
+	return d.doFlush(dwpt)
+}
+
+func (d *DocumentsWriter) doFlush(flushingDWPT *DocumentsWriterPerThread) error {
+	return flushingDWPT.flush()
 }
 
 type FlushNotifications interface {

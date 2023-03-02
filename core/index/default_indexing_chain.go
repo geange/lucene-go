@@ -35,6 +35,8 @@ type DefaultIndexingChain struct {
 
 	infoStream io.Writer
 
+	byteBlockAllocator util.BytesAllocator
+
 	indexWriterConfig *LiveIndexWriterConfig
 
 	indexCreatedVersionMajor int
@@ -46,17 +48,28 @@ func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentI
 	directory store.Directory, fieldInfos *FieldInfosBuilder,
 	indexWriterConfig *LiveIndexWriterConfig) *DefaultIndexingChain {
 
+	byteBlockAllocator := newByteBlockAllocator()
+	intBlockAllocator := newIntBlockAllocator()
+
+	var storedFieldsConsumer *StoredFieldsConsumer
+	var termVectorsWriter *TermVectorsConsumer
+	if segmentInfo.GetIndexSort() == nil {
+		storedFieldsConsumer = NewStoredFieldsConsumer(indexWriterConfig.GetCodec(), directory, segmentInfo)
+		termVectorsWriter = NewTermVectorsConsumer(intBlockAllocator, byteBlockAllocator, directory, segmentInfo, indexWriterConfig.GetCodec())
+	}
+
 	indexChain := &DefaultIndexingChain{
 		fieldInfos:               fieldInfos,
-		termsHash:                nil,
-		docValuesBytePool:        nil,
-		storedFieldsConsumer:     NewStoredFieldsConsumer(indexWriterConfig.GetCodec(), directory, segmentInfo),
-		termVectorsWriter:        nil,
+		termsHash:                NewFreqProxTermsWriter(intBlockAllocator, byteBlockAllocator, termVectorsWriter),
+		docValuesBytePool:        util.NewByteBlockPool(byteBlockAllocator),
+		storedFieldsConsumer:     storedFieldsConsumer,
+		termVectorsWriter:        termVectorsWriter,
 		fieldHash:                make(map[string]*PerField),
-		hashMask:                 0,
+		hashMask:                 1,
 		totalFieldCount:          0,
 		nextFieldGen:             0,
 		fields:                   make([]*PerField, 0),
+		byteBlockAllocator:       byteBlockAllocator,
 		infoStream:               nil,
 		indexWriterConfig:        indexWriterConfig,
 		indexCreatedVersionMajor: indexCreatedVersionMajor,
@@ -188,11 +201,19 @@ func (d *DefaultIndexingChain) Flush(state *SegmentWriteState) (*DocMap, error) 
 		return nil, err
 	}
 
-	d.writeDocValues(state, sortMap)
-	d.writePoints(state, sortMap)
+	if err := d.writeDocValues(state, sortMap); err != nil {
+		return nil, err
+	}
+	if err := d.writePoints(state, sortMap); err != nil {
+		return nil, err
+	}
 
-	d.storedFieldsConsumer.Finish(maxDoc)
-	d.storedFieldsConsumer.Flush(state, sortMap)
+	if err := d.storedFieldsConsumer.Finish(maxDoc); err != nil {
+		return nil, err
+	}
+	if err := d.storedFieldsConsumer.Flush(state, sortMap); err != nil {
+		return nil, err
+	}
 
 	fieldsToFlush := make(map[string]TermsHashPerField)
 
@@ -339,7 +360,9 @@ func (d *DefaultIndexingChain) ProcessDocument(docID int, doc *document.Document
 	// (i.e., we cannot have more than one TokenStream
 	// running "at once"):
 
-	//termsHash.startDocument();
+	if err := d.termsHash.StartDocument(); err != nil {
+		return err
+	}
 	if err := d.startStoredFields(docID); err != nil {
 		return err
 	}
@@ -367,8 +390,7 @@ func (d *DefaultIndexingChain) ProcessDocument(docID int, doc *document.Document
 		}
 	}
 
-	//termsHash.finishDocument(docID);
-	return nil
+	return d.termsHash.FinishDocument(docID)
 }
 
 func (d *DefaultIndexingChain) processField(docID int,
@@ -397,7 +419,7 @@ func (d *DefaultIndexingChain) processField(docID int,
 		}
 
 		if first {
-			d.fields[fieldCount] = fp
+			d.fields = append(d.fields, fp)
 			fieldCount++
 			fp.fieldGen = fieldGen
 		}
@@ -839,4 +861,24 @@ func (p *PerField) Finish(docID int) error {
 	}
 
 	return p.termsHashPerField.Finish()
+}
+
+func newIntBlockAllocator() util.IntsAllocator {
+	return &util.IntsAllocatorDefault{
+		BlockSize: util.INT_BLOCK_SIZE,
+		FnRecycleIntBlocks: func(blocks [][]int, start, end int) {
+			return
+		},
+	}
+}
+
+func newByteBlockAllocator() util.BytesAllocator {
+	return &util.BytesAllocatorDefault{
+		BlockSize: util.BYTE_BLOCK_SIZE,
+		FnRecycleByteBlocks: func(blocks [][]byte, start, end int) {
+			for i := start; i < end; i++ {
+				blocks[i] = nil
+			}
+		},
+	}
 }

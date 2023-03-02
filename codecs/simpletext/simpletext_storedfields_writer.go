@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	FIELDS_EXTENSION         = "fld"
 	STORED_FIELD_TYPE_STRING = []byte("string")
 	STORED_FIELD_TYPE_BINARY = []byte("binary")
 	STORED_FIELD_TYPE_INT    = []byte("int")
@@ -41,7 +42,7 @@ func newSimpleTextStoredFieldsWriter() *SimpleTextStoredFieldsWriter {
 func NewSimpleTextStoredFieldsWriter(dir store.Directory,
 	segment string, context *store.IOContext) (*SimpleTextStoredFieldsWriter, error) {
 	writer := newSimpleTextStoredFieldsWriter()
-	out, err := dir.CreateOutput(store.SegmentFileName(segment, "", FIELD_INFOS_EXTENSION), context)
+	out, err := dir.CreateOutput(store.SegmentFileName(segment, "", FIELDS_EXTENSION), context)
 	if err != nil {
 		return nil, err
 	}

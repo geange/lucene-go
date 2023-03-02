@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"go.uber.org/atomic"
 	"sort"
@@ -256,8 +257,9 @@ func (r *BytesHash) equals(id int, b []byte) bool {
 		offset = pos + 1
 	} else {
 		// length is 2 bytes
-		length = int((array[pos] & 0x7f) + ((array[pos+1] & 0xff) << 7))
-		offset = pos + 2
+		value, n := binary.Uvarint(array[pos:])
+		length = int(value)
+		offset += n
 	}
 	return bytes.Equal(array[offset:offset+length], b)
 }

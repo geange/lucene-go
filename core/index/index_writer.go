@@ -196,14 +196,21 @@ func (i *IndexWriter) AddDocument(doc *document.Document) (int64, error) {
 //
 //	IOException – if there is a low-level IO error
 func (i *IndexWriter) UpdateDocument(term *Term, doc *document.Document) (int64, error) {
-	var node Node
+	var node *Node
 	if term != nil {
-		node = &TermNode{item: term}
+		node = &Node{item: term}
 	}
 	return i.updateDocuments(node, []*document.Document{doc})
 }
 
-func (i *IndexWriter) updateDocuments(delNode Node, docs []*document.Document) (int64, error) {
+func (i *IndexWriter) Close() error {
+	if i.config.getCommitOnClose() {
+		return i.shutdown()
+	}
+	return i.shutdown()
+}
+
+func (i *IndexWriter) updateDocuments(delNode *Node, docs []*document.Document) (int64, error) {
 	seqNo, err := i.docWriter.updateDocuments(docs, delNode)
 	if err != nil {
 		return 0, err
@@ -282,12 +289,25 @@ func (i *IndexWriter) getFieldNumberMap() *FieldNumbers {
 	for _, info := range i.segmentInfos.segments {
 		fis := readFieldInfos(info)
 		for _, fi := range fis.values {
-			mp.AddOrGet(fi.Name(), fi.Number(), fi.GetIndexOptions(), fi.GetDocValuesType(),
+			_, err := mp.AddOrGet(fi.Name(), fi.Number(), fi.GetIndexOptions(), fi.GetDocValuesType(),
 				fi.GetPointDimensionCount(), fi.GetPointIndexDimensionCount(),
 				fi.GetPointNumBytes(), fi.IsSoftDeletesField())
+			if err != nil {
+				return nil
+			}
 		}
 	}
 	return mp
+}
+
+// Gracefully closes (commits, waits for merges), but calls rollback if there's an exc so
+// the IndexWriter is always closed. This is called from close when IndexWriterConfig.commitOnClose is true.
+func (i *IndexWriter) shutdown() error {
+	err := i.docWriter.Flush()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func readFieldInfos(si *SegmentCommitInfo) *FieldInfos {

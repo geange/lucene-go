@@ -59,6 +59,7 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 		pendingNumDocs:    pendingNumDocs,
 		pendingUpdates:    NewBufferedUpdatesV1(segmentName),
 		deleteQueue:       deleteQueue,
+		deleteSlice:       deleteQueue.newSlice(),
 		segmentInfo:       segmentInfo,
 		enableTestPoints:  enableTestPoints,
 	}
@@ -78,7 +79,7 @@ func (d *DocumentsWriterPerThread) reserveOneDoc() error {
 	return nil
 }
 
-func (d *DocumentsWriterPerThread) updateDocuments(docs []*document.Document, deleteNode Node) (int64, error) {
+func (d *DocumentsWriterPerThread) updateDocuments(docs []*document.Document, deleteNode *Node) (int64, error) {
 	docsInRamBefore := d.numDocsInRAM
 
 	for _, doc := range docs {
@@ -94,11 +95,12 @@ func (d *DocumentsWriterPerThread) updateDocuments(docs []*document.Document, de
 		if err := d.consumer.ProcessDocument(d.numDocsInRAM, doc); err != nil {
 			return 0, err
 		}
+		d.numDocsInRAM++
 	}
 	return d.finishDocuments(deleteNode, docsInRamBefore)
 }
 
-func (d *DocumentsWriterPerThread) finishDocuments(deleteNode Node, docIdUpTo int) (int64, error) {
+func (d *DocumentsWriterPerThread) finishDocuments(deleteNode *Node, docIdUpTo int) (int64, error) {
 	// here we actually finish the document in two steps 1. push the delete into
 	// the queue and update our slice. 2. increment the DWPT private document id.
 	//
@@ -128,6 +130,17 @@ func (d *DocumentsWriterPerThread) finishDocuments(deleteNode Node, docIdUpTo in
 
 func (d *DocumentsWriterPerThread) GetNumDocsInRAM() int {
 	return d.numDocsInRAM
+}
+
+func (d *DocumentsWriterPerThread) flush() error {
+	err := d.segmentInfo.SetMaxDoc(d.numDocsInRAM)
+	if err != nil {
+		return err
+	}
+	flushState := NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(),
+		d.pendingUpdates, nil)
+	_, err = d.consumer.Flush(flushState)
+	return err
 }
 
 type IndexingChain interface {

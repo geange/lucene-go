@@ -43,13 +43,16 @@ func (s *StoredFieldsConsumer) StartDocument(docID int) error {
 		return err
 	}
 
-	for s.lastDoc+1 < docID {
+	s.lastDoc++
+
+	for s.lastDoc < docID {
 		if err := s.writer.StartDocument(); err != nil {
 			return err
 		}
 		if err := s.writer.FinishDocument(); err != nil {
 			return err
 		}
+		s.lastDoc++
 	}
 	return s.writer.StartDocument()
 }

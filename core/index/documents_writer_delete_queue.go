@@ -3,6 +3,7 @@ package index
 import (
 	"go.uber.org/atomic"
 	"io"
+	"math"
 	"sync"
 )
 
@@ -27,7 +28,7 @@ import (
 // The DWPT also doesn't apply its current documents delete term until it has updated its delete slice which ensures the consistency of the update. If the update fails before the DeleteSlice could have been updated the deleteTerm will also not be added to its private deletes neither to the global deletes.
 type DocumentsWriterDeleteQueue struct {
 	// the current end (latest delete operation) in the delete queue:
-	tail   Node
+	tail   *Node
 	closed bool
 
 	// Used to record deletes against all prior (already written to disk) segments. Whenever any segment flushes, we bundle up this set of deletes and insert into the buffered updates stream before the newly flushed segment(s).
@@ -40,26 +41,111 @@ type DocumentsWriterDeleteQueue struct {
 	generation int64
 
 	// Generates the sequence number that IW returns to callers changing the index, showing the effective serialization of all operations.
-	nextSeqNo  *atomic.Int64
-	infoStream io.Writer
-	maxSeqNo   int64
-	startSeqNo int64
-	advanced   bool
+	nextSeqNo        *atomic.Int64
+	infoStream       io.Writer
+	maxSeqNo         int64
+	startSeqNo       int64
+	previousMaxSeqId func() int64
+	advanced         bool
 }
 
-func (d *DocumentsWriterDeleteQueue) Add(deleteNode Node, slice *DeleteSlice) int64 {
-
-	panic("")
+func NewDocumentsWriterDeleteQueue() *DocumentsWriterDeleteQueue {
+	return newDocumentsWriterDeleteQueue(0, -1, func() int64 {
+		return 0
+	})
 }
 
+func newDocumentsWriterDeleteQueue(generation, startSeqNo int64,
+	previousMaxSeqId func() int64) *DocumentsWriterDeleteQueue {
+
+	tail := NewNode(nil)
+
+	return &DocumentsWriterDeleteQueue{
+		tail:                  tail,
+		closed:                false,
+		globalSlice:           NewDeleteSlice(tail),
+		globalBufferedUpdates: NewBufferedUpdatesV1("global"),
+		globalBufferLock:      &sync.Mutex{},
+		generation:            generation,
+		nextSeqNo:             atomic.NewInt64(startSeqNo),
+		infoStream:            nil,
+		maxSeqNo:              math.MaxInt64,
+		startSeqNo:            startSeqNo,
+		previousMaxSeqId:      previousMaxSeqId,
+		advanced:              false,
+	}
+}
+
+func (d *DocumentsWriterDeleteQueue) Add(deleteNode *Node, slice *DeleteSlice) int64 {
+	seqNo := d.add(deleteNode)
+
+	// this is an update request where the term is the updated documents
+	// delTerm. in that case we need to guarantee that this insert is atomic
+	// with regards to the given delete slice. This means if two threads try to
+	// update the same document with in turn the same delTerm one of them must
+	// win. By taking the node we have created for our del term as the new tail
+	// it is guaranteed that if another thread adds the same right after us we
+	// will apply this delete next time we update our slice and one of the two
+	// competing updates wins!
+	slice.sliceTail = deleteNode
+	d.tryApplyGlobalSlice()
+	return seqNo
+}
+
+func (d *DocumentsWriterDeleteQueue) add(newNode *Node) int64 {
+	d.tail.next = newNode
+	d.tail = newNode
+	return d.getNextSequenceNumber()
+}
+
+// UpdateSlice Negative result means there were new deletes since we last applied
 func (d *DocumentsWriterDeleteQueue) UpdateSlice(slice *DeleteSlice) int64 {
-	panic("")
+	seqNo := d.getNextSequenceNumber()
+	if slice.sliceTail != d.tail {
+		slice.sliceTail = d.tail
+		seqNo = -seqNo
+	}
+	return seqNo
+}
+
+func (d *DocumentsWriterDeleteQueue) getNextSequenceNumber() int64 {
+	return d.nextSeqNo.Inc()
+}
+
+func (d *DocumentsWriterDeleteQueue) tryApplyGlobalSlice() {
+	d.globalBufferLock.Lock()
+	defer d.globalBufferLock.Unlock()
+
+	if d.updateSliceNoSeqNo(d.globalSlice) {
+		d.globalSlice.Apply(d.globalBufferedUpdates, math.MaxInt32)
+	}
+}
+
+// Just like updateSlice, but does not assign a sequence number
+func (d *DocumentsWriterDeleteQueue) updateSliceNoSeqNo(slice *DeleteSlice) bool {
+	if slice.sliceTail != d.tail {
+		// new deletes arrived since we last checked
+		slice.sliceTail = d.tail
+		return true
+	}
+	return false
+}
+
+func (d *DocumentsWriterDeleteQueue) newSlice() *DeleteSlice {
+	return NewDeleteSlice(d.tail)
 }
 
 type DeleteSlice struct {
 	// No need to be volatile, slices are thread captive (only accessed by one thread)!
-	sliceHead Node
-	sliceTail Node
+	sliceHead *Node
+	sliceTail *Node
+}
+
+func NewDeleteSlice(currentTail *Node) *DeleteSlice {
+	return &DeleteSlice{
+		sliceHead: currentTail,
+		sliceTail: currentTail,
+	}
 }
 
 func (d *DeleteSlice) Apply(del *BufferedUpdates, docIDUpto int) {
@@ -73,7 +159,7 @@ func (d *DeleteSlice) Apply(del *BufferedUpdates, docIDUpto int) {
 	// non-null node in the slice!
 	current := d.sliceHead
 	for {
-		current = d.sliceHead
+		current = current.next
 		current.Apply(del, docIDUpto)
 
 		if current == d.sliceTail {
@@ -88,15 +174,25 @@ func (d *DeleteSlice) Reset() {
 	d.sliceHead = d.sliceTail
 }
 
-type Node interface {
-	Apply(bufferedDeletes *BufferedUpdates, docIDUpto int)
+type Node struct {
+	next *Node
+	item any
 }
 
-type TermNode struct {
-	next *TermNode
-	item *Term
+func NewNode(v any) *Node {
+	return &Node{
+		next: nil,
+		item: v,
+	}
 }
 
-func (t *TermNode) Apply(bufferedDeletes *BufferedUpdates, docIDUpto int) {
-	bufferedDeletes.AddTerm(t.item, docIDUpto)
+func (n *Node) Apply(bufferedDeletes *BufferedUpdates, docIDUpto int) {
+	switch n.item.(type) {
+	case *Term:
+		bufferedDeletes.AddTerm(n.item.(*Term), docIDUpto)
+	case []*Term:
+		for _, term := range n.item.([]*Term) {
+			bufferedDeletes.AddTerm(term, docIDUpto)
+		}
+	}
 }

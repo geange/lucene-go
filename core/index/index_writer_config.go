@@ -51,6 +51,10 @@ func (c *IndexWriterConfig) getIndexCreatedVersionMajor() int {
 	return c.createdVersionMajor
 }
 
+func (c *IndexWriterConfig) getCommitOnClose() bool {
+	return c.commitOnClose
+}
+
 const (
 
 	// DISABLE_AUTO_FLUSH Denotes a flush trigger is disabled.

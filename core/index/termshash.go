@@ -24,6 +24,10 @@ type TermsHash interface {
 	Reset() error
 
 	StartDocument() error
+
+	GetIntPool() *util.IntBlockPool
+	GetBytePool() *util.ByteBlockPool
+	GetTermBytePool() *util.ByteBlockPool
 }
 
 type TermsHashDefault struct {
@@ -46,6 +50,18 @@ func NewTermsHashDefault(intBlockAllocator util.IntsAllocator, byteBlockAllocato
 		nextTermsHash.SetTermBytePool(termHash.bytePool)
 	}
 	return termHash
+}
+
+func (h *TermsHashDefault) GetIntPool() *util.IntBlockPool {
+	return h.intPool
+}
+
+func (h *TermsHashDefault) GetBytePool() *util.ByteBlockPool {
+	return h.bytePool
+}
+
+func (h *TermsHashDefault) GetTermBytePool() *util.ByteBlockPool {
+	return h.termBytePool
 }
 
 func (h *TermsHashDefault) Flush(fieldsToFlush map[string]TermsHashPerField,
