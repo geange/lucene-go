@@ -56,22 +56,22 @@ func (r *DocumentStoredFieldVisitor) StringField(fieldInfo *types.FieldInfo, val
 }
 
 func (r *DocumentStoredFieldVisitor) Int32Field(fieldInfo *types.FieldInfo, value int32) error {
-	r.doc.Add(NewStoredFieldAny(fieldInfo.Name(), value, TYPE))
+	r.doc.Add(NewStoredFieldAny(fieldInfo.Name(), value, STORED_ONLY))
 	return nil
 }
 
 func (r *DocumentStoredFieldVisitor) Int64Field(fieldInfo *types.FieldInfo, value int64) error {
-	r.doc.Add(NewStoredFieldAny(fieldInfo.Name(), value, TYPE))
+	r.doc.Add(NewStoredFieldAny(fieldInfo.Name(), value, STORED_ONLY))
 	return nil
 }
 
 func (r *DocumentStoredFieldVisitor) Float32Field(fieldInfo *types.FieldInfo, value float32) error {
-	r.doc.Add(NewStoredFieldAny(fieldInfo.Name(), value, TYPE))
+	r.doc.Add(NewStoredFieldAny(fieldInfo.Name(), value, STORED_ONLY))
 	return nil
 }
 
 func (r *DocumentStoredFieldVisitor) Float64Field(fieldInfo *types.FieldInfo, value float64) error {
-	r.doc.Add(NewStoredFieldAny(fieldInfo.Name(), value, TYPE))
+	r.doc.Add(NewStoredFieldAny(fieldInfo.Name(), value, STORED_ONLY))
 	return nil
 }
 

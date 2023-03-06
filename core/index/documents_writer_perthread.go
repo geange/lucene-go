@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
@@ -70,6 +71,7 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 }
 
 // Anything that will add N docs to the index should reserve first to make sure it's allowed.
+// 保证添加的文档的数量在可允许的范围内
 func (d *DocumentsWriterPerThread) reserveOneDoc() error {
 	if d.pendingNumDocs.Inc() > int64(GetActualMaxDocs()) {
 		// Reserve failed: put the one doc back and throw exc:
@@ -107,9 +109,8 @@ func (d *DocumentsWriterPerThread) finishDocuments(deleteNode *Node, docIdUpTo i
 	// the updated slice we get from 1. holds all the deletes that have occurred
 	// since we updated the slice the last time.
 
-	// Apply delTerm only after all indexing has
-	// succeeded, but apply it only to docs prior to when
-	// this batch started:
+	// Apply delTerm only after all indexing has succeeded, but apply it only to
+	// docs prior to when this batch started:
 	var seqNo int64
 
 	if deleteNode != nil {
@@ -132,14 +133,14 @@ func (d *DocumentsWriterPerThread) GetNumDocsInRAM() int {
 	return d.numDocsInRAM
 }
 
-func (d *DocumentsWriterPerThread) flush() error {
-	err := d.segmentInfo.SetMaxDoc(d.numDocsInRAM)
-	if err != nil {
+func (d *DocumentsWriterPerThread) Flush(ctx context.Context) error {
+	if err := d.segmentInfo.SetMaxDoc(d.numDocsInRAM); err != nil {
 		return err
 	}
+
 	flushState := NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(),
 		d.pendingUpdates, nil)
-	_, err = d.consumer.Flush(flushState)
+	_, err := d.consumer.Flush(ctx, flushState)
 	return err
 }
 

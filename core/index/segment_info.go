@@ -43,7 +43,7 @@ type SegmentInfo struct {
 	version *util.Version
 
 	// Tracks the minimum version that contributed documents to a segment. For
-	// flush segments, that is the version that wrote it. For merged segments,
+	// Flush segments, that is the version that wrote it. For merged segments,
 	// this is the minimum minVersion of all the segments that have been merged
 	// into this segment
 	minVersion *util.Version

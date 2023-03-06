@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/analysis"
@@ -32,8 +33,6 @@ type DefaultIndexingChain struct {
 	nextFieldGen    int64
 
 	fields []*PerField
-
-	infoStream io.Writer
 
 	byteBlockAllocator util.BytesAllocator
 
@@ -70,7 +69,6 @@ func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentI
 		nextFieldGen:             0,
 		fields:                   make([]*PerField, 0),
 		byteBlockAllocator:       byteBlockAllocator,
-		infoStream:               nil,
 		indexWriterConfig:        indexWriterConfig,
 		indexCreatedVersionMajor: indexCreatedVersionMajor,
 		hasHitAbortingException:  false,
@@ -185,7 +183,7 @@ func (d *DefaultIndexingChain) maybeSortSegment(state *SegmentWriteState) (*DocM
 	return SortByComparators(maxDoc, comparators)
 }
 
-func (d *DefaultIndexingChain) Flush(state *SegmentWriteState) (*DocMap, error) {
+func (d *DefaultIndexingChain) Flush(ctx context.Context, state *SegmentWriteState) (*DocMap, error) {
 	// NOTE: caller (DocumentsWriterPerThread) handles
 	// aborting on any exception from this method
 	sortMap, err := d.maybeSortSegment(state)
@@ -278,7 +276,7 @@ func (d *DefaultIndexingChain) writePoints(state *SegmentWriteState, sortMap *Do
 	return nil
 }
 
-// Writes all buffered doc values (called from flush).
+// Writes all buffered doc values (called from Flush).
 func (d *DefaultIndexingChain) writeDocValues(state *SegmentWriteState, sortMap *DocMap) error {
 	var dvConsumer DocValuesConsumer
 	var err error
@@ -814,7 +812,7 @@ func (p *PerField) invert(docID int, field types.IndexableField, first bool) err
 
 		// If we hit an exception in here, we abort
 		// all buffered documents since the last
-		// flush, on the likelihood that the
+		// Flush, on the likelihood that the
 		// internal state of the terms hash is now
 		// corrupt and should not be flushed to a
 		// new segment:

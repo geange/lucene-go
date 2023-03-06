@@ -33,9 +33,21 @@ func main() {
 
 	{
 		doc := document.NewDocument()
-		doc.Add(document.NewStringFieldByString("a", "123", true))
-		doc.Add(document.NewStringFieldByString("a1", "123", true))
-		doc.Add(document.NewStringFieldByString("a2", "789", true))
+		doc.Add(document.NewStoredFieldAny("a", 74, document.STORED_ONLY))
+		doc.Add(document.NewStoredFieldAny("a1", 86, document.STORED_ONLY))
+		doc.Add(document.NewStoredFieldAny("a2", 1237, document.STORED_ONLY))
+		docID, err := writer.AddDocument(doc)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(docID)
+	}
+
+	{
+		doc := document.NewDocument()
+		doc.Add(document.NewStoredFieldAny("a", 123, document.STORED_ONLY))
+		doc.Add(document.NewStoredFieldAny("a1", 123, document.STORED_ONLY))
+		doc.Add(document.NewStoredFieldAny("a2", 789, document.STORED_ONLY))
 
 		docID, err := writer.AddDocument(doc)
 		if err != nil {
@@ -46,21 +58,9 @@ func main() {
 
 	{
 		doc := document.NewDocument()
-		doc.Add(document.NewStringFieldByString("a", "74", true))
-		doc.Add(document.NewStringFieldByString("a1", "86", true))
-		doc.Add(document.NewStringFieldByString("a2", "1237", true))
-		docID, err := writer.AddDocument(doc)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(docID)
-	}
-
-	{
-		doc := document.NewDocument()
-		doc.Add(document.NewStringFieldByString("a", "741", true))
-		doc.Add(document.NewStringFieldByString("a1", "861", true))
-		doc.Add(document.NewStringFieldByString("a2", "12137", true))
+		doc.Add(document.NewStoredFieldAny("a", 741, document.STORED_ONLY))
+		doc.Add(document.NewStoredFieldAny("a1", 861, document.STORED_ONLY))
+		doc.Add(document.NewStoredFieldAny("a2", 12137, document.STORED_ONLY))
 		docID, err := writer.AddDocument(doc)
 		if err != nil {
 			panic(err)

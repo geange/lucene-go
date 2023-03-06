@@ -8,19 +8,24 @@ type StoredField struct {
 	*Field
 }
 
-var (
-	TYPE = NewFieldType()
-)
+var STORED_ONLY = newStoreFieldType()
+
+func newStoreFieldType() *FieldType {
+	fieldType := NewFieldType()
+	_ = fieldType.SetStored(true)
+	fieldType.Freeze()
+	return fieldType
+}
 
 func NewStoredFieldV3(name string, value []byte) *StoredField {
 	return &StoredField{
-		NewFieldV4(name, value, TYPE),
+		NewFieldV4(name, value, STORED_ONLY),
 	}
 }
 
 func NewStoredFieldV4(name string, value string) *StoredField {
 	return &StoredField{
-		NewFieldV5(name, value, TYPE),
+		NewFieldV5(name, value, STORED_ONLY),
 	}
 }
 

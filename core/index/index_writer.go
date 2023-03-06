@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/emirpasic/gods/maps/hashmap"
@@ -38,8 +39,8 @@ const (
 	// SOURCE_MERGE Source of a segment which results from a merge of other segments.
 	SOURCE_MERGE = "merge"
 
-	// SOURCE_FLUSH Source of a segment which results from a flush.
-	SOURCE_FLUSH = "flush"
+	// SOURCE_FLUSH Source of a segment which results from a Flush.
+	SOURCE_FLUSH = "Flush"
 
 	// SOURCE_ADDINDEXES_READERS Source of a segment which results from a call to addIndexes(CodecReader...).
 	SOURCE_ADDINDEXES_READERS = "addIndexes(CodecReader...)"
@@ -189,7 +190,7 @@ func (i *IndexWriter) AddDocument(doc *document.Document) (int64, error) {
 
 // UpdateDocument Updates a document by first deleting the document(s) containing term and then adding
 // the new document. The delete and then add are atomic as seen by a reader on the same index
-// (flush may happen only after the add).
+// (Flush may happen only after the add).
 // Params: term – the term to identify the document(s) to be deleted doc – the document to be added
 // Returns: The sequence number for this operation
 // Throws: 	CorruptIndexException – if the index is corrupt
@@ -201,6 +202,10 @@ func (i *IndexWriter) UpdateDocument(term *Term, doc *document.Document) (int64,
 		node = &Node{item: term}
 	}
 	return i.updateDocuments(node, []*document.Document{doc})
+}
+
+func (i *IndexWriter) Commit(ctx context.Context) error {
+	return i.docWriter.Flush(ctx)
 }
 
 func (i *IndexWriter) Close() error {
@@ -303,7 +308,7 @@ func (i *IndexWriter) getFieldNumberMap() *FieldNumbers {
 // Gracefully closes (commits, waits for merges), but calls rollback if there's an exc so
 // the IndexWriter is always closed. This is called from close when IndexWriterConfig.commitOnClose is true.
 func (i *IndexWriter) shutdown() error {
-	err := i.docWriter.Flush()
+	err := i.docWriter.Flush(nil)
 	if err != nil {
 		return err
 	}

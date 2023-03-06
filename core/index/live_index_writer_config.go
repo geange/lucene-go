@@ -53,7 +53,7 @@ type LiveIndexWriterConfig struct {
 	// FlushPolicy to control when segments are flushed.
 	flushPolicy *FlushPolicy
 
-	// Sets the hard upper bound on RAM usage for a single segment, after which the segment is forced to flush.
+	// Sets the hard upper bound on RAM usage for a single segment, after which the segment is forced to Flush.
 	perThreadHardLimitMB int
 
 	// True if segment flushes should use compound file format
@@ -71,7 +71,7 @@ type LiveIndexWriterConfig struct {
 	// The field names involved in the index sort
 	indexSortFields map[string]struct{}
 
-	// if an indexing thread should check for pending flushes on update in order to help out on a full flush
+	// if an indexing thread should check for pending flushes on update in order to help out on a full Flush
 	checkPendingFlushOnUpdate bool
 
 	softDeletesField string

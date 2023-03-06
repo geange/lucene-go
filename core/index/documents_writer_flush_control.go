@@ -2,10 +2,10 @@ package index
 
 // DocumentsWriterFlushControl This class controls DocumentsWriterPerThread flushing during indexing.
 // It tracks the memory consumption per DocumentsWriterPerThread and uses a configured FlushPolicy
-// to decide if a DocumentsWriterPerThread must flush.
+// to decide if a DocumentsWriterPerThread must Flush.
 //
-// In addition to the FlushPolicy the flush control might set certain DocumentsWriterPerThread as
-// flush pending iff a DocumentsWriterPerThread exceeds the IndexWriterConfig.getRAMPerThreadHardLimitMB()
+// In addition to the FlushPolicy the Flush control might set certain DocumentsWriterPerThread as
+// Flush pending iff a DocumentsWriterPerThread exceeds the IndexWriterConfig.getRAMPerThreadHardLimitMB()
 // to prevent address space exhaustion.
 type DocumentsWriterFlushControl struct {
 	//hardMaxBytesPerDWPT int64
@@ -17,7 +17,7 @@ type DocumentsWriterFlushControl struct {
 	//fullFlush           bool
 	//fullFlushMarkDone   bool
 
-	// The flushQueue is used to concurrently distribute DWPTs that are ready to be flushed ie. when a full flush is in
+	// The flushQueue is used to concurrently distribute DWPTs that are ready to be flushed ie. when a full Flush is in
 	// progress. This might be triggered by a commit or NRT refresh. The trigger will only walk all eligible DWPTs and
 	// mark them as flushable putting them in the flushQueue ready for other threads (ie. indexing threads) to help flushing
 	//flushQueue []*DocumentsWriterPerThread
@@ -49,6 +49,6 @@ type DocumentsWriterFlushControl struct {
 //
 //}
 
-func (d *DocumentsWriterFlushControl) obtainAndLock() *DocumentsWriterPerThread {
+func (d *DocumentsWriterFlushControl) ObtainAndLock() *DocumentsWriterPerThread {
 	return d.perThread
 }

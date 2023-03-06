@@ -112,7 +112,7 @@ func (f *FreqProxTermsWriterPerField) writeOffsets(termID, offsetAccum int) {
 }
 
 func (f *FreqProxTermsWriterPerField) NewTerm(termID, docID int) error {
-	// First time we're seeing this term since the last flush
+	// First time we're seeing this term since the last Flush
 	postings := f.freqProxPostingsArray
 	postings.SetLastDocIDs(termID, docID)
 	if !f.hasFreq {
@@ -160,7 +160,7 @@ func (f *FreqProxTermsWriterPerField) AddTerm(termID, docID int) error {
 	} else if docID != postings.lastDocIDs[termID] {
 		// assert docID > postings.lastDocIDs[termID]:"id: "+docID + " postings ID: "+ postings.lastDocIDs[termID] + " termID: "+termID;
 		// Term not yet seen in the current doc but previously
-		// seen in other doc(s) since the last flush
+		// seen in other doc(s) since the last Flush
 
 		// Now that we know doc freq for previous doc,
 		// write it & lastDocCode

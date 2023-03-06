@@ -57,7 +57,7 @@ func (c *IndexWriterConfig) getCommitOnClose() bool {
 
 const (
 
-	// DISABLE_AUTO_FLUSH Denotes a flush trigger is disabled.
+	// DISABLE_AUTO_FLUSH Denotes a Flush trigger is disabled.
 	DISABLE_AUTO_FLUSH = -1
 
 	// DEFAULT_MAX_BUFFERED_DELETE_TERMS Disabled by default (because IndexWriter flushes by RAM usage by default).
@@ -66,7 +66,7 @@ const (
 	// DEFAULT_MAX_BUFFERED_DOCS Disabled by default (because IndexWriter flushes by RAM usage by default).
 	DEFAULT_MAX_BUFFERED_DOCS = DISABLE_AUTO_FLUSH
 
-	// DEFAULT_RAM_BUFFER_SIZE_MB Default value is 16 MB (which means flush when buffered docs consume
+	// DEFAULT_RAM_BUFFER_SIZE_MB Default value is 16 MB (which means Flush when buffered docs consume
 	// approximately 16 MB RAM).
 	DEFAULT_RAM_BUFFER_SIZE_MB = 16.0
 

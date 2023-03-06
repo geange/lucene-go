@@ -3,10 +3,10 @@ package index
 type MergeTrigger int
 
 const (
-	// SEGMENT_FLUSH Merge was triggered by a segment flush.
+	// SEGMENT_FLUSH Merge was triggered by a segment Flush.
 	SEGMENT_FLUSH = MergeTrigger(iota)
 
-	// FULL_FLUSH Merge was triggered by a full flush. Full flushes can be caused by a commit,
+	// FULL_FLUSH Merge was triggered by a full Flush. Full flushes can be caused by a commit,
 	// NRT reader reopen or a close call on the index writer.
 	FULL_FLUSH
 
