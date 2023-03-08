@@ -1,6 +1,9 @@
 package index
 
-import "io"
+import (
+	"github.com/geange/lucene-go/core/store"
+	"io"
+)
 
 // MergeScheduler Expert: IndexWriter uses an instance implementing this interface to execute the merges selected by a MergePolicy. The default MergeScheduler is ConcurrentMergeScheduler.
 // lucene.experimental
@@ -12,6 +15,9 @@ type MergeScheduler interface {
 	Merge(mergeSource MergeSource, trigger MergeTrigger) error
 
 	io.Closer
+
+	// Initialize IndexWriter calls this on init.
+	Initialize(dir store.Directory)
 }
 
 type MergeSource interface {

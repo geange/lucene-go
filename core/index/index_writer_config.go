@@ -8,19 +8,21 @@ import (
 )
 
 type IndexWriterConfig struct {
-	*LiveIndexWriterConfig
+	*liveIndexWriterConfig
 
 	sync.Once
 
 	// indicates whether this config instance is already attached to a writer.
 	// not final so that it can be cloned properly.
 	writer *IndexWriter
+
+	flushPolicy FlushPolicy
 }
 
 func NewIndexWriterConfig(codec Codec, similarity Similarity) *IndexWriterConfig {
 	cfg := &IndexWriterConfig{}
 	analyzer := standard.NewStandardAnalyzer(analysis.EMPTY_SET)
-	cfg.LiveIndexWriterConfig = NewLiveIndexWriterConfig(analyzer, codec, similarity)
+	cfg.liveIndexWriterConfig = newLiveIndexWriterConfig(analyzer, codec, similarity)
 	return cfg
 }
 
@@ -47,12 +49,31 @@ func (c *IndexWriterConfig) SetIndexSort(sort *Sort) error {
 	return nil
 }
 
-func (c *IndexWriterConfig) getIndexCreatedVersionMajor() int {
+func (c *IndexWriterConfig) GetIndexCreatedVersionMajor() int {
 	return c.createdVersionMajor
 }
 
-func (c *IndexWriterConfig) getCommitOnClose() bool {
+// GetCommitOnClose Returns true if IndexWriter.close() should first commit before closing.
+func (c *IndexWriterConfig) GetCommitOnClose() bool {
 	return c.commitOnClose
+}
+
+// GetIndexCommit Returns the IndexCommit as specified in IndexWriterConfig.setIndexCommit(IndexCommit)
+// or the default, null which specifies to open the latest index commit point.
+func (c *IndexWriterConfig) GetIndexCommit() IndexCommit {
+	return c.commit
+}
+
+func (c *IndexWriterConfig) GetMergeScheduler() MergeScheduler {
+	return c.mergeScheduler
+}
+
+func (c *IndexWriterConfig) GetOpenMode() OpenMode {
+	return c.openMode
+}
+
+func (c *IndexWriterConfig) GetFlushPolicy() FlushPolicy {
+	return c.flushPolicy
 }
 
 const (

@@ -3,7 +3,7 @@ package index
 import "io"
 
 type FlushPolicy struct {
-	indexWriterConfig *LiveIndexWriterConfig
+	indexWriterConfig *liveIndexWriterConfig
 	infoStream        io.Writer
 
 	// Called for each delete term. If this is a delete triggered due to an update the
@@ -26,7 +26,7 @@ func (f *FlushPolicy) OnUpdate(control *DocumentsWriterFlushControl, perThread *
 }
 
 // Init Called by DocumentsWriter to initialize the FlushPolicy
-func (f *FlushPolicy) Init(indexWriterConfig *LiveIndexWriterConfig) {
+func (f *FlushPolicy) Init(indexWriterConfig *liveIndexWriterConfig) {
 	f.indexWriterConfig = indexWriterConfig
 	f.infoStream = indexWriterConfig.infoStream
 }

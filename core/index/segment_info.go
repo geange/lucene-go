@@ -221,3 +221,7 @@ func StripSegmentName(filename string) string {
 func (s *SegmentInfo) NamedForThisSegment(file string) string {
 	return s.name + StripSegmentName(file)
 }
+
+func (s *SegmentInfo) SetCodec(codec Codec) {
+	s.codec = codec
+}

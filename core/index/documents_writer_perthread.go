@@ -34,7 +34,7 @@ type DocumentsWriterPerThread struct {
 	deleteQueue            *DocumentsWriterDeleteQueue
 	deleteSlice            *DeleteSlice
 	pendingNumDocs         *atomic.Int64
-	indexWriterConfig      *LiveIndexWriterConfig
+	indexWriterConfig      *liveIndexWriterConfig
 	enableTestPoints       bool
 	lock                   sync.RWMutex
 	deleteDocIDs           []int
@@ -42,7 +42,7 @@ type DocumentsWriterPerThread struct {
 }
 
 func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, directoryOrig, directory store.Directory,
-	indexWriterConfig *LiveIndexWriterConfig, deleteQueue *DocumentsWriterDeleteQueue,
+	indexWriterConfig *liveIndexWriterConfig, deleteQueue *DocumentsWriterDeleteQueue,
 	fieldInfos *FieldInfosBuilder, pendingNumDocs *atomic.Int64, enableTestPoints bool) *DocumentsWriterPerThread {
 
 	codec := indexWriterConfig.GetCodec()
@@ -65,7 +65,7 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 		enableTestPoints:  enableTestPoints,
 	}
 
-	perThread.consumer = indexWriterConfig.getIndexingChain().
+	perThread.consumer = indexWriterConfig.GetIndexingChain().
 		GetChain(indexVersionCreated, segmentInfo, perThread.directory, fieldInfos, indexWriterConfig)
 	return perThread
 }
@@ -146,7 +146,7 @@ func (d *DocumentsWriterPerThread) Flush(ctx context.Context) error {
 
 type IndexingChain interface {
 	GetChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo, directory store.Directory,
-		fieldInfos *FieldInfosBuilder, indexWriterConfig *LiveIndexWriterConfig) DocConsumer
+		fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) DocConsumer
 }
 
 var _ IndexingChain = &defaultIndexingChain{}
@@ -156,6 +156,6 @@ type defaultIndexingChain struct {
 }
 
 func (*defaultIndexingChain) GetChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo,
-	directory store.Directory, fieldInfos *FieldInfosBuilder, indexWriterConfig *LiveIndexWriterConfig) DocConsumer {
+	directory store.Directory, fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) DocConsumer {
 	return NewDefaultIndexingChain(indexCreatedVersionMajor, segmentInfo, directory, fieldInfos, indexWriterConfig)
 }

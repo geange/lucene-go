@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -76,6 +77,25 @@ func CheckHeaderNoMagic(in store.DataInput, codec string, minVersion, maxVersion
 		return 0, errors.New("IndexFormatTooOld")
 	}
 	return int(actualVersion), nil
+}
+
+func CheckIndexHeaderSuffix(in store.DataInput, expectedSuffix string) (string, error) {
+	b, err := in.ReadByte()
+	if err != nil {
+		return "", err
+	}
+	suffixLength := int(b & 0xFF)
+
+	suffixBytes := make([]byte, suffixLength)
+	_, err = in.Read(suffixBytes)
+	if err != nil {
+		return "", err
+	}
+	suffix := string(suffixBytes)
+	if suffix != expectedSuffix {
+		return "", fmt.Errorf("file mismatch, expected suffix=%s, got=%s", expectedSuffix, suffix)
+	}
+	return suffix, nil
 }
 
 // FooterLength Computes the length of a codec footer.

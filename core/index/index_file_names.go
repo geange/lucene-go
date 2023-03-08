@@ -71,6 +71,41 @@ func SegmentFileName(segmentName, segmentSuffix, ext string) string {
 	return segmentName
 }
 
+// ParseSegmentName Parses the segment name out of the given file name.
+// Returns: the segment name only, or filename if it does not contain a '.' and '_'.
+func ParseSegmentName(filename string) string {
+	idx := indexOfSegmentName(filename)
+	if idx != -1 {
+		filename = filename[0:idx]
+	}
+	return filename
+}
+
+// ParseGeneration Returns the generation from this file name, or 0 if there is no generation.
+func ParseGeneration(filename string) int64 {
+	extension := StripExtension(filename)
+	parts := strings.Split(extension[1:], "_")
+	// 4 cases:
+	// segment.ext
+	// segment_gen.ext
+	// segment_codec_suffix.ext
+	// segment_gen_codec_suffix.ext
+	if len(parts) == 2 || len(parts) == 4 {
+		parseInt, _ := strconv.ParseInt(parts[1], 36, 64)
+		return parseInt
+	}
+	return 0
+}
+
+// StripExtension Removes the extension (anything after the first '.'), otherwise returns the original filename.
+func StripExtension(filename string) string {
+	idx := strings.IndexByte(filename, '.')
+	if idx != -1 {
+		filename = filename[:idx]
+	}
+	return filename
+}
+
 // CODEC_FILE_PATTERN All files created by codecs much match this pattern (checked in SegmentInfo).
 var (
 	CODEC_FILE_PATTERN = regexp.MustCompilePOSIX("_[a-z0-9]+(_.*)?\\..*")

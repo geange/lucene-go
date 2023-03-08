@@ -5,6 +5,7 @@ package index
 // If you implement your own codec, make sure that it has a no-arg constructor so SPI can load it.
 // See Also: ServiceLoader
 type Codec interface {
+	NamedSPI
 
 	// PostingsFormat Encodes/decodes postings
 	PostingsFormat() PostingsFormat
@@ -39,4 +40,14 @@ type Codec interface {
 
 type NamedSPI interface {
 	GetName() string
+}
+
+var codesPool = make(map[string]Codec)
+
+func RegisterCodec(codec Codec) {
+	codesPool[codec.GetName()] = codec
+}
+
+func ForName(name string) Codec {
+	return codesPool[name]
 }

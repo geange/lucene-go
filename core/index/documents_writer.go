@@ -41,7 +41,7 @@ type DocumentsWriter struct {
 	flushNotifications FlushNotifications
 	closed             bool
 	infoStream         io.Writer
-	config             *LiveIndexWriterConfig
+	config             *liveIndexWriterConfig
 	numDocsInRAM       *atomic.Int64
 
 	// TODO: cut over to BytesHash in BufferedDeletes
@@ -59,7 +59,7 @@ type DocumentsWriter struct {
 }
 
 func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int64, enableTestPoints bool,
-	segmentName func() string, config *LiveIndexWriterConfig, directoryOrig, directory store.Directory,
+	segmentName func() string, config *liveIndexWriterConfig, directoryOrig, directory store.Directory,
 	globalFieldNumberMap *FieldNumbers) *DocumentsWriter {
 
 	infos := NewFieldInfosBuilder(globalFieldNumberMap)

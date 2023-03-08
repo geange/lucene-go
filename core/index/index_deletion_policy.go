@@ -13,9 +13,11 @@ package index
 // Note that doing so will increase the storage requirements of the index. See LUCENE-710 for details.
 type IndexDeletionPolicy interface {
 
-	// This is called once when a writer is first instantiated to give the policy a chance to remove old commit points.
+	// OnInit This is called once when a writer is first instantiated to give the policy a chance to remove old commit points.
 	// The writer locates all index commits present in the index directory and calls this method. The policy may choose to delete some of the commit points, doing so by calling method delete() of IndexCommit.
 	// Note: the last CommitPoint is the most recent one, i.e. the "front index state". Be careful not to delete it, unless you know for sure what you are doing, and unless you can afford to lose the index content while doing that.
 	// Params: commits – List of current point-in-time commits, sorted by age (the 0th one is the oldest commit). Note that for a new index this method is invoked with an empty list.
-	onInit()
+	OnInit(commits []IndexCommit) error
+
+	OnCommit(commits []IndexCommit) error
 }

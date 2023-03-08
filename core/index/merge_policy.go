@@ -46,6 +46,11 @@ type MergeContext interface {
 // as well as whether the new segment should use the compound file format.
 // lucene.experimental
 type OneMerge struct {
+	info           *SegmentCommitInfo
+	registerDone   bool
+	mergeGen       bool
+	isExternal     bool
+	maxNumSegments int
 }
 
 type MergeSpecification struct {
