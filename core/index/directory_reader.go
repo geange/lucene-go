@@ -16,8 +16,56 @@ import (
 // NOTE: IndexReader instances are completely thread safe, meaning multiple threads can call any of
 // its methods, concurrently. If your application requires external synchronization, you should not
 // synchronize on the IndexReader instance; use your own (non-Lucene) objects instead.
-type DirectoryReader struct {
+type DirectoryReader interface {
+	CompositeReader
+
+	Directory() store.Directory
+
+	// GetVersion
+	// Version number when this IndexReader was opened.
+	// This method returns the version recorded in the commit that the reader opened.
+	// This version is advanced every time a change is made with IndexWriter.
+	GetVersion() int64
+
+	// IsCurrent
+	// Check whether any new changes have occurred to the index since this reader was opened.
+	// If this reader was created by calling open, then this method checks if any further commits
+	// (see IndexWriter.commit) have occurred in the directory.
+	// If instead this reader is a near real-time reader (ie, obtained by a call to open(IndexWriter),
+	// or by calling openIfChanged on a near real-time reader), then this method checks if either a
+	// new commit has occurred, or any new uncommitted changes have taken place via the writer.
+	// Note that even if the writer has only performed merging, this method will still return false.
+	// In any event, if this returns false, you should call openIfChanged to get a new reader that sees the changes.
+	// Throws: IOException – if there is a low-level IO error
+	IsCurrent() (bool, error)
+
+	// GetIndexCommit
+	// Expert: return the IndexCommit that this reader has opened.
+	// lucene.experimental
+	GetIndexCommit() (IndexCommit, error)
+}
+
+type DirectoryReaderDefault struct {
+	*BaseCompositeReader
+
 	directory store.Directory
+}
+
+func NewDirectoryReader(directory store.Directory,
+	segmentReaders []IndexReader, leafSorter func(a, b IndexReader) int) (*DirectoryReaderDefault, error) {
+
+	reader, err := NewBaseCompositeReader(segmentReaders, leafSorter)
+	if err != nil {
+		return nil, err
+	}
+	return &DirectoryReaderDefault{
+		BaseCompositeReader: reader,
+		directory:           directory,
+	}, nil
+}
+
+func (d *DirectoryReaderDefault) Directory() store.Directory {
+	return d.directory
 }
 
 // IndexExists Returns true if an index likely exists at the specified directory.

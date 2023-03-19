@@ -11,7 +11,7 @@ type IndexOutput interface {
 
 	GetName() string
 
-	// GetFilePointer Returns the current position in this file,
+	// GetFilePointer Returns the current pos in this file,
 	// where the next write will occur.
 	GetFilePointer() int64
 

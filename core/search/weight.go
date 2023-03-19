@@ -1,8 +1,8 @@
 package search
 
 import (
-	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/util"
 	"math"
 )
 
@@ -169,13 +169,13 @@ func NewDefaultBulkScorer(scorer Scorer) *DefaultBulkScorer {
 	}
 }
 
-func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs *bitset.BitSet) error {
+func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs util.Bits) error {
 	NO_MORE_DOCS := math.MaxInt32
 	_, err := d.Score4(collector, acceptDocs, 0, NO_MORE_DOCS)
 	return err
 }
 
-func (d *DefaultBulkScorer) Score4(collector LeafCollector, acceptDocs *bitset.BitSet, min, max int) (int, error) {
+func (d *DefaultBulkScorer) Score4(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
 	err := collector.SetScorer(d.scorer)
 	if err != nil {
 		return 0, err
@@ -233,7 +233,7 @@ func (d *DefaultBulkScorer) Score4(collector LeafCollector, acceptDocs *bitset.B
 }
 
 func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
-	twoPhase TwoPhaseIterator, acceptDocs *bitset.BitSet) error {
+	twoPhase TwoPhaseIterator, acceptDocs util.Bits) error {
 
 	if twoPhase == nil {
 		doc, err := iterator.NextDoc()
@@ -278,7 +278,7 @@ func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 }
 
 func scoreRange(collector LeafCollector, iterator index.DocIdSetIterator, twoPhase TwoPhaseIterator,
-	acceptDocs *bitset.BitSet, currentDoc, end int) (int, error) {
+	acceptDocs util.Bits, currentDoc, end int) (int, error) {
 
 	var err error
 

@@ -132,3 +132,7 @@ func (f *FieldInfos) List() []*types.FieldInfo {
 func (f *FieldInfos) HasNorms() bool {
 	return f.hasNorms
 }
+
+func (f *FieldInfos) HasDocValues() bool {
+	return f.hasDocValues
+}

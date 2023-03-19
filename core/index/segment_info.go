@@ -196,7 +196,7 @@ func checkFileNames(files []string) error {
 // locates the boundary of the segment name, or -1
 func indexOfSegmentName(filename string) int {
 	// If it is a .del file, there's an '_' after the first character
-	idx := strings.Index(filename, "_")
+	idx := strings.Index(filename[1:], "_")
 	if idx == -1 {
 		// If it's not, strip everything that's before the '.'
 		idx = strings.Index(filename, ".")

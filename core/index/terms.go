@@ -6,7 +6,7 @@ import (
 )
 
 type Terms interface {
-	// Iterator Returns an iterator that will step through all terms. This method will not return null.
+	// DVFUIterator Returns an iterator that will step through all terms. This method will not return null.
 	Iterator() (TermsEnum, error)
 
 	// Intersect Returns a TermsEnum that iterates over all terms and documents that are accepted by the
@@ -84,7 +84,7 @@ func (t *TermsDefault) Intersect(compiled *automaton.CompiledAutomaton, startTer
 	// the returned enum, instead of only being able to seek
 	// at the start
 
-	//termsEnum, err := t.Iterator()
+	//termsEnum, err := t.DVFUIterator()
 	//if err != nil {
 	//	return nil, err
 	//}

@@ -77,48 +77,48 @@ func NewTextWriter(out store.IndexOutput) *TextWriter {
 	return &TextWriter{out: out}
 }
 
-func (t *TextWriter) WriteBytes(bs []byte) error {
+func (t *TextWriter) Bytes(bs []byte) error {
 	return WriteBytes(t.out, bs)
 }
 
-func (t *TextWriter) WriteString(v string) error {
+func (t *TextWriter) String(v string) error {
 	return WriteString(t.out, v)
 }
 
-func (t *TextWriter) WriteInt(v int) error {
-	return t.WriteString(strconv.Itoa(v))
+func (t *TextWriter) Int(v int) error {
+	return t.String(strconv.Itoa(v))
 }
 
-func (t *TextWriter) WriteLong(v int64) error {
-	return t.WriteString(strconv.FormatInt(v, 10))
+func (t *TextWriter) Long(v int64) error {
+	return t.String(strconv.FormatInt(v, 10))
 }
 
 func (t *TextWriter) WriteLabelBytes(label, v []byte) error {
-	if err := t.WriteBytes(label); err != nil {
+	if err := t.Bytes(label); err != nil {
 		return err
 	}
-	if err := t.WriteBytes(v); err != nil {
+	if err := t.Bytes(v); err != nil {
 		return err
 	}
 	return t.NewLine()
 }
 
 func (t *TextWriter) WriteLabelString(label []byte, v string) error {
-	if err := t.WriteBytes(label); err != nil {
+	if err := t.Bytes(label); err != nil {
 		return err
 	}
-	if err := t.WriteString(v); err != nil {
+	if err := t.String(v); err != nil {
 		return err
 	}
 	return t.NewLine()
 }
 
 func (t *TextWriter) WriteLabelInt(label []byte, v int) error {
-	if err := t.WriteBytes(label); err != nil {
+	if err := t.Bytes(label); err != nil {
 		return err
 	}
 
-	if err := t.WriteInt(v); err != nil {
+	if err := t.Int(v); err != nil {
 		return err
 	}
 
@@ -126,11 +126,11 @@ func (t *TextWriter) WriteLabelInt(label []byte, v int) error {
 }
 
 func (t *TextWriter) WriteLabelLong(label []byte, v int64) error {
-	if err := t.WriteBytes(label); err != nil {
+	if err := t.Bytes(label); err != nil {
 		return err
 	}
 
-	if err := t.WriteLong(v); err != nil {
+	if err := t.Long(v); err != nil {
 		return err
 	}
 
@@ -138,17 +138,17 @@ func (t *TextWriter) WriteLabelLong(label []byte, v int64) error {
 }
 
 func (t *TextWriter) WriteLabelBool(label []byte, v bool) error {
-	if err := t.WriteBytes(label); err != nil {
+	if err := t.Bytes(label); err != nil {
 		return err
 	}
-	if err := t.WriteString(strconv.FormatBool(v)); err != nil {
+	if err := t.String(strconv.FormatBool(v)); err != nil {
 		return err
 	}
 	return t.NewLine()
 }
 
 func (t *TextWriter) NewLine() error {
-	return Newline(t.out)
+	return NewLine(t.out)
 }
 
 func (t *TextWriter) Write(v any) error {
@@ -203,7 +203,7 @@ func WriteBytes(out store.DataOutput, bs []byte) error {
 	return nil
 }
 
-func Newline(out store.DataOutput) error {
+func NewLine(out store.DataOutput) error {
 	return out.WriteByte(NEWLINE)
 }
 
@@ -247,7 +247,7 @@ func WriteChecksum(out store.IndexOutput) error {
 	if err := WriteString(out, fmt.Sprintf("%020d", checksum)); err != nil {
 		return err
 	}
-	return Newline(out)
+	return NewLine(out)
 }
 
 func CheckFooter(input store.ChecksumIndexInput) error {

@@ -249,6 +249,10 @@ func (i *SegmentInfos) TotalMaxDoc() int64 {
 	return int64(count)
 }
 
+func (i *SegmentInfos) GetVersion() int64 {
+	return i.version
+}
+
 func ReadCommit(directory store.Directory, segmentFileName string) (*SegmentInfos, error) {
 	generation, err := GenerationFromSegmentsFileName(segmentFileName)
 	if err != nil {
@@ -275,6 +279,7 @@ func ReadCommitFromChecksum(directory store.Directory,
 		return nil, err
 	}
 	if int(magic) != utils.CODEC_MAGIC {
+		//fmt.Println(magic)
 		return nil, errors.New("indexFormat Too Old Exception")
 	}
 
@@ -527,7 +532,7 @@ func ReadLatestCommit(directory store.Directory) (*SegmentInfos, error) {
 	file := &FindSegmentsFile{
 		directory: directory,
 	}
-	file.doBody = func(segmentFileName string) (any, error) {
+	file.DoBody = func(segmentFileName string) (any, error) {
 		return ReadCommit(file.directory, segmentFileName)
 	}
 
@@ -545,7 +550,8 @@ func GenerationFromSegmentsFileName(fileName string) (int64, error) {
 	}
 
 	if strings.HasPrefix(fileName, SEGMENTS) {
-		return strconv.ParseInt(fileName[len(SEGMENTS):], 10, 64)
+		v := fileName[len(SEGMENTS)+1:]
+		return strconv.ParseInt(v, 10, 64)
 	}
 
 	return 0, fmt.Errorf("fileName '%s' is not a segments file", fileName)
@@ -558,7 +564,7 @@ func GenerationFromSegmentsFileName(fileName string) (int64, error) {
 type FindSegmentsFile struct {
 	directory store.Directory
 
-	doBody func(segmentFileName string) (any, error)
+	DoBody func(segmentFileName string) (any, error)
 }
 
 func NewFindSegmentsFile(directory store.Directory) *FindSegmentsFile {
@@ -574,13 +580,13 @@ func (f *FindSegmentsFile) RunV1(commit IndexCommit) (any, error) {
 		if commit.GetDirectory() != f.directory {
 			return nil, errors.New("the specified commit does not match the specified Directory")
 		}
-		return f.doBody(commit.GetSegmentsFileName())
+		return f.DoBody(commit.GetSegmentsFileName())
 	}
 
 	lastGen := int64(-1)
 	gen := int64(-1)
 
-	// Loop until we succeed in calling doBody() without
+	// Loop until we succeed in calling DoBody() without
 	// hitting an IOException.  An IOException most likely
 	// means an IW deleted our commit while opening
 	// the time it took us to load the now-old infos files
@@ -604,7 +610,7 @@ func (f *FindSegmentsFile) RunV1(commit IndexCommit) (any, error) {
 		} else if gen > lastGen {
 			segmentFileName := FileNameFromGeneration(SEGMENTS, "", gen)
 
-			value, err := f.doBody(segmentFileName)
+			value, err := f.DoBody(segmentFileName)
 			if err != nil {
 				return nil, err
 			}

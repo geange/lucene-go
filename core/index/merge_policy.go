@@ -1,5 +1,7 @@
 package index
 
+import "sync"
+
 // MergePolicy Expert: a MergePolicy determines the sequence of primitive merge operations.
 // Whenever the segments in an index have been altered by IndexWriter, either the addition of a newly
 // flushed segment, addition of many segments from addIndexes* calls, or a previous merge that may now
@@ -16,7 +18,7 @@ package index
 // The default MergePolicy is TieredMergePolicy.
 //
 // lucene.experimental
-type MergePolicy struct {
+type MergePolicy interface {
 }
 
 // MergeContext This interface represents the current context of the merge selection process. It allows
@@ -56,3 +58,19 @@ type OneMerge struct {
 type MergeSpecification struct {
 	merges []*OneMerge
 }
+
+// OneMergeProgress Progress and state for an executing merge. This class encapsulates the logic to pause
+// and resume the merge thread or to abort the merge entirely.
+// lucene.experimental
+type OneMergeProgress struct {
+	pauseLock sync.Mutex
+}
+
+// PauseReason Reason for pausing the merge thread.
+type PauseReason int
+
+const (
+	STOPPED = PauseReason(iota) // Stopped (because of throughput rate set to 0, typically).
+	PAUSED                      // Temporarily paused because of exceeded throughput rate.
+	OTHER                       // Other reason.
+)

@@ -30,7 +30,7 @@ type IndexCommit interface {
 	// Upon calling this, the writer is notified that this commit point should be deleted.
 	// Decision that a commit-point should be deleted is taken by the IndexDeletionPolicy in effect
 	// and therefore this should only be called by its onInit() or onCommit() methods.
-	Delete()
+	Delete() error
 
 	// IsDeleted Returns true if this commit should be deleted;
 	// this is only used by IndexWriter after invoking the IndexDeletionPolicy.

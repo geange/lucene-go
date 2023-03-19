@@ -1,6 +1,8 @@
 package store
 
-import "fmt"
+import (
+	"bytes"
+)
 
 // SegmentFileName Returns a file name that includes the given segment name, your own custom name
 // and extension. The format of the filename is: <segmentName>(_<name>)(.<ext>).
@@ -10,5 +12,16 @@ import "fmt"
 // to handle them properly (such as if they are added to compound files).
 func SegmentFileName(segmentName, segmentSuffix, ext string) string {
 	// TODO
-	return fmt.Sprintf("%s_%s.%s", segmentName, segmentSuffix, ext)
+	buf := new(bytes.Buffer)
+	buf.WriteString(segmentName)
+	if len(segmentSuffix) > 0 {
+		buf.WriteString("_")
+		buf.WriteString(segmentSuffix)
+	}
+
+	if len(ext) > 0 {
+		buf.WriteString(".")
+		buf.WriteString(ext)
+	}
+	return buf.String()
 }

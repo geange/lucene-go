@@ -5,8 +5,8 @@ package index
 // vectors per document.
 type Fields interface {
 
-	// Iterator Returns an iterator that will step through all fields names. This will not return null.
-	//Iterator() func() string
+	// DVFUIterator Returns an iterator that will step through all fields names. This will not return null.
+	//DVFUIterator() func() string
 
 	Names() []string
 

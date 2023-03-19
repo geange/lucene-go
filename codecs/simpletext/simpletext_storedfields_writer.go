@@ -135,7 +135,7 @@ func (s *SimpleTextStoredFieldsWriter) writeValue(valueType []byte, value string
 	if err := utils.WriteBytes(s.out, valueType); err != nil {
 		return err
 	}
-	if err := utils.Newline(s.out); err != nil {
+	if err := utils.NewLine(s.out); err != nil {
 		return err
 	}
 	if err := utils.WriteBytes(s.out, STORED_FIELD_VALUE); err != nil {
@@ -145,7 +145,7 @@ func (s *SimpleTextStoredFieldsWriter) writeValue(valueType []byte, value string
 	if err := utils.WriteString(s.out, value); err != nil {
 		return err
 	}
-	return utils.Newline(s.out)
+	return utils.NewLine(s.out)
 }
 
 func (s *SimpleTextStoredFieldsWriter) write(value any) error {
@@ -162,5 +162,5 @@ func (s *SimpleTextStoredFieldsWriter) write(value any) error {
 }
 
 func (s *SimpleTextStoredFieldsWriter) newLine() error {
-	return utils.Newline(s.out)
+	return utils.NewLine(s.out)
 }

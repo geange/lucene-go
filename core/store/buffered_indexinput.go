@@ -11,11 +11,11 @@ type BufferedIndexInput interface {
 	IndexInput
 	//RandomAccessInput
 
-	// ReadInternal Expert: implements buffer refill. Reads bytes from the current position in the input.
+	// ReadInternal Expert: implements buffer refill. Reads bytes from the current pos in the input.
 	// Params: b – the buffer to read bytes into
 	ReadInternal(buf *bytes.Buffer, size int) error
 
-	// SeekInternal Expert: implements seek. Sets current position in this file, where the next
+	// SeekInternal Expert: implements seek. Sets current pos in this file, where the next
 	// readInternal(ByteBuffer) will occur.
 	// See Also: readInternal(ByteBuffer)
 	SeekInternal(pos int) error
@@ -51,8 +51,8 @@ type BufferedIndexInputDefault struct {
 	*IndexInputDefault
 
 	bufferSize     int
-	bufferStart    int // position in file of buffer
-	bufferPosition int // position in buffer
+	bufferStart    int // pos in file of buffer
+	bufferPosition int // pos in buffer
 	buffer         *bytes.Buffer
 
 	readInternal func(buf *bytes.Buffer, size int) error
@@ -121,6 +121,12 @@ func (r *BufferedIndexInputDefault) ReadByte() (byte, error) {
 }
 
 func (r *BufferedIndexInputDefault) Read(b []byte) (n int, err error) {
+	if r.buffer == nil {
+		if err := r.refill(); err != nil {
+			return 0, err
+		}
+	}
+
 	available := r.buffer.Len()
 	size := len(b)
 

@@ -94,6 +94,7 @@ type IndexWriter struct {
 	flushDeletesCount        *atomic.Int64
 	readerPool               *ReaderPool
 	mergeFinishedGen         *atomic.Int64
+	bufferedUpdatesStream    *BufferedUpdatesStream
 	config                   *IndexWriterConfig
 	startCommitTime          int64
 	pendingNumDocs           *atomic.Int64
@@ -252,7 +253,10 @@ func NewIndexWriter(d store.Directory, conf *IndexWriterConfig) (*IndexWriter, e
 
 	// start with previous field numbers, but new FieldInfos
 	// NOTE: this is correct even for an NRT reader because we'll pull FieldInfos even for the un-committed segments:
-	writer.globalFieldNumberMap = writer.getFieldNumberMap()
+	writer.globalFieldNumberMap, err = writer.getFieldNumberMap()
+	if err != nil {
+		return nil, err
+	}
 
 	if err := writer.validateIndexSort(); err != nil {
 		return nil, err
@@ -264,10 +268,19 @@ func NewIndexWriter(d store.Directory, conf *IndexWriterConfig) (*IndexWriter, e
 	//writer.segmentInfos = NewSegmentInfos(conf.GetIndexCreatedVersionMajor())
 	//
 	//writer.globalFieldNumberMap = writer.getFieldNumberMap()
+	writer.bufferedUpdatesStream = NewBufferedUpdatesStream()
 
 	writer.docWriter = NewDocumentsWriter(writer.segmentInfos.getIndexCreatedVersionMajor(), writer.pendingNumDocs,
 		writer.enableTestPoints, writer.newSegmentName,
 		writer.config.liveIndexWriterConfig, writer.directoryOrig, writer.directory, writer.globalFieldNumberMap)
+
+	writer.bufferedUpdatesStream.GetCompletedDelGen()
+	writer.readerPool, err = NewReaderPool(writer.directory, writer.directoryOrig, writer.segmentInfos,
+		writer.globalFieldNumberMap, writer.bufferedUpdatesStream.GetCompletedDelGen,
+		conf.getSoftDeletesField(), reader)
+	if err != nil {
+		return nil, err
+	}
 
 	return writer, nil
 }
@@ -393,7 +406,7 @@ func (i *IndexWriter) processEvents(triggerMerge bool) error {
 	return nil
 }
 
-func (i *IndexWriter) maybeMerge(mergePolicy *MergePolicy, trigger MergeTrigger, maxNumSegments int) error {
+func (i *IndexWriter) maybeMerge(mergePolicy MergePolicy, trigger MergeTrigger, maxNumSegments int) error {
 	err := i.ensureOpenV1(false)
 	if err != nil {
 		return err
@@ -419,7 +432,7 @@ func (i *IndexWriter) executeMerge(trigger MergeTrigger) error {
 	return i.mergeScheduler.Merge(i.mergeSource, trigger)
 }
 
-func (i *IndexWriter) updatePendingMerges(policy *MergePolicy, trigger MergeTrigger, segments int) *MergeSpecification {
+func (i *IndexWriter) updatePendingMerges(policy MergePolicy, trigger MergeTrigger, segments int) *MergeSpecification {
 	// TODO: impl it
 	return nil
 }
@@ -432,21 +445,24 @@ func (i *IndexWriter) newSegmentName() string {
 	return fmt.Sprintf("_%s", strconv.FormatInt(v, 36))
 }
 
-func (i *IndexWriter) getFieldNumberMap() *FieldNumbers {
+func (i *IndexWriter) getFieldNumberMap() (*FieldNumbers, error) {
 	mp := NewFieldNumbers(i.config.softDeletesField)
 
 	for _, info := range i.segmentInfos.segments {
-		fis := readFieldInfos(info)
+		fis, err := readFieldInfos(info)
+		if err != nil {
+			return nil, err
+		}
 		for _, fi := range fis.values {
 			_, err := mp.AddOrGet(fi.Name(), fi.Number(), fi.GetIndexOptions(), fi.GetDocValuesType(),
 				fi.GetPointDimensionCount(), fi.GetPointIndexDimensionCount(),
 				fi.GetPointNumBytes(), fi.IsSoftDeletesField())
 			if err != nil {
-				return nil
+				return nil, err
 			}
 		}
 	}
-	return mp
+	return mp, nil
 }
 
 // Gracefully closes (commits, waits for merges), but calls rollback if there's an exc so
@@ -464,10 +480,38 @@ func (i *IndexWriter) Changed() {
 	i.segmentInfos.Changed()
 }
 
-func readFieldInfos(si *SegmentCommitInfo) *FieldInfos {
-	//codec := si.info.GetCodec()
-	//reader := codec.FieldInfosFormat()
-	panic("")
+func (i *IndexWriter) IsClosed() bool {
+	return i.closed
+}
+
+func (i *IndexWriter) nrtIsCurrent(infos *SegmentInfos) bool {
+	return false
+
+	// TODO: fix it
+	//ensureOpen();
+	isCurrent := infos.GetVersion() == i.segmentInfos.GetVersion() &&
+		i.docWriter.anyChanges() == false &&
+		//i.bufferedUpdatesStream.Any() == false &&
+		i.readerPool.anyDocValuesChanges() == false
+	return isCurrent
+}
+
+func readFieldInfos(si *SegmentCommitInfo) (*FieldInfos, error) {
+	codec := si.info.GetCodec()
+	reader := codec.FieldInfosFormat()
+
+	if si.HasFieldUpdates() {
+
+	} else if si.info.GetUseCompoundFile() {
+		cfs, err := codec.CompoundFormat().GetCompoundReader(si.info.dir, si.info, nil)
+		if err != nil {
+			return nil, err
+		}
+		return reader.Read(cfs, si.info, "", nil)
+	}
+
+	return reader.Read(si.info.dir, si.info, "", nil)
+
 }
 
 func GetActualMaxDocs() int {

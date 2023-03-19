@@ -2,7 +2,10 @@ package index
 
 import "io"
 
-type FlushPolicy struct {
+type FlushPolicy interface {
+}
+
+type flushPolicy struct {
 	indexWriterConfig *liveIndexWriterConfig
 	infoStream        io.Writer
 
@@ -20,20 +23,20 @@ type FlushPolicy struct {
 // OnUpdate Called for each document update on the given DocumentsWriterPerThread's DocumentsWriterPerThread.
 // Note: This method is called synchronized on the given DocumentsWriterFlushControl and it is guaranteed that
 // the calling thread holds the lock on the given DocumentsWriterPerThread
-func (f *FlushPolicy) OnUpdate(control *DocumentsWriterFlushControl, perThread *DocumentsWriterPerThread) {
+func (f *flushPolicy) OnUpdate(control *DocumentsWriterFlushControl, perThread *DocumentsWriterPerThread) {
 	f.onInsert(control, perThread)
 	f.onDelete(control, perThread)
 }
 
 // Init Called by DocumentsWriter to initialize the FlushPolicy
-func (f *FlushPolicy) Init(indexWriterConfig *liveIndexWriterConfig) {
+func (f *flushPolicy) Init(indexWriterConfig *liveIndexWriterConfig) {
 	f.indexWriterConfig = indexWriterConfig
 	f.infoStream = indexWriterConfig.infoStream
 }
 
 // Returns the current most RAM consuming non-pending DocumentsWriterPerThread with at least one indexed document.
 // This method will never return null
-func (f *FlushPolicy) findLargestNonPendingWriter(
+func (f *flushPolicy) findLargestNonPendingWriter(
 	control *DocumentsWriterFlushControl, perThread *DocumentsWriterPerThread) *DocumentsWriterPerThread {
 
 	panic("")

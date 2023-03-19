@@ -291,7 +291,7 @@ func (s *SimpleTextFieldsWriter) writeValue(label, value []byte) error {
 	if err := utils.WriteBytes(s.out, value); err != nil {
 		return err
 	}
-	return utils.Newline(s.out)
+	return utils.NewLine(s.out)
 }
 
 func (s *SimpleTextFieldsWriter) write(field []byte) error {
@@ -299,5 +299,5 @@ func (s *SimpleTextFieldsWriter) write(field []byte) error {
 }
 
 func (s *SimpleTextFieldsWriter) newline() error {
-	return utils.Newline(s.out)
+	return utils.NewLine(s.out)
 }

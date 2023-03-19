@@ -4,6 +4,7 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"go.uber.org/atomic"
 	"io"
+	"sort"
 	"sync"
 )
 
@@ -19,10 +20,13 @@ type IndexReader interface {
 	GetTermVector(docID int, field string) (Terms, error)
 
 	// NumDocs Returns the number of documents in this index.
-	// NOTE: This operation may run in O(maxDoc). Implementations that can't return this number in constant-time should cache it.
+	// NOTE: This operation may run in O(maxDoc). Implementations that can't return this number in
+	// constant-time should cache it.
 	NumDocs() int
 
-	// MaxDoc Returns one greater than the largest possible document number. This may be used to, e.g., determine how big to allocate an array which will have an element for every document number in an index.
+	// MaxDoc Returns one greater than the largest possible document number. This may be used to,
+	// e.g., determine how big to allocate an array which will have an element for every document
+	// number in an index.
 	MaxDoc() int
 
 	// NumDeletedDocs Returns the number of deleted documents.
@@ -105,36 +109,20 @@ type IndexReader interface {
 	// just like other term measures, this measure does not take deleted documents into account.
 	// See Also: Terms.getSumTotalTermFreq()
 	GetSumTotalTermFreq(field string) (int64, error)
+	//RegisterParentReader(reader IndexReader)
 }
 
-type IndexReaderDefaultConfig struct {
-	GetTermVectors       func(docID int) (Fields, error)
-	NumDocs              func() int
-	MaxDoc               func() int
-	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) error
-	GetContext           func() IndexReaderContext
-	DoClose              func() error
-	GetReaderCacheHelper func() CacheHelper
-	DocFreq              func(term Term) (int, error)
-	TotalTermFreq        func(term *Term) (int64, error)
-	GetSumDocFreq        func(field string) (int64, error)
-	GetDocCount          func(field string) (int, error)
-	GetSumTotalTermFreq  func(field string) (int64, error)
+type IndexReaderDefaultSpi interface {
+	GetTermVectors(docID int) (Fields, error)
+	NumDocs() int
+	MaxDoc() int
+	DocumentV1(docID int, visitor document.StoredFieldVisitor) error
+	GetContext() IndexReaderContext
+	DoClose() error
 }
 
 type IndexReaderDefault struct {
-	GetTermVectors       func(docID int) (Fields, error)
-	NumDocs              func() int
-	MaxDoc               func() int
-	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) error
-	GetContext           func() IndexReaderContext
-	DoClose              func() error
-	GetReaderCacheHelper func() CacheHelper
-	DocFreq              func(term Term) (int, error)
-	TotalTermFreq        func(term *Term) (int64, error)
-	GetSumDocFreq        func(field string) (int64, error)
-	GetDocCount          func(field string) (int, error)
-	GetSumTotalTermFreq  func(field string) (int64, error)
+	IndexReaderDefaultSpi
 
 	closed        bool
 	closedByChild bool
@@ -143,22 +131,10 @@ type IndexReaderDefault struct {
 	sync.Mutex
 }
 
-func NewIndexReaderDefault(cfg *IndexReaderDefaultConfig) *IndexReaderDefault {
+func NewIndexReaderDefault() *IndexReaderDefault {
 	return &IndexReaderDefault{
-		refCount:             atomic.NewInt64(0),
-		parentReaders:        make(map[IndexReader]struct{}),
-		GetTermVectors:       cfg.GetTermVectors,
-		NumDocs:              cfg.NumDocs,
-		MaxDoc:               cfg.MaxDoc,
-		DocumentV1:           cfg.DocumentV1,
-		GetContext:           cfg.GetContext,
-		DoClose:              cfg.DoClose,
-		GetReaderCacheHelper: cfg.GetReaderCacheHelper,
-		DocFreq:              cfg.DocFreq,
-		TotalTermFreq:        cfg.TotalTermFreq,
-		GetSumDocFreq:        cfg.GetSumDocFreq,
-		GetDocCount:          cfg.GetDocCount,
-		GetSumTotalTermFreq:  cfg.GetSumTotalTermFreq,
+		refCount:      atomic.NewInt64(0),
+		parentReaders: make(map[IndexReader]struct{}),
 	}
 }
 
@@ -231,6 +207,35 @@ func (r *IndexReaderDefault) Leaves() ([]*LeafReaderContext, error) {
 	return r.GetContext().Leaves()
 }
 
+// CacheHelper
+// A utility class that gives hooks in order to help build a cache based on the data that is contained in this index.
+// lucene.experimental
 type CacheHelper interface {
-	// TODO
+	// GetKey
+	// Get a key that the resource can be cached on. The given entry can be compared using identity,
+	// ie. Object.equals is implemented as == and Object.hashCode is implemented as System.identityHashCode.
+	GetKey()
+}
+
+var _ sort.Interface = &IndexReaderSorter{}
+
+type IndexReaderSorter struct {
+	Readers   []IndexReader
+	FnCompare func(a, b IndexReader) int
+}
+
+func (r *IndexReaderSorter) Len() int {
+	return len(r.Readers)
+}
+
+func (r *IndexReaderSorter) Less(i, j int) bool {
+	return r.FnCompare(r.Readers[i], r.Readers[j]) < 0
+}
+
+func (r *IndexReaderSorter) Swap(i, j int) {
+	r.Readers[i], r.Readers[j] = r.Readers[j], r.Readers[i]
+}
+
+type ClosedListener interface {
+	// Invoked when the resource (segment core, or index reader) that is being cached on is closed.
 }

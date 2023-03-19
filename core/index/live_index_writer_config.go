@@ -9,7 +9,7 @@ import (
 type LiveIndexWriterConfig interface {
 	GetAnalyzer() analysis.Analyzer
 
-	SetMaxBufferedDocs(maxBufferedDocs int) LiveIndexWriterConfig
+	SetMaxBufferedDocs(maxBufferedDocs int)
 
 	// GetMaxBufferedDocs Returns the number of buffered added documents that will trigger a flush if enabled.
 	// See Also: setMaxBufferedDocs(int)
@@ -20,11 +20,11 @@ type LiveIndexWriterConfig interface {
 	// describing the merges. It also selects merges to do for forceMerge.
 	// Takes effect on subsequent merge selections. Any merges in flight or any merges already registered by
 	// the previous MergePolicy are not affected.
-	SetMergePolicy(mergePolicy MergePolicy) LiveIndexWriterConfig
+	SetMergePolicy(mergePolicy MergePolicy)
 
 	// SetMergedSegmentWarmer Set the merged segment warmer. See IndexWriter.IndexReaderWarmer.
 	//Takes effect on the next merge.
-	SetMergedSegmentWarmer(mergeSegmentWarmer IndexReaderWarmer) LiveIndexWriterConfig
+	SetMergedSegmentWarmer(mergeSegmentWarmer IndexReaderWarmer)
 
 	// GetMergedSegmentWarmer Returns the current merged segment warmer. See IndexWriter.IndexReaderWarmer.
 	GetMergedSegmentWarmer() IndexReaderWarmer
@@ -70,7 +70,7 @@ type LiveIndexWriterConfig interface {
 	// Use false for batch indexing with very large ram buffer settings.
 	// Note: To control compound file usage during segment merges see MergePolicy.setNoCFSRatio(double)
 	// and MergePolicy.setMaxCFSSegmentSizeMB(double). This setting only applies to newly created segments.
-	SetUseCompoundFile(useCompoundFile bool) LiveIndexWriterConfig
+	SetUseCompoundFile(useCompoundFile bool)
 
 	// GetUseCompoundFile Returns true iff the IndexWriter packs newly written segments in a compound file.
 	// Default is true.
@@ -101,7 +101,7 @@ type LiveIndexWriterConfig interface {
 	// only thread writing segments to disk unless flushes are falling behind. If indexing is stalled due
 	// to too many pending flushes indexing threads will help our writing pending segment flushes to disk.
 	//lucene.experimental
-	SetCheckPendingFlushUpdate(checkPendingFlushOnUpdate bool) LiveIndexWriterConfig
+	SetCheckPendingFlushUpdate(checkPendingFlushOnUpdate bool)
 
 	// GetSoftDeletesField Returns the soft deletes field or null if soft-deletes are disabled.
 	// See IndexWriterConfig.setSoftDeletesField(String) for details.
@@ -156,13 +156,13 @@ type liveIndexWriterConfig struct {
 	infoStream io.Writer
 
 	// MergePolicy for selecting merges.
-	mergePolicy *MergePolicy
+	mergePolicy MergePolicy
 
 	// True if readers should be pooled.
 	readerPooling bool
 
 	// FlushPolicy to control when segments are flushed.
-	flushPolicy *FlushPolicy
+	flushPolicy FlushPolicy
 
 	// Sets the hard upper bound on RAM usage for a single segment, after which the segment is forced to Flush.
 	perThreadHardLimitMB int
@@ -202,7 +202,7 @@ func newLiveIndexWriterConfig(analyzer analysis.Analyzer, codec Codec, similarit
 		openMode:                    CREATE_OR_APPEND,
 		createdVersionMajor:         0,
 		similarity:                  similarity,
-		mergeScheduler:              nil,
+		mergeScheduler:              NewConcurrentMergeScheduler(),
 		indexingChain:               defaultIndexingChainInstance,
 		codec:                       codec,
 		infoStream:                  nil,
@@ -230,16 +230,15 @@ const (
 	// APPEND Opens an existing index.
 	APPEND
 
-	// CREATE_OR_APPEND Creates a new index if one does not exist, otherwise it opens the index and documents will be appended.
+	// CREATE_OR_APPEND Creates a new index if one does not exist,
+	// otherwise it opens the index and documents will be appended.
 	CREATE_OR_APPEND
 )
 
+var _ LiveIndexWriterConfig = &liveIndexWriterConfig{}
+
 func (r *liveIndexWriterConfig) GetIndexSort() *Sort {
 	return r.indexSort
-}
-
-func (r *liveIndexWriterConfig) GetMergePolicy() *MergePolicy {
-	return r.mergePolicy
 }
 
 // GetSimilarity Expert: returns the Similarity implementation used by this IndexWriter.
@@ -257,4 +256,92 @@ func (r *liveIndexWriterConfig) GetCodec() Codec {
 
 func (r *liveIndexWriterConfig) GetIndexingChain() IndexingChain {
 	return r.indexingChain
+}
+
+func (r *liveIndexWriterConfig) SetMaxBufferedDocs(maxBufferedDocs int) {
+	r.maxBufferedDocs = maxBufferedDocs
+}
+
+func (r *liveIndexWriterConfig) GetMaxBufferedDocs() int {
+	return r.maxBufferedDocs
+}
+
+func (r *liveIndexWriterConfig) SetMergePolicy(mergePolicy MergePolicy) {
+	r.mergePolicy = mergePolicy
+}
+
+func (r *liveIndexWriterConfig) SetMergedSegmentWarmer(mergeSegmentWarmer IndexReaderWarmer) {
+	r.mergedSegmentWarmer = mergeSegmentWarmer
+}
+
+func (r *liveIndexWriterConfig) GetMergedSegmentWarmer() IndexReaderWarmer {
+	return r.mergedSegmentWarmer
+}
+
+func (r *liveIndexWriterConfig) GetIndexCreatedVersionMajor() int {
+	return r.createdVersionMajor
+}
+
+func (r *liveIndexWriterConfig) GetIndexDeletionPolicy() IndexDeletionPolicy {
+	return r.delPolicy
+}
+
+func (r *liveIndexWriterConfig) GetIndexCommit() IndexCommit {
+	return r.commit
+}
+
+func (r *liveIndexWriterConfig) GetMergeScheduler() MergeScheduler {
+	return r.mergeScheduler
+}
+
+func (r *liveIndexWriterConfig) GetMergePolicy() MergePolicy {
+	return r.mergePolicy
+}
+
+func (r *liveIndexWriterConfig) GetReaderPooling() bool {
+	return r.readerPooling
+}
+
+func (r *liveIndexWriterConfig) GetFlushPolicy() FlushPolicy {
+	return r.flushPolicy
+}
+
+func (r *liveIndexWriterConfig) SetUseCompoundFile(useCompoundFile bool) {
+	r.useCompoundFile = useCompoundFile
+}
+
+func (r *liveIndexWriterConfig) GetUseCompoundFile() bool {
+	return r.useCompoundFile
+}
+
+func (r *liveIndexWriterConfig) GetCommitOnClose() bool {
+	return r.commitOnClose
+}
+
+func (r *liveIndexWriterConfig) GetIndexSortFields() map[string]struct{} {
+	return r.indexSortFields
+}
+
+func (r *liveIndexWriterConfig) GetLeafSorter() func(a, b LeafReader) int {
+	return r.leafSorter
+}
+
+func (r *liveIndexWriterConfig) IsCheckPendingFlushOnUpdate() bool {
+	return r.checkPendingFlushOnUpdate
+}
+
+func (r *liveIndexWriterConfig) SetCheckPendingFlushUpdate(checkPendingFlushOnUpdate bool) {
+	r.checkPendingFlushOnUpdate = checkPendingFlushOnUpdate
+}
+
+func (r *liveIndexWriterConfig) GetSoftDeletesField() string {
+	return r.softDeletesField
+}
+
+func (r *liveIndexWriterConfig) GetMaxFullFlushMergeWaitMillis() int64 {
+	return r.maxFullFlushMergeWaitMillis
+}
+
+func (r *liveIndexWriterConfig) GetOpenMode() OpenMode {
+	return r.openMode
 }

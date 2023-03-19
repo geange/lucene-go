@@ -192,7 +192,7 @@ func (m *MemoryIndexReader) CheckIntegrity() error {
 }
 
 func (m *MemoryIndexReader) GetMetaData() *index.LeafMetaData {
-	return index.NewLeafMetaData(util.VersionLast.Major, util.VersionLast)
+	return index.NewLeafMetaData(util.VersionLast.Major, util.VersionLast, nil)
 }
 
 func sortedSetDocValues(values *util.BytesHash, bytesIds []int) index.SortedSetDocValues {

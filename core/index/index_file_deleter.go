@@ -571,11 +571,12 @@ func (c *CommitPoint) GetDirectory() store.Directory {
 }
 
 // Delete Called only be the deletion policy, to remove this commit point from the index.
-func (c *CommitPoint) Delete() {
+func (c *CommitPoint) Delete() error {
 	if !c.deleted {
 		c.deleted = true
 		*c.commitsToDelete = append(*c.commitsToDelete, c)
 	}
+	return nil
 }
 
 func (c *CommitPoint) IsDeleted() bool {

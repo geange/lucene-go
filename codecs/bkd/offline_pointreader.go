@@ -47,7 +47,7 @@ func NewOfflinePointReader(config *BKDConfig, tempDir store.Directory,
 	//      throw new IllegalArgumentException("[reusableBuffer] cannot be null");
 	//    }
 	//    if (reusableBuffer.length < config.bytesPerDoc) {
-	//      throw new IllegalArgumentException("Length of [reusableBuffer] must be bigger than " + config.bytesPerDoc);
+	//      throw new IllegalArgumentException("Len of [reusableBuffer] must be bigger than " + config.bytesPerDoc);
 	//    }
 	// Best-effort checksumming:
 	fileLength, err := tempDir.FileLength(tempFileName)

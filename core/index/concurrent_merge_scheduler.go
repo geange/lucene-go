@@ -25,6 +25,10 @@ var _ MergeScheduler = &ConcurrentMergeScheduler{}
 type ConcurrentMergeScheduler struct {
 }
 
+func NewConcurrentMergeScheduler() *ConcurrentMergeScheduler {
+	return &ConcurrentMergeScheduler{}
+}
+
 func (c *ConcurrentMergeScheduler) Merge(mergeSource MergeSource, trigger MergeTrigger) error {
 	//TODO implement me
 	panic("implement me")
@@ -36,6 +40,7 @@ func (c *ConcurrentMergeScheduler) Close() error {
 }
 
 func (c *ConcurrentMergeScheduler) Initialize(dir store.Directory) {
-	//TODO implement me
-	panic("implement me")
+	////TODO implement me
+	//panic("implement me")
+	return
 }

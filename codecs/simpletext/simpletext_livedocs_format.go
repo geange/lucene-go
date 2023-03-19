@@ -31,7 +31,7 @@ func NewSimpleTextLiveDocsFormat() *SimpleTextLiveDocsFormat {
 	return &SimpleTextLiveDocsFormat{}
 }
 
-func (s *SimpleTextLiveDocsFormat) ReadLiveDocs(dir store.Directory, info index.SegmentCommitInfo, context *store.IOContext) (util.Bits, error) {
+func (s *SimpleTextLiveDocsFormat) ReadLiveDocs(dir store.Directory, info *index.SegmentCommitInfo, context *store.IOContext) (util.Bits, error) {
 	if !info.HasDeletions() {
 		return nil, errors.New("hasDeletions")
 	}
@@ -80,7 +80,7 @@ func (s *SimpleTextLiveDocsFormat) ReadLiveDocs(dir store.Directory, info index.
 }
 
 func (s *SimpleTextLiveDocsFormat) WriteLiveDocs(bits util.Bits, dir store.Directory, info *index.SegmentCommitInfo, newDelCount int, context *store.IOContext) error {
-	size := bits.Length()
+	size := int(bits.Len())
 
 	fileName := index.FileNameFromGeneration(info.Info().Name(), LIVEDOCS_EXTENSION, info.GetNextDelGen())
 
@@ -93,7 +93,7 @@ func (s *SimpleTextLiveDocsFormat) WriteLiveDocs(bits util.Bits, dir store.Direc
 	}
 
 	for i := 0; i < size; i++ {
-		if bits.Get(i) {
+		if bits.Test(uint(i)) {
 			if err := writeValue(out, LIVE_DOCS_FORMAT_DOC, size); err != nil {
 				return err
 			}
@@ -103,7 +103,7 @@ func (s *SimpleTextLiveDocsFormat) WriteLiveDocs(bits util.Bits, dir store.Direc
 	if err := utils.WriteBytes(out, LIVE_DOCS_FORMAT_END); err != nil {
 		return err
 	}
-	if err := utils.Newline(out); err != nil {
+	if err := utils.NewLine(out); err != nil {
 		return err
 	}
 	if err := utils.WriteChecksum(out); err != nil {
@@ -131,10 +131,10 @@ func NewSimpleTextBits(bits *bitset.BitSet, size int) *SimpleTextBits {
 	return &SimpleTextBits{bits: bits, size: size}
 }
 
-func (s *SimpleTextBits) Get(index int) bool {
+func (s *SimpleTextBits) Test(index uint) bool {
 	return s.bits.Test(uint(index))
 }
 
-func (s *SimpleTextBits) Length() int {
-	return s.size
+func (s *SimpleTextBits) Len() uint {
+	return uint(s.size)
 }

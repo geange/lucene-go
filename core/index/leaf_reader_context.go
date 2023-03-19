@@ -4,7 +4,7 @@ import "errors"
 
 // LeafReaderContext IndexReaderContext for LeafReader instances.
 type LeafReaderContext struct {
-	*IndexReaderContextImp
+	*IndexReaderContextDefault
 
 	// The reader's ord in the top-level's leaves array
 	Ord int
@@ -17,18 +17,18 @@ type LeafReaderContext struct {
 }
 
 func NewLeafReaderContext(leafReader LeafReader) *LeafReaderContext {
-	return NewLeafReaderContext6(nil, leafReader, 0, 0, 0, 0)
+	return NewLeafReaderContextV1(nil, leafReader, 0, 0, 0, 0)
 }
 
-func NewLeafReaderContext6(parent *CompositeReaderContext, reader LeafReader,
+func NewLeafReaderContextV1(parent *CompositeReaderContext, reader LeafReader,
 	ord, docBase, leafOrd, leafDocBase int) *LeafReaderContext {
 
 	ctx := &LeafReaderContext{
-		IndexReaderContextImp: NewIndexReaderContextImp(parent, ord, docBase),
-		Ord:                   leafOrd,
-		DocBase:               leafDocBase,
-		reader:                reader,
-		leaves:                nil,
+		IndexReaderContextDefault: NewIndexReaderContextDefault(parent, ord, docBase),
+		Ord:                       leafOrd,
+		DocBase:                   leafDocBase,
+		reader:                    reader,
+		leaves:                    nil,
 	}
 
 	if ctx.IsTopLevel {

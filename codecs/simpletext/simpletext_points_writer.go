@@ -84,10 +84,10 @@ func (s *SimpleTextPointsWriter) Close() error {
 	count := len(s.indexFPs)
 
 	w := utils.NewTextWriter(indexOut)
-	if err := w.WriteBytes(FIELD_COUNT); err != nil {
+	if err := w.Bytes(FIELD_COUNT); err != nil {
 		return err
 	}
-	if err := w.WriteInt(count); err != nil {
+	if err := w.Int(count); err != nil {
 		return err
 	}
 	if err := w.NewLine(); err != nil {
@@ -95,20 +95,20 @@ func (s *SimpleTextPointsWriter) Close() error {
 	}
 
 	for k, v := range s.indexFPs {
-		if err := w.WriteBytes(FIELD_FP_NAME); err != nil {
+		if err := w.Bytes(FIELD_FP_NAME); err != nil {
 			return err
 		}
-		if err := w.WriteString(k); err != nil {
+		if err := w.String(k); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {
 			return err
 		}
 
-		if err := w.WriteBytes(FIELD_FP); err != nil {
+		if err := w.Bytes(FIELD_FP); err != nil {
 			return err
 		}
-		if err := w.WriteInt(int(v)); err != nil {
+		if err := w.Int(int(v)); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {
@@ -181,7 +181,7 @@ func (s *SimpleTextPointsWriter) Finish() error {
 	if err := utils.WriteBytes(s.dataOut, END); err != nil {
 		return err
 	}
-	if err := utils.Newline(s.dataOut); err != nil {
+	if err := utils.NewLine(s.dataOut); err != nil {
 		return err
 	}
 	return utils.WriteChecksum(s.dataOut)

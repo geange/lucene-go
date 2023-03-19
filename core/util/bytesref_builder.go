@@ -65,7 +65,7 @@ func (r *BytesRefBuilder) AppendBytes(b []byte) {
 
 // AppendRef Append the provided bytes to this builder.
 //func (r *BytesRefBuilder) AppendRef(ref *BytesRef) {
-//	r.AppendBytes(ref.Bytes, ref.Offset, ref.Length)
+//	r.AppendBytes(ref.Bytes, ref.Offset, ref.Len)
 //}
 
 // AppendBuilder Append the provided bytes to this builder.

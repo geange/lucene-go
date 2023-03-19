@@ -111,6 +111,24 @@ func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWr
 	return flushingDWPT.Flush(ctx)
 }
 
+func (d *DocumentsWriter) anyChanges() bool {
+
+	// changes are either in a DWPT or in the deleteQueue.
+	// yet if we currently flush deletes and / or dwpt there
+	// could be a window where all changes are in the ticket queue
+	// before they are published to the IW. ie we need to check if the
+	// ticket queue has any tickets.
+	anyChanges := d.numDocsInRAM.Load() != 0 ||
+		d.anyDeletions() ||
+		d.ticketQueue.hasTickets() ||
+		d.pendingChangesInCurrentFullFlush
+	return anyChanges
+}
+
+func (d *DocumentsWriter) anyDeletions() bool {
+	return d.deleteQueue.anyChanges()
+}
+
 type FlushNotifications interface {
 	// DeleteUnusedFiles Called when files were written to disk that are not used anymore. It's the implementation's
 	// responsibility to clean these files up

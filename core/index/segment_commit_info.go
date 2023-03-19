@@ -53,7 +53,37 @@ type SegmentCommitInfo struct {
 }
 
 func NewSegmentCommitInfo(info *SegmentInfo, delCount, softDelCount int, delGen, fieldInfosGen, docValuesGen int64, id []byte) *SegmentCommitInfo {
-	panic("")
+	nextWriteDelGen := delGen + 1
+	if delGen == -1 {
+		nextWriteDelGen = 1
+	}
+
+	nextWriteFieldInfosGen := fieldInfosGen + 1
+	if fieldInfosGen == -1 {
+		nextWriteFieldInfosGen = 1
+	}
+
+	nextWriteDocValuesGen := docValuesGen + 1
+	if docValuesGen == -1 {
+		nextWriteDocValuesGen = 1
+	}
+
+	return &SegmentCommitInfo{
+		info:                   info,
+		id:                     id,
+		delCount:               delCount,
+		softDelCount:           softDelCount,
+		delGen:                 delGen,
+		nextWriteDelGen:        nextWriteDelGen,
+		fieldInfosGen:          fieldInfosGen,
+		nextWriteFieldInfosGen: nextWriteFieldInfosGen,
+		docValuesGen:           docValuesGen,
+		nextWriteDocValuesGen:  nextWriteDocValuesGen,
+		dvUpdatesFiles:         map[int]map[string]struct{}{},
+		fieldInfosFiles:        map[string]struct{}{},
+		sizeInBytes:            0,
+		bufferedDeletesGen:     0,
+	}
 }
 
 func (s *SegmentCommitInfo) Info() *SegmentInfo {
@@ -128,8 +158,8 @@ func (s *SegmentCommitInfo) Files() (map[string]struct{}, error) {
 	}
 
 	// must separately add any field updates files
-	for _, updatefiles := range s.dvUpdatesFiles {
-		for k := range updatefiles {
+	for _, updateFiles := range s.dvUpdatesFiles {
+		for k := range updateFiles {
 			files[k] = struct{}{}
 		}
 	}
@@ -173,7 +203,14 @@ func (s *SegmentCommitInfo) SetFieldInfosFiles(fieldInfosFiles map[string]struct
 }
 
 func (s *SegmentCommitInfo) SetDocValuesUpdatesFiles(files map[int]map[string]struct{}) {
-	panic("")
+	s.dvUpdatesFiles = map[int]map[string]struct{}{}
+	for k, values := range files {
+		newValues := make(map[string]struct{})
+		for v := range values {
+			newValues[v] = struct{}{}
+		}
+		s.dvUpdatesFiles[k] = newValues
+	}
 }
 
 func (s *SegmentCommitInfo) Clone() *SegmentCommitInfo {
