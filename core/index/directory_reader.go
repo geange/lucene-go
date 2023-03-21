@@ -64,6 +64,14 @@ func NewDirectoryReader(directory store.Directory,
 	}, nil
 }
 
+func DirectoryReaderOpen(writer *IndexWriter) (DirectoryReader, error) {
+
+}
+
+func DirectoryReaderOpenV1(writer *IndexWriter, applyAllDeletes, writeAllDeletes bool) (DirectoryReader, error) {
+	return writer.GetReader(applyAllDeletes, writeAllDeletes)
+}
+
 func (d *DirectoryReaderDefault) Directory() store.Directory {
 	return d.directory
 }

@@ -129,6 +129,14 @@ func (d *DocumentsWriter) anyDeletions() bool {
 	return d.deleteQueue.anyChanges()
 }
 
+func (d *DocumentsWriter) flushAllThreads() int64 {
+	panic("")
+}
+
+func (d *DocumentsWriter) FinishFullFlush(success bool) error {
+	panic("")
+}
+
 type FlushNotifications interface {
 	// DeleteUnusedFiles Called when files were written to disk that are not used anymore. It's the implementation's
 	// responsibility to clean these files up

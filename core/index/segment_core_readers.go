@@ -47,7 +47,7 @@ func (r *SegmentCoreReaders) DecRef() error {
 }
 
 func NewSegmentCoreReaders(dir store.Directory,
-	si *SegmentCommitInfo, context store.IOContext) *SegmentCoreReaders {
+	si *SegmentCommitInfo, context *store.IOContext) *SegmentCoreReaders {
 
 	panic("")
 }

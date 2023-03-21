@@ -1,6 +1,8 @@
 package index
 
 import (
+	"errors"
+	"fmt"
 	"github.com/geange/lucene-go/core/document"
 	"go.uber.org/atomic"
 	"io"
@@ -110,6 +112,10 @@ type IndexReader interface {
 	// See Also: Terms.getSumTotalTermFreq()
 	GetSumTotalTermFreq(field string) (int64, error)
 	//RegisterParentReader(reader IndexReader)
+
+	GetRefCount() int
+	IncRef() error
+	DecRef() error
 }
 
 type IndexReaderDefaultSpi interface {
@@ -177,6 +183,69 @@ func (r *IndexReaderDefault) reportCloseToParentReaders() error {
 	//}
 	//return nil
 	panic("")
+}
+
+func (r *IndexReaderDefault) GetRefCount() int {
+	// NOTE: don't ensureOpen, so that callers can see
+	// refCount is 0 (reader is closed)
+	return int(r.refCount.Load())
+}
+
+func (r *IndexReaderDefault) IncRef() error {
+	if !r.TryIncRef() {
+		err := r.ensureOpen()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *IndexReaderDefault) DecRef() error {
+	// only check refcount here (don't call ensureOpen()), so we can
+	// still close the reader if it was made invalid by a child:
+	if r.refCount.Load() <= 0 {
+		return errors.New("this IndexReader is closed")
+	}
+
+	rc := r.refCount.Dec()
+	if rc == 0 {
+		r.closed = true
+		return r.DoClose()
+	}
+
+	if rc < 0 {
+		return fmt.Errorf("too many decRef calls: refCount is %d after decrement", rc)
+	}
+	return nil
+}
+
+func (r *IndexReaderDefault) ensureOpen() error {
+	if r.refCount.Load() <= 0 {
+		return errors.New("this IndexReader is closed")
+	}
+
+	// the happens before rule on reading the refCount, which must be after the fake write,
+	// ensures that we see the value:
+	if r.closedByChild {
+		return errors.New("this IndexReader cannot be used anymore as one of its child readers was closed")
+	}
+	return nil
+}
+
+func (r *IndexReaderDefault) TryIncRef() bool {
+	count := int64(0)
+	for {
+		count = r.refCount.Load()
+		if count > 0 {
+			if r.refCount.CAS(count, count+1) {
+				return true
+			}
+		} else {
+			break
+		}
+	}
+	return false
 }
 
 func (r *IndexReaderDefault) GetTermVector(docID int, field string) (Terms, error) {

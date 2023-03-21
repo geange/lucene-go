@@ -43,6 +43,8 @@ type PendingDeletes interface {
 	// Params: 	info – the field info of the field that's updated
 	//			iterator – the values to apply
 	OnDocValuesUpdate(info *types.FieldInfo, iterator DocValuesFieldUpdatesIterator)
+
+	GetDelCount() int
 }
 
 // PendingDeletesDefault
@@ -108,6 +110,11 @@ func (p *PendingDeletesDefault) IsFullyDeleted(readerIOSupplier func() CodecRead
 func (p *PendingDeletesDefault) OnDocValuesUpdate(info *types.FieldInfo, iterator DocValuesFieldUpdatesIterator) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (p *PendingDeletesDefault) GetDelCount() int {
+	delCount := p.info.GetDelCount() + p.info.GetSoftDelCount() + p.NumPendingDeletes()
+	return delCount
 }
 
 func NewPendingDeletes(reader *SegmentReader, info *SegmentCommitInfo) (*PendingDeletesDefault, error) {

@@ -40,7 +40,7 @@ type SegmentReader struct {
 }
 
 func NewSegmentReader(si *SegmentCommitInfo,
-	createdVersionMajor int, context store.IOContext) (*SegmentReader, error) {
+	createdVersionMajor int, context *store.IOContext) (*SegmentReader, error) {
 
 	reader := &SegmentReader{
 		si:                si.Clone(),

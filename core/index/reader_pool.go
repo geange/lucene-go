@@ -103,3 +103,18 @@ func (p *ReaderPool) newPendingDeletes(reader *SegmentReader, info *SegmentCommi
 	}
 	return NewPendingSoftDeletes(p.softDeletesField, reader, info)
 }
+
+// Enables reader pooling for this pool. This should be called once the readers in this pool are shared
+// with an outside resource like an NRT reader. Once reader pooling is enabled a ReadersAndUpdates will
+// be kept around in the reader pool on calling release(ReadersAndUpdates, boolean) until the segment
+// get dropped via calls to drop(SegmentCommitInfo) or dropAll() or close(). Reader pooling is disabled
+// upon construction but can't be disabled again once it's enabled.
+func (p *ReaderPool) enableReaderPooling() {
+	p.poolReaders = true
+}
+
+// Get Obtain a ReadersAndLiveDocs instance from the readerPool. If create is true,
+// you must later call release(ReadersAndUpdates, boolean).
+func (p *ReaderPool) Get(info *SegmentCommitInfo, create bool) *ReadersAndUpdates {
+	panic("")
+}

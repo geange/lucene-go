@@ -7,7 +7,14 @@ import (
 	"github.com/geange/lucene-go/core/util"
 )
 
+var _ PendingDeletes = &PendingSoftDeletes{}
+
 type PendingSoftDeletes struct {
+}
+
+func (p *PendingSoftDeletes) GetDelCount() int {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (p *PendingSoftDeletes) GetMutableBits() *bitset.BitSet {

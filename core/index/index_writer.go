@@ -9,6 +9,7 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"go.uber.org/atomic"
+	"io"
 	"math"
 	"strconv"
 	"sync"
@@ -496,6 +497,133 @@ func (i *IndexWriter) nrtIsCurrent(infos *SegmentInfos) bool {
 	return isCurrent
 }
 
+func (i *IndexWriter) GetReader(applyAllDeletes bool, writeAllDeletes bool) (DirectoryReader, error) {
+	if writeAllDeletes && applyAllDeletes == false {
+		return nil, errors.New("applyAllDeletes must be true when writeAllDeletes=true")
+	}
+
+	// Do this up front before flushing so that the readers
+	// obtained during this flush are pooled, the first time
+	// this method is called:
+	i.readerPool.enableReaderPooling()
+	var r *StandardDirectoryReader
+	if err := i.doBeforeFlush(); err != nil {
+		return nil, err
+	}
+	maxFullFlushMergeWaitMillis := i.config.GetMaxFullFlushMergeWaitMillis()
+	// for releasing a NRT reader we must ensure that
+	// DW doesn't add any segments or deletes until we are
+	// done with creating the NRT DirectoryReader.
+	// We release the two stage full flush after we are done opening the
+	// directory reader!
+	stopCollectingMergedReaders := atomic.NewBool(false)
+	mergedReaders := make(map[string]*SegmentReader)
+	openedReadOnlyClones := make(map[string]*SegmentReader)
+	// this function is used to control which SR are opened in order to keep track of them
+	// and to reuse them in the case we wait for merges in this getReader call.
+	readerFactory := func(sci *SegmentCommitInfo) (*SegmentReader, error) {
+		rld := i.getPooledInstance(sci, true)
+
+		segmentReader, err := rld.GetReader(nil)
+		if err != nil {
+			return nil, err
+		}
+		if maxFullFlushMergeWaitMillis > 0 { // only track this if we actually do fullFlush merges
+			openedReadOnlyClones[sci.info.Name()] = segmentReader
+		}
+		return segmentReader, nil
+	}
+
+	var onGetReaderMergeResources io.Closer
+	var openingSegmentInfos *SegmentInfos
+	success := false
+
+	anyChanges := i.docWriter.flushAllThreads() < 0
+	if anyChanges == false {
+		// prevent double increment since docWriter#doFlush increments the flushcount
+		// if we flushed anything.
+		i.flushCount.Inc()
+	}
+	if err := i.publishFlushedSegments(true); err != nil {
+		return nil, err
+	}
+	if err := i.processEvents(false); err != nil {
+		return nil, err
+	}
+
+	if applyAllDeletes {
+		i.applyAllDeletesAndUpdates()
+	}
+
+	if err := i.writeReaderPool(writeAllDeletes); err != nil {
+		return nil, err
+	}
+
+	r, err := OpenDirectoryReaderV1(i, readerFactory, i.segmentInfos, applyAllDeletes, writeAllDeletes)
+	if err != nil {
+		return nil, err
+	}
+	if maxFullFlushMergeWaitMillis > 0 {
+		// we take the SIS from the reader which has already pruned away fully deleted readers
+		// this makes pulling the readers below after the merge simpler since we can be safe that
+		// they are not closed. Every segment has a corresponding SR in the SDR we opened if we use
+		// this SIS
+		// we need to do this rather complicated management of SRs and infos since we can't wait for merges
+		// while we hold the fullFlushLock since the merge might hit a tragic event and that must not be reported
+		// while holding that lock. Merging outside of the lock ie. after calling docWriter.finishFullFlush(boolean) would
+		// yield wrong results because deletes might sneak in during the merge
+		openingSegmentInfos = r.GetSegmentInfos().Clone()
+	}
+
+	success = true
+
+	if err := i.docWriter.FinishFullFlush(success); err != nil {
+		return nil, err
+	}
+
+	if success {
+		i.processEvents(false)
+		i.doAfterFlush()
+	}
+
+	panic("")
+}
+
+func (i *IndexWriter) Release(readersAndUpdates *ReadersAndUpdates) error {
+	return i.release(readersAndUpdates, true)
+}
+
+func (i *IndexWriter) release(readersAndUpdates *ReadersAndUpdates, assertLiveInfo bool) error {
+	//if i.readerPool.
+	panic("")
+}
+
+func (i *IndexWriter) doBeforeFlush() error {
+	return nil
+}
+
+func (i *IndexWriter) getPooledInstance(info *SegmentCommitInfo, create bool) *ReadersAndUpdates {
+	return i.readerPool.Get(info, create)
+}
+
+// Publishes the flushed segment, segment-private deletes (if any) and its associated global delete (if present) to IndexWriter. The actual publishing operation is synced on IW -> BDS so that the SegmentInfo's delete generation is always GlobalPacket_deleteGeneration + 1
+// Params: forced – if true this call will block on the ticket queue if the lock is held by another thread. if false the call will try to acquire the queue lock and exits if it's held by another thread.
+func (i *IndexWriter) publishFlushedSegments(forced bool) error {
+	panic("")
+}
+
+func (i *IndexWriter) applyAllDeletesAndUpdates() error {
+	panic("")
+}
+
+func (i *IndexWriter) writeReaderPool(writeDeletes bool) error {
+	panic("")
+}
+
+func (i *IndexWriter) doAfterFlush() error {
+	return nil
+}
+
 func readFieldInfos(si *SegmentCommitInfo) (*FieldInfos, error) {
 	codec := si.info.GetCodec()
 	reader := codec.FieldInfosFormat()
@@ -511,7 +639,6 @@ func readFieldInfos(si *SegmentCommitInfo) (*FieldInfos, error) {
 	}
 
 	return reader.Read(si.info.dir, si.info, "", nil)
-
 }
 
 func GetActualMaxDocs() int {

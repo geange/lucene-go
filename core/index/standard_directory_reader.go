@@ -48,9 +48,9 @@ func OpenDirectoryReader(directory store.Directory,
 	return reader.(DirectoryReader), nil
 }
 
-// Used by near real-time search
+// OpenDirectoryReaderV1 Used by near real-time search
 func OpenDirectoryReaderV1(writer *IndexWriter,
-	readerFunction func(*SegmentCommitInfo) *SegmentReader, infos *SegmentInfos,
+	readerFunction func(*SegmentCommitInfo) (*SegmentReader, error), infos *SegmentInfos,
 	applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
 
 	panic("")
@@ -82,6 +82,10 @@ func (s *StandardDirectoryReader) IsCurrent() (bool, error) {
 
 func (s *StandardDirectoryReader) GetIndexCommit() (IndexCommit, error) {
 	return NewReaderCommit(s, s.segmentInfos, s.directory)
+}
+
+func (s *StandardDirectoryReader) GetSegmentInfos() *SegmentInfos {
+	return s.segmentInfos
 }
 
 var _ IndexCommit = &ReaderCommit{}

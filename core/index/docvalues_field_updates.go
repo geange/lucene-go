@@ -17,6 +17,7 @@ const (
 // Holds updates of a single DocValues field, for a set of documents within one segment.
 // lucene.experimental
 type DocValuesFieldUpdates interface {
+	Field() string
 	AddInt64(doc int, value int64) error
 	AddBytes(doc int, value []byte) error
 
@@ -52,6 +53,7 @@ type DocValuesFieldUpdates interface {
 	Resize(i int) error
 
 	EnsureFinished() error
+	GetFinished() bool
 }
 
 type DocValuesFieldUpdatesDefault struct {
@@ -63,6 +65,10 @@ type DocValuesFieldUpdatesDefault struct {
 	maxDoc       int
 	docs         *packed.PagedMutable
 	size         int
+}
+
+func (d *DocValuesFieldUpdatesDefault) Field() string {
+	return d.field
 }
 
 func (d *DocValuesFieldUpdatesDefault) Finish() error {
@@ -114,6 +120,10 @@ func (d *DocValuesFieldUpdatesDefault) Grow(size int) error {
 func (d *DocValuesFieldUpdatesDefault) Resize(size int) error {
 	d.docs = d.docs.Resize(size).(*packed.PagedMutable)
 	return nil
+}
+
+func (d *DocValuesFieldUpdatesDefault) GetFinished() bool {
+	return d.finished
 }
 
 func (b *BinaryDocValuesFieldUpdates) add(doc int) (int, error) {
