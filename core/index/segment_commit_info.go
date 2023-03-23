@@ -135,6 +135,13 @@ func (s *SegmentCommitInfo) GetDelCount() int {
 	return s.delCount
 }
 
+func (s *SegmentCommitInfo) GetDelCountV1(includeSoftDeletes bool) int {
+	if includeSoftDeletes {
+		return s.GetDelCount() + s.GetSoftDelCount()
+	}
+	return s.GetDelCount()
+}
+
 // GetSoftDelCount Returns the number of only soft-deleted docs.
 func (s *SegmentCommitInfo) GetSoftDelCount() int {
 	return s.softDelCount
@@ -245,4 +252,22 @@ func (s *SegmentCommitInfo) GetId() []byte {
 		return items
 	}
 	return nil
+}
+
+func (s *SegmentCommitInfo) SizeInBytes() (int64, error) {
+	if s.sizeInBytes == -1 {
+		sum := int64(0)
+
+		files, _ := s.Files()
+		for fileName := range files {
+			fileLength, err := s.info.dir.FileLength(fileName)
+			if err != nil {
+				return 0, err
+			}
+			sum += fileLength
+		}
+		s.sizeInBytes = sum
+	}
+
+	return s.sizeInBytes, nil
 }

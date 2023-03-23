@@ -290,7 +290,7 @@ var _ sort.Interface = &IndexReaderSorter{}
 
 type IndexReaderSorter struct {
 	Readers   []IndexReader
-	FnCompare func(a, b IndexReader) int
+	FnCompare func(a, b LeafReader) int
 }
 
 func (r *IndexReaderSorter) Len() int {
@@ -298,7 +298,7 @@ func (r *IndexReaderSorter) Len() int {
 }
 
 func (r *IndexReaderSorter) Less(i, j int) bool {
-	return r.FnCompare(r.Readers[i], r.Readers[j]) < 0
+	return r.FnCompare(r.Readers[i].(LeafReader), r.Readers[j].(LeafReader)) < 0
 }
 
 func (r *IndexReaderSorter) Swap(i, j int) {

@@ -88,8 +88,19 @@ func (p *PendingDeletesDefault) NumPendingDeletes() int {
 }
 
 func (p *PendingDeletesDefault) OnNewReader(reader CodecReader, info *SegmentCommitInfo) error {
-	//TODO implement me
-	panic("implement me")
+	if p.liveDocsInitialized == false {
+		//assert writeableLiveDocs == null;
+		if reader.HasDeletions() {
+			// we only initialize this once either in the ctor or here
+			// if we use the live docs from a reader it has to be in a situation where we don't
+			// have any existing live docs
+			//assert pendingDeleteCount == 0 : "pendingDeleteCount: " + pendingDeleteCount;
+			p.liveDocs = reader.GetLiveDocs()
+			//assert liveDocs == null || assertCheckLiveDocs(liveDocs, info.info.maxDoc(), info.getDelCount());
+		}
+		p.liveDocsInitialized = true
+	}
+	return nil
 }
 
 func (p *PendingDeletesDefault) DropChanges() {
@@ -117,6 +128,24 @@ func (p *PendingDeletesDefault) GetDelCount() int {
 	return delCount
 }
 
-func NewPendingDeletes(reader *SegmentReader, info *SegmentCommitInfo) (*PendingDeletesDefault, error) {
-	panic("")
+func NewPendingDeletes(reader *SegmentReader, info *SegmentCommitInfo) *PendingDeletesDefault {
+	pd := NewPendingDeletesV2(info, reader.GetLiveDocs(), true)
+	pd.pendingDeleteCount = reader.NumDeletedDocs() - info.GetDelCount()
+	return pd
+}
+
+func NewPendingDeletesV1(info *SegmentCommitInfo) *PendingDeletesDefault {
+	return NewPendingDeletesV2(info, nil, info.HasDeletions() == false)
+	// if we don't have deletions we can mark it as initialized since we might receive deletes on a segment
+	// without having a reader opened on it ie. after a merge when we apply the deletes that IW received while merging.
+	// For segments that were published we enforce a reader in the BufferedUpdatesStream.SegmentState ctor
+}
+
+func NewPendingDeletesV2(info *SegmentCommitInfo, liveDocs util.Bits, liveDocsInitialized bool) *PendingDeletesDefault {
+	return &PendingDeletesDefault{
+		info:                info,
+		liveDocs:            liveDocs,
+		pendingDeleteCount:  0,
+		liveDocsInitialized: liveDocsInitialized,
+	}
 }

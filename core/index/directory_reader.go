@@ -52,7 +52,7 @@ type DirectoryReaderDefault struct {
 }
 
 func NewDirectoryReader(directory store.Directory,
-	segmentReaders []IndexReader, leafSorter func(a, b IndexReader) int) (*DirectoryReaderDefault, error) {
+	segmentReaders []IndexReader, leafSorter func(a, b LeafReader) int) (*DirectoryReaderDefault, error) {
 
 	reader, err := NewBaseCompositeReader(segmentReaders, leafSorter)
 	if err != nil {
@@ -65,7 +65,7 @@ func NewDirectoryReader(directory store.Directory,
 }
 
 func DirectoryReaderOpen(writer *IndexWriter) (DirectoryReader, error) {
-
+	return DirectoryReaderOpenV1(writer, true, false)
 }
 
 func DirectoryReaderOpenV1(writer *IndexWriter, applyAllDeletes, writeAllDeletes bool) (DirectoryReader, error) {

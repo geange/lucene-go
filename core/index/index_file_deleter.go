@@ -94,7 +94,9 @@ func NewIndexFileDeleter(files []string, directoryOrig, directory store.Director
 	policy IndexDeletionPolicy, segmentInfos *SegmentInfos, writer *IndexWriter,
 	initialIndexExists, isReaderInit bool) (*IndexFileDeleter, error) {
 
-	fd := &IndexFileDeleter{}
+	fd := &IndexFileDeleter{
+		refCounts: map[string]*RefCount{},
+	}
 	fd.writer = writer
 
 	currentSegmentsFile := segmentInfos.GetSegmentsFileName()

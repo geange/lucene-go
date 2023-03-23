@@ -9,7 +9,6 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"go.uber.org/atomic"
-	"io"
 	"math"
 	"strconv"
 	"sync"
@@ -283,14 +282,23 @@ func NewIndexWriter(d store.Directory, conf *IndexWriterConfig) (*IndexWriter, e
 		return nil, err
 	}
 
+	/*
+		writer.deleter, err = NewIndexFileDeleter(files, writer.directoryOrig, writer.directory,
+			writer.config.GetIndexDeletionPolicy(),
+			writer.segmentInfos, writer,
+			indexExists, reader != nil)
+		if err != nil {
+			return nil, err
+		}*/
+
 	return writer, nil
 }
 
 // Confirms that the incoming index sort (if any) matches the existing index sort (if any).
-func (i *IndexWriter) validateIndexSort() error {
-	indexSort := i.config.GetIndexSort()
+func (w *IndexWriter) validateIndexSort() error {
+	indexSort := w.config.GetIndexSort()
 	if indexSort != nil {
-		for _, info := range i.segmentInfos.segments {
+		for _, info := range w.segmentInfos.segments {
 			segmentIndexSort := info.info.GetIndexSort()
 			if segmentIndexSort == nil || isCongruentSort(indexSort, segmentIndexSort) == false {
 				return errors.New("cannot change previous indexSort")
@@ -319,6 +327,18 @@ type Merges struct {
 	mergesEnabled bool
 }
 
+func (m *Merges) areEnabled() bool {
+	return m.mergesEnabled
+}
+
+func (m *Merges) disable() {
+	m.mergesEnabled = false
+}
+
+func (m *Merges) enable() {
+	m.mergesEnabled = true
+}
+
 // AddDocument Adds a document to this index.
 // Note that if an Exception is hit (for example disk full) then the index will be consistent, but this
 // document may not have been added. Furthermore, it's possible the index will have one segment in
@@ -342,8 +362,8 @@ type Merges struct {
 // Throws:  CorruptIndexException – if the index is corrupt
 //
 //	IOException – if there is a low-level IO error
-func (i *IndexWriter) AddDocument(doc *document.Document) (int64, error) {
-	return i.UpdateDocument(nil, doc)
+func (w *IndexWriter) AddDocument(doc *document.Document) (int64, error) {
+	return w.UpdateDocument(nil, doc)
 }
 
 // UpdateDocument Updates a document by first deleting the document(s) containing term and then adding
@@ -354,102 +374,143 @@ func (i *IndexWriter) AddDocument(doc *document.Document) (int64, error) {
 // Throws: 	CorruptIndexException – if the index is corrupt
 //
 //	IOException – if there is a low-level IO error
-func (i *IndexWriter) UpdateDocument(term *Term, doc *document.Document) (int64, error) {
+func (w *IndexWriter) UpdateDocument(term *Term, doc *document.Document) (int64, error) {
 	var node *Node
 	if term != nil {
 		node = &Node{item: term}
 	}
-	return i.updateDocuments(node, []*document.Document{doc})
+	return w.updateDocuments(node, []*document.Document{doc})
 }
 
-func (i *IndexWriter) Commit(ctx context.Context) error {
-	return i.docWriter.Flush(ctx)
+func (w *IndexWriter) Commit(ctx context.Context) error {
+	return w.docWriter.Flush(ctx)
 }
 
-func (i *IndexWriter) Close() error {
-	if i.config.GetCommitOnClose() {
-		return i.shutdown()
+func (w *IndexWriter) Close() error {
+	if w.config.GetCommitOnClose() {
+		return w.shutdown()
 	}
-	return i.shutdown()
+	return w.shutdown()
 }
 
-func (i *IndexWriter) updateDocuments(delNode *Node, docs []*document.Document) (int64, error) {
-	seqNo, err := i.docWriter.updateDocuments(docs, delNode)
+func (w *IndexWriter) updateDocuments(delNode *Node, docs []*document.Document) (int64, error) {
+	seqNo, err := w.docWriter.updateDocuments(docs, delNode)
 	if err != nil {
 		return 0, err
 	}
 
-	seqNo, err = i.maybeProcessEvents(seqNo)
+	seqNo, err = w.maybeProcessEvents(seqNo)
 	if err != nil {
 		return 0, err
 	}
 	return seqNo, nil
 }
 
-func (i *IndexWriter) maybeProcessEvents(seqNo int64) (int64, error) {
+func (w *IndexWriter) maybeProcessEvents(seqNo int64) (int64, error) {
 	if seqNo < 0 {
 		seqNo = -seqNo
-		if err := i.processEvents(true); err != nil {
+		if err := w.processEvents(true); err != nil {
 			return 0, err
 		}
 	}
 	return seqNo, nil
 }
 
-func (i *IndexWriter) processEvents(triggerMerge bool) error {
-	if err := i.eventQueue.processEvents(); err != nil {
+func (w *IndexWriter) processEvents(triggerMerge bool) error {
+	if err := w.eventQueue.processEvents(); err != nil {
 		return err
 	}
 
 	if triggerMerge {
-		return i.maybeMerge(i.config.GetMergePolicy(), EXPLICIT, UNBOUNDED_MAX_MERGE_SEGMENTS)
+		return w.maybeMerge(w.config.GetMergePolicy(), EXPLICIT, UNBOUNDED_MAX_MERGE_SEGMENTS)
 	}
 	return nil
 }
 
-func (i *IndexWriter) maybeMerge(mergePolicy MergePolicy, trigger MergeTrigger, maxNumSegments int) error {
-	err := i.ensureOpenV1(false)
+func (w *IndexWriter) MaybeMerge() error {
+	return w.maybeMerge(w.config.GetMergePolicy(), EXPLICIT, UNBOUNDED_MAX_MERGE_SEGMENTS)
+}
+
+func (w *IndexWriter) maybeMerge(mergePolicy MergePolicy, trigger MergeTrigger, maxNumSegments int) error {
+	err := w.ensureOpenV1(false)
 	if err != nil {
 		return err
 	}
 
-	if i.updatePendingMerges(mergePolicy, trigger, maxNumSegments) != nil {
-		return i.executeMerge(trigger)
+	if _, err := w.updatePendingMerges(mergePolicy, trigger, maxNumSegments); err != nil {
+		return w.executeMerge(trigger)
 	}
 	return nil
 }
 
-func (i *IndexWriter) ensureOpen() error {
+func (w *IndexWriter) ensureOpen() error {
 	// TODO: fix it
 	return nil
 }
 
-func (i *IndexWriter) ensureOpenV1(failIfClosing bool) error {
+func (w *IndexWriter) ensureOpenV1(failIfClosing bool) error {
 	// TODO: fix it
 	return nil
 }
 
-func (i *IndexWriter) executeMerge(trigger MergeTrigger) error {
-	return i.mergeScheduler.Merge(i.mergeSource, trigger)
+func (w *IndexWriter) executeMerge(trigger MergeTrigger) error {
+	return w.mergeScheduler.Merge(w.mergeSource, trigger)
 }
 
-func (i *IndexWriter) updatePendingMerges(policy MergePolicy, trigger MergeTrigger, segments int) *MergeSpecification {
-	// TODO: impl it
-	return nil
+func (w *IndexWriter) updatePendingMerges(mergePolicy MergePolicy, trigger MergeTrigger, maxNumSegments int) (*MergeSpecification, error) {
+	panic("")
+	/*
+		// In case infoStream was disabled on init, but then enabled at some
+		// point, try again to log the config here:
+		//if err := w.messageState(); err != nil {
+		//	return nil, err
+		//}
+
+		//assert maxNumSegments == UNBOUNDED_MAX_MERGE_SEGMENTS || maxNumSegments > 0;
+		//assert trigger != null;
+		if w.merges.areEnabled() == false {
+			return nil, errors.New("merges is disable")
+		}
+
+		// Do not start new merges if disaster struck
+		//if w.tragedy != null {
+		//	return null
+		//}
+
+		var spec *MergeSpecification
+		var err error
+		if maxNumSegments != UNBOUNDED_MAX_MERGE_SEGMENTS {
+			// TODO:
+		} else {
+			switch trigger {
+			case GET_READER:
+			case COMMIT:
+				spec, err = mergePolicy.FindFullFlushMerges(trigger, w.segmentInfos, w)
+				if err != nil {
+					return nil, err
+				}
+				break
+			default:
+				spec, err = mergePolicy.FindMerges(trigger, w.segmentInfos, w)
+			}
+		}
+
+		return nil
+	*/
 }
 
-func (i *IndexWriter) newSegmentName() string {
-	i.changeCount.Inc()
-	i.segmentInfos.Changed()
-	v := i.segmentInfos.counter
-	i.segmentInfos.counter++
+func (w *IndexWriter) newSegmentName() string {
+	w.changeCount.Inc()
+	w.segmentInfos.Changed()
+	v := w.segmentInfos.counter
+	w.segmentInfos.counter++
 	return fmt.Sprintf("_%s", strconv.FormatInt(v, 36))
 }
 
-func (i *IndexWriter) getFieldNumberMap() (*FieldNumbers, error) {
-	mp := NewFieldNumbers(i.config.softDeletesField)
+func (w *IndexWriter) getFieldNumberMap() (*FieldNumbers, error) {
+	mp := NewFieldNumbers(w.config.softDeletesField)
 
-	for _, info := range i.segmentInfos.segments {
+	for _, info := range w.segmentInfos.segments {
 		fis, err := readFieldInfos(info)
 		if err != nil {
 			return nil, err
@@ -468,61 +529,71 @@ func (i *IndexWriter) getFieldNumberMap() (*FieldNumbers, error) {
 
 // Gracefully closes (commits, waits for merges), but calls rollback if there's an exc so
 // the IndexWriter is always closed. This is called from close when IndexWriterConfig.commitOnClose is true.
-func (i *IndexWriter) shutdown() error {
-	err := i.docWriter.Flush(nil)
+func (w *IndexWriter) shutdown() error {
+	err := w.docWriter.Flush(nil)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i *IndexWriter) Changed() {
-	i.changeCount.Inc()
-	i.segmentInfos.Changed()
+func (w *IndexWriter) Changed() {
+	w.changeCount.Inc()
+	w.segmentInfos.Changed()
 }
 
-func (i *IndexWriter) IsClosed() bool {
-	return i.closed
+func (w *IndexWriter) IsClosed() bool {
+	return w.closed
 }
 
-func (i *IndexWriter) nrtIsCurrent(infos *SegmentInfos) bool {
+func (w *IndexWriter) nrtIsCurrent(infos *SegmentInfos) bool {
 	return false
 
 	// TODO: fix it
 	//ensureOpen();
-	isCurrent := infos.GetVersion() == i.segmentInfos.GetVersion() &&
-		i.docWriter.anyChanges() == false &&
+	isCurrent := infos.GetVersion() == w.segmentInfos.GetVersion() &&
+		w.docWriter.anyChanges() == false &&
 		//i.bufferedUpdatesStream.Any() == false &&
-		i.readerPool.anyDocValuesChanges() == false
+		w.readerPool.anyDocValuesChanges() == false
 	return isCurrent
 }
 
-func (i *IndexWriter) GetReader(applyAllDeletes bool, writeAllDeletes bool) (DirectoryReader, error) {
-	if writeAllDeletes && applyAllDeletes == false {
-		return nil, errors.New("applyAllDeletes must be true when writeAllDeletes=true")
-	}
+func (w *IndexWriter) GetReader(applyAllDeletes bool, writeAllDeletes bool) (DirectoryReader, error) {
+	/*
+		if writeAllDeletes && applyAllDeletes == false {
+			return nil, errors.New("applyAllDeletes must be true when writeAllDeletes=true")
+		}
 
-	// Do this up front before flushing so that the readers
-	// obtained during this flush are pooled, the first time
-	// this method is called:
-	i.readerPool.enableReaderPooling()
-	var r *StandardDirectoryReader
-	if err := i.doBeforeFlush(); err != nil {
-		return nil, err
-	}
-	maxFullFlushMergeWaitMillis := i.config.GetMaxFullFlushMergeWaitMillis()
-	// for releasing a NRT reader we must ensure that
-	// DW doesn't add any segments or deletes until we are
-	// done with creating the NRT DirectoryReader.
-	// We release the two stage full flush after we are done opening the
-	// directory reader!
-	stopCollectingMergedReaders := atomic.NewBool(false)
-	mergedReaders := make(map[string]*SegmentReader)
-	openedReadOnlyClones := make(map[string]*SegmentReader)
+		// Do this up front before flushing so that the readers
+		// obtained during this flush are pooled, the first time
+		// this method is called:
+		w.readerPool.enableReaderPooling()
+		var r *StandardDirectoryReader
+		if err := w.doBeforeFlush(); err != nil {
+			return nil, err
+		}
+
+		// for releasing a NRT reader we must ensure that
+		// DW doesn't add any segments or deletes until we are
+		// done with creating the NRT DirectoryReader.
+		// We release the two stage full flush after we are done opening the
+		// directory reader!
+		stopCollectingMergedReaders := atomic.NewBool(false)
+		mergedReaders := make(map[string]*SegmentReader)
+		openedReadOnlyClones := make(map[string]*SegmentReader)
+
+	*/
 	// this function is used to control which SR are opened in order to keep track of them
 	// and to reuse them in the case we wait for merges in this getReader call.
+
+	maxFullFlushMergeWaitMillis := w.config.GetMaxFullFlushMergeWaitMillis()
+	openedReadOnlyClones := make(map[string]*SegmentReader)
+
 	readerFactory := func(sci *SegmentCommitInfo) (*SegmentReader, error) {
-		rld := i.getPooledInstance(sci, true)
+		rld, err := w.getPooledInstance(sci, true)
+		if err != nil {
+			return nil, err
+		}
 
 		segmentReader, err := rld.GetReader(nil)
 		if err != nil {
@@ -534,35 +605,43 @@ func (i *IndexWriter) GetReader(applyAllDeletes bool, writeAllDeletes bool) (Dir
 		return segmentReader, nil
 	}
 
-	var onGetReaderMergeResources io.Closer
-	var openingSegmentInfos *SegmentInfos
-	success := false
+	/*
 
-	anyChanges := i.docWriter.flushAllThreads() < 0
-	if anyChanges == false {
-		// prevent double increment since docWriter#doFlush increments the flushcount
-		// if we flushed anything.
-		i.flushCount.Inc()
-	}
-	if err := i.publishFlushedSegments(true); err != nil {
-		return nil, err
-	}
-	if err := i.processEvents(false); err != nil {
-		return nil, err
-	}
+		var onGetReaderMergeResources io.Closer
+		var openingSegmentInfos *SegmentInfos
+		success := false
 
-	if applyAllDeletes {
-		i.applyAllDeletesAndUpdates()
-	}
+		anyChanges := w.docWriter.flushAllThreads() < 0
+		if anyChanges == false {
+			// prevent double increment since docWriter#doFlush increments the flushcount
+			// if we flushed anything.
+			w.flushCount.Inc()
+		}
+		if err := w.publishFlushedSegments(true); err != nil {
+			return nil, err
+		}
+		if err := w.processEvents(false); err != nil {
+			return nil, err
+		}
 
-	if err := i.writeReaderPool(writeAllDeletes); err != nil {
-		return nil, err
-	}
+		if applyAllDeletes {
+			if err := w.applyAllDeletesAndUpdates(); err != nil {
+				return nil, err
+			}
+		}
 
-	r, err := OpenDirectoryReaderV1(i, readerFactory, i.segmentInfos, applyAllDeletes, writeAllDeletes)
+		if err := w.writeReaderPool(writeAllDeletes); err != nil {
+			return nil, err
+		}
+	*/
+
+	r, err := OpenStandardDirectoryReader(w, readerFactory, w.segmentInfos, applyAllDeletes, writeAllDeletes)
 	if err != nil {
 		return nil, err
 	}
+
+	/**
+
 	if maxFullFlushMergeWaitMillis > 0 {
 		// we take the SIS from the reader which has already pruned away fully deleted readers
 		// this makes pulling the readers below after the merge simpler since we can be safe that
@@ -577,51 +656,72 @@ func (i *IndexWriter) GetReader(applyAllDeletes bool, writeAllDeletes bool) (Dir
 
 	success = true
 
-	if err := i.docWriter.FinishFullFlush(success); err != nil {
+	if err := w.docWriter.FinishFullFlush(success); err != nil {
 		return nil, err
 	}
 
 	if success {
-		i.processEvents(false)
-		i.doAfterFlush()
+		if err := w.processEvents(false); err != nil {
+			return nil, err
+		}
+		if err := w.doAfterFlush(); err != nil {
+			return nil, err
+		}
 	}
+	*/
 
-	panic("")
+	return r, nil
 }
 
-func (i *IndexWriter) Release(readersAndUpdates *ReadersAndUpdates) error {
-	return i.release(readersAndUpdates, true)
+func (w *IndexWriter) Release(readersAndUpdates *ReadersAndUpdates) error {
+	return w.release(readersAndUpdates, true)
 }
 
-func (i *IndexWriter) release(readersAndUpdates *ReadersAndUpdates, assertLiveInfo bool) error {
+func (w *IndexWriter) release(readersAndUpdates *ReadersAndUpdates, assertLiveInfo bool) error {
 	//if i.readerPool.
 	panic("")
 }
 
-func (i *IndexWriter) doBeforeFlush() error {
+func (w *IndexWriter) doBeforeFlush() error {
 	return nil
 }
 
-func (i *IndexWriter) getPooledInstance(info *SegmentCommitInfo, create bool) *ReadersAndUpdates {
-	return i.readerPool.Get(info, create)
+func (w *IndexWriter) getPooledInstance(info *SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
+	return w.readerPool.Get(info, create)
 }
 
 // Publishes the flushed segment, segment-private deletes (if any) and its associated global delete (if present) to IndexWriter. The actual publishing operation is synced on IW -> BDS so that the SegmentInfo's delete generation is always GlobalPacket_deleteGeneration + 1
 // Params: forced – if true this call will block on the ticket queue if the lock is held by another thread. if false the call will try to acquire the queue lock and exits if it's held by another thread.
-func (i *IndexWriter) publishFlushedSegments(forced bool) error {
+func (w *IndexWriter) publishFlushedSegments(forced bool) error {
 	panic("")
 }
 
-func (i *IndexWriter) applyAllDeletesAndUpdates() error {
+func (w *IndexWriter) applyAllDeletesAndUpdates() error {
 	panic("")
 }
 
-func (i *IndexWriter) writeReaderPool(writeDeletes bool) error {
+func (w *IndexWriter) writeReaderPool(writeDeletes bool) error {
 	panic("")
 }
 
-func (i *IndexWriter) doAfterFlush() error {
+func (w *IndexWriter) doAfterFlush() error {
 	return nil
+}
+
+// GetDirectory
+// Returns the Directory used by this index.
+func (w *IndexWriter) GetDirectory() store.Directory {
+	// return the original directory the user supplied, unwrapped.
+	return w.directoryOrig
+}
+
+func (w *IndexWriter) GetConfig() *IndexWriterConfig {
+	return w.config
+}
+
+func (w *IndexWriter) IncRefDeleter(segmentInfos *SegmentInfos) error {
+	return nil
+	//return w.deleter.IncRef(segmentInfos, false)
 }
 
 func readFieldInfos(si *SegmentCommitInfo) (*FieldInfos, error) {

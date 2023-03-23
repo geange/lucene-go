@@ -19,7 +19,7 @@ type StandardDirectoryReader struct {
 
 // NewStandardDirectoryReader package private constructor, called only from static open() methods
 func NewStandardDirectoryReader(directory store.Directory, readers []IndexReader, writer *IndexWriter,
-	sis *SegmentInfos, leafSorter func(a, b IndexReader) int,
+	sis *SegmentInfos, leafSorter func(a, b LeafReader) int,
 	applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
 
 	reader, err := NewDirectoryReader(directory, readers, leafSorter)
@@ -48,12 +48,58 @@ func OpenDirectoryReader(directory store.Directory,
 	return reader.(DirectoryReader), nil
 }
 
-// OpenDirectoryReaderV1 Used by near real-time search
-func OpenDirectoryReaderV1(writer *IndexWriter,
+// OpenStandardDirectoryReader Used by near real-time search
+func OpenStandardDirectoryReader(writer *IndexWriter,
 	readerFunction func(*SegmentCommitInfo) (*SegmentReader, error), infos *SegmentInfos,
 	applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
 
-	panic("")
+	// IndexWriter synchronizes externally before calling
+	// us, which ensures infos will not change; so there's
+	// no need to process segments in reverse order
+	numSegments := infos.Size()
+
+	readers := make([]IndexReader, 0)
+	dir := writer.GetDirectory()
+	segmentInfos := infos.Clone()
+	infosUpto := 0
+
+	for i := 0; i < numSegments; i++ {
+		// NOTE: important that we use infos not
+		// segmentInfos here, so that we are passing the
+		// actual instance of SegmentInfoPerCommit in
+		// IndexWriter's segmentInfos:
+		info := infos.Info(i)
+		//assert info.info.dir == dir;
+		reader, err := readerFunction(info)
+		if err != nil {
+			return nil, err
+		}
+		if reader.NumDocs() > 0 || writer.GetConfig().mergePolicy.KeepFullyDeletedSegment(func() CodecReader {
+			return reader
+		}) {
+			// Steal the ref:
+			readers = append(readers, reader)
+			infosUpto++
+		} else {
+			if err := reader.DecRef(); err != nil {
+				return nil, err
+			}
+			segmentInfos.Remove(infosUpto)
+		}
+	}
+
+	if err := writer.IncRefDeleter(segmentInfos); err != nil {
+		return nil, err
+	}
+
+	sorter := writer.GetConfig().GetLeafSorter()
+
+	result, err := NewStandardDirectoryReader(dir, readers, writer,
+		segmentInfos, sorter, applyAllDeletes, writeAllDeletes)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *StandardDirectoryReader) GetVersion() int64 {

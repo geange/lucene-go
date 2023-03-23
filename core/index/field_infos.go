@@ -136,3 +136,11 @@ func (f *FieldInfos) HasNorms() bool {
 func (f *FieldInfos) HasDocValues() bool {
 	return f.hasDocValues
 }
+
+func (f *FieldInfos) HasVectors() bool {
+	return f.hasVectors
+}
+
+func (f *FieldInfos) HasPointValues() bool {
+	return f.hasPointValues
+}

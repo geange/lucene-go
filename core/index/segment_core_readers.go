@@ -47,7 +47,78 @@ func (r *SegmentCoreReaders) DecRef() error {
 }
 
 func NewSegmentCoreReaders(dir store.Directory,
-	si *SegmentCommitInfo, context *store.IOContext) *SegmentCoreReaders {
+	si *SegmentCommitInfo, context *store.IOContext) (*SegmentCoreReaders, error) {
 
-	panic("")
+	codec := si.info.GetCodec()
+
+	// confusing name: if (cfs) it's the cfsdir, otherwise it's the segment's directory.
+	var cfsDir store.Directory
+	//success := false
+
+	r := &SegmentCoreReaders{}
+
+	if si.info.GetUseCompoundFile() {
+		reader, err := codec.CompoundFormat().GetCompoundReader(dir, si.info, context)
+		if err != nil {
+			return nil, err
+		}
+		cfsDir = reader
+		r.cfsReader = reader
+	} else {
+		r.cfsReader = nil
+		cfsDir = dir
+	}
+
+	var err error
+
+	r.segment = si.info.name
+	r.coreFieldInfos, err = codec.FieldInfosFormat().Read(cfsDir, si.info, "", context)
+	if err != nil {
+		return nil, err
+	}
+
+	segmentReadState := NewSegmentReadState(cfsDir, si.info, r.coreFieldInfos, context, "")
+	format := codec.PostingsFormat()
+	// Ask codec for its Fields
+	r.fields, err = format.FieldsProducer(segmentReadState)
+	if err != nil {
+		return nil, err
+	}
+
+	// ask codec for its Norms:
+	// TODO: since we don't write any norms file if there are no norms,
+	// kinda jaky to assume the codec handles the case of no norms file at all gracefully?!
+
+	if r.coreFieldInfos.HasNorms() {
+		r.normsProducer, err = codec.NormsFormat().NormsProducer(segmentReadState)
+		if err != nil {
+			return nil, err
+		}
+		//assert normsProducer != null;
+	} else {
+		r.normsProducer = nil
+	}
+
+	r.fieldsReaderOrig, err = si.info.GetCodec().StoredFieldsFormat().FieldsReader(cfsDir, si.info, r.coreFieldInfos, context)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.coreFieldInfos.HasVectors() { // open term vector files only as needed
+		r.termVectorsReaderOrig, err = si.info.GetCodec().TermVectorsFormat().
+			VectorsReader(cfsDir, si.info, r.coreFieldInfos, context)
+	} else {
+		r.termVectorsReaderOrig = nil
+	}
+
+	if r.coreFieldInfos.HasPointValues() {
+		r.pointsReader, err = codec.PointsFormat().FieldsReader(segmentReadState)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		r.pointsReader = nil
+	}
+
+	return r, nil
 }

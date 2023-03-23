@@ -71,11 +71,7 @@ func NewReaderPool(directory, originalDirectory store.Directory, segmentInfos *S
 				return nil, err
 			}
 
-			deletes, err := pool.newPendingDeletes(newReader, newReader.GetOriginalSegmentInfo())
-			if err != nil {
-				return nil, err
-			}
-
+			deletes := pool.newPendingDeletesV1(newReader, newReader.GetOriginalSegmentInfo())
 			updates, err := NewReadersAndUpdatesV1(segmentInfos.getIndexCreatedVersionMajor(), newReader, deletes)
 			if err != nil {
 				return nil, err
@@ -97,11 +93,19 @@ func (p *ReaderPool) anyDocValuesChanges() bool {
 	return false
 }
 
-func (p *ReaderPool) newPendingDeletes(reader *SegmentReader, info *SegmentCommitInfo) (PendingDeletes, error) {
+func (p *ReaderPool) newPendingDeletes(info *SegmentCommitInfo) PendingDeletes {
+
+	if p.softDeletesField == "" {
+		return NewPendingDeletesV1(info)
+	}
+	return NewPendingSoftDeletes(p.softDeletesField, info)
+}
+
+func (p *ReaderPool) newPendingDeletesV1(reader *SegmentReader, info *SegmentCommitInfo) PendingDeletes {
 	if p.softDeletesField == "" {
 		return NewPendingDeletes(reader, info)
 	}
-	return NewPendingSoftDeletes(p.softDeletesField, reader, info)
+	return NewPendingSoftDeletesV1(p.softDeletesField, reader, info)
 }
 
 // Enables reader pooling for this pool. This should be called once the readers in this pool are shared
@@ -115,6 +119,25 @@ func (p *ReaderPool) enableReaderPooling() {
 
 // Get Obtain a ReadersAndLiveDocs instance from the readerPool. If create is true,
 // you must later call release(ReadersAndUpdates, boolean).
-func (p *ReaderPool) Get(info *SegmentCommitInfo, create bool) *ReadersAndUpdates {
-	panic("")
+func (p *ReaderPool) Get(info *SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
+	if p.closed.Load() {
+		return nil, errors.New("ReaderPool is already closed")
+	}
+
+	rld, ok := p.readerMap[info]
+	if !ok {
+		if !create {
+			return nil, nil
+		}
+		rld = NewReadersAndUpdates(p.segmentInfos.getIndexCreatedVersionMajor(), info, p.newPendingDeletes(info))
+		// Steal initial reference:
+		p.readerMap[info] = rld
+	}
+
+	if create {
+		// Return ref to caller:
+		rld.IncRef()
+	}
+
+	return rld, nil
 }

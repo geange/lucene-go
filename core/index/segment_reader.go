@@ -42,6 +42,11 @@ type SegmentReader struct {
 func NewSegmentReader(si *SegmentCommitInfo,
 	createdVersionMajor int, context *store.IOContext) (*SegmentReader, error) {
 
+	readers, err := NewSegmentCoreReaders(si.info.dir, si, context)
+	if err != nil {
+		return nil, err
+	}
+
 	reader := &SegmentReader{
 		si:                si.Clone(),
 		originalSi:        si,
@@ -49,7 +54,7 @@ func NewSegmentReader(si *SegmentCommitInfo,
 		liveDocs:          nil,
 		hardLiveDocs:      nil,
 		numDocs:           0,
-		core:              NewSegmentCoreReaders(si.info.dir, si, context),
+		core:              readers,
 		segDocValues:      NewSegmentDocValues(),
 		isNRT:             false, // We pull liveDocs/DV updates from disk:
 		docValuesProducer: nil,

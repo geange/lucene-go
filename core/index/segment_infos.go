@@ -253,6 +253,10 @@ func (i *SegmentInfos) GetVersion() int64 {
 	return i.version
 }
 
+func (i *SegmentInfos) Remove(index int) {
+	i.segments[index] = nil
+}
+
 func ReadCommit(directory store.Directory, segmentFileName string) (*SegmentInfos, error) {
 	generation, err := GenerationFromSegmentsFileName(segmentFileName)
 	if err != nil {

@@ -10,6 +10,11 @@ import (
 var _ PendingDeletes = &PendingSoftDeletes{}
 
 type PendingSoftDeletes struct {
+	*PendingDeletesDefault
+
+	field        string
+	dvGeneration int64
+	hardDeletes  PendingDeletes
 }
 
 func (p *PendingSoftDeletes) GetDelCount() int {
@@ -67,8 +72,23 @@ func (p *PendingSoftDeletes) OnDocValuesUpdate(info *types.FieldInfo, iterator D
 	panic("implement me")
 }
 
-func NewPendingSoftDeletes(field string,
-	reader *SegmentReader, info *SegmentCommitInfo) (*PendingSoftDeletes, error) {
+func NewPendingSoftDeletes(field string, info *SegmentCommitInfo) *PendingSoftDeletes {
 
-	panic("")
+	return &PendingSoftDeletes{
+		PendingDeletesDefault: NewPendingDeletesV2(info, nil, info.GetDelCountV1(true) == 0),
+		field:                 field,
+		dvGeneration:          -2,
+		hardDeletes:           NewPendingDeletesV1(info),
+	}
+}
+
+func NewPendingSoftDeletesV1(field string,
+	reader *SegmentReader, info *SegmentCommitInfo) *PendingSoftDeletes {
+
+	return &PendingSoftDeletes{
+		PendingDeletesDefault: NewPendingDeletes(reader, info),
+		field:                 field,
+		dvGeneration:          -2,
+		hardDeletes:           NewPendingDeletes(reader, info),
+	}
 }
