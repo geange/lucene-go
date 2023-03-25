@@ -50,6 +50,8 @@ func NewBaseCompositeReader(subReaders []IndexReader,
 		subReadersList:   subReaders,
 	}
 
+	reader.IndexReaderDefault = NewIndexReaderDefault(reader)
+
 	maxDoc := 0
 	for i := 0; i < len(subReaders); i++ {
 		reader.starts[i] = maxDoc

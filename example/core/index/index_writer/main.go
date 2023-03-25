@@ -28,9 +28,42 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	docs := reader.NumDocs()
 
-	fmt.Println(docs)
+	maxDoc := reader.MaxDoc()
+
+	for i := 0; i < maxDoc; i++ {
+		doc, err := reader.DocumentV2(i, map[string]struct{}{"sequence": {}})
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		if doc == nil {
+			continue
+		}
+		terms, err := doc.GetField("sequence")
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		fmt.Println(terms.Name(), terms.Value())
+	}
+
+	//searcher := search.NewIndexSearcher(reader)
+	//
+	//searchSortField1 := index.NewSortedSetSortFieldV1("sort0", true, index.MAX)
+	//searchSortField2 := index.NewSortedSetSortFieldV1("sort1", true, index.MIN)
+	//
+	//searchSortFields := []index.SortField{searchSortField1, searchSortField2}
+	//
+	//searchSort := index.NewSort(searchSortFields)
+	//
+	//search.
+
+	//docs := reader.NumDocs()
+	//
+	//searcher.Search(search.NewNamedMatches(), 100, searchSort).scoreDocs
+
+	//fmt.Println(docs)
 	//
 	//{
 	//	doc := document.NewDocument()

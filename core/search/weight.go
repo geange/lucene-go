@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util"
 	"math"
@@ -24,6 +25,8 @@ import (
 // A Scorer is constructed by scorer(LeafReaderContext).
 // Since: 2.9
 type Weight interface {
+	ExtractTerms(terms []*index.Term) error
+
 	// Matches Returns Matches for a specific document, or null if the document does not match the parent query A query match that contains no position information (for example, a Point or DocValues query) will return MatchesUtils.MATCH_WITH_NO_TERMS
 	// Params: 	context – the reader's context to create the Matches for
 	//			doc – the document's id relative to the given context's reader
@@ -62,24 +65,28 @@ type Weight interface {
 	BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error)
 }
 
-type WeightExtra interface {
+type WeightSPI interface {
 	Scorer(ctx *index.LeafReaderContext) (Scorer, error)
 }
 
-type WeightImp struct {
-	WeightExtra
+type WeightDefault struct {
+	WeightSPI
 
 	parentQuery Query
 }
 
-func NewWeightImp(parentQuery Query, extra WeightExtra) *WeightImp {
-	return &WeightImp{
-		WeightExtra: extra,
+func NewWeight(parentQuery Query, extra WeightSPI) *WeightDefault {
+	return &WeightDefault{
+		WeightSPI:   extra,
 		parentQuery: parentQuery,
 	}
 }
 
-func (r *WeightImp) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
+func (r *WeightDefault) ExtractTerms(terms []*index.Term) error {
+	return nil
+}
+
+func (r *WeightDefault) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
 	scorerSupplier, err := r.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
@@ -111,10 +118,10 @@ func (r *WeightImp) Matches(ctx *index.LeafReaderContext, doc int) (Matches, err
 			return nil, nil
 		}
 	}
-	panic("")
+	return nil, errors.New("MATCH_WITH_NO_TERMS")
 }
 
-func (r *WeightImp) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
+func (r *WeightDefault) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
 	scorer, err := r.Scorer(ctx)
 	if err != nil {
 		return nil, err
@@ -140,7 +147,7 @@ func (s *scorerSupplier) Cost() int64 {
 	return s.scorer.Iterator().Cost()
 }
 
-func (r *WeightImp) BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error) {
+func (r *WeightDefault) BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error) {
 	scorer, err := r.Scorer(ctx)
 	if err != nil {
 		return nil, err

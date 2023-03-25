@@ -59,9 +59,11 @@ func newSimpleTextStoredFieldsReader(offsets []int64,
 	in store.IndexInput, fieldInfos *index.FieldInfos) *SimpleTextStoredFieldsReader {
 
 	return &SimpleTextStoredFieldsReader{
-		offsets:    offsets,
-		in:         in,
-		fieldInfos: fieldInfos,
+		offsets:      offsets,
+		in:           in,
+		fieldInfos:   fieldInfos,
+		scratch:      new(bytes.Buffer),
+		scratchUTF16: new(bytes.Buffer),
 	}
 }
 

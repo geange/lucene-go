@@ -55,7 +55,8 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 	}
 
 	this := &FieldInfos{
-		byName: map[string]*types.FieldInfo{},
+		byName:   map[string]*types.FieldInfo{},
+		byNumber: []*types.FieldInfo{},
 	}
 
 	for _, info := range infos {
@@ -105,9 +106,13 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 	values := tmap.Values()
 	items := make([]*types.FieldInfo, 0, len(values))
 	for _, value := range values {
-		info := value.(*types.FieldInfo)
-		items = append(items, info)
+		info, ok := value.(*types.FieldInfo)
+		if ok {
+			items = append(items, info)
+		}
+
 	}
+	this.byNumber = items
 	this.values = items
 
 	return this

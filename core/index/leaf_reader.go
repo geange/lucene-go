@@ -83,7 +83,7 @@ func NewLeafReaderDefault(reader LeafReader) *LeafReaderDefault {
 	return &LeafReaderDefault{
 		LeafReaderDefaultSpi: reader,
 		readerContext:        NewLeafReaderContext(reader),
-		IndexReaderDefault:   NewIndexReaderDefault(),
+		IndexReaderDefault:   NewIndexReaderDefault(reader),
 	}
 }
 

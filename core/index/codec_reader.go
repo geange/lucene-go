@@ -34,7 +34,7 @@ type CodecReader interface {
 	GetPointsReader() PointsReader
 }
 
-type CodecReaderDefaultSpi interface {
+type CodecReaderDefaultSPI interface {
 	GetFieldsReader() StoredFieldsReader
 	GetTermVectorsReader() TermVectorsReader
 	GetPostingsReader() FieldsProducer
@@ -48,12 +48,12 @@ type CodecReaderDefaultSpi interface {
 type CodecReaderDefault struct {
 	*LeafReaderDefault
 
-	CodecReaderDefaultSpi
+	CodecReaderDefaultSPI
 }
 
 func NewCodecReaderDefault(reader CodecReader) *CodecReaderDefault {
 	codec := &CodecReaderDefault{
-		CodecReaderDefaultSpi: reader,
+		CodecReaderDefaultSPI: reader,
 	}
 
 	codec.LeafReaderDefault = NewLeafReaderDefault(reader)

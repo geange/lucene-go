@@ -103,10 +103,15 @@ func NewSegmentCoreReaders(dir store.Directory,
 	if err != nil {
 		return nil, err
 	}
+	r.fieldsReaderLocal = r.fieldsReaderOrig.Clone()
 
 	if r.coreFieldInfos.HasVectors() { // open term vector files only as needed
 		r.termVectorsReaderOrig, err = si.info.GetCodec().TermVectorsFormat().
 			VectorsReader(cfsDir, si.info, r.coreFieldInfos, context)
+		if err != nil {
+			return nil, err
+		}
+		r.termVectorsLocal = r.termVectorsReaderOrig.Clone()
 	} else {
 		r.termVectorsReaderOrig = nil
 	}

@@ -118,7 +118,7 @@ type IndexReader interface {
 	DecRef() error
 }
 
-type IndexReaderDefaultSpi interface {
+type IndexReaderDefaultSPI interface {
 	GetTermVectors(docID int) (Fields, error)
 	NumDocs() int
 	MaxDoc() int
@@ -128,7 +128,7 @@ type IndexReaderDefaultSpi interface {
 }
 
 type IndexReaderDefault struct {
-	IndexReaderDefaultSpi
+	IndexReaderDefaultSPI
 
 	closed        bool
 	closedByChild bool
@@ -137,10 +137,11 @@ type IndexReaderDefault struct {
 	sync.Mutex
 }
 
-func NewIndexReaderDefault() *IndexReaderDefault {
+func NewIndexReaderDefault(spi IndexReaderDefaultSPI) *IndexReaderDefault {
 	return &IndexReaderDefault{
-		refCount:      atomic.NewInt64(0),
-		parentReaders: make(map[IndexReader]struct{}),
+		IndexReaderDefaultSPI: spi,
+		refCount:              atomic.NewInt64(0),
+		parentReaders:         make(map[IndexReader]struct{}),
 	}
 }
 

@@ -52,7 +52,7 @@ func (t *TermQuery) Visit(visitor QueryVisitor) {
 var _ Weight = &TermWeight{}
 
 type TermWeight struct {
-	*WeightImp
+	*WeightDefault
 
 	similarity index.Similarity
 	simScorer  index.SimScorer
@@ -141,7 +141,7 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 		TermQuery:  t,
 	}
 
-	weight.WeightImp = NewWeightImp(weight, weight)
+	weight.WeightDefault = NewWeight(weight, weight)
 
 	var collectionStats *types.CollectionStatistics
 	var termStats *types.TermStatistics

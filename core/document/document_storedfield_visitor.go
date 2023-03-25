@@ -12,11 +12,17 @@ type DocumentStoredFieldVisitor struct {
 }
 
 func NewDocumentStoredFieldVisitor() *DocumentStoredFieldVisitor {
-	return &DocumentStoredFieldVisitor{fieldsToAdd: make(map[string]struct{})}
+	return &DocumentStoredFieldVisitor{
+		doc:         NewDocument(),
+		fieldsToAdd: make(map[string]struct{}),
+	}
 }
 
 func NewDocumentStoredFieldVisitorV1(fieldsToAdd map[string]struct{}) *DocumentStoredFieldVisitor {
-	return &DocumentStoredFieldVisitor{fieldsToAdd: fieldsToAdd}
+	return &DocumentStoredFieldVisitor{
+		doc:         NewDocument(),
+		fieldsToAdd: fieldsToAdd,
+	}
 }
 
 func NewDocumentStoredFieldVisitorV2(fields ...string) *DocumentStoredFieldVisitor {
