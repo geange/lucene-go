@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 //var _ Weight = &ConstantScoreWeight{}
@@ -15,7 +16,7 @@ func (c *ConstantScoreWeight) Matches(context *index.LeafReaderContext, doc int)
 	panic("implement me")
 }
 
-func (c *ConstantScoreWeight) Explain(ctx *index.LeafReaderContext, doc int) (*Explanation, error) {
+func (c *ConstantScoreWeight) Explain(ctx *index.LeafReaderContext, doc int) (*types.Explanation, error) {
 	//TODO implement me
 	panic("implement me")
 }

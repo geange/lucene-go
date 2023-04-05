@@ -48,10 +48,10 @@ type MultiLevelSkipListReaderDefault struct {
 	// Number of docs skipped per level. It's possible for some values to overflow a signed int, but this has been accounted for.
 	numSkipped []int
 
-	// Doc id of current skip entry per level.
+	// doc id of current skip entry per level.
 	SkipDoc []int
 
-	// Doc id of last read skip entry with docId <= target.
+	// doc id of last read skip entry with docId <= target.
 	lastDoc int
 
 	// Child pointer of current skip entry per level.

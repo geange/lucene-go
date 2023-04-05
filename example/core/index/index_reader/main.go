@@ -49,20 +49,18 @@ func main() {
 		fmt.Println(terms.Name(), terms.Value())
 	}
 
-	//searcher := search.NewIndexSearcher(reader)
-	//
+	searcher := search.NewIndexSearcher(reader)
+
 	//searchSortField1 := index.NewSortedSetSortFieldV1("sort0", true, index.MAX)
 	//searchSortField2 := index.NewSortedSetSortFieldV1("sort1", true, index.MIN)
-	//
 	//searchSortFields := []index.SortField{searchSortField1, searchSortField2}
-	//
 	//searchSort := index.NewSort(searchSortFields)
-	//
+	////
 	//search.
 
 	//docs := reader.NumDocs()
 	//
-	//searcher.Search(search.NewNamedMatches(), 100, searchSort).scoreDocs
+	searcher.Search(search.NewNamedMatches(), 100, searchSort).scoreDocs
 
 	//fmt.Println(docs)
 	//

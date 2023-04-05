@@ -9,6 +9,11 @@ var _ Query = &MatchAllDocsQuery{}
 type MatchAllDocsQuery struct {
 }
 
+func (m *MatchAllDocsQuery) String(field string) string {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *MatchAllDocsQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
 	//TODO implement me
 	panic("implement me")

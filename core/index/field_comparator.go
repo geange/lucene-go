@@ -36,6 +36,14 @@ type FieldComparator interface {
 	// Throws: IOException – if there is a low-level IO error
 	GetLeafComparator(context *LeafReaderContext) (LeafFieldComparator, error)
 
+	// CompareValues
+	// Returns a negative integer if first is less than second,
+	// 0 if they are equal and a positive integer otherwise.
+	// Default impl to assume the type implements Comparable and invoke .compareTo;
+	// be sure to override this method if your FieldComparator's type isn't a
+	// Comparable or if your values may sometimes be null
+	CompareValues(first, second any) int
+
 	// SetSingleSort Informs the comparator that sort is done on this single field.
 	// This is useful to enable some optimizations for skipping non-competitive documents.
 	SetSingleSort()

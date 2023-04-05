@@ -3,12 +3,15 @@ package search
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"math"
 )
 
-// Weight Expert: Calculate query weights and build query scorers.
+// Weight
+// Expert: Calculate query weights and build query scorers.
 // 计算查询权重并构建查询记分器。
+//
 // The purpose of Weight is to ensure searching does not modify a Query, so that a Query instance can be reused.
 // IndexSearcher dependent state of the query should reside in the Weight. LeafReader dependent state should
 // reside in the Scorer.
@@ -32,17 +35,17 @@ type Weight interface {
 	//			doc – the document's id relative to the given context's reader
 	Matches(context *index.LeafReaderContext, doc int) (Matches, error)
 
-	// Explain An explanation of the Score computation for the named document.
+	// Explain An explanation of the score computation for the named document.
 	// Params: 	context – the readers context to create the Explanation for.
 	//			doc – the document's id relative to the given context's reader
-	// Returns: an Explanation for the Score
+	// Returns: an Explanation for the score
 	// Throws: 	IOException – if an IOException occurs
-	Explain(ctx *index.LeafReaderContext, doc int) (*Explanation, error)
+	Explain(ctx *index.LeafReaderContext, doc int) (*types.Explanation, error)
 
 	// GetQuery The query that this concerns.
 	GetQuery() Query
 
-	// Scorer Returns a Scorer which can iterate in order over all matching documents and assign them a Score.
+	// Scorer Returns a Scorer which can iterate in order over all matching documents and assign them a score.
 	//NOTE: null can be returned if no documents will be scored by this query.
 	//NOTE: The returned Scorer does not have LeafReader.getLiveDocs() applied, they need to be checked on top.
 	//Params:
@@ -58,7 +61,7 @@ type Weight interface {
 	//scorer
 	ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error)
 
-	// BulkScorer Optional method, to return a BulkScorer to Score the query and send hits to a Collector. Only queries that have a different top-level approach need to override this; the default implementation pulls a normal Scorer and iterates and collects the resulting hits which are not marked as deleted.
+	// BulkScorer Optional method, to return a BulkScorer to score the query and send hits to a Collector. Only queries that have a different top-level approach need to override this; the default implementation pulls a normal Scorer and iterates and collects the resulting hits which are not marked as deleted.
 	// Params: 	context – the LeafReaderContext for which to return the Scorer.
 	// Returns: a BulkScorer which scores documents and passes them to a collector.
 	// Throws: 	IOException – if there is a low-level I/O error

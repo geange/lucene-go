@@ -1,8 +1,10 @@
 package search
 
 import (
+	"errors"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util"
 	"reflect"
 )
 
@@ -38,7 +40,7 @@ type IndexSearcher struct {
 	leafSlices []LeafSlice
 
 	// These are only used for multi-threaded search
-	//executor
+	executor Executor
 
 	// the default Similarity
 	similarity index.Similarity
@@ -93,6 +95,53 @@ func (r *IndexSearcher) Search(query Query, results Collector) error {
 	}
 
 	return r.Search3(r.leafContexts, weight, results)
+}
+
+// SearchAfter
+// Finds the top n hits for query where all results are after a previous result (after).
+// By passing the bottom result from a previous page as after, this method can be used for
+// efficient 'deep-paging' across potentially large result sets.
+// Throws: BooleanQuery.TooManyClauses – If a query would exceed BooleanQuery.getMaxClauseCount() clauses.
+func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (*TopDocs, error) {
+	limit := util.Max(1, r.reader.MaxDoc())
+	if after != nil && after.GetDoc() >= limit {
+		return nil, errors.New("after.doc exceeds the number of documents in the reader")
+	}
+
+	cappedNumHits := util.Min(numHits, limit)
+
+	var minScoreAcc *MaxScoreAccumulator
+	if !(r.executor == nil || len(r.leafSlices) <= 1) {
+		minScoreAcc = NewMaxScoreAccumulator()
+	}
+
+	manager := &CollectorManager{
+		NewCollector: func() (Collector, error) {
+			panic("")
+		},
+		Reduce: func(collectors []Collector) (any, error) {
+			panic("")
+		},
+	}
+	v, err := r.SearchByCollectorManager(query, manager)
+	if err != nil {
+		return nil, err
+	}
+	return v.(*TopDocs), nil
+}
+
+// SearchByCollectorManager
+// Lower-level search API. Search all leaves using the given CollectorManager.
+// In contrast to search(Query, Collector), this method will use the searcher's
+// Executor in order to parallelize execution of the collection on the configured leafSlices.
+// See Also: CollectorManager
+// lucene.experimental
+func (r *IndexSearcher) SearchByCollectorManager(query Query, collectorManager *CollectorManager) (any, error) {
+	panic("")
+}
+
+func (r *IndexSearcher) SearchTopN(query Query, n int) (*TopDocs, error) {
+	return r.SearchAfter(nil, query, n)
 }
 
 func (r *IndexSearcher) Search3(leaves []*index.LeafReaderContext, weight Weight, collector Collector) error {
@@ -213,4 +262,7 @@ func (r *IndexSearcher) TermStatistics(term *index.Term, docFreq, totalTermFreq 
 
 type LeafSlice struct {
 	Leaves []index.LeafReaderContext
+}
+
+type Executor interface {
 }

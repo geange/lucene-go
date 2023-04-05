@@ -44,7 +44,7 @@ func NewIndexReaderContextDefault(parent *CompositeReaderContext, ordInParent, d
 		IsTopLevel:      parent == nil,
 		DocBaseInParent: docBaseInParent,
 		OrdInParent:     ordInParent,
-		identity:        uuid.NewString(),
+		identity:        uuid.New().String(),
 	}
 }
 

@@ -34,7 +34,7 @@ type Scorer interface {
 	// matches. The default implementation returns null.
 	TwoPhaseIterator() TwoPhaseIterator
 
-	// GetMaxScore Return the maximum Score that documents between the last target that this iterator
+	// GetMaxScore Return the maximum score that documents between the last target that this iterator
 	// was shallow-advanced to included and upTo included.
 	GetMaxScore(upTo int) (float64, error)
 }
