@@ -1,13 +1,17 @@
 package util
 
-func Max[T int | int64](a, b T) T {
+type Number interface {
+	int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64 | int | uint | float32 | float64
+}
+
+func Max[T Number](a, b T) T {
 	if a > b {
 		return a
 	}
 	return b
 }
 
-func Min[T int | int64](a, b T) T {
+func Min[T Number](a, b T) T {
 	if a > b {
 		return b
 	}

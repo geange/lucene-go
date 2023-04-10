@@ -116,6 +116,7 @@ type IndexReader interface {
 	GetRefCount() int
 	IncRef() error
 	DecRef() error
+	GetMetaData() *LeafMetaData
 }
 
 type IndexReaderDefaultSPI interface {

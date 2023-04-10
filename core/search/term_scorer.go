@@ -40,7 +40,7 @@ func NewTermScorerWithImpacts(weight Weight, impactsEnum index.ImpactsEnum, docS
 	return this
 }
 
-func (t *TermScorer) Score() (float64, error) {
+func (t *TermScorer) Score() (float32, error) {
 	freq, err := t.postingsEnum.Freq()
 	if err != nil {
 		return 0, err
@@ -48,7 +48,7 @@ func (t *TermScorer) Score() (float64, error) {
 	return t.docScorer.Score(t.postingsEnum.DocID(), float64(freq))
 }
 
-func (t *TermScorer) SmoothingScore(docId int) (float64, error) {
+func (t *TermScorer) SmoothingScore(docId int) (float32, error) {
 	return t.docScorer.Score(docId, 0)
 }
 

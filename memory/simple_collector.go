@@ -27,7 +27,7 @@ func (s *simpleCollector) ScoreMode() *search.ScoreMode {
 	return search.COMPLETE
 }
 
-func (s *simpleCollector) Collect(doc int) error {
+func (s *simpleCollector) Collect(doc int, ctx interface{}) error {
 	var err error
 	s.scores[0], err = s.scorer.Score()
 	return err

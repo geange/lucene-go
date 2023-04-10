@@ -16,3 +16,7 @@ func NewLeafMetaData(createdVersionMajor int, minVersion *util.Version, sort *So
 		sort:                sort,
 	}
 }
+
+func (l *LeafMetaData) GetSort() *Sort {
+	return l.sort
+}

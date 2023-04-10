@@ -252,7 +252,7 @@ func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 		}
 		for doc != index.NO_MORE_DOCS {
 			if acceptDocs == nil || acceptDocs.Test(uint(doc)) {
-				err := collector.Collect(doc)
+				err := collector.Collect(nil, doc)
 				if err != nil {
 					return err
 				}
@@ -272,7 +272,7 @@ func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 		// The scorer has an approximation, so run the approximation first, then check acceptDocs, then confirm
 		for doc != index.NO_MORE_DOCS {
 			if ok, _ := twoPhase.Matches(); ok && (acceptDocs == nil || acceptDocs.Test(uint(doc))) {
-				err := collector.Collect(doc)
+				err := collector.Collect(nil, doc)
 				if err != nil {
 					return err
 				}
@@ -295,7 +295,7 @@ func scoreRange(collector LeafCollector, iterator index.DocIdSetIterator, twoPha
 	if twoPhase == nil {
 		for currentDoc < end {
 			if acceptDocs == nil || acceptDocs.Test(uint(currentDoc)) {
-				err := collector.Collect(currentDoc)
+				err := collector.Collect(nil, currentDoc)
 				if err != nil {
 					return 0, err
 				}
@@ -309,7 +309,7 @@ func scoreRange(collector LeafCollector, iterator index.DocIdSetIterator, twoPha
 	} else {
 		for currentDoc < end {
 			if ok, _ := twoPhase.Matches(); ok && (acceptDocs == nil || acceptDocs.Test(uint(currentDoc))) {
-				err := collector.Collect(currentDoc)
+				err := collector.Collect(nil, currentDoc)
 				if err != nil {
 					return 0, err
 				}

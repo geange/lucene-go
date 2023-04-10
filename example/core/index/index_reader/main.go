@@ -60,7 +60,7 @@ func main() {
 
 	//docs := reader.NumDocs()
 	//
-	searcher.Search(search.NewNamedMatches(), 100, searchSort).scoreDocs
+	//searcher.Search(search.NewNamedMatches(), 100, searchSort).coreDocs
 
 	//fmt.Println(docs)
 	//

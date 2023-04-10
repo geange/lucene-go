@@ -1,6 +1,9 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"context"
+	"github.com/geange/lucene-go/core/index"
+)
 
 // Collector Expert: Collectors are primarily meant to be used to gather raw results from a search, and implement sorting or custom result filtering, collation, etc.
 // Lucene's core collectors are derived from Collector and SimpleCollector. Likely your application can use one of these classes, or subclass TopDocsCollector, instead of implementing Collector directly:
@@ -13,7 +16,8 @@ type Collector interface {
 
 	// GetLeafCollector Create a new collector to collect the given context.
 	// Params: context – next atomic reader context
-	GetLeafCollector(context *index.LeafReaderContext) (LeafCollector, error)
+	// Lucene每处理完一个段，就会调用该方法获得下一个段对应的LeafCollector对象。
+	GetLeafCollector(ctx context.Context, leafCtx *index.LeafReaderContext) (LeafCollector, error)
 
 	// ScoreMode Indicates what features are required from the scorer.
 	ScoreMode() *ScoreMode

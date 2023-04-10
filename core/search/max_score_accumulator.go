@@ -52,3 +52,26 @@ func (m *MaxScoreAccumulator) maxEncode(v1, v2 int64) int64 {
 	}
 	return v2
 }
+
+func (m *MaxScoreAccumulator) Get() *DocAndScore {
+	value := m.acc.Load()
+	if value == math.MinInt64 {
+		return nil
+	}
+
+	score := math.Float32frombits(uint32(value >> 32))
+	docBase := int(value)
+	return NewDocAndScore(docBase, score)
+}
+
+type DocAndScore struct {
+	docBase int
+	score   float32
+}
+
+func NewDocAndScore(docBase int, score float32) *DocAndScore {
+	return &DocAndScore{
+		docBase: docBase,
+		score:   score,
+	}
+}

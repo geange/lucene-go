@@ -147,7 +147,7 @@ func (r *IndexSearcher) SearchTopN(query Query, n int) (*TopDocs, error) {
 func (r *IndexSearcher) Search3(leaves []*index.LeafReaderContext, weight Weight, collector Collector) error {
 
 	for _, ctx := range leaves {
-		leafCollector, err := collector.GetLeafCollector(ctx)
+		leafCollector, err := collector.GetLeafCollector(nil, ctx)
 		if err != nil {
 			continue
 		}

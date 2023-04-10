@@ -7,10 +7,10 @@ type TopDocs struct {
 	TotalHits *TotalHits
 
 	// The top hits for the query.
-	ScoreDocs []*ScoreDoc
+	ScoreDocs []ScoreDoc
 }
 
 // NewTopDocs Constructs a TopDocs.
-func NewTopDocs(totalHits *TotalHits, scoreDocs []*ScoreDoc) *TopDocs {
+func NewTopDocs(totalHits *TotalHits, scoreDocs []ScoreDoc) *TopDocs {
 	return &TopDocs{TotalHits: totalHits, ScoreDocs: scoreDocs}
 }

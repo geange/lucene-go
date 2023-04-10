@@ -1,11 +1,21 @@
 package search
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/index"
 )
 
-// LeafCollector Collector decouples the score from the collected doc: the score computation is skipped entirely if it's not needed. Collectors that do need the score should implement the setScorer method, to hold onto the passed Scorer instance, and call Scorer.score() within the collect method to compute the current hit's score. If your collector may request the score for a single hit multiple times, you should use ScoreCachingWrappingScorer.
-// NOTE: The doc that is passed to the collect method is relative to the current reader. If your collector needs to resolve this to the docID space of the Multi*Reader, you must re-base it by recording the docBase from the most recent setNextReader call. Here's a simple example showing how to collect docIDs into a BitSet:
+// LeafCollector
+// Collector decouples the score from the collected doc: the score computation is skipped entirely
+// if it's not needed. Collectors that do need the score should implement the setScorer method,
+// to hold onto the passed Scorer instance, and call Scorer.score() within the collect method
+// to compute the current hit's score. If your collector may request the score for a single hit
+// multiple times, you should use ScoreCachingWrappingScorer.
+//
+// NOTE: The doc that is passed to the collect method is relative to the current reader. If your
+// collector needs to resolve this to the docID space of the Multi*Reader, you must re-base it by
+// recording the docBase from the most recent setNextReader call. Here's a simple example showing
+// how to collect docIDs into a BitSet:
 //
 //	IndexSearcher searcher = new IndexSearcher(indexReader);
 //	final BitSet bits = new BitSet(indexReader.maxDoc());
@@ -35,6 +45,8 @@ type LeafCollector interface {
 	// SetScorer Called before successive calls to collect(int). Implementations that need the score of
 	// the current document (passed-in to collect(int)), should save the passed-in Scorer and call
 	// scorer.score() when needed.
+	//
+	// 调用此方法通过Scorer对象获得一篇文档的打分，对文档集合进行排序时，可以作为排序条件之一
 	SetScorer(scorer Scorable) error
 
 	// Collect Called once for every document matching a query, with the unbased document number.
@@ -44,7 +56,10 @@ type LeafCollector interface {
 	// Note: This is called in an inner search loop. For good search performance, implementations of this
 	// method should not call IndexSearcher.doc(int) or org.apache.lucene.index.IndexReader.document(int) on
 	// every hit. Doing so can slow searches by an order of magnitude or more.
-	Collect(doc int) error
+	//
+	// 在这个方法中实现了对所有满足查询条件的文档进行
+	// 排序（sorting）、过滤（filtering）或者用户自定义的操作的具体逻辑。
+	Collect(ctx context.Context, doc int) error
 
 	// CompetitiveIterator Optionally returns an iterator over competitive documents. Collectors should
 	// delegate this method to their comparators if their comparators provide the skipping functionality
@@ -58,4 +73,8 @@ type LeafCollectorImp struct {
 
 func (*LeafCollectorImp) CompetitiveIterator() (index.DocIdSetIterator, error) {
 	return nil, nil
+}
+
+type FilterLeafCollector struct {
+	in LeafCollector
 }
