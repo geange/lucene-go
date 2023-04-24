@@ -24,7 +24,7 @@ type TopDocsCollector interface {
 	// Returns a TopDocs instance containing the given results.
 	// If results is null it means there are no results to return, either because
 	// there were 0 calls to collect() or because the arguments to topDocs were invalid.
-	NewTopDocs(results []ScoreDoc, howMany int) (*TopDocs, error)
+	NewTopDocs(results []ScoreDoc, howMany int) (TopDocs, error)
 
 	// GetTotalHits
 	// The total number of documents that matched this query.
@@ -36,7 +36,7 @@ type TopDocsCollector interface {
 
 	// TopDocs
 	// Returns the top docs that were collected by this collector.
-	TopDocs() (*TopDocs, error)
+	TopDocs() (TopDocs, error)
 
 	// TopDocsFrom
 	// Returns the documents in the range [start .. pq.size()) that were collected by this collector.
@@ -46,7 +46,7 @@ type TopDocsCollector interface {
 	// If you need to call it more than once, passing each time a different start,
 	// you should call topDocs() and work with the returned TopDocs object,
 	// which will contain all the results this search execution collected.
-	TopDocsFrom(start int) (*TopDocs, error)
+	TopDocsFrom(start int) (TopDocs, error)
 
 	// TopDocsRange
 	// Returns the documents in the range [start .. start+howMany) that were collected by this collector.
@@ -58,18 +58,22 @@ type TopDocsCollector interface {
 	// If you need to call it more than once, passing each time a different range,
 	// you should call topDocs() and work with the returned TopDocs object,
 	// which will contain all the results this search execution collected.
-	TopDocsRange(start, howMany int) (*TopDocs, error)
+	TopDocsRange(start, howMany int) (TopDocs, error)
 }
 
-var EMPTY_TOPDOCS = &TopDocs{
-	TotalHits: NewTotalHits(0, EQUAL_TO),
-	ScoreDocs: make([]ScoreDoc, 0),
+var EMPTY_TOPDOCS = &TopDocsDefault{
+	totalHits: NewTotalHits(0, EQUAL_TO),
+	scoreDocs: make([]ScoreDoc, 0),
 }
 
 type TopDocsCollectorDefault[T ScoreDoc] struct {
 	pq                *structure.PriorityQueue[T]
 	totalHits         int
 	totalHitsRelation TotalHitsRelation
+}
+
+func newTopDocsCollectorDefault[T ScoreDoc](pq *structure.PriorityQueue[T]) *TopDocsCollectorDefault[T] {
+	return &TopDocsCollectorDefault[T]{pq: pq}
 }
 
 func (t *TopDocsCollectorDefault[T]) PopulateResults(results []ScoreDoc, howMany int) error {
@@ -83,7 +87,7 @@ func (t *TopDocsCollectorDefault[T]) PopulateResults(results []ScoreDoc, howMany
 	return nil
 }
 
-func (t *TopDocsCollectorDefault[T]) NewTopDocs(results []ScoreDoc, howMany int) (*TopDocs, error) {
+func (t *TopDocsCollectorDefault[T]) NewTopDocs(results []ScoreDoc, howMany int) (TopDocs, error) {
 	if len(results) == 0 {
 		return EMPTY_TOPDOCS, nil
 	}
@@ -104,15 +108,15 @@ func (t *TopDocsCollectorDefault[T]) TopDocsSize() int {
 	return t.pq.Size()
 }
 
-func (t *TopDocsCollectorDefault[T]) TopDocs() (*TopDocs, error) {
+func (t *TopDocsCollectorDefault[T]) TopDocs() (TopDocs, error) {
 	return t.TopDocsRange(0, t.TopDocsSize())
 }
 
-func (t *TopDocsCollectorDefault[T]) TopDocsFrom(start int) (*TopDocs, error) {
+func (t *TopDocsCollectorDefault[T]) TopDocsFrom(start int) (TopDocs, error) {
 	return t.TopDocsRange(start, t.TopDocsSize())
 }
 
-func (t *TopDocsCollectorDefault[T]) TopDocsRange(start, howMany int) (*TopDocs, error) {
+func (t *TopDocsCollectorDefault[T]) TopDocsRange(start, howMany int) (TopDocs, error) {
 	// In case pq was populated with sentinel values, there might be less
 	// results than pq.size(). Therefore return all results until either
 	// pq.size() or totalHits.

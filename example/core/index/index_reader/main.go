@@ -30,26 +30,47 @@ func main() {
 		panic(err)
 	}
 
-	maxDoc := reader.MaxDoc()
+	//maxDoc := reader.MaxDoc()
+	//
+	//for i := 0; i < maxDoc; i++ {
+	//	doc, err := reader.DocumentV2(i, map[string]struct{}{"sequence": {}})
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		continue
+	//	}
+	//	if doc == nil {
+	//		continue
+	//	}
+	//	terms, err := doc.GetField("sequence")
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		continue
+	//	}
+	//	fmt.Println(terms.Name(), terms.Value())
+	//}
 
-	for i := 0; i < maxDoc; i++ {
-		doc, err := reader.DocumentV2(i, map[string]struct{}{"sequence": {}})
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		if doc == nil {
-			continue
-		}
-		terms, err := doc.GetField("sequence")
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		fmt.Println(terms.Name(), terms.Value())
+	searcher, err := search.NewIndexSearcher(reader)
+	if err != nil {
+		panic(err)
+	}
+	topDocs, err := searcher.SearchTopN(search.NewMatchAllDocsQuery(), 100)
+	if err != nil {
+		panic(err)
 	}
 
-	searcher := search.NewIndexSearcher(reader)
+	result := topDocs.GetScoreDocs()
+	for _, scoreDoc := range result {
+		document, err := reader.Document(scoreDoc.GetDoc())
+		if err != nil {
+			panic(err)
+		}
+		value, err := document.Get("sequence")
+		if err != nil {
+			return
+		}
+		fmt.Printf("段内排序后的文档号: %d  VS 段内排序前的文档: %s",
+			scoreDoc.GetDoc(), value)
+	}
 
 	//searchSortField1 := index.NewSortedSetSortFieldV1("sort0", true, index.MAX)
 	//searchSortField2 := index.NewSortedSetSortFieldV1("sort1", true, index.MIN)

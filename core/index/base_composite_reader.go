@@ -22,6 +22,24 @@ type BaseCompositeReader struct {
 
 	// List view solely for getSequentialSubReaders(), for effectiveness the array is used internally.
 	subReadersList []IndexReader
+
+	readerContext *CompositeReaderContext
+}
+
+func (b *BaseCompositeReader) DoClose() error {
+	return nil
+}
+
+func (b *BaseCompositeReader) GetContext() IndexReaderContext {
+	if b.readerContext == nil {
+		b.readerContext = NewCompositeReaderContext(b)
+	}
+	return b.readerContext
+}
+
+func (b *BaseCompositeReader) GetMetaData() *LeafMetaData {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (b *BaseCompositeReader) GetReaderCacheHelper() CacheHelper {

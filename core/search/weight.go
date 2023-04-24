@@ -28,6 +28,8 @@ import (
 // A Scorer is constructed by scorer(LeafReaderContext).
 // Since: 2.9
 type Weight interface {
+	SegmentCacheable
+
 	ExtractTerms(terms []*index.Term) error
 
 	// Matches Returns Matches for a specific document, or null if the document does not match the parent query A query match that contains no position information (for example, a Point or DocValues query) will return MatchesUtils.MATCH_WITH_NO_TERMS
@@ -87,6 +89,14 @@ func NewWeight(parentQuery Query, extra WeightSPI) *WeightDefault {
 
 func (r *WeightDefault) ExtractTerms(terms []*index.Term) error {
 	return nil
+}
+
+func (r *WeightDefault) GetQuery() Query {
+	return r.parentQuery
+}
+
+func (r *WeightDefault) IsCacheable(ctx *index.LeafReaderContext) bool {
+	return false
 }
 
 func (r *WeightDefault) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
@@ -181,11 +191,11 @@ func NewDefaultBulkScorer(scorer Scorer) *DefaultBulkScorer {
 
 func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs util.Bits) error {
 	NO_MORE_DOCS := math.MaxInt32
-	_, err := d.Score4(collector, acceptDocs, 0, NO_MORE_DOCS)
+	_, err := d.ScoreRange(collector, acceptDocs, 0, NO_MORE_DOCS)
 	return err
 }
 
-func (d *DefaultBulkScorer) Score4(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
+func (d *DefaultBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
 	err := collector.SetScorer(d.scorer)
 	if err != nil {
 		return 0, err

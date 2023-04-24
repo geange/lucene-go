@@ -129,7 +129,7 @@ type IndexReaderDefaultSPI interface {
 }
 
 type IndexReaderDefault struct {
-	IndexReaderDefaultSPI
+	spi IndexReaderDefaultSPI
 
 	closed        bool
 	closedByChild bool
@@ -140,20 +140,20 @@ type IndexReaderDefault struct {
 
 func NewIndexReaderDefault(spi IndexReaderDefaultSPI) *IndexReaderDefault {
 	return &IndexReaderDefault{
-		IndexReaderDefaultSPI: spi,
-		refCount:              atomic.NewInt64(0),
-		parentReaders:         make(map[IndexReader]struct{}),
+		spi:           spi,
+		refCount:      atomic.NewInt64(0),
+		parentReaders: make(map[IndexReader]struct{}),
 	}
 }
 
 func (r *IndexReaderDefault) Close() error {
 	r.closed = true
-	return r.DoClose()
+	return r.spi.DoClose()
 }
 
 func (r *IndexReaderDefault) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitorV1(fieldsToLoad)
-	if err := r.DocumentV1(docID, visitor); err != nil {
+	if err := r.spi.DocumentV1(docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil
@@ -213,7 +213,7 @@ func (r *IndexReaderDefault) DecRef() error {
 	rc := r.refCount.Dec()
 	if rc == 0 {
 		r.closed = true
-		return r.DoClose()
+		return r.spi.DoClose()
 	}
 
 	if rc < 0 {
@@ -251,7 +251,7 @@ func (r *IndexReaderDefault) TryIncRef() bool {
 }
 
 func (r *IndexReaderDefault) GetTermVector(docID int, field string) (Terms, error) {
-	vectors, err := r.GetTermVectors(docID)
+	vectors, err := r.spi.GetTermVectors(docID)
 	if err != nil {
 		return nil, err
 	}
@@ -259,12 +259,12 @@ func (r *IndexReaderDefault) GetTermVector(docID int, field string) (Terms, erro
 }
 
 func (r *IndexReaderDefault) NumDeletedDocs() int {
-	return r.MaxDoc() - r.NumDocs()
+	return r.spi.MaxDoc() - r.spi.NumDocs()
 }
 
 func (r *IndexReaderDefault) Document(docID int) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitor()
-	if err := r.DocumentV1(docID, visitor); err != nil {
+	if err := r.spi.DocumentV1(docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil
@@ -275,7 +275,7 @@ func (r *IndexReaderDefault) HasDeletions() bool {
 }
 
 func (r *IndexReaderDefault) Leaves() ([]*LeafReaderContext, error) {
-	return r.GetContext().Leaves()
+	return r.spi.GetContext().Leaves()
 }
 
 // CacheHelper

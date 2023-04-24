@@ -1,6 +1,6 @@
 package search
 
-var _ ScoreDoc = &FieldDoc{}
+var _ ScoreDoc = &FieldDocDefault{}
 
 // FieldDoc
 // Expert: A ScoreDoc which also contains information about how to sort the referenced document.
@@ -14,7 +14,13 @@ var _ ScoreDoc = &FieldDoc{}
 // Created: Feb 11, 2004 1:23:38 PM
 // Since: lucene 1.4
 // See Also: ScoreDoc, TopFieldDocs
-type FieldDoc struct {
+type FieldDoc interface {
+	ScoreDoc
+	GetFields() []any
+	SetFields(fields []any)
+}
+
+type FieldDocDefault struct {
 	// Expert: The values which are used to sort the referenced document. The order of these will match the original sort criteria given by a Sort object. Each Object will have been returned from the value method corresponding FieldComparator used to sort this field.
 	// See Also: Sort, IndexSearcher.search(Query, int, Sort)
 	fields []any
@@ -23,35 +29,35 @@ type FieldDoc struct {
 }
 
 // NewFieldDoc Expert: Creates one of these objects with empty sort information.
-func NewFieldDoc(doc int, score float64) *FieldDoc {
-	return &FieldDoc{
+func NewFieldDoc(doc int, score float64) *FieldDocDefault {
+	return &FieldDocDefault{
 		fields:          make([]any, 0),
-		ScoreDocDefault: NewScoreDoc(score, doc),
+		ScoreDocDefault: NewScoreDoc(doc, score),
 	}
 }
 
 // NewFieldDocV1
 // Expert: Creates one of these objects with the given sort information.
-func NewFieldDocV1(doc int, score float64, fields []any) *FieldDoc {
-	return &FieldDoc{
+func NewFieldDocV1(doc int, score float64, fields []any) *FieldDocDefault {
+	return &FieldDocDefault{
 		fields:          fields,
-		ScoreDocDefault: NewScoreDoc(score, doc),
+		ScoreDocDefault: NewScoreDoc(doc, score),
 	}
 }
 
 // NewFieldDocV2
 // Expert: Creates one of these objects with the given sort information.
-func NewFieldDocV2(doc int, score float64, fields []any, shardIndex int) *FieldDoc {
-	return &FieldDoc{
+func NewFieldDocV2(doc int, score float64, fields []any, shardIndex int) *FieldDocDefault {
+	return &FieldDocDefault{
 		fields:          fields,
 		ScoreDocDefault: NewScoreDocV1(score, doc, shardIndex),
 	}
 }
 
-func (f *FieldDoc) GetFields() []any {
+func (f *FieldDocDefault) GetFields() []any {
 	return f.fields
 }
 
-func (f *FieldDoc) SetFields(fields []any) {
+func (f *FieldDocDefault) SetFields(fields []any) {
 	f.fields = fields
 }

@@ -39,9 +39,10 @@ type IndexReaderContextDefault struct {
 }
 
 func NewIndexReaderContextDefault(parent *CompositeReaderContext, ordInParent, docBaseInParent int) *IndexReaderContextDefault {
+	isTop := parent == nil
 	return &IndexReaderContextDefault{
 		Parent:          parent,
-		IsTopLevel:      parent == nil,
+		IsTopLevel:      isTop,
 		DocBaseInParent: docBaseInParent,
 		OrdInParent:     ordInParent,
 		identity:        uuid.New().String(),

@@ -69,6 +69,11 @@ type BytesComparator func(a, b []byte) int
 
 var _ SortField = &SortFieldDefault{}
 
+var (
+	FIELD_SCORE = NewSortField("", SCORE)
+	FIELD_DOC   = NewSortField("", DOC)
+)
+
 // SortFieldDefault Stores information about how to sort documents by terms in an individual field.
 // Fields must be indexed in order to sort by them.
 // Created: Feb 11, 2004 1:25:29 PM

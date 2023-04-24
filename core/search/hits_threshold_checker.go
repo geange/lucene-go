@@ -3,6 +3,7 @@ package search
 import (
 	"fmt"
 	"go.uber.org/atomic"
+	"math"
 )
 
 // HitsThresholdChecker
@@ -14,12 +15,13 @@ type HitsThresholdChecker interface {
 	IsThresholdReached() bool
 }
 
-func Create(totalHitsThreshold int) (HitsThresholdChecker, error) {
+func HitsThresholdCheckerCreate(totalHitsThreshold int) (HitsThresholdChecker, error) {
 	return NewLocalHitsThresholdChecker(totalHitsThreshold)
 }
 
+// HitsThresholdCheckerCreateShared
 // Returns a threshold checker that is based on a shared counter
-func createShared(totalHitsThreshold int) (HitsThresholdChecker, error) {
+func HitsThresholdCheckerCreateShared(totalHitsThreshold int) (HitsThresholdChecker, error) {
 	return NewGlobalHitsThresholdChecker(totalHitsThreshold)
 }
 
@@ -40,23 +42,22 @@ func NewGlobalHitsThresholdChecker(totalHitsThreshold int) (*GlobalHitsThreshold
 }
 
 func (g *GlobalHitsThresholdChecker) IncrementHitCount() {
-	//TODO implement me
-	panic("implement me")
+	g.globalHitCount.Inc()
 }
 
 func (g *GlobalHitsThresholdChecker) ScoreMode() *ScoreMode {
-	//TODO implement me
-	panic("implement me")
+	if g.totalHitsThreshold == math.MaxInt32 {
+		return COMPLETE
+	}
+	return TOP_SCORES
 }
 
 func (g *GlobalHitsThresholdChecker) GetHitsThreshold() int {
-	//TODO implement me
-	panic("implement me")
+	return g.totalHitsThreshold
 }
 
 func (g *GlobalHitsThresholdChecker) IsThresholdReached() bool {
-	//TODO implement me
-	panic("implement me")
+	return g.globalHitCount.Load() > int64(g.totalHitsThreshold)
 }
 
 var _ HitsThresholdChecker = &LocalHitsThresholdChecker{}
@@ -78,21 +79,20 @@ func NewLocalHitsThresholdChecker(totalHitsThreshold int) (*LocalHitsThresholdCh
 }
 
 func (l *LocalHitsThresholdChecker) IncrementHitCount() {
-	//TODO implement me
-	panic("implement me")
+	l.hitCount++
 }
 
 func (l *LocalHitsThresholdChecker) ScoreMode() *ScoreMode {
-	//TODO implement me
-	panic("implement me")
+	if l.totalHitsThreshold == math.MaxInt32 {
+		return COMPLETE
+	}
+	return TOP_SCORES
 }
 
 func (l *LocalHitsThresholdChecker) GetHitsThreshold() int {
-	//TODO implement me
-	panic("implement me")
+	return l.totalHitsThreshold
 }
 
 func (l *LocalHitsThresholdChecker) IsThresholdReached() bool {
-	//TODO implement me
-	panic("implement me")
+	return l.hitCount > l.totalHitsThreshold
 }

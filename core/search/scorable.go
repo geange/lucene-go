@@ -28,6 +28,21 @@ type Scorable interface {
 	GetChildren() ([]ChildScorable, error)
 }
 
+type ScorableDefault struct {
+}
+
+func (ScorableDefault) SmoothingScore(docId int) (float32, error) {
+	return 0, nil
+}
+
+func (ScorableDefault) SetMinCompetitiveScore(minScore float32) error {
+	return nil
+}
+
+func (ScorableDefault) GetChildren() ([]ChildScorable, error) {
+	return []ChildScorable{}, nil
+}
+
 // ChildScorable A child Scorer and its relationship to its parent. the meaning of the relationship
 // depends upon the parent query.
 type ChildScorable struct {
@@ -37,4 +52,8 @@ type ChildScorable struct {
 
 	// An arbitrary string relating this scorer to the parent.
 	Relationship string
+}
+
+func NewChildScorable(child Scorable, relationship string) *ChildScorable {
+	return &ChildScorable{Child: child, Relationship: relationship}
 }

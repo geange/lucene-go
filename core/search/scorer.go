@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"io"
 )
 
 // Scorer Expert: Common scoring functionality for different types of queries.
@@ -34,7 +35,38 @@ type Scorer interface {
 	// matches. The default implementation returns null.
 	TwoPhaseIterator() TwoPhaseIterator
 
+	// AdvanceShallow
+	// Advance to the block of documents that contains target in order to get scoring information
+	// about this block. This method is implicitly called by DocIdSetIterator.advance(int) and
+	// DocIdSetIterator.nextDoc() on the returned doc ID. Calling this method doesn't modify the
+	// current DocIdSetIterator.docID(). It returns a number that is greater than or equal to all
+	// documents contained in the current block, but less than any doc IDS of the next block.
+	// target must be >= docID() as well as all targets that have been passed to advanceShallow(int) so far.
+	AdvanceShallow(target int) (int, error)
+
 	// GetMaxScore Return the maximum score that documents between the last target that this iterator
 	// was shallow-advanced to included and upTo included.
-	GetMaxScore(upTo int) (float64, error)
+	GetMaxScore(upTo int) (float32, error)
+}
+
+type ScorerDefault struct {
+	*ScorableDefault
+
+	weight Weight
+}
+
+func NewScorer(weight Weight) *ScorerDefault {
+	return &ScorerDefault{weight: weight}
+}
+
+func (s *ScorerDefault) GetWeight() Weight {
+	return s.weight
+}
+
+func (s *ScorerDefault) TwoPhaseIterator() TwoPhaseIterator {
+	return nil
+}
+
+func (s *ScorerDefault) AdvanceShallow(target int) (int, error) {
+	return 0, io.EOF
 }

@@ -31,7 +31,7 @@ func ExplanationMatch(value any, description string, details ...*Explanation) *E
 
 // ExplanationNoMatch
 // Create a new explanation for a document which does not match.
-func ExplanationNoMatch(value any, description string, details ...*Explanation) *Explanation {
+func ExplanationNoMatch(description string, details ...*Explanation) *Explanation {
 	return NewExplanation(false, float64(0), description, details...)
 }
 

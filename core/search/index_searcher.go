@@ -8,6 +8,10 @@ import (
 	"reflect"
 )
 
+const (
+	TOTAL_HITS_THRESHOLD = 1000
+)
+
 // IndexSearcher Implements search over a single IndexReader.
 // Applications usually need only call the inherited search(Query, int) method. For performance reasons, if your
 // index is unchanging, you should share a single IndexSearcher instance across multiple searches instead of
@@ -49,14 +53,15 @@ type IndexSearcher struct {
 	queryCachingPolicy QueryCachingPolicy
 }
 
-func NewIndexSearcher(r index.IndexReader) *IndexSearcher {
-	return newIndexSearcher(r.GetContext())
+func NewIndexSearcher(r index.IndexReader) (*IndexSearcher, error) {
+	context := r.GetContext()
+	return newIndexSearcher(context)
 }
 
-func newIndexSearcher(context index.IndexReaderContext) *IndexSearcher {
+func newIndexSearcher(context index.IndexReaderContext) (*IndexSearcher, error) {
 	leaves, err := context.Leaves()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	return &IndexSearcher{
@@ -67,7 +72,7 @@ func newIndexSearcher(context index.IndexReaderContext) *IndexSearcher {
 		similarity:         nil,
 		queryCache:         nil,
 		queryCachingPolicy: nil,
-	}
+	}, nil
 }
 
 func (r *IndexSearcher) GetTopReaderContext() index.IndexReaderContext {
@@ -102,7 +107,7 @@ func (r *IndexSearcher) Search(query Query, results Collector) error {
 // By passing the bottom result from a previous page as after, this method can be used for
 // efficient 'deep-paging' across potentially large result sets.
 // Throws: BooleanQuery.TooManyClauses – If a query would exceed BooleanQuery.getMaxClauseCount() clauses.
-func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (*TopDocs, error) {
+func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (TopDocs, error) {
 	limit := util.Max(1, r.reader.MaxDoc())
 	if after != nil && after.GetDoc() >= limit {
 		return nil, errors.New("after.doc exceeds the number of documents in the reader")
@@ -115,19 +120,58 @@ func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (*
 		minScoreAcc = NewMaxScoreAccumulator()
 	}
 
-	manager := &CollectorManager{
-		NewCollector: func() (Collector, error) {
-			panic("")
-		},
-		Reduce: func(collectors []Collector) (any, error) {
-			panic("")
-		},
+	hitsThresholdChecker, err := func() (HitsThresholdChecker, error) {
+		if r.executor == nil || len(r.leafSlices) <= 1 {
+			return HitsThresholdCheckerCreate(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+		}
+		return HitsThresholdCheckerCreateShared(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+	}()
+	if err != nil {
+		return nil, err
 	}
+
+	manager := struct {
+		minScoreAcc          *MaxScoreAccumulator
+		hitsThresholdChecker HitsThresholdChecker
+		*CollectorManagerDefault
+	}{
+		CollectorManagerDefault: &CollectorManagerDefault{},
+		hitsThresholdChecker:    hitsThresholdChecker,
+	}
+
+	if !(r.executor == nil || len(r.leafSlices) <= 1) {
+		manager.minScoreAcc = NewMaxScoreAccumulator()
+
+		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreate(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreateShared(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+		if err != nil {
+			return nil, err
+		}
+	}
+	manager.FnNewCollector = func() (Collector, error) {
+		return TopScoreDocCollectorCreate(cappedNumHits, after, manager.hitsThresholdChecker, minScoreAcc)
+	}
+	manager.FnReduce = func(collectors []TopScoreDocCollector) (any, error) {
+		topDocs := make([]TopDocs, len(collectors))
+		for i, collector := range collectors {
+			docs, err := collector.TopDocs()
+			if err != nil {
+				return nil, err
+			}
+			topDocs[i] = docs
+		}
+		return MergeTopDocs(0, cappedNumHits, topDocs, true)
+	}
+
 	v, err := r.SearchByCollectorManager(query, manager)
 	if err != nil {
 		return nil, err
 	}
-	return v.(*TopDocs), nil
+	return v.(TopDocs), nil
 }
 
 // SearchByCollectorManager
@@ -136,12 +180,38 @@ func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (*
 // Executor in order to parallelize execution of the collection on the configured leafSlices.
 // See Also: CollectorManager
 // lucene.experimental
-func (r *IndexSearcher) SearchByCollectorManager(query Query, collectorManager *CollectorManager) (any, error) {
+func (r *IndexSearcher) SearchByCollectorManager(query Query, collectorManager CollectorManager) (any, error) {
+	if r.executor == nil || len(r.leafSlices) <= 1 {
+		collector, err := collectorManager.NewCollector()
+		if err != nil {
+			return nil, err
+		}
+		err = r.SearchCollector(query, collector)
+		if err != nil {
+			return nil, err
+		}
+		return collectorManager.Reduce([]TopScoreDocCollector{collector.(TopScoreDocCollector)})
+	}
+
+	// TODO: fix it
 	panic("")
 }
 
-func (r *IndexSearcher) SearchTopN(query Query, n int) (*TopDocs, error) {
+func (r *IndexSearcher) SearchTopN(query Query, n int) (TopDocs, error) {
 	return r.SearchAfter(nil, query, n)
+}
+
+func (r *IndexSearcher) SearchCollector(query Query, results Collector) error {
+	query, err := r.Rewrite(query)
+	if err != nil {
+		return err
+	}
+
+	weight, err := r.createWeight(query, results.ScoreMode(), 1)
+	if err != nil {
+		return err
+	}
+	return r.Search3(r.leafContexts, weight, results)
 }
 
 func (r *IndexSearcher) Search3(leaves []*index.LeafReaderContext, weight Weight, collector Collector) error {

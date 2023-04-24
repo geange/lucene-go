@@ -14,11 +14,26 @@ type PriorityQueue[T any] struct {
 }
 
 func NewPriorityQueue[T any](maxSize int, lessThan func(a, b T) bool) *PriorityQueue[T] {
-	return &PriorityQueue[T]{
+	var a T
+	return NewPriorityQueueV1(maxSize, func() T {
+		return a
+	}, lessThan)
+}
+
+func NewPriorityQueueV1[T any](maxSize int, supplier func() T, lessThan func(a, b T) bool) *PriorityQueue[T] {
+	if maxSize < 2 {
+		maxSize = 2
+	}
+
+	queue := &PriorityQueue[T]{
 		maxSize:  maxSize,
 		heap:     make([]T, maxSize+1),
 		lessThan: lessThan,
 	}
+	for i := range queue.heap {
+		queue.heap[i] = supplier()
+	}
+	return queue
 }
 
 // Add

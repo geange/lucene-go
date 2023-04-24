@@ -3,6 +3,7 @@ package search
 import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util/structure"
+	"math"
 )
 
 // CreateFieldValueHitQueue
@@ -34,6 +35,9 @@ type FieldValueHitQueue[T ScoreDoc] interface {
 	Clear()
 	Remove(element T) bool
 	Iterator() structure.Iterator[T]
+	GetReverseMul() []int
+	GetComparators(ctx *index.LeafReaderContext) ([]index.LeafFieldComparator, error)
+	GetComparatorsList() []index.FieldComparator
 }
 
 type FieldValueHitQueueDefault[T any] struct {
@@ -74,9 +78,36 @@ func newFieldValueHitQueue[T any](fields []index.SortField, size int, lessThan f
 	return queue
 }
 
+func (f *FieldValueHitQueueDefault[T]) GetComparators(ctx *index.LeafReaderContext) ([]index.LeafFieldComparator, error) {
+	comparators := make([]index.LeafFieldComparator, 0)
+	for _, comparator := range f.comparators {
+		leafComparator, err := comparator.GetLeafComparator(ctx)
+		if err != nil {
+			return nil, err
+		}
+		comparators = append(comparators, leafComparator)
+	}
+	return comparators, nil
+}
+
+func (f *FieldValueHitQueueDefault[T]) GetReverseMul() []int {
+	return f.reverseMul
+}
+
+func (f *FieldValueHitQueueDefault[T]) GetComparatorsList() []index.FieldComparator {
+	return f.comparators
+}
+
 type Entry struct {
 	*ScoreDocDefault
 	slot int
+}
+
+func NewEntry(slot, doc int) *Entry {
+	return &Entry{
+		ScoreDocDefault: NewScoreDoc(doc, math.NaN()),
+		slot:            slot,
+	}
 }
 
 type OneComparatorFieldValueHitQueue struct {

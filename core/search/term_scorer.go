@@ -4,8 +4,12 @@ import (
 	"github.com/geange/lucene-go/core/index"
 )
 
+var _ Scorer = &TermScorer{}
+
 // TermScorer Expert: A Scorer for documents matching a Term.
 type TermScorer struct {
+	*ScorerDefault
+
 	weight       Weight
 	postingsEnum index.PostingsEnum
 	impactsEnum  index.ImpactsEnum
@@ -45,11 +49,20 @@ func (t *TermScorer) Score() (float32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return t.docScorer.Score(t.postingsEnum.DocID(), float64(freq))
+
+	score, err := t.docScorer.Score(t.postingsEnum.DocID(), float64(freq))
+	if err != nil {
+		return 0, err
+	}
+	return float32(score), nil
 }
 
 func (t *TermScorer) SmoothingScore(docId int) (float32, error) {
-	return t.docScorer.Score(docId, 0)
+	score, err := t.docScorer.Score(docId, 0)
+	if err != nil {
+		return 0, err
+	}
+	return float32(score), nil
 }
 
 func (t *TermScorer) DocID() int {
@@ -60,8 +73,8 @@ func (t *TermScorer) Freq() (int, error) {
 	return t.postingsEnum.Freq()
 }
 
-func (t *TermScorer) SetMinCompetitiveScore(minScore float64) error {
-	return t.impactsDISI.setMinCompetitiveScore(minScore)
+func (t *TermScorer) SetMinCompetitiveScore(minScore float32) error {
+	return t.impactsDISI.setMinCompetitiveScore(float64(minScore))
 }
 
 func (t *TermScorer) GetChildren() ([]ChildScorable, error) {
@@ -80,6 +93,10 @@ func (t *TermScorer) TwoPhaseIterator() TwoPhaseIterator {
 	return nil
 }
 
-func (t *TermScorer) GetMaxScore(upTo int) (float64, error) {
-	return t.impactsDISI.getMaxScore(upTo)
+func (t *TermScorer) GetMaxScore(upTo int) (float32, error) {
+	score, err := t.impactsDISI.getMaxScore(upTo)
+	if err != nil {
+		return 0, err
+	}
+	return float32(score), nil
 }

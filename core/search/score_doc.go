@@ -49,7 +49,7 @@ func (s *ScoreDocDefault) SetShardIndex(shardIndex int) {
 	s.shardIndex = shardIndex
 }
 
-func NewScoreDoc(score float64, doc int) *ScoreDocDefault {
+func NewScoreDoc(doc int, score float64) *ScoreDocDefault {
 	return &ScoreDocDefault{score: score, doc: doc, shardIndex: -1}
 }
 

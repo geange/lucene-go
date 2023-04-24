@@ -249,7 +249,7 @@ func (m *MemoryIndex) SetSimilarity(similarity index.Similarity) error {
 
 func (m *MemoryIndex) CreateSearcher() *search.IndexSearcher {
 	reader := m.NewMemoryIndexReader(m.fields)
-	searcher := search.NewIndexSearcher(reader)
+	searcher, _ := search.NewIndexSearcher(reader)
 	searcher.SetSimilarity(m.normSimilarity)
 	searcher.SetQueryCache(nil)
 	return searcher

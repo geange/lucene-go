@@ -1,7 +1,12 @@
 package util
 
+import (
+	"golang.org/x/exp/constraints"
+	"math"
+)
+
 type Number interface {
-	int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64 | int | uint | float32 | float64
+	constraints.Integer | constraints.Float
 }
 
 func Max[T Number](a, b T) T {
@@ -25,4 +30,17 @@ func Log(x, base int) int {
 		ret++
 	}
 	return ret
+}
+
+func NextUp(f float64) float64 {
+	if math.IsInf(f, 1) || math.IsNaN(f) {
+		return f
+	}
+	bits := math.Float64bits(f)
+	if bits&(1<<63) != 0 {
+		bits--
+	} else {
+		bits++
+	}
+	return math.Float64frombits(bits)
 }

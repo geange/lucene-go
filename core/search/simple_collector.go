@@ -30,7 +30,7 @@ func NewSimpleCollectorImp(extra SimpleCollectorExtra) *SimpleCollectorImp {
 	return &SimpleCollectorImp{SimpleCollectorExtra: extra}
 }
 
-func (s *SimpleCollectorImp) GetLeafCollector(leafCtx *index.LeafReaderContext, ctx interface{}) (LeafCollector, error) {
+func (s *SimpleCollectorImp) GetLeafCollector(ctx context.Context, leafCtx *index.LeafReaderContext) (LeafCollector, error) {
 	err := s.DoSetNextReader(leafCtx)
 	if err != nil {
 		return nil, err
