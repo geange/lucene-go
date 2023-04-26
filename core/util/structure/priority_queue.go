@@ -100,6 +100,10 @@ func (p *PriorityQueue[T]) Size() int {
 	return p.size
 }
 
+func (p *PriorityQueue[T]) SetSize(size int) {
+	p.size = size
+}
+
 // Clear
 // Removes all entries from the PriorityQueue.
 func (p *PriorityQueue[T]) Clear() {

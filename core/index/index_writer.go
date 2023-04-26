@@ -559,30 +559,10 @@ func (w *IndexWriter) nrtIsCurrent(infos *SegmentInfos) bool {
 }
 
 func (w *IndexWriter) GetReader(applyAllDeletes bool, writeAllDeletes bool) (DirectoryReader, error) {
-	/*
-		if writeAllDeletes && applyAllDeletes == false {
-			return nil, errors.New("applyAllDeletes must be true when writeAllDeletes=true")
-		}
+	if writeAllDeletes && applyAllDeletes == false {
+		return nil, errors.New("applyAllDeletes must be true when writeAllDeletes=true")
+	}
 
-		// Do this up front before flushing so that the readers
-		// obtained during this flush are pooled, the first time
-		// this method is called:
-		w.readerPool.enableReaderPooling()
-		var r *StandardDirectoryReader
-		if err := w.doBeforeFlush(); err != nil {
-			return nil, err
-		}
-
-		// for releasing a NRT reader we must ensure that
-		// DW doesn't add any segments or deletes until we are
-		// done with creating the NRT DirectoryReader.
-		// We release the two stage full flush after we are done opening the
-		// directory reader!
-		stopCollectingMergedReaders := atomic.NewBool(false)
-		mergedReaders := make(map[string]*SegmentReader)
-		openedReadOnlyClones := make(map[string]*SegmentReader)
-
-	*/
 	// this function is used to control which SR are opened in order to keep track of them
 	// and to reuse them in the case we wait for merges in this getReader call.
 
@@ -605,72 +585,7 @@ func (w *IndexWriter) GetReader(applyAllDeletes bool, writeAllDeletes bool) (Dir
 		return segmentReader, nil
 	}
 
-	/*
-
-		var onGetReaderMergeResources io.Closer
-		var openingSegmentInfos *SegmentInfos
-		success := false
-
-		anyChanges := w.docWriter.flushAllThreads() < 0
-		if anyChanges == false {
-			// prevent double increment since docWriter#doFlush increments the flushcount
-			// if we flushed anything.
-			w.flushCount.Inc()
-		}
-		if err := w.publishFlushedSegments(true); err != nil {
-			return nil, err
-		}
-		if err := w.processEvents(false); err != nil {
-			return nil, err
-		}
-
-		if applyAllDeletes {
-			if err := w.applyAllDeletesAndUpdates(); err != nil {
-				return nil, err
-			}
-		}
-
-		if err := w.writeReaderPool(writeAllDeletes); err != nil {
-			return nil, err
-		}
-	*/
-
-	r, err := OpenStandardDirectoryReader(w, readerFactory, w.segmentInfos, applyAllDeletes, writeAllDeletes)
-	if err != nil {
-		return nil, err
-	}
-
-	/**
-
-	if maxFullFlushMergeWaitMillis > 0 {
-		// we take the SIS from the reader which has already pruned away fully deleted readers
-		// this makes pulling the readers below after the merge simpler since we can be safe that
-		// they are not closed. Every segment has a corresponding SR in the SDR we opened if we use
-		// this SIS
-		// we need to do this rather complicated management of SRs and infos since we can't wait for merges
-		// while we hold the fullFlushLock since the merge might hit a tragic event and that must not be reported
-		// while holding that lock. Merging outside of the lock ie. after calling docWriter.finishFullFlush(boolean) would
-		// yield wrong results because deletes might sneak in during the merge
-		openingSegmentInfos = r.GetSegmentInfos().Clone()
-	}
-
-	success = true
-
-	if err := w.docWriter.FinishFullFlush(success); err != nil {
-		return nil, err
-	}
-
-	if success {
-		if err := w.processEvents(false); err != nil {
-			return nil, err
-		}
-		if err := w.doAfterFlush(); err != nil {
-			return nil, err
-		}
-	}
-	*/
-
-	return r, nil
+	return OpenStandardDirectoryReader(w, readerFactory, w.segmentInfos, applyAllDeletes, writeAllDeletes)
 }
 
 func (w *IndexWriter) Release(readersAndUpdates *ReadersAndUpdates) error {

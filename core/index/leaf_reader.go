@@ -64,13 +64,13 @@ type LeafReader interface {
 }
 
 type LeafReaderDefault struct {
-	LeafReaderDefaultSpi
+	LeafReaderDefaultSPI
 
 	readerContext *LeafReaderContext
 	*IndexReaderDefault
 }
 
-type LeafReaderDefaultSpi interface {
+type LeafReaderDefaultSPI interface {
 	Terms(field string) (Terms, error)
 }
 
@@ -81,7 +81,7 @@ type LeafReaderDefaultConfig struct {
 
 func NewLeafReaderDefault(reader LeafReader) *LeafReaderDefault {
 	return &LeafReaderDefault{
-		LeafReaderDefaultSpi: reader,
+		LeafReaderDefaultSPI: reader,
 		readerContext:        NewLeafReaderContext(reader),
 		IndexReaderDefault:   NewIndexReaderDefault(reader),
 	}
@@ -108,8 +108,8 @@ func (r *LeafReaderDefault) Postings(term *Term, flags int) (PostingsEnum, error
 	return nil, nil
 }
 
-func (r *LeafReaderDefault) GetContext() IndexReaderContext {
-	return r.readerContext
+func (r *LeafReaderDefault) GetContext() (IndexReaderContext, error) {
+	return r.readerContext, nil
 }
 
 func (r *LeafReaderDefault) DocFreq(term Term) (int, error) {

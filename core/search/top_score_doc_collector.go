@@ -94,7 +94,7 @@ func newTopScoreDocCollector(numHits int,
 
 	queue := structure.NewPriorityQueueV1(numHits,
 		func() ScoreDoc {
-			return NewScoreDoc(math.MaxInt32, math.Inf(1))
+			return NewScoreDoc(math.MaxInt32, math.Inf(-1))
 		},
 		func(hitA, hitB ScoreDoc) bool {
 			if hitA.GetScore() == hitB.GetScore() {
@@ -102,6 +102,7 @@ func newTopScoreDocCollector(numHits int,
 			}
 			return hitA.GetScore() < hitB.GetScore()
 		})
+	queue.SetSize(numHits)
 
 	ts.TopDocsCollectorDefault = newTopDocsCollectorDefault(queue)
 	// HitQueue implements getSentinelObject to return a ScoreDoc, so we know
@@ -160,10 +161,18 @@ type SimpleTopScoreDocCollector struct {
 	*TopScoreDocCollectorDefault
 }
 
-func (s *SimpleTopScoreDocCollector) GetLeafCollector(ctx context.Context, leafCtx *index.LeafReaderContext) (LeafCollector, error) {
+func NewSimpleTopScoreDocCollector(numHits int, hitsThresholdChecker HitsThresholdChecker,
+	minScoreAcc *MaxScoreAccumulator) (TopScoreDocCollector, error) {
+	return &SimpleTopScoreDocCollector{
+		newTopScoreDocCollector(numHits, hitsThresholdChecker, minScoreAcc),
+	}, nil
+}
+
+func (s *SimpleTopScoreDocCollector) GetLeafCollector(_ context.Context,
+	readerContext *index.LeafReaderContext) (LeafCollector, error) {
 	// reset the minimum competitive score
 	s.minCompetitiveScore = 0
-	s.docBase = leafCtx.DocBase
+	s.docBase = readerContext.DocBase
 
 	c := &ScorerLeafCollector{
 		FnSetScorer: func(scorer Scorable) error {
@@ -173,6 +182,7 @@ func (s *SimpleTopScoreDocCollector) GetLeafCollector(ctx context.Context, leafC
 			return s.updateGlobalMinCompetitiveScore(scorer)
 		},
 	}
+
 	c.FnCollect = func(ctx context.Context, doc int) error {
 		score, err := c.scorer.Score()
 		if err != nil {
@@ -215,12 +225,6 @@ func (s *SimpleTopScoreDocCollector) GetLeafCollector(ctx context.Context, leafC
 
 func (s *SimpleTopScoreDocCollector) ScoreMode() *ScoreMode {
 	return s.hitsThresholdChecker.ScoreMode()
-}
-
-func NewSimpleTopScoreDocCollector(numHits int, hitsThresholdChecker HitsThresholdChecker, minScoreAcc *MaxScoreAccumulator) (TopScoreDocCollector, error) {
-	return &SimpleTopScoreDocCollector{
-		newTopScoreDocCollector(numHits, hitsThresholdChecker, minScoreAcc),
-	}, nil
 }
 
 var _ TopScoreDocCollector = &PagingTopScoreDocCollector{}

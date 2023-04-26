@@ -1,6 +1,8 @@
 package search
 
-// Scorable Allows access to the Score of a Query
+// Scorable
+// Allows access to the Score of a Query
+// 允许访问查询的分数
 type Scorable interface {
 	// Score Returns the Score of the current document matching the query.
 	Score() (float32, error)
@@ -31,15 +33,15 @@ type Scorable interface {
 type ScorableDefault struct {
 }
 
-func (ScorableDefault) SmoothingScore(docId int) (float32, error) {
+func (*ScorableDefault) SmoothingScore(docId int) (float32, error) {
 	return 0, nil
 }
 
-func (ScorableDefault) SetMinCompetitiveScore(minScore float32) error {
+func (*ScorableDefault) SetMinCompetitiveScore(minScore float32) error {
 	return nil
 }
 
-func (ScorableDefault) GetChildren() ([]ChildScorable, error) {
+func (*ScorableDefault) GetChildren() ([]ChildScorable, error) {
 	return []ChildScorable{}, nil
 }
 

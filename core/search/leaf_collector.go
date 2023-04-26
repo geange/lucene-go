@@ -68,10 +68,10 @@ type LeafCollector interface {
 	CompetitiveIterator() (index.DocIdSetIterator, error)
 }
 
-type LeafCollectorImp struct {
+type LeafCollectorDefault struct {
 }
 
-func (*LeafCollectorImp) CompetitiveIterator() (index.DocIdSetIterator, error) {
+func (*LeafCollectorDefault) CompetitiveIterator() (index.DocIdSetIterator, error) {
 	return nil, nil
 }
 

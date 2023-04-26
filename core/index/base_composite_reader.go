@@ -30,11 +30,15 @@ func (b *BaseCompositeReader) DoClose() error {
 	return nil
 }
 
-func (b *BaseCompositeReader) GetContext() IndexReaderContext {
+func (b *BaseCompositeReader) GetContext() (IndexReaderContext, error) {
 	if b.readerContext == nil {
-		b.readerContext = NewCompositeReaderContext(b)
+		var err error
+		b.readerContext, err = NewCompositeReaderContext(b)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return b.readerContext
+	return b.readerContext, nil
 }
 
 func (b *BaseCompositeReader) GetMetaData() *LeafMetaData {

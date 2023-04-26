@@ -60,7 +60,8 @@ func main() {
 
 	result := topDocs.GetScoreDocs()
 	for _, scoreDoc := range result {
-		document, err := reader.Document(scoreDoc.GetDoc())
+		docID := scoreDoc.GetDoc()
+		document, err := reader.Document(docID)
 		if err != nil {
 			panic(err)
 		}
@@ -68,7 +69,7 @@ func main() {
 		if err != nil {
 			return
 		}
-		fmt.Printf("段内排序后的文档号: %d  VS 段内排序前的文档: %s",
+		fmt.Printf("段内排序后的文档号: %d  VS 段内排序前的文档: %s\n",
 			scoreDoc.GetDoc(), value)
 	}
 

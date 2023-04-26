@@ -75,7 +75,7 @@ type IndexReader interface {
 	// Note: Any of the sub-CompositeReaderContext instances referenced from this top-level context do
 	// not support CompositeReaderContext.leaves(). Only the top-level context maintains the convenience
 	// leaf-view for performance reasons.
-	GetContext() IndexReaderContext
+	GetContext() (ctx IndexReaderContext, err error)
 
 	// Leaves Returns the reader's leaves, or itself if this reader is atomic. This is a convenience method
 	// calling this.getContext().leaves().
@@ -124,7 +124,7 @@ type IndexReaderDefaultSPI interface {
 	NumDocs() int
 	MaxDoc() int
 	DocumentV1(docID int, visitor document.StoredFieldVisitor) error
-	GetContext() IndexReaderContext
+	GetContext() (IndexReaderContext, error)
 	DoClose() error
 }
 
@@ -275,7 +275,11 @@ func (r *IndexReaderDefault) HasDeletions() bool {
 }
 
 func (r *IndexReaderDefault) Leaves() ([]*LeafReaderContext, error) {
-	return r.spi.GetContext().Leaves()
+	context, err := r.spi.GetContext()
+	if err != nil {
+		return nil, err
+	}
+	return context.Leaves()
 }
 
 // CacheHelper

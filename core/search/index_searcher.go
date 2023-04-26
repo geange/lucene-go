@@ -54,7 +54,7 @@ type IndexSearcher struct {
 }
 
 func NewIndexSearcher(r index.IndexReader) (*IndexSearcher, error) {
-	context := r.GetContext()
+	context, _ := r.GetContext()
 	return newIndexSearcher(context)
 }
 
@@ -135,8 +135,7 @@ func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (T
 		hitsThresholdChecker HitsThresholdChecker
 		*CollectorManagerDefault
 	}{
-		CollectorManagerDefault: &CollectorManagerDefault{},
-		hitsThresholdChecker:    hitsThresholdChecker,
+		hitsThresholdChecker: hitsThresholdChecker,
 	}
 
 	if !(r.executor == nil || len(r.leafSlices) <= 1) {
@@ -152,19 +151,22 @@ func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (T
 			return nil, err
 		}
 	}
-	manager.FnNewCollector = func() (Collector, error) {
-		return TopScoreDocCollectorCreate(cappedNumHits, after, manager.hitsThresholdChecker, minScoreAcc)
-	}
-	manager.FnReduce = func(collectors []TopScoreDocCollector) (any, error) {
-		topDocs := make([]TopDocs, len(collectors))
-		for i, collector := range collectors {
-			docs, err := collector.TopDocs()
-			if err != nil {
-				return nil, err
+
+	manager.CollectorManagerDefault = &CollectorManagerDefault{
+		FnNewCollector: func() (Collector, error) {
+			return TopScoreDocCollectorCreate(cappedNumHits, after, manager.hitsThresholdChecker, minScoreAcc)
+		},
+		FnReduce: func(collectors []TopScoreDocCollector) (any, error) {
+			topDocs := make([]TopDocs, len(collectors))
+			for i, collector := range collectors {
+				docs, err := collector.TopDocs()
+				if err != nil {
+					return nil, err
+				}
+				topDocs[i] = docs
 			}
-			topDocs[i] = docs
-		}
-		return MergeTopDocs(0, cappedNumHits, topDocs, true)
+			return MergeTopDocs(0, cappedNumHits, topDocs, true)
+		},
 	}
 
 	v, err := r.SearchByCollectorManager(query, manager)
