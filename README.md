@@ -7,7 +7,7 @@ At present, this is only a learning project. I try to implement the contents of 
 Due to the complexity of Lucene, the readability of the project code needs to be improved.
 
 The current project is not fully operational, and there is still a lot of work to be improved.
-Only a small number of class libraries can run independently, but there may be some bugs 😂
+Only a small number of class libraries can run independently, but there may be some bugs.
 
 ## example
 
@@ -84,6 +84,58 @@ func main() {
 		}
 		fmt.Println(docID)
 	}
+}
+
+```
+
+## IndexSearch
+
+use indexSearch to get TopN docs
+
+```go
+// only support simpleText codec 😅
+dir, err := store.NewNIOFSDirectory("data")
+if err != nil {
+    panic(err)
+}
+
+codec := simpletext.NewSimpleTextCodec()
+similarity := search.NewCastBM25Similarity()
+
+config := index.NewIndexWriterConfig(codec, similarity)
+
+writer, err := index.NewIndexWriter(dir, config)
+if err != nil {
+    panic(err)
+}
+
+reader, err := index.DirectoryReaderOpen(writer)
+if err != nil {
+    panic(err)
+}
+
+searcher, err := search.NewIndexSearcher(reader)
+if err != nil {
+panic(err)
+}
+topDocs, err := searcher.SearchTopN(search.NewMatchAllDocsQuery(), 100)
+if err != nil {
+panic(err)
+}
+
+result := topDocs.GetScoreDocs()
+for _, scoreDoc := range result {
+    docID := scoreDoc.GetDoc()
+    document, err := reader.Document(docID)
+    if err != nil {
+        panic(err)
+    }
+    value, err := document.Get("sequence")
+    if err != nil {
+        panic(err)
+    }
+    fmt.Printf("段内排序后的文档号: %d  VS 段内排序前的文档: %s\n",
+        scoreDoc.GetDoc(), value)
 }
 
 ```
