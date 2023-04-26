@@ -1,10 +1,13 @@
 package index
 
-import "github.com/geange/lucene-go/core/util"
+import (
+	"github.com/geange/lucene-go/core/util"
+)
 
 // A DocIdSet contains a set of doc ids. Implementing classes must only implement iterator to provide access to the set.
 type DocIdSet interface {
-	// Iterator Provides a DocIdSetIterator to access the set.
+	// Iterator
+	// DVFUIterator Provides a DocIdSetIterator to access the set.
 	// This implementation can return null if there are no docs that match.
 	Iterator() (DocIdSetIterator, error)
 

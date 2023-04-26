@@ -1,13 +1,17 @@
 package search
 
 import (
-	"github.com/bits-and-blooms/bitset"
+	"errors"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util"
 	"math"
 )
 
-// Weight Expert: Calculate query weights and build query scorers.
+// Weight
+// Expert: Calculate query weights and build query scorers.
 // 计算查询权重并构建查询记分器。
+//
 // The purpose of Weight is to ensure searching does not modify a Query, so that a Query instance can be reused.
 // IndexSearcher dependent state of the query should reside in the Weight. LeafReader dependent state should
 // reside in the Scorer.
@@ -24,22 +28,26 @@ import (
 // A Scorer is constructed by scorer(LeafReaderContext).
 // Since: 2.9
 type Weight interface {
+	SegmentCacheable
+
+	ExtractTerms(terms []*index.Term) error
+
 	// Matches Returns Matches for a specific document, or null if the document does not match the parent query A query match that contains no position information (for example, a Point or DocValues query) will return MatchesUtils.MATCH_WITH_NO_TERMS
 	// Params: 	context – the reader's context to create the Matches for
 	//			doc – the document's id relative to the given context's reader
 	Matches(context *index.LeafReaderContext, doc int) (Matches, error)
 
-	// Explain An explanation of the Score computation for the named document.
+	// Explain An explanation of the score computation for the named document.
 	// Params: 	context – the readers context to create the Explanation for.
 	//			doc – the document's id relative to the given context's reader
-	// Returns: an Explanation for the Score
+	// Returns: an Explanation for the score
 	// Throws: 	IOException – if an IOException occurs
-	Explain(ctx *index.LeafReaderContext, doc int) (*Explanation, error)
+	Explain(ctx *index.LeafReaderContext, doc int) (*types.Explanation, error)
 
 	// GetQuery The query that this concerns.
 	GetQuery() Query
 
-	// Scorer Returns a Scorer which can iterate in order over all matching documents and assign them a Score.
+	// Scorer Returns a Scorer which can iterate in order over all matching documents and assign them a score.
 	//NOTE: null can be returned if no documents will be scored by this query.
 	//NOTE: The returned Scorer does not have LeafReader.getLiveDocs() applied, they need to be checked on top.
 	//Params:
@@ -55,31 +63,43 @@ type Weight interface {
 	//scorer
 	ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error)
 
-	// BulkScorer Optional method, to return a BulkScorer to Score the query and send hits to a Collector. Only queries that have a different top-level approach need to override this; the default implementation pulls a normal Scorer and iterates and collects the resulting hits which are not marked as deleted.
+	// BulkScorer Optional method, to return a BulkScorer to score the query and send hits to a Collector. Only queries that have a different top-level approach need to override this; the default implementation pulls a normal Scorer and iterates and collects the resulting hits which are not marked as deleted.
 	// Params: 	context – the LeafReaderContext for which to return the Scorer.
 	// Returns: a BulkScorer which scores documents and passes them to a collector.
 	// Throws: 	IOException – if there is a low-level I/O error
 	BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error)
 }
 
-type WeightExtra interface {
+type WeightSPI interface {
 	Scorer(ctx *index.LeafReaderContext) (Scorer, error)
 }
 
-type WeightImp struct {
-	WeightExtra
+type WeightDefault struct {
+	WeightSPI
 
 	parentQuery Query
 }
 
-func NewWeightImp(parentQuery Query, extra WeightExtra) *WeightImp {
-	return &WeightImp{
-		WeightExtra: extra,
+func NewWeight(parentQuery Query, extra WeightSPI) *WeightDefault {
+	return &WeightDefault{
+		WeightSPI:   extra,
 		parentQuery: parentQuery,
 	}
 }
 
-func (r *WeightImp) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
+func (r *WeightDefault) ExtractTerms(terms []*index.Term) error {
+	return nil
+}
+
+func (r *WeightDefault) GetQuery() Query {
+	return r.parentQuery
+}
+
+func (r *WeightDefault) IsCacheable(ctx *index.LeafReaderContext) bool {
+	return false
+}
+
+func (r *WeightDefault) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
 	scorerSupplier, err := r.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
@@ -111,10 +131,10 @@ func (r *WeightImp) Matches(ctx *index.LeafReaderContext, doc int) (Matches, err
 			return nil, nil
 		}
 	}
-	panic("")
+	return nil, errors.New("MATCH_WITH_NO_TERMS")
 }
 
-func (r *WeightImp) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
+func (r *WeightDefault) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
 	scorer, err := r.Scorer(ctx)
 	if err != nil {
 		return nil, err
@@ -140,7 +160,7 @@ func (s *scorerSupplier) Cost() int64 {
 	return s.scorer.Iterator().Cost()
 }
 
-func (r *WeightImp) BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error) {
+func (r *WeightDefault) BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error) {
 	scorer, err := r.Scorer(ctx)
 	if err != nil {
 		return nil, err
@@ -169,13 +189,13 @@ func NewDefaultBulkScorer(scorer Scorer) *DefaultBulkScorer {
 	}
 }
 
-func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs *bitset.BitSet) error {
+func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs util.Bits) error {
 	NO_MORE_DOCS := math.MaxInt32
-	_, err := d.Score4(collector, acceptDocs, 0, NO_MORE_DOCS)
+	_, err := d.ScoreRange(collector, acceptDocs, 0, NO_MORE_DOCS)
 	return err
 }
 
-func (d *DefaultBulkScorer) Score4(collector LeafCollector, acceptDocs *bitset.BitSet, min, max int) (int, error) {
+func (d *DefaultBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
 	err := collector.SetScorer(d.scorer)
 	if err != nil {
 		return 0, err
@@ -233,7 +253,7 @@ func (d *DefaultBulkScorer) Score4(collector LeafCollector, acceptDocs *bitset.B
 }
 
 func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
-	twoPhase TwoPhaseIterator, acceptDocs *bitset.BitSet) error {
+	twoPhase TwoPhaseIterator, acceptDocs util.Bits) error {
 
 	if twoPhase == nil {
 		doc, err := iterator.NextDoc()
@@ -242,7 +262,7 @@ func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 		}
 		for doc != index.NO_MORE_DOCS {
 			if acceptDocs == nil || acceptDocs.Test(uint(doc)) {
-				err := collector.Collect(doc)
+				err := collector.Collect(nil, doc)
 				if err != nil {
 					return err
 				}
@@ -262,7 +282,7 @@ func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 		// The scorer has an approximation, so run the approximation first, then check acceptDocs, then confirm
 		for doc != index.NO_MORE_DOCS {
 			if ok, _ := twoPhase.Matches(); ok && (acceptDocs == nil || acceptDocs.Test(uint(doc))) {
-				err := collector.Collect(doc)
+				err := collector.Collect(nil, doc)
 				if err != nil {
 					return err
 				}
@@ -278,14 +298,14 @@ func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 }
 
 func scoreRange(collector LeafCollector, iterator index.DocIdSetIterator, twoPhase TwoPhaseIterator,
-	acceptDocs *bitset.BitSet, currentDoc, end int) (int, error) {
+	acceptDocs util.Bits, currentDoc, end int) (int, error) {
 
 	var err error
 
 	if twoPhase == nil {
 		for currentDoc < end {
 			if acceptDocs == nil || acceptDocs.Test(uint(currentDoc)) {
-				err := collector.Collect(currentDoc)
+				err := collector.Collect(nil, currentDoc)
 				if err != nil {
 					return 0, err
 				}
@@ -299,7 +319,7 @@ func scoreRange(collector LeafCollector, iterator index.DocIdSetIterator, twoPha
 	} else {
 		for currentDoc < end {
 			if ok, _ := twoPhase.Matches(); ok && (acceptDocs == nil || acceptDocs.Test(uint(currentDoc))) {
-				err := collector.Collect(currentDoc)
+				err := collector.Collect(nil, currentDoc)
 				if err != nil {
 					return 0, err
 				}

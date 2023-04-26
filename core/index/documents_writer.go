@@ -41,7 +41,7 @@ type DocumentsWriter struct {
 	flushNotifications FlushNotifications
 	closed             bool
 	infoStream         io.Writer
-	config             *LiveIndexWriterConfig
+	config             *liveIndexWriterConfig
 	numDocsInRAM       *atomic.Int64
 
 	// TODO: cut over to BytesHash in BufferedDeletes
@@ -59,7 +59,7 @@ type DocumentsWriter struct {
 }
 
 func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int64, enableTestPoints bool,
-	segmentName func() string, config *LiveIndexWriterConfig, directoryOrig, directory store.Directory,
+	segmentName func() string, config *liveIndexWriterConfig, directoryOrig, directory store.Directory,
 	globalFieldNumberMap *FieldNumbers) *DocumentsWriter {
 
 	infos := NewFieldInfosBuilder(globalFieldNumberMap)
@@ -109,6 +109,32 @@ func (d *DocumentsWriter) Flush(ctx context.Context) error {
 
 func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWriterPerThread) error {
 	return flushingDWPT.Flush(ctx)
+}
+
+func (d *DocumentsWriter) anyChanges() bool {
+
+	// changes are either in a DWPT or in the deleteQueue.
+	// yet if we currently flush deletes and / or dwpt there
+	// could be a window where all changes are in the ticket queue
+	// before they are published to the IW. ie we need to check if the
+	// ticket queue has any tickets.
+	anyChanges := d.numDocsInRAM.Load() != 0 ||
+		d.anyDeletions() ||
+		d.ticketQueue.hasTickets() ||
+		d.pendingChangesInCurrentFullFlush
+	return anyChanges
+}
+
+func (d *DocumentsWriter) anyDeletions() bool {
+	return d.deleteQueue.anyChanges()
+}
+
+func (d *DocumentsWriter) flushAllThreads() int64 {
+	panic("")
+}
+
+func (d *DocumentsWriter) FinishFullFlush(success bool) error {
+	panic("")
 }
 
 type FlushNotifications interface {

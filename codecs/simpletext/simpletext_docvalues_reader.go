@@ -16,9 +16,10 @@ import (
 var _ index.DocValuesProducer = &SimpleTextDocValuesReader{}
 
 type SimpleTextDocValuesReader struct {
-	maxDoc int
-	data   store.IndexInput
-	fields map[string]*OneField
+	maxDoc  int
+	data    store.IndexInput
+	fields  map[string]*OneField
+	scratch *bytes.Buffer
 }
 
 type OneField struct {
@@ -31,8 +32,148 @@ type OneField struct {
 	numValues            int64
 }
 
+func NewOneField() *OneField {
+	return &OneField{}
+}
+
 func NewSimpleTextDocValuesReader(state *index.SegmentReadState, ext string) (*SimpleTextDocValuesReader, error) {
-	panic("")
+	r := &SimpleTextDocValuesReader{
+		fields:  map[string]*OneField{},
+		scratch: new(bytes.Buffer),
+	}
+
+	var err error
+	r.data, err = state.Directory.OpenInput(
+		store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, ext), state.Context)
+	if err != nil {
+		return nil, err
+	}
+	r.maxDoc, err = state.SegmentInfo.MaxDoc()
+	if err != nil {
+		return nil, err
+	}
+
+	reader := utils.NewTextReader(r.data, r.scratch)
+
+	for {
+		if err := reader.ReadLine(); err != nil {
+			return nil, err
+		}
+		//System.out.println("READ field=" + scratch.utf8ToString());
+		if bytes.Equal(r.scratch.Bytes(), DOC_VALUES_END) {
+			break
+		}
+
+		if !bytes.HasPrefix(r.scratch.Bytes(), DOC_VALUES_FIELD) {
+			return nil, errors.New(r.scratch.String())
+		}
+		fieldName := r.stripPrefix(DOC_VALUES_FIELD)
+		//System.out.println("  field=" + fieldName);
+
+		field := NewOneField()
+		r.fields[fieldName] = field
+
+		value, err := reader.ReadLabel(DOC_VALUES_TYPE)
+		if err != nil {
+			return nil, err
+		}
+
+		dvType := types.StringToDocValuesType(value)
+		if dvType == types.DOC_VALUES_TYPE_NONE {
+			return nil, errors.New("dvType is NONE")
+		}
+		switch dvType {
+		case types.DOC_VALUES_TYPE_NUMERIC:
+			value, err := reader.ReadLabel(DOC_VALUES_MINVALUE)
+			if err != nil {
+				return nil, err
+			}
+			field.minValue, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+
+			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
+			if err != nil {
+				return nil, err
+			}
+			field.pattern = value
+
+			field.dataStartFilePointer = r.data.GetFilePointer()
+			offset := r.data.GetFilePointer() + int64((1+len(field.pattern)+2)*r.maxDoc)
+			if _, err = r.data.Seek(offset, io.SeekStart); err != nil {
+				return nil, err
+			}
+		case types.DOC_VALUES_TYPE_BINARY:
+			value, err := reader.ReadLabel(DOC_VALUES_MAXLENGTH)
+			if err != nil {
+				return nil, err
+			}
+			field.maxLength, err = strconv.Atoi(value)
+			if err != nil {
+				return nil, err
+			}
+
+			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
+			if err != nil {
+				return nil, err
+			}
+			field.pattern = value
+
+			field.dataStartFilePointer = r.data.GetFilePointer()
+
+			offset := r.data.GetFilePointer() + int64((1+len(field.pattern)+2)*r.maxDoc)
+
+			if _, err = r.data.Seek(offset, io.SeekStart); err != nil {
+				return nil, err
+			}
+
+		case types.DOC_VALUES_TYPE_SORTED, types.DOC_VALUES_TYPE_SORTED_SET:
+			value, err := reader.ReadLabel(DOC_VALUES_NUMVALUES)
+			if err != nil {
+				return nil, err
+			}
+			field.numValues, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+
+			value, err = reader.ReadLabel(DOC_VALUES_MAXLENGTH)
+			if err != nil {
+				return nil, err
+			}
+			field.maxLength, err = strconv.Atoi(value)
+			if err != nil {
+				return nil, err
+			}
+
+			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
+			if err != nil {
+				return nil, err
+			}
+			field.pattern = value
+
+			value, err = reader.ReadLabel(DOC_VALUES_ORDPATTERN)
+			if err != nil {
+				return nil, err
+			}
+			field.ordPattern = value
+
+			field.dataStartFilePointer = r.data.GetFilePointer()
+
+			offset := r.data.GetFilePointer() +
+				int64(9+len(field.pattern)+field.maxLength)*field.numValues +
+				int64((1+len(field.ordPattern))*r.maxDoc)
+
+			if _, err = r.data.Seek(offset, io.SeekStart); err != nil {
+				return nil, err
+			}
+
+		default:
+			return nil, errors.New("AssertionError")
+		}
+	}
+	return r, nil
 }
 
 func (s *SimpleTextDocValuesReader) Close() error {
@@ -736,6 +877,14 @@ func (s *SimpleTextDocValuesReader) CheckIntegrity() error {
 		}
 	}
 	return nil
+}
+
+func (s *SimpleTextDocValuesReader) readLine() error {
+	return utils.ReadLine(s.data, s.scratch)
+}
+
+func (s *SimpleTextDocValuesReader) stripPrefix(field []byte) string {
+	return string(s.scratch.Bytes()[len(field):])
 }
 
 type DocValuesIterator interface {

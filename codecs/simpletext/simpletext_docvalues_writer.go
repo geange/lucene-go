@@ -152,14 +152,14 @@ func (s *SimpleTextDocValuesWriter) AddNumericField(field *types.FieldInfo, valu
 		}
 
 		utils.WriteString(s.data, fmt.Sprintf(fmtStr, value-minValue))
-		utils.Newline(s.data)
+		utils.NewLine(s.data)
 
 		if values.DocID() != i {
 			utils.WriteString(s.data, "F")
 		} else {
 			utils.WriteString(s.data, "T")
 		}
-		utils.Newline(s.data)
+		utils.NewLine(s.data)
 		numDocsWritten++
 		if numDocsWritten <= s.numDocs {
 			panic("")
@@ -260,14 +260,14 @@ func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *types.FieldInfo, val
 		for j := length; j < maxLength; j++ {
 			s.data.WriteByte(' ')
 		}
-		utils.Newline(s.data)
+		utils.NewLine(s.data)
 
 		if values.DocID() != i {
 			utils.WriteString(s.data, "F")
 		} else {
 			utils.WriteString(s.data, "T")
 		}
-		utils.Newline(s.data)
+		utils.NewLine(s.data)
 		numDocsWritten++
 	}
 
@@ -359,7 +359,7 @@ func (s *SimpleTextDocValuesWriter) AddSortedField(field *types.FieldInfo, value
 		for i := len(value); i < maxLength; i++ {
 			s.data.WriteByte(' ')
 		}
-		utils.Newline(s.data)
+		utils.NewLine(s.data)
 		valuesSeen++
 
 		if valuesSeen > valueCount {
@@ -391,7 +391,7 @@ func (s *SimpleTextDocValuesWriter) AddSortedField(field *types.FieldInfo, value
 			}
 		}
 		utils.WriteString(s.data, fmt.Sprintf(ordEncoderFmt, ord+1))
-		utils.Newline(s.data)
+		utils.NewLine(s.data)
 	}
 	return nil
 }
@@ -520,17 +520,17 @@ func (s *SimpleTextDocValuesWriter) fieldSeen(field string) error {
 func (s *SimpleTextDocValuesWriter) writeFieldEntry(field *types.FieldInfo, _type types.DocValuesType) error {
 	utils.WriteBytes(s.data, DOC_VALUES_FIELD)
 	utils.WriteString(s.data, field.Name())
-	utils.Newline(s.data)
+	utils.NewLine(s.data)
 
 	utils.WriteBytes(s.data, DOC_VALUES_TYPE)
 	utils.WriteString(s.data, _type.String())
-	return utils.Newline(s.data)
+	return utils.NewLine(s.data)
 }
 
 func (s *SimpleTextDocValuesWriter) Close() error {
 	if s.data != nil {
 		utils.WriteBytes(s.data, DOC_VALUES_END)
-		utils.Newline(s.data)
+		utils.NewLine(s.data)
 		if err := s.data.Close(); err != nil {
 			return err
 		}

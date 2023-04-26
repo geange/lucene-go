@@ -52,6 +52,40 @@ type SegmentCommitInfo struct {
 	bufferedDeletesGen int64
 }
 
+func NewSegmentCommitInfo(info *SegmentInfo, delCount, softDelCount int, delGen, fieldInfosGen, docValuesGen int64, id []byte) *SegmentCommitInfo {
+	nextWriteDelGen := delGen + 1
+	if delGen == -1 {
+		nextWriteDelGen = 1
+	}
+
+	nextWriteFieldInfosGen := fieldInfosGen + 1
+	if fieldInfosGen == -1 {
+		nextWriteFieldInfosGen = 1
+	}
+
+	nextWriteDocValuesGen := docValuesGen + 1
+	if docValuesGen == -1 {
+		nextWriteDocValuesGen = 1
+	}
+
+	return &SegmentCommitInfo{
+		info:                   info,
+		id:                     id,
+		delCount:               delCount,
+		softDelCount:           softDelCount,
+		delGen:                 delGen,
+		nextWriteDelGen:        nextWriteDelGen,
+		fieldInfosGen:          fieldInfosGen,
+		nextWriteFieldInfosGen: nextWriteFieldInfosGen,
+		docValuesGen:           docValuesGen,
+		nextWriteDocValuesGen:  nextWriteDocValuesGen,
+		dvUpdatesFiles:         map[int]map[string]struct{}{},
+		fieldInfosFiles:        map[string]struct{}{},
+		sizeInBytes:            0,
+		bufferedDeletesGen:     0,
+	}
+}
+
 func (s *SegmentCommitInfo) Info() *SegmentInfo {
 	return s.info
 }
@@ -101,6 +135,13 @@ func (s *SegmentCommitInfo) GetDelCount() int {
 	return s.delCount
 }
 
+func (s *SegmentCommitInfo) GetDelCountV1(includeSoftDeletes bool) int {
+	if includeSoftDeletes {
+		return s.GetDelCount() + s.GetSoftDelCount()
+	}
+	return s.GetDelCount()
+}
+
 // GetSoftDelCount Returns the number of only soft-deleted docs.
 func (s *SegmentCommitInfo) GetSoftDelCount() int {
 	return s.softDelCount
@@ -112,4 +153,121 @@ func (s *SegmentCommitInfo) SetDelCount(delCount int) {
 
 func (s *SegmentCommitInfo) SetSoftDelCount(softDelCount int) {
 	s.softDelCount = softDelCount
+}
+
+func (s *SegmentCommitInfo) Files() (map[string]struct{}, error) {
+	files := s.info.Files()
+
+	// Must separately add any live docs files:
+	_, err := s.info.GetCodec().LiveDocsFormat().Files(s, files)
+	if err != nil {
+		return nil, err
+	}
+
+	// must separately add any field updates files
+	for _, updateFiles := range s.dvUpdatesFiles {
+		for k := range updateFiles {
+			files[k] = struct{}{}
+		}
+	}
+
+	// must separately add fieldInfos files
+	for k := range s.fieldInfosFiles {
+		files[k] = struct{}{}
+	}
+	return files, nil
+}
+
+func (s *SegmentCommitInfo) GetNextWriteDelGen() int64 {
+	return s.nextWriteDelGen
+}
+
+func (s *SegmentCommitInfo) SetNextWriteDelGen(v int64) {
+	s.nextWriteDelGen = v
+}
+
+func (s *SegmentCommitInfo) GetNextWriteFieldInfosGen() int64 {
+	return s.nextWriteFieldInfosGen
+}
+
+func (s *SegmentCommitInfo) SetNextWriteFieldInfosGen(v int64) {
+	s.nextWriteFieldInfosGen = v
+}
+
+func (s *SegmentCommitInfo) GetNextWriteDocValuesGen() int64 {
+	return s.nextWriteDocValuesGen
+}
+
+func (s *SegmentCommitInfo) SetNextWriteDocValuesGen(v int64) {
+	s.nextWriteDocValuesGen = v
+}
+
+func (s *SegmentCommitInfo) SetFieldInfosFiles(fieldInfosFiles map[string]struct{}) {
+	s.fieldInfosFiles = map[string]struct{}{}
+	for file := range fieldInfosFiles {
+		s.fieldInfosFiles[s.info.NamedForThisSegment(file)] = struct{}{}
+	}
+}
+
+func (s *SegmentCommitInfo) SetDocValuesUpdatesFiles(files map[int]map[string]struct{}) {
+	s.dvUpdatesFiles = map[int]map[string]struct{}{}
+	for k, values := range files {
+		newValues := make(map[string]struct{})
+		for v := range values {
+			newValues[v] = struct{}{}
+		}
+		s.dvUpdatesFiles[k] = newValues
+	}
+}
+
+func (s *SegmentCommitInfo) Clone() *SegmentCommitInfo {
+	other := NewSegmentCommitInfo(s.info, s.delCount, s.softDelCount, s.delGen, s.fieldInfosGen, s.docValuesGen, s.GetId())
+	// Not clear that we need to carry over nextWriteDelGen
+	// (i.e. do we ever clone after a failed write and
+	// before the next successful write?), but just do it to
+	// be safe:
+	other.nextWriteDelGen = s.nextWriteDelGen
+	other.nextWriteFieldInfosGen = s.nextWriteFieldInfosGen
+	other.nextWriteDocValuesGen = s.nextWriteDocValuesGen
+
+	for k, files := range s.dvUpdatesFiles {
+		values := make(map[string]struct{}, len(files))
+		for k := range files {
+			values[k] = struct{}{}
+		}
+		other.dvUpdatesFiles[k] = values
+	}
+
+	for k := range s.fieldInfosFiles {
+		other.fieldInfosFiles[k] = struct{}{}
+	}
+
+	return other
+}
+
+func (s *SegmentCommitInfo) GetId() []byte {
+	if len(s.id) > 0 {
+		items := make([]byte, len(s.id))
+		copy(items, s.id)
+		return items
+	}
+	return nil
+}
+
+func (s *SegmentCommitInfo) SizeInBytes() (int64, error) {
+	if s.sizeInBytes == -1 {
+		sum := int64(0)
+
+		files, _ := s.Files()
+		for fileName := range files {
+			fileLength, err := s.info.dir.FileLength(fileName)
+			if err != nil {
+				return 0, err
+			}
+			sum += fileLength
+		}
+		s.sizeInBytes = sum
+	}
+
+	return s.sizeInBytes, nil
 }

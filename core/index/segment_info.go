@@ -196,7 +196,7 @@ func checkFileNames(files []string) error {
 // locates the boundary of the segment name, or -1
 func indexOfSegmentName(filename string) int {
 	// If it is a .del file, there's an '_' after the first character
-	idx := strings.Index(filename, "_")
+	idx := strings.Index(filename[1:], "_")
 	if idx == -1 {
 		// If it's not, strip everything that's before the '.'
 		idx = strings.Index(filename, ".")
@@ -220,4 +220,8 @@ func StripSegmentName(filename string) string {
 // NamedForThisSegment strips any segment name from the file, naming it with this segment this is because "segment names" can change, e.g. by addIndexes(Dir)
 func (s *SegmentInfo) NamedForThisSegment(file string) string {
 	return s.name + StripSegmentName(file)
+}
+
+func (s *SegmentInfo) SetCodec(codec Codec) {
+	s.codec = codec
 }

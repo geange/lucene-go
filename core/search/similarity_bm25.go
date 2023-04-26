@@ -89,7 +89,7 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 	return int64(numTerms)
 }
 
-// IdfExplain Computes a Score factor for a simple term and returns an explanation for that Score factor.
+// IdfExplain Computes a score factor for a simple term and returns an explanation for that score factor.
 // The default implementation uses:
 //
 //	idf(docFreq, docCount);
@@ -102,52 +102,52 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 //
 //	termStats – term-level statistics for the term
 //
-// Returns: an Explain object that includes both an idf Score factor and an explanation for the term.
+// Returns: an Explain object that includes both an idf score factor and an explanation for the term.
 func (b *BM25Similarity) IdfExplain(
-	collectionStats *types.CollectionStatistics, termStats *types.TermStatistics) *Explanation {
+	collectionStats *types.CollectionStatistics, termStats *types.TermStatistics) *types.Explanation {
 
 	df := termStats.DocFreq()
 	docCount := collectionStats.DocCount()
 	idf := idf(df, docCount)
 
-	exp1 := NewExplanation(true, df,
+	exp1 := types.NewExplanation(true, df,
 		"n, number of documents containing term")
 
-	exp2 := NewExplanation(true, docCount,
+	exp2 := types.NewExplanation(true, docCount,
 		"N, total number of documents with field")
 
-	return NewExplanation(true, idf,
+	return types.NewExplanation(true, idf,
 		"idf, computed as log(1 + (N - n + 0.5) / (n + 0.5)) from:",
-		*exp1, *exp2)
+		exp1, exp2)
 }
 
-// IdfExplainV1 Computes a Score factor for a phrase.
+// IdfExplainV1 Computes a score factor for a phrase.
 // The default implementation sums the idf factor for each term in the phrase.
 // Params: 	collectionStats – collection-level statistics
 //
 //	termStats – term-level statistics for the terms in the phrase
 //
-// Returns: an Explain object that includes both an idf Score factor for the phrase and an explanation for each term.
+// Returns: an Explain object that includes both an idf score factor for the phrase and an explanation for each term.
 func (b *BM25Similarity) IdfExplainV1(
-	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) *Explanation {
+	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) *types.Explanation {
 
 	idf := 0.0
-	details := make([]Explanation, 0)
+	details := make([]*types.Explanation, 0)
 	for _, stat := range termStats {
 		idfExplain := b.IdfExplain(collectionStats, &stat)
-		details = append(details, *idfExplain)
+		details = append(details, idfExplain)
 		v, ok := idfExplain.GetValue().(float64)
 		if ok {
 			idf += v
 		}
 	}
-	return NewExplanation(true, idf, "idf, sum of:", details...)
+	return types.NewExplanation(true, idf, "idf, sum of:", details...)
 }
 
 func (b *BM25Similarity) Scorer(boost float64,
 	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) index.SimScorer {
 
-	var idf *Explanation
+	var idf *types.Explanation
 	if len(termStats) == 1 {
 		idf = b.IdfExplain(collectionStats, &termStats[0])
 	} else {
@@ -179,17 +179,19 @@ func (b *BM25Similarity) GetB() float64 {
 var _ index.SimScorer = &BM25Scorer{}
 
 type BM25Scorer struct {
-	boost  float64      // query boost
-	k1     float64      // k1 value for scale factor
-	b      float64      // b value for length normalization impact
-	idf    *Explanation // BM25's idf
-	avgdl  float64      //The average document length.
-	cache  []float64    // precomputed norm[256] with k1 * ((1 - b) + b * dl / avgdl)
-	weight float64      // weight (idf * boost)
+	*index.SimScorerDefault
+
+	boost  float64            // query boost
+	k1     float64            // k1 value for scale factor
+	b      float64            // b value for length normalization impact
+	idf    *types.Explanation // BM25's idf
+	avgdl  float64            //The average document length.
+	cache  []float64          // precomputed norm[256] with k1 * ((1 - b) + b * dl / avgdl)
+	weight float64            // weight (idf * boost)
 }
 
-func NewBM25Scorer(boost, k1, b float64, idf *Explanation, avgdl float64, cache []float64) *BM25Scorer {
-	return &BM25Scorer{
+func NewBM25Scorer(boost, k1, b float64, idf *types.Explanation, avgdl float64, cache []float64) *BM25Scorer {
+	scorer := &BM25Scorer{
 		boost:  boost,
 		k1:     k1,
 		b:      b,
@@ -198,6 +200,8 @@ func NewBM25Scorer(boost, k1, b float64, idf *Explanation, avgdl float64, cache 
 		cache:  cache,
 		weight: boost * idf.GetValue().(float64),
 	}
+	scorer.SimScorerDefault = index.NewSimScorerDefault(scorer)
+	return scorer
 }
 
 func (b *BM25Scorer) Score(freq float64, norm int64) float64 {

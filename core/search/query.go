@@ -20,8 +20,10 @@ import "github.com/geange/lucene-go/core/index"
 // See also the family of Span Queries and additional queries available in the Queries module
 type Query interface {
 
+	// String
 	// ToString Prints a query to a string, with field assumed to be the default field and omitted.
-	//ToString(field string) string
+	// ToString(field string) string
+	String(field string) string
 
 	// CreateWeight Expert: Constructs an appropriate Weight implementation for this query.
 	// Only implemented by primitive queries, which re-write to themselves.

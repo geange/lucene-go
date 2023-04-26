@@ -194,7 +194,7 @@ func (r *BytesHash) Add(bytes []byte) (int, error) {
 		r.bytesStart[e] = bufferUpto + r.pool.ByteOffset
 
 		// We first encode the length, followed by the
-		// bytes. Length is encoded as vInt, but will consume
+		// bytes. Len is encoded as vInt, but will consume
 		// 1 or 2 bytes at most (we reject too-long terms,
 		// above).
 

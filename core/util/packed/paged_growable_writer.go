@@ -1,6 +1,6 @@
 package packed
 
-var _ abstractPagedMutableSPI = &PagedGrowableWriter{}
+var _ AbstractPagedMutableSPI = &PagedGrowableWriter{}
 
 // PagedGrowableWriter A PagedGrowableWriter. This class slices data into fixed-size blocks which have
 // independent numbers of bits per value and grow on-demand.
@@ -8,15 +8,15 @@ var _ abstractPagedMutableSPI = &PagedGrowableWriter{}
 // write-access. Otherwise this class will likely be slower and less memory-efficient.
 // lucene.internal
 type PagedGrowableWriter struct {
-	*abstractPagedMutable
+	*AbstractPagedMutableDefault
 
 	acceptableOverheadRatio float64
 }
 
 func NewPagedGrowableWriter(size, pageSize, startBitsPerValue int, acceptableOverheadRatio float64) (*PagedGrowableWriter, error) {
 	writer := &PagedGrowableWriter{
-		abstractPagedMutable:    nil,
-		acceptableOverheadRatio: acceptableOverheadRatio,
+		AbstractPagedMutableDefault: nil,
+		acceptableOverheadRatio:     acceptableOverheadRatio,
 	}
 	return writer.NewPagedGrowableWriter(size, pageSize, startBitsPerValue, acceptableOverheadRatio, true)
 }
@@ -24,7 +24,7 @@ func NewPagedGrowableWriter(size, pageSize, startBitsPerValue int, acceptableOve
 func (p *PagedGrowableWriter) NewPagedGrowableWriter(size, pageSize, startBitsPerValue int,
 	acceptableOverheadRatio float64, fillPages bool) (*PagedGrowableWriter, error) {
 
-	p.abstractPagedMutable = newAbstractPagedMutable(p, startBitsPerValue, size, pageSize)
+	p.AbstractPagedMutableDefault = newAbstractPagedMutable(p, startBitsPerValue, size, pageSize)
 	p.acceptableOverheadRatio = acceptableOverheadRatio
 	if fillPages {
 		err := p.fillPages()
@@ -35,11 +35,11 @@ func (p *PagedGrowableWriter) NewPagedGrowableWriter(size, pageSize, startBitsPe
 	return p, nil
 }
 
-func (p *PagedGrowableWriter) newMutable(valueCount, bitsPerValue int) Mutable {
+func (p *PagedGrowableWriter) NewMutable(valueCount, bitsPerValue int) Mutable {
 	return NewGrowableWriter(bitsPerValue, valueCount, p.acceptableOverheadRatio)
 }
 
-func (p *PagedGrowableWriter) newUnfilledCopy(newSize int) AbstractPagedMutable {
+func (p *PagedGrowableWriter) NewUnfilledCopy(newSize int) AbstractPagedMutable {
 	writer, err := p.NewPagedGrowableWriter(newSize, p.pageSize(), p.bitsPerValue, p.acceptableOverheadRatio, false)
 	if err != nil {
 		return nil

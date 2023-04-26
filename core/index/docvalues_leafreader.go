@@ -1,8 +1,8 @@
 package index
 
 import (
-	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/util"
 )
 
 var _ LeafReader = &DocValuesLeafReader{}
@@ -14,24 +14,7 @@ type DocValuesLeafReader struct {
 func NewDocValuesLeafReader() *DocValuesLeafReader {
 	reader := &DocValuesLeafReader{}
 
-	reader.LeafReaderDefault = NewLeafReaderDefault(&LeafReaderDefaultConfig{
-		Terms:         reader.Terms,
-		ReaderContext: nil,
-		IndexReaderDefaultConfig: IndexReaderDefaultConfig{
-			GetTermVectors:       reader.GetTermVectors,
-			NumDocs:              reader.NumDocs,
-			MaxDoc:               reader.MaxDoc,
-			DocumentV1:           reader.DocumentV1,
-			GetContext:           reader.GetContext,
-			DoClose:              reader.DoClose,
-			GetReaderCacheHelper: reader.GetReaderCacheHelper,
-			DocFreq:              reader.DocFreq,
-			TotalTermFreq:        reader.TotalTermFreq,
-			GetSumDocFreq:        reader.GetSumDocFreq,
-			GetDocCount:          reader.GetDocCount,
-			GetSumTotalTermFreq:  reader.GetSumTotalTermFreq,
-		},
-	})
+	reader.LeafReaderDefault = NewLeafReaderDefault(reader)
 	return reader
 }
 
@@ -105,7 +88,7 @@ func (d *DocValuesLeafReader) GetFieldInfos() *FieldInfos {
 	panic("implement me")
 }
 
-func (d *DocValuesLeafReader) GetLiveDocs() *bitset.BitSet {
+func (d *DocValuesLeafReader) GetLiveDocs() util.Bits {
 	//TODO implement me
 	panic("implement me")
 }

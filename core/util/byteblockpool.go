@@ -180,7 +180,7 @@ func (r *ByteBlockPool) AllocSlice(slice []byte, upto int) int {
 // avoid copying the bytes, if the slice fits into a single block; otherwise, it uses the provided BytesRefBuilder
 // to copy bytes over.
 func (r *ByteBlockPool) SetBytesRefV1(builder *BytesRefBuilder, result []byte, offset, length int) {
-	//result.Length = length
+	//result.Len = length
 	//
 	//bufferIndex := offset >> BYTE_BLOCK_SHIFT
 	//buffer := r.buffers[bufferIndex]

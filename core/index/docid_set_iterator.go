@@ -76,3 +76,44 @@ func (m *DocIdSetIteratorDefault) SlowAdvance(target int) (int, error) {
 	}
 	return doc, nil
 }
+
+func DocIdSetIteratorAll(maxDoc int) DocIdSetIterator {
+	return newDocIdSetIteratorAll(maxDoc)
+}
+
+var _ DocIdSetIterator = &docIdSetIteratorAll{}
+
+type docIdSetIteratorAll struct {
+	*DocIdSetIteratorDefault
+	doc    int
+	maxDoc int
+}
+
+func newDocIdSetIteratorAll(maxDoc int) *docIdSetIteratorAll {
+	it := &docIdSetIteratorAll{
+		doc:    -1,
+		maxDoc: maxDoc,
+	}
+	it.DocIdSetIteratorDefault = NewDocIdSetIteratorDefault(&DocIdSetIteratorDefaultConfig{NextDoc: it.NextDoc})
+	return it
+}
+
+func (d *docIdSetIteratorAll) DocID() int {
+	return d.doc
+}
+
+func (d *docIdSetIteratorAll) NextDoc() (int, error) {
+	return d.Advance(d.doc + 1)
+}
+
+func (d *docIdSetIteratorAll) Advance(target int) (int, error) {
+	d.doc = target
+	if d.doc >= d.maxDoc {
+		d.doc = NO_MORE_DOCS
+	}
+	return d.doc, nil
+}
+
+func (d *docIdSetIteratorAll) Cost() int64 {
+	return int64(d.maxDoc)
+}

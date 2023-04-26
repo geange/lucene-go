@@ -75,18 +75,18 @@ func (s *SimpleTextSkipWriter) WriteSkipData(level int, skipBuffer store.IndexOu
 	w := utils.NewTextWriter(skipBuffer)
 
 	if !wroteHeader {
-		w.WriteBytes(LEVEL)
-		w.WriteString(fmt.Sprintf("%d", level))
+		w.Bytes(LEVEL)
+		w.String(fmt.Sprintf("%d", level))
 		w.NewLine()
 
 		s.wroteHeaderPerLevelMap[level] = true
 	}
-	w.WriteBytes(SKIP_DOC)
-	w.WriteString(fmt.Sprintf("%d", s.curDoc))
+	w.Bytes(SKIP_DOC)
+	w.String(fmt.Sprintf("%d", s.curDoc))
 	w.NewLine()
 
-	w.WriteBytes(SKIP_DOC_FP)
-	w.WriteString(fmt.Sprintf("%d", s.curDocFilePointer))
+	w.Bytes(SKIP_DOC_FP)
+	w.String(fmt.Sprintf("%d", s.curDocFilePointer))
 	w.NewLine()
 
 	competitiveFreqNorms := s.curCompetitiveFreqNorms[level]
@@ -95,21 +95,21 @@ func (s *SimpleTextSkipWriter) WriteSkipData(level int, skipBuffer store.IndexOu
 	if level+1 < s.NumberOfSkipLevels {
 		s.curCompetitiveFreqNorms[level+1].AddAll(competitiveFreqNorms)
 	}
-	w.WriteBytes(IMPACTS)
+	w.Bytes(IMPACTS)
 	w.NewLine()
 	for _, impact := range impacts {
-		w.WriteBytes(IMPACT)
+		w.Bytes(IMPACT)
 		w.NewLine()
 
-		w.WriteBytes(FREQ)
-		w.WriteString(fmt.Sprintf("%d", impact.Freq))
+		w.Bytes(FREQ)
+		w.String(fmt.Sprintf("%d", impact.Freq))
 		w.NewLine()
 
-		w.WriteBytes(NORM)
-		w.WriteString(fmt.Sprintf("%d", impact.Norm))
+		w.Bytes(NORM)
+		w.String(fmt.Sprintf("%d", impact.Norm))
 		w.NewLine()
 	}
-	w.WriteBytes(IMPACTS_END)
+	w.Bytes(IMPACTS_END)
 	w.NewLine()
 	competitiveFreqNorms.Clear()
 
@@ -131,7 +131,7 @@ func (s *SimpleTextSkipWriter) WriteSkip(output store.IndexOutput) (int64, error
 
 	w := utils.NewTextWriter(output)
 
-	if err := w.WriteBytes(SKIP_LIST); err != nil {
+	if err := w.Bytes(SKIP_LIST); err != nil {
 		return 0, err
 	}
 	if err := w.NewLine(); err != nil {
@@ -154,14 +154,14 @@ func (s *SimpleTextSkipWriter) WriteSkip(output store.IndexOutput) (int64, error
 func (s *SimpleTextSkipWriter) WriteLevelLength(levelLength int64, output store.IndexOutput) error {
 	utils.WriteBytes(output, LEVEL_LENGTH)
 	utils.WriteString(output, fmt.Sprintf("%d", levelLength))
-	utils.Newline(output)
+	utils.NewLine(output)
 	return nil
 }
 
 func (s *SimpleTextSkipWriter) WriteChildPointer(childPointer int64, skipBuffer store.DataOutput) error {
 	utils.WriteBytes(skipBuffer, CHILD_POINTER)
 	utils.WriteString(skipBuffer, fmt.Sprintf("%d", childPointer))
-	utils.Newline(skipBuffer)
+	utils.NewLine(skipBuffer)
 	return nil
 }
 

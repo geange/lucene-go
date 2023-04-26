@@ -41,7 +41,7 @@ type DocumentsWriterFlushControl struct {
 
 //
 //func NewDocumentsWriterFlushControl(documentsWriter *DocumentsWriter,
-//	config *LiveIndexWriterConfig) *DocumentsWriterFlushControl {
+//	config *liveIndexWriterConfig) *DocumentsWriterFlushControl {
 //
 //	return &DocumentsWriterFlushControl{
 //		perThread: NewDocumentsWriterPerThread(),

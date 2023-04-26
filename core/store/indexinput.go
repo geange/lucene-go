@@ -6,7 +6,7 @@ import "io"
 // all Lucene index input operations.
 //
 // IndexInput may only be used from one thread, because it is not thread safe (it keeps internal state like
-// file position). To allow multithreaded use, every IndexInput instance must be cloned before it is used in
+// file pos). To allow multithreaded use, every IndexInput instance must be cloned before it is used in
 // another thread. Subclasses must therefore implement clone(), returning a new IndexInput which operates on
 // the same underlying resource, but positioned independently.
 //
@@ -19,13 +19,13 @@ type IndexInput interface {
 
 	io.Closer
 
-	// Seeker Sets current position in this file, where the next read will occur. If this is beyond the end
+	// Seeker Sets current pos in this file, where the next read will occur. If this is beyond the end
 	// of the file then this will throw EOFException and then the stream is in an undetermined state.
 	// See Also: getFilePointer()
 	//Seek(pos int64, whence int) (int64, error)
 	io.Seeker
 
-	// GetFilePointer Returns the current position in this file, where the next read will occur.
+	// GetFilePointer Returns the current pos in this file, where the next read will occur.
 	// See Also: seek(long)
 	GetFilePointer() int64
 

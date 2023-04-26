@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"github.com/bits-and-blooms/bitset"
 	"github.com/emirpasic/gods/maps/treemap"
 	_ "github.com/emirpasic/gods/maps/treemap"
 	"github.com/geange/lucene-go/core/document"
@@ -44,18 +43,7 @@ func (m *MemoryIndex) NewMemoryIndexReader(fields *treemap.Map) *MemoryIndexRead
 		fields:       fields,
 	}
 
-	leafReader := index.NewLeafReaderDefault(&index.LeafReaderDefaultConfig{
-		Terms:         reader.Terms,
-		ReaderContext: index.NewLeafReaderContext(reader),
-		IndexReaderDefaultConfig: index.IndexReaderDefaultConfig{
-			GetTermVectors:       reader.GetTermVectors,
-			NumDocs:              reader.NumDocs,
-			MaxDoc:               reader.MaxDoc,
-			DocumentV1:           reader.DocumentV1,
-			DoClose:              reader.DoClose,
-			GetReaderCacheHelper: reader.GetReaderCacheHelper,
-		},
-	})
+	leafReader := index.NewLeafReaderDefault(reader)
 	reader.LeafReaderDefault = leafReader
 
 	return reader
@@ -174,7 +162,7 @@ func (m *MemoryIndexReader) GetFieldInfos() *index.FieldInfos {
 	return m.fieldInfos
 }
 
-func (m *MemoryIndexReader) GetLiveDocs() *bitset.BitSet {
+func (m *MemoryIndexReader) GetLiveDocs() util.Bits {
 	return nil
 }
 
@@ -192,7 +180,7 @@ func (m *MemoryIndexReader) CheckIntegrity() error {
 }
 
 func (m *MemoryIndexReader) GetMetaData() *index.LeafMetaData {
-	return index.NewLeafMetaData(util.VersionLast.Major, util.VersionLast)
+	return index.NewLeafMetaData(util.VersionLast.Major, util.VersionLast, nil)
 }
 
 func sortedSetDocValues(values *util.BytesHash, bytesIds []int) index.SortedSetDocValues {

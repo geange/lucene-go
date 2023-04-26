@@ -5,7 +5,7 @@ import (
 	"github.com/geange/lucene-go/core/util"
 )
 
-// TermsEnum Iterator to seek (seekCeil(), seekExact()) or step through (next terms to obtain
+// TermsEnum DVFUIterator to seek (seekCeil(), seekExact()) or step through (next terms to obtain
 // frequency information (docFreq), PostingsEnum or PostingsEnum for the current term (postings.
 // Term enumerations are always ordered by .compareTo, which is Unicode sort order if the terms are
 // UTF-8 bytes. Each term in the enumeration is greater than the one before it.

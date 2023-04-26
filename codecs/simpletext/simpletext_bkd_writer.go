@@ -305,45 +305,45 @@ func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName s
 func (s *SimpleTextBKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []int64, splitPackedValues []byte) error {
 	w := utils.NewTextWriter(out)
 
-	w.WriteBytes(NUM_DATA_DIMS)
-	w.WriteInt(s.config.NumDims)
+	w.Bytes(NUM_DATA_DIMS)
+	w.Int(s.config.NumDims)
 	w.NewLine()
 
-	w.WriteBytes(NUM_INDEX_DIMS)
-	w.WriteInt(s.config.NumIndexDims)
+	w.Bytes(NUM_INDEX_DIMS)
+	w.Int(s.config.NumIndexDims)
 	w.NewLine()
 
-	w.WriteBytes(BYTES_PER_DIM)
-	w.WriteInt(s.config.BytesPerDim)
+	w.Bytes(BYTES_PER_DIM)
+	w.Int(s.config.BytesPerDim)
 	w.NewLine()
 
-	w.WriteBytes(MAX_LEAF_POINTS)
-	w.WriteInt(s.config.MaxPointsInLeafNode)
+	w.Bytes(MAX_LEAF_POINTS)
+	w.Int(s.config.MaxPointsInLeafNode)
 	w.NewLine()
 
-	w.WriteBytes(INDEX_COUNT)
-	w.WriteInt(len(leafBlockFPs))
+	w.Bytes(INDEX_COUNT)
+	w.Int(len(leafBlockFPs))
 	w.NewLine()
 
-	w.WriteBytes(MIN_VALUE)
-	w.WriteString(util.BytesToString(s.minPackedValue))
+	w.Bytes(MIN_VALUE)
+	w.String(util.BytesToString(s.minPackedValue))
 	w.NewLine()
 
-	w.WriteBytes(MAX_VALUE)
-	w.WriteString(util.BytesToString(s.maxPackedValue))
+	w.Bytes(MAX_VALUE)
+	w.String(util.BytesToString(s.maxPackedValue))
 	w.NewLine()
 
-	w.WriteBytes(POINT_COUNT)
-	w.WriteLong(s.pointCount)
+	w.Bytes(POINT_COUNT)
+	w.Long(s.pointCount)
 	w.NewLine()
 
-	w.WriteBytes(DOC_COUNT)
-	w.WriteLong(int64(s.docsSeen.Len()))
+	w.Bytes(DOC_COUNT)
+	w.Long(int64(s.docsSeen.Len()))
 	w.NewLine()
 
 	for i := 0; i < len(leafBlockFPs); i++ {
-		w.WriteBytes(BLOCK_FP)
-		w.WriteLong(leafBlockFPs[i])
+		w.Bytes(BLOCK_FP)
+		w.Long(leafBlockFPs[i])
 		w.NewLine()
 	}
 
@@ -351,20 +351,20 @@ func (s *SimpleTextBKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []i
 	count := len(splitPackedValues) / (1 + s.config.BytesPerDim)
 	// assert count == leafBlockFPs.length;
 
-	w.WriteBytes(SPLIT_COUNT)
-	w.WriteInt(count)
+	w.Bytes(SPLIT_COUNT)
+	w.Int(count)
 	w.NewLine()
 
 	for i := 0; i < count; i++ {
-		w.WriteBytes(SPLIT_DIM)
-		w.WriteInt(int(splitPackedValues[i*(1+s.config.BytesPerDim)] & 0xff))
+		w.Bytes(SPLIT_DIM)
+		w.Int(int(splitPackedValues[i*(1+s.config.BytesPerDim)] & 0xff))
 		w.NewLine()
-		w.WriteBytes(SPLIT_VALUE)
+		w.Bytes(SPLIT_VALUE)
 
 		offset := 1 + (i * (1 + s.config.BytesPerDim))
 		endOffset := offset + s.config.BytesPerDim
 		values := splitPackedValues[offset:endOffset]
-		w.WriteString(util.BytesToString(values))
+		w.String(util.BytesToString(values))
 		w.NewLine()
 	}
 	return nil
@@ -516,7 +516,7 @@ func (s *SimpleTextBKDWriter) writeLeafBlockPackedValues(out store.IndexOutput, 
 		if err := utils.WriteString(out, util.BytesToString(packedValue)); err != nil {
 			return err
 		}
-		if err := utils.Newline(out); err != nil {
+		if err := utils.NewLine(out); err != nil {
 			return err
 		}
 	}
@@ -539,10 +539,10 @@ func (s *SimpleTextBKDWriter) split(minPackedValue, maxPackedValue []byte) int {
 
 func (s *SimpleTextBKDWriter) writeLeafBlockDocs(out store.IndexOutput, docIDs []int, start, count int) error {
 	w := utils.NewTextWriter(out)
-	if err := w.WriteBytes(BLOCK_COUNT); err != nil {
+	if err := w.Bytes(BLOCK_COUNT); err != nil {
 		return err
 	}
-	if err := w.WriteInt(count); err != nil {
+	if err := w.Int(count); err != nil {
 		return err
 	}
 	if err := w.NewLine(); err != nil {
@@ -550,10 +550,10 @@ func (s *SimpleTextBKDWriter) writeLeafBlockDocs(out store.IndexOutput, docIDs [
 	}
 
 	for i := 0; i < count; i++ {
-		if err := w.WriteBytes(BLOCK_DOC_ID); err != nil {
+		if err := w.Bytes(BLOCK_DOC_ID); err != nil {
 			return err
 		}
-		if err := w.WriteInt(docIDs[start+i]); err != nil {
+		if err := w.Int(docIDs[start+i]); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {

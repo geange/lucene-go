@@ -22,7 +22,7 @@ type IndexReaderContext interface {
 	Identity() string
 }
 
-type IndexReaderContextImp struct {
+type IndexReaderContextDefault struct {
 	// The reader context for this reader's immediate parent, or null if none
 	Parent *CompositeReaderContext
 
@@ -38,12 +38,17 @@ type IndexReaderContextImp struct {
 	identity string
 }
 
-func NewIndexReaderContextImp(parent *CompositeReaderContext, ordInParent, docBaseInParent int) *IndexReaderContextImp {
-	return &IndexReaderContextImp{
+func NewIndexReaderContextDefault(parent *CompositeReaderContext, ordInParent, docBaseInParent int) *IndexReaderContextDefault {
+	isTop := parent == nil
+	return &IndexReaderContextDefault{
 		Parent:          parent,
-		IsTopLevel:      parent == nil,
+		IsTopLevel:      isTop,
 		DocBaseInParent: docBaseInParent,
 		OrdInParent:     ordInParent,
-		identity:        uuid.NewString(),
+		identity:        uuid.New().String(),
 	}
+}
+
+func (r *IndexReaderContextDefault) Identity() string {
+	return r.identity
 }

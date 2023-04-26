@@ -97,6 +97,20 @@ func (v *Version) String() string {
 	return fmt.Sprintf("%d.%d.%d.%d", v.Major, v.Minor, v.Bugfix, v.Prerelease)
 }
 
+func (v *Version) OnOrAfter(other *Version) bool {
+	return v.encodedValue >= other.encodedValue
+}
+
+func (v *Version) Clone() *Version {
+	return &Version{
+		Major:        v.Major,
+		Minor:        v.Minor,
+		Bugfix:       v.Bugfix,
+		Prerelease:   v.Prerelease,
+		encodedValue: v.encodedValue,
+	}
+}
+
 var (
 	VersionLast = NewVersion(8, 11, 1)
 )

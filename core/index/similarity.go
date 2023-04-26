@@ -1,6 +1,7 @@
 package index
 
 import (
+	"fmt"
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -8,7 +9,7 @@ import (
 // Expert: Scoring API.
 // This is a low-level API, you should only extend this API if you want to implement an information retrieval
 // model. If you are instead looking for a convenient way to alter Lucene's scoring, consider just tweaking the
-// default implementation: BM25Similarity or extend SimilarityBase, which makes it easy to compute a Score
+// default implementation: BM25Similarity or extend SimilarityBase, which makes it easy to compute a score
 // from index statistics.
 // Similarity determines how Lucene weights terms, and Lucene interacts with this class at both index-time
 // and query-time.
@@ -34,9 +35,9 @@ import (
 // The TermStatistics and CollectionStatistics passed in already contain all of the raw statistics involved,
 // so a Similarity can freely use any combination of statistics without causing any additional I/O. Lucene makes
 // no assumption about what is stored in the returned Similarity.SimScorer object.
-// Then Similarity.SimScorer.Score(float, long) is called for every matching document to compute its Score.
+// Then Similarity.SimScorer.score(float, long) is called for every matching document to compute its score.
 // Explanations When IndexSearcher.explain(org.apache.lucene.search.Query, int) is called, queries consult the
-// Similarity's DocScorer for an explanation of how it computed its Score. The query passes in a the document id
+// Similarity's DocScorer for an explanation of how it computed its score. The query passes in a the document id
 // and an explanation of how the frequency was computed.
 // See Also:
 // org.apache.lucene.index.IndexWriterConfig.setSimilarity(Similarity), IndexSearcher.setSimilarity(Similarity)
@@ -58,7 +59,7 @@ type Similarity interface {
 	// Params: 	boost – a multiplicative factor to apply to the produces scores
 	//			collectionStats – collection-level statistics, such as the number of tokens in the collection.
 	//			termStats – term-level statistics, such as the document frequency of a term across the collection.
-	// Returns: SimWeight object with the information this Similarity needs to Score a query.
+	// Returns: SimWeight object with the information this Similarity needs to score a query.
 	Scorer(boost float64, collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) SimScorer
 }
 
@@ -79,4 +80,25 @@ type SimScorer interface {
 	// 			norm – encoded normalization factor or 1 if norms are disabled
 	// Returns: document's Score
 	Score(freq float64, norm int64) float64
+
+	Explain(freq *types.Explanation, norm int64) (*types.Explanation, error)
+}
+
+type SimScorerSPI interface {
+	Score(freq float64, norm int64) float64
+}
+
+type SimScorerDefault struct {
+	SimScorerSPI
+}
+
+func NewSimScorerDefault(simScorerSPI SimScorerSPI) *SimScorerDefault {
+	return &SimScorerDefault{SimScorerSPI: simScorerSPI}
+}
+
+func (s *SimScorerDefault) Explain(freq *types.Explanation, norm int64) (*types.Explanation, error) {
+	return types.ExplanationMatch(
+		s.Score(freq.GetValue().(float64), norm),
+		fmt.Sprintf(`score(freq="%v"), with freq of:`, freq.GetValue()),
+		freq), nil
 }

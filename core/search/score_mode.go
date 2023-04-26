@@ -17,8 +17,12 @@ func (r *ScoreMode) IsExhaustive() bool {
 	return r.isExhaustive
 }
 
+func (r *ScoreMode) Equal(mode *ScoreMode) bool {
+	return r.isExhaustive == mode.isExhaustive && r.needsScores == mode.needsScores
+}
+
 var (
-	// COMPLETE Produced scorers will allow visiting all matches and get their Score.
+	// COMPLETE Produced scorers will allow visiting all matches and get their score.
 	COMPLETE = &ScoreMode{true, true}
 
 	// COMPLETE_NO_SCORES Produced scorers will allow visiting all matches but scores won't be available.

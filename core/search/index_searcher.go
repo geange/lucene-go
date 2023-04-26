@@ -1,9 +1,15 @@
 package search
 
 import (
+	"errors"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util"
 	"reflect"
+)
+
+const (
+	TOTAL_HITS_THRESHOLD = 1000
 )
 
 // IndexSearcher Implements search over a single IndexReader.
@@ -38,7 +44,7 @@ type IndexSearcher struct {
 	leafSlices []LeafSlice
 
 	// These are only used for multi-threaded search
-	//executor
+	executor Executor
 
 	// the default Similarity
 	similarity index.Similarity
@@ -47,14 +53,15 @@ type IndexSearcher struct {
 	queryCachingPolicy QueryCachingPolicy
 }
 
-func NewIndexSearcher(r index.IndexReader) *IndexSearcher {
-	return newIndexSearcher(r.GetContext())
+func NewIndexSearcher(r index.IndexReader) (*IndexSearcher, error) {
+	context, _ := r.GetContext()
+	return newIndexSearcher(context)
 }
 
-func newIndexSearcher(context index.IndexReaderContext) *IndexSearcher {
+func newIndexSearcher(context index.IndexReaderContext) (*IndexSearcher, error) {
 	leaves, err := context.Leaves()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	return &IndexSearcher{
@@ -65,7 +72,7 @@ func newIndexSearcher(context index.IndexReaderContext) *IndexSearcher {
 		similarity:         nil,
 		queryCache:         nil,
 		queryCachingPolicy: nil,
-	}
+	}, nil
 }
 
 func (r *IndexSearcher) GetTopReaderContext() index.IndexReaderContext {
@@ -95,10 +102,124 @@ func (r *IndexSearcher) Search(query Query, results Collector) error {
 	return r.Search3(r.leafContexts, weight, results)
 }
 
+// SearchAfter
+// Finds the top n hits for query where all results are after a previous result (after).
+// By passing the bottom result from a previous page as after, this method can be used for
+// efficient 'deep-paging' across potentially large result sets.
+// Throws: BooleanQuery.TooManyClauses – If a query would exceed BooleanQuery.getMaxClauseCount() clauses.
+func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (TopDocs, error) {
+	limit := util.Max(1, r.reader.MaxDoc())
+	if after != nil && after.GetDoc() >= limit {
+		return nil, errors.New("after.doc exceeds the number of documents in the reader")
+	}
+
+	cappedNumHits := util.Min(numHits, limit)
+
+	var minScoreAcc *MaxScoreAccumulator
+	if !(r.executor == nil || len(r.leafSlices) <= 1) {
+		minScoreAcc = NewMaxScoreAccumulator()
+	}
+
+	hitsThresholdChecker, err := func() (HitsThresholdChecker, error) {
+		if r.executor == nil || len(r.leafSlices) <= 1 {
+			return HitsThresholdCheckerCreate(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+		}
+		return HitsThresholdCheckerCreateShared(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+	}()
+	if err != nil {
+		return nil, err
+	}
+
+	manager := struct {
+		minScoreAcc          *MaxScoreAccumulator
+		hitsThresholdChecker HitsThresholdChecker
+		*CollectorManagerDefault
+	}{
+		hitsThresholdChecker: hitsThresholdChecker,
+	}
+
+	if !(r.executor == nil || len(r.leafSlices) <= 1) {
+		manager.minScoreAcc = NewMaxScoreAccumulator()
+
+		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreate(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreateShared(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	manager.CollectorManagerDefault = &CollectorManagerDefault{
+		FnNewCollector: func() (Collector, error) {
+			return TopScoreDocCollectorCreate(cappedNumHits, after, manager.hitsThresholdChecker, minScoreAcc)
+		},
+		FnReduce: func(collectors []TopScoreDocCollector) (any, error) {
+			topDocs := make([]TopDocs, len(collectors))
+			for i, collector := range collectors {
+				docs, err := collector.TopDocs()
+				if err != nil {
+					return nil, err
+				}
+				topDocs[i] = docs
+			}
+			return MergeTopDocs(0, cappedNumHits, topDocs, true)
+		},
+	}
+
+	v, err := r.SearchByCollectorManager(query, manager)
+	if err != nil {
+		return nil, err
+	}
+	return v.(TopDocs), nil
+}
+
+// SearchByCollectorManager
+// Lower-level search API. Search all leaves using the given CollectorManager.
+// In contrast to search(Query, Collector), this method will use the searcher's
+// Executor in order to parallelize execution of the collection on the configured leafSlices.
+// See Also: CollectorManager
+// lucene.experimental
+func (r *IndexSearcher) SearchByCollectorManager(query Query, collectorManager CollectorManager) (any, error) {
+	if r.executor == nil || len(r.leafSlices) <= 1 {
+		collector, err := collectorManager.NewCollector()
+		if err != nil {
+			return nil, err
+		}
+		err = r.SearchCollector(query, collector)
+		if err != nil {
+			return nil, err
+		}
+		return collectorManager.Reduce([]TopScoreDocCollector{collector.(TopScoreDocCollector)})
+	}
+
+	// TODO: fix it
+	panic("")
+}
+
+func (r *IndexSearcher) SearchTopN(query Query, n int) (TopDocs, error) {
+	return r.SearchAfter(nil, query, n)
+}
+
+func (r *IndexSearcher) SearchCollector(query Query, results Collector) error {
+	query, err := r.Rewrite(query)
+	if err != nil {
+		return err
+	}
+
+	weight, err := r.createWeight(query, results.ScoreMode(), 1)
+	if err != nil {
+		return err
+	}
+	return r.Search3(r.leafContexts, weight, results)
+}
+
 func (r *IndexSearcher) Search3(leaves []*index.LeafReaderContext, weight Weight, collector Collector) error {
 
 	for _, ctx := range leaves {
-		leafCollector, err := collector.GetLeafCollector(ctx)
+		leafCollector, err := collector.GetLeafCollector(nil, ctx)
 		if err != nil {
 			continue
 		}
@@ -213,4 +334,7 @@ func (r *IndexSearcher) TermStatistics(term *index.Term, docFreq, totalTermFreq 
 
 type LeafSlice struct {
 	Leaves []index.LeafReaderContext
+}
+
+type Executor interface {
 }

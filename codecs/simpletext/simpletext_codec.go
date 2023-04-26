@@ -2,6 +2,10 @@ package simpletext
 
 import "github.com/geange/lucene-go/core/index"
 
+func init() {
+	index.RegisterCodec(&SimpleTextCodec{})
+}
+
 var _ index.Codec = &SimpleTextCodec{}
 
 // SimpleTextCodec plain text index format.

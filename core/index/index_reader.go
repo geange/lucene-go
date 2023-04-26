@@ -1,9 +1,12 @@
 package index
 
 import (
+	"errors"
+	"fmt"
 	"github.com/geange/lucene-go/core/document"
 	"go.uber.org/atomic"
 	"io"
+	"sort"
 	"sync"
 )
 
@@ -19,10 +22,13 @@ type IndexReader interface {
 	GetTermVector(docID int, field string) (Terms, error)
 
 	// NumDocs Returns the number of documents in this index.
-	// NOTE: This operation may run in O(maxDoc). Implementations that can't return this number in constant-time should cache it.
+	// NOTE: This operation may run in O(maxDoc). Implementations that can't return this number in
+	// constant-time should cache it.
 	NumDocs() int
 
-	// MaxDoc Returns one greater than the largest possible document number. This may be used to, e.g., determine how big to allocate an array which will have an element for every document number in an index.
+	// MaxDoc Returns one greater than the largest possible document number. This may be used to,
+	// e.g., determine how big to allocate an array which will have an element for every document
+	// number in an index.
 	MaxDoc() int
 
 	// NumDeletedDocs Returns the number of deleted documents.
@@ -69,7 +75,7 @@ type IndexReader interface {
 	// Note: Any of the sub-CompositeReaderContext instances referenced from this top-level context do
 	// not support CompositeReaderContext.leaves(). Only the top-level context maintains the convenience
 	// leaf-view for performance reasons.
-	GetContext() IndexReaderContext
+	GetContext() (ctx IndexReaderContext, err error)
 
 	// Leaves Returns the reader's leaves, or itself if this reader is atomic. This is a convenience method
 	// calling this.getContext().leaves().
@@ -105,36 +111,25 @@ type IndexReader interface {
 	// just like other term measures, this measure does not take deleted documents into account.
 	// See Also: Terms.getSumTotalTermFreq()
 	GetSumTotalTermFreq(field string) (int64, error)
+	//RegisterParentReader(reader IndexReader)
+
+	GetRefCount() int
+	IncRef() error
+	DecRef() error
+	GetMetaData() *LeafMetaData
 }
 
-type IndexReaderDefaultConfig struct {
-	GetTermVectors       func(docID int) (Fields, error)
-	NumDocs              func() int
-	MaxDoc               func() int
-	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) error
-	GetContext           func() IndexReaderContext
-	DoClose              func() error
-	GetReaderCacheHelper func() CacheHelper
-	DocFreq              func(term Term) (int, error)
-	TotalTermFreq        func(term *Term) (int64, error)
-	GetSumDocFreq        func(field string) (int64, error)
-	GetDocCount          func(field string) (int, error)
-	GetSumTotalTermFreq  func(field string) (int64, error)
+type IndexReaderDefaultSPI interface {
+	GetTermVectors(docID int) (Fields, error)
+	NumDocs() int
+	MaxDoc() int
+	DocumentV1(docID int, visitor document.StoredFieldVisitor) error
+	GetContext() (IndexReaderContext, error)
+	DoClose() error
 }
 
 type IndexReaderDefault struct {
-	GetTermVectors       func(docID int) (Fields, error)
-	NumDocs              func() int
-	MaxDoc               func() int
-	DocumentV1           func(docID int, visitor document.StoredFieldVisitor) error
-	GetContext           func() IndexReaderContext
-	DoClose              func() error
-	GetReaderCacheHelper func() CacheHelper
-	DocFreq              func(term Term) (int, error)
-	TotalTermFreq        func(term *Term) (int64, error)
-	GetSumDocFreq        func(field string) (int64, error)
-	GetDocCount          func(field string) (int, error)
-	GetSumTotalTermFreq  func(field string) (int64, error)
+	spi IndexReaderDefaultSPI
 
 	closed        bool
 	closedByChild bool
@@ -143,33 +138,22 @@ type IndexReaderDefault struct {
 	sync.Mutex
 }
 
-func NewIndexReaderDefault(cfg *IndexReaderDefaultConfig) *IndexReaderDefault {
+func NewIndexReaderDefault(spi IndexReaderDefaultSPI) *IndexReaderDefault {
 	return &IndexReaderDefault{
-		refCount:             atomic.NewInt64(0),
-		parentReaders:        make(map[IndexReader]struct{}),
-		GetTermVectors:       cfg.GetTermVectors,
-		NumDocs:              cfg.NumDocs,
-		MaxDoc:               cfg.MaxDoc,
-		DocumentV1:           cfg.DocumentV1,
-		GetContext:           cfg.GetContext,
-		DoClose:              cfg.DoClose,
-		GetReaderCacheHelper: cfg.GetReaderCacheHelper,
-		DocFreq:              cfg.DocFreq,
-		TotalTermFreq:        cfg.TotalTermFreq,
-		GetSumDocFreq:        cfg.GetSumDocFreq,
-		GetDocCount:          cfg.GetDocCount,
-		GetSumTotalTermFreq:  cfg.GetSumTotalTermFreq,
+		spi:           spi,
+		refCount:      atomic.NewInt64(0),
+		parentReaders: make(map[IndexReader]struct{}),
 	}
 }
 
 func (r *IndexReaderDefault) Close() error {
 	r.closed = true
-	return r.DoClose()
+	return r.spi.DoClose()
 }
 
 func (r *IndexReaderDefault) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitorV1(fieldsToLoad)
-	if err := r.DocumentV1(docID, visitor); err != nil {
+	if err := r.spi.DocumentV1(docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil
@@ -203,8 +187,71 @@ func (r *IndexReaderDefault) reportCloseToParentReaders() error {
 	panic("")
 }
 
+func (r *IndexReaderDefault) GetRefCount() int {
+	// NOTE: don't ensureOpen, so that callers can see
+	// refCount is 0 (reader is closed)
+	return int(r.refCount.Load())
+}
+
+func (r *IndexReaderDefault) IncRef() error {
+	if !r.TryIncRef() {
+		err := r.ensureOpen()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *IndexReaderDefault) DecRef() error {
+	// only check refcount here (don't call ensureOpen()), so we can
+	// still close the reader if it was made invalid by a child:
+	if r.refCount.Load() <= 0 {
+		return errors.New("this IndexReader is closed")
+	}
+
+	rc := r.refCount.Dec()
+	if rc == 0 {
+		r.closed = true
+		return r.spi.DoClose()
+	}
+
+	if rc < 0 {
+		return fmt.Errorf("too many decRef calls: refCount is %d after decrement", rc)
+	}
+	return nil
+}
+
+func (r *IndexReaderDefault) ensureOpen() error {
+	if r.refCount.Load() <= 0 {
+		return errors.New("this IndexReader is closed")
+	}
+
+	// the happens before rule on reading the refCount, which must be after the fake write,
+	// ensures that we see the value:
+	if r.closedByChild {
+		return errors.New("this IndexReader cannot be used anymore as one of its child readers was closed")
+	}
+	return nil
+}
+
+func (r *IndexReaderDefault) TryIncRef() bool {
+	count := int64(0)
+	for {
+		count = r.refCount.Load()
+		if count > 0 {
+			if r.refCount.CAS(count, count+1) {
+				return true
+			}
+		} else {
+			break
+		}
+	}
+	return false
+}
+
 func (r *IndexReaderDefault) GetTermVector(docID int, field string) (Terms, error) {
-	vectors, err := r.GetTermVectors(docID)
+	vectors, err := r.spi.GetTermVectors(docID)
 	if err != nil {
 		return nil, err
 	}
@@ -212,12 +259,12 @@ func (r *IndexReaderDefault) GetTermVector(docID int, field string) (Terms, erro
 }
 
 func (r *IndexReaderDefault) NumDeletedDocs() int {
-	return r.MaxDoc() - r.NumDocs()
+	return r.spi.MaxDoc() - r.spi.NumDocs()
 }
 
 func (r *IndexReaderDefault) Document(docID int) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitor()
-	if err := r.DocumentV1(docID, visitor); err != nil {
+	if err := r.spi.DocumentV1(docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil
@@ -228,9 +275,42 @@ func (r *IndexReaderDefault) HasDeletions() bool {
 }
 
 func (r *IndexReaderDefault) Leaves() ([]*LeafReaderContext, error) {
-	return r.GetContext().Leaves()
+	context, err := r.spi.GetContext()
+	if err != nil {
+		return nil, err
+	}
+	return context.Leaves()
 }
 
+// CacheHelper
+// A utility class that gives hooks in order to help build a cache based on the data that is contained in this index.
+// lucene.experimental
 type CacheHelper interface {
-	// TODO
+	// GetKey
+	// Get a key that the resource can be cached on. The given entry can be compared using identity,
+	// ie. Object.equals is implemented as == and Object.hashCode is implemented as System.identityHashCode.
+	GetKey()
+}
+
+var _ sort.Interface = &IndexReaderSorter{}
+
+type IndexReaderSorter struct {
+	Readers   []IndexReader
+	FnCompare func(a, b LeafReader) int
+}
+
+func (r *IndexReaderSorter) Len() int {
+	return len(r.Readers)
+}
+
+func (r *IndexReaderSorter) Less(i, j int) bool {
+	return r.FnCompare(r.Readers[i].(LeafReader), r.Readers[j].(LeafReader)) < 0
+}
+
+func (r *IndexReaderSorter) Swap(i, j int) {
+	r.Readers[i], r.Readers[j] = r.Readers[j], r.Readers[i]
+}
+
+type ClosedListener interface {
+	// Invoked when the resource (segment core, or index reader) that is being cached on is closed.
 }

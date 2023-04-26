@@ -30,7 +30,8 @@ func NewSimpleTextStoredFieldsReader(
 	directory store.Directory, si *index.SegmentInfo,
 	fn *index.FieldInfos, context *store.IOContext) (*SimpleTextStoredFieldsReader, error) {
 
-	input, err := directory.OpenInput(si.Name(), context)
+	fname := store.SegmentFileName(si.Name(), "", FIELDS_EXTENSION)
+	input, err := directory.OpenInput(fname, context)
 	if err != nil {
 		return nil, err
 	}
@@ -58,9 +59,11 @@ func newSimpleTextStoredFieldsReader(offsets []int64,
 	in store.IndexInput, fieldInfos *index.FieldInfos) *SimpleTextStoredFieldsReader {
 
 	return &SimpleTextStoredFieldsReader{
-		offsets:    offsets,
-		in:         in,
-		fieldInfos: fieldInfos,
+		offsets:      offsets,
+		in:           in,
+		fieldInfos:   fieldInfos,
+		scratch:      new(bytes.Buffer),
+		scratchUTF16: new(bytes.Buffer),
 	}
 }
 
@@ -68,8 +71,11 @@ func (s *SimpleTextStoredFieldsReader) readIndex(size int) error {
 	input := store.NewBufferedChecksumIndexInput(s.in)
 	s.offsets = make([]int64, 0, size)
 	upto := 0
+
+	reader := utils.NewTextReader(input, s.scratch)
+
 	for !bytes.Equal(s.scratch.Bytes(), STORED_FIELD_END) {
-		if err := s.readLine(); err != nil {
+		if err := reader.ReadLine(); err != nil {
 			return err
 		}
 

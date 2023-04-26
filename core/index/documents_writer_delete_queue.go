@@ -135,6 +135,14 @@ func (d *DocumentsWriterDeleteQueue) newSlice() *DeleteSlice {
 	return NewDeleteSlice(d.tail)
 }
 
+func (d *DocumentsWriterDeleteQueue) anyChanges() bool {
+	d.globalBufferLock.Lock()
+	defer d.globalBufferLock.Unlock()
+
+	// TODO: fix it
+	return false
+}
+
 type DeleteSlice struct {
 	// No need to be volatile, slices are thread captive (only accessed by one thread)!
 	sliceHead *Node

@@ -1,9 +1,11 @@
 package search
 
-// Scorable Allows access to the Score of a Query
+// Scorable
+// Allows access to the Score of a Query
+// 允许访问查询的分数
 type Scorable interface {
 	// Score Returns the Score of the current document matching the query.
-	Score() (float64, error)
+	Score() (float32, error)
 
 	// SmoothingScore Returns the smoothing Score of the current document matching the query. This Score
 	// is used when the query/term does not appear in the document, and behaves like an idf. The smoothing
@@ -13,7 +15,7 @@ type Scorable interface {
 	// Smoothing scores are described in many papers, including: Metzler, D. and Croft, W. B. , "Combining
 	// the Language Model and Inference Network Approaches to Retrieval," Information Processing and Management
 	// Special Issue on Bayesian Networks and Information Retrieval, 40(5), pp.735-750.
-	SmoothingScore(docId int) (float64, error)
+	SmoothingScore(docId int) (float32, error)
 
 	// DocID Returns the doc ID that is currently being scored.
 	DocID() int
@@ -22,10 +24,25 @@ type Scorable interface {
 	// documents whose Score is less than the given minScore. This is a no-op by default. This method
 	// may only be called from collectors that use ScoreMode.TOP_SCORES, and successive calls may
 	// only set increasing values of minScore.
-	SetMinCompetitiveScore(minScore float64) error
+	SetMinCompetitiveScore(minScore float32) error
 
 	// GetChildren Returns child sub-scorers positioned on the current document
 	GetChildren() ([]ChildScorable, error)
+}
+
+type ScorableDefault struct {
+}
+
+func (*ScorableDefault) SmoothingScore(docId int) (float32, error) {
+	return 0, nil
+}
+
+func (*ScorableDefault) SetMinCompetitiveScore(minScore float32) error {
+	return nil
+}
+
+func (*ScorableDefault) GetChildren() ([]ChildScorable, error) {
+	return []ChildScorable{}, nil
 }
 
 // ChildScorable A child Scorer and its relationship to its parent. the meaning of the relationship
@@ -37,4 +54,8 @@ type ChildScorable struct {
 
 	// An arbitrary string relating this scorer to the parent.
 	Relationship string
+}
+
+func NewChildScorable(child Scorable, relationship string) *ChildScorable {
+	return &ChildScorable{Child: child, Relationship: relationship}
 }

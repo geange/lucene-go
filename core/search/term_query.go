@@ -1,20 +1,47 @@
 package search
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
+	"reflect"
 )
 
-// TermQuery A Query that matches documents containing a term. This may be combined with other terms with a BooleanQuery.
+var _ Query = &TermQuery{}
+
+// TermQuery A Query that matches documents containing a term.
+// This may be combined with other terms with a BooleanQuery.
 type TermQuery struct {
 	term               *index.Term
 	perReaderTermState *index.TermStates
+}
+
+func (t *TermQuery) String(field string) string {
+	buf := new(bytes.Buffer)
+	if t.term.Field() != field {
+		buf.WriteString(t.term.Field())
+		buf.WriteString(":")
+	}
+	buf.WriteString(t.term.Text())
+	return buf.String()
 }
 
 func NewTermQuery(term *index.Term) *TermQuery {
 	return &TermQuery{
 		term:               term,
 		perReaderTermState: nil,
+	}
+}
+
+// NewTermQueryV1
+// Expert: constructs a TermQuery that will use the provided docFreq instead of looking up
+// the docFreq against the searcher.
+func NewTermQueryV1(term *index.Term, states *index.TermStates) *TermQuery {
+	return &TermQuery{
+		term:               term,
+		perReaderTermState: states,
 	}
 }
 
@@ -52,7 +79,7 @@ func (t *TermQuery) Visit(visitor QueryVisitor) {
 var _ Weight = &TermWeight{}
 
 type TermWeight struct {
-	*WeightImp
+	*WeightDefault
 
 	similarity index.Similarity
 	simScorer  index.SimScorer
@@ -62,9 +89,45 @@ type TermWeight struct {
 	*TermQuery
 }
 
-func (t *TermWeight) Explain(ctx *index.LeafReaderContext, doc int) (*Explanation, error) {
-	//TODO implement me
-	panic("implement me")
+func (t *TermWeight) Explain(context *index.LeafReaderContext, doc int) (*types.Explanation, error) {
+	scorer, err := t.Scorer(context)
+	if err != nil {
+		return nil, err
+	}
+	if scorer == nil {
+		return nil, errors.New("no matching term")
+	}
+
+	tscorer, ok := scorer.(*TermScorer)
+	if !ok {
+		return nil, errors.New("no matching term")
+	}
+
+	newDoc, err := tscorer.Iterator().Advance(doc)
+	if err != nil {
+		return nil, err
+	}
+	if newDoc == doc {
+		freq, err := tscorer.Freq()
+		if err != nil {
+			return nil, err
+		}
+		docScorer, err := NewLeafSimScorer(t.simScorer, context.Reader().(index.LeafReader), t.term.Field(), true)
+		if err != nil {
+			return nil, err
+		}
+
+		freqExplanation := types.ExplanationMatch(freq, "freq, occurrences of term within document")
+		scoreExplanation, err := docScorer.Explain(doc, freqExplanation)
+		if err != nil {
+			return nil, err
+		}
+		return types.ExplanationMatch(scoreExplanation.GetValue().(float64),
+			fmt.Sprintf(`weight(%s in %d) [%s]`, t.GetQuery(), doc, reflect.TypeOf(t.similarity).Name()),
+			scoreExplanation), nil
+	}
+
+	return nil, errors.New("no matching term")
 }
 
 func (t *TermWeight) GetQuery() Query {
@@ -141,7 +204,7 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 		TermQuery:  t,
 	}
 
-	weight.WeightImp = NewWeightImp(weight, weight)
+	weight.WeightDefault = NewWeight(weight, weight)
 
 	var collectionStats *types.CollectionStatistics
 	var termStats *types.TermStatistics

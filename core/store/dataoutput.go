@@ -5,7 +5,7 @@ import (
 )
 
 // DataOutput Abstract base class for performing write operations of Lucene's low-level data types.
-// DataOutput may only be used from one thread, because it is not thread safe (it keeps internal state like file position).
+// DataOutput may only be used from one thread, because it is not thread safe (it keeps internal state like file pos).
 type DataOutput interface {
 	// ByteWriter Write a single byte.
 	// The most primitive data type is an eight-bit byte. Files are accessed as sequences of bytes.

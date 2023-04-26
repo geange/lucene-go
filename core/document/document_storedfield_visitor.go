@@ -12,11 +12,17 @@ type DocumentStoredFieldVisitor struct {
 }
 
 func NewDocumentStoredFieldVisitor() *DocumentStoredFieldVisitor {
-	return &DocumentStoredFieldVisitor{fieldsToAdd: make(map[string]struct{})}
+	return &DocumentStoredFieldVisitor{
+		doc:         NewDocument(),
+		fieldsToAdd: nil,
+	}
 }
 
 func NewDocumentStoredFieldVisitorV1(fieldsToAdd map[string]struct{}) *DocumentStoredFieldVisitor {
-	return &DocumentStoredFieldVisitor{fieldsToAdd: fieldsToAdd}
+	return &DocumentStoredFieldVisitor{
+		doc:         NewDocument(),
+		fieldsToAdd: fieldsToAdd,
+	}
 }
 
 func NewDocumentStoredFieldVisitorV2(fields ...string) *DocumentStoredFieldVisitor {
@@ -76,6 +82,10 @@ func (r *DocumentStoredFieldVisitor) Float64Field(fieldInfo *types.FieldInfo, va
 }
 
 func (r *DocumentStoredFieldVisitor) NeedsField(fieldInfo *types.FieldInfo) (STORED_FIELD_VISITOR_STATUS, error) {
+	if r.fieldsToAdd == nil {
+		return STORED_FIELD_VISITOR_YES, nil
+	}
+
 	_, ok := r.fieldsToAdd[fieldInfo.Name()]
 	if ok {
 		return STORED_FIELD_VISITOR_YES, nil

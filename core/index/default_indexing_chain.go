@@ -36,7 +36,7 @@ type DefaultIndexingChain struct {
 
 	byteBlockAllocator util.BytesAllocator
 
-	indexWriterConfig *LiveIndexWriterConfig
+	indexWriterConfig *liveIndexWriterConfig
 
 	indexCreatedVersionMajor int
 
@@ -45,7 +45,7 @@ type DefaultIndexingChain struct {
 
 func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo,
 	directory store.Directory, fieldInfos *FieldInfosBuilder,
-	indexWriterConfig *LiveIndexWriterConfig) *DefaultIndexingChain {
+	indexWriterConfig *liveIndexWriterConfig) *DefaultIndexingChain {
 
 	byteBlockAllocator := newByteBlockAllocator()
 	intBlockAllocator := newIntBlockAllocator()

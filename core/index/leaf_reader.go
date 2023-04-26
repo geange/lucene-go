@@ -1,7 +1,7 @@
 package index
 
 import (
-	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/util"
 )
 
 type LeafReader interface {
@@ -49,7 +49,7 @@ type LeafReader interface {
 	// not been deleted. If this method returns null it means there are no deleted documents
 	// (all documents are live). The returned instance has been safely published for use by multiple threads
 	// without additional synchronization.
-	GetLiveDocs() *bitset.BitSet
+	GetLiveDocs() util.Bits
 
 	// GetPointValues Returns the PointValues used for numeric or spatial searches for the given field, or null
 	// if there are no point fields.
@@ -64,42 +64,27 @@ type LeafReader interface {
 }
 
 type LeafReaderDefault struct {
-	*IndexReaderDefault
+	LeafReaderDefaultSPI
 
-	Terms         func(field string) (Terms, error)
 	readerContext *LeafReaderContext
+	*IndexReaderDefault
+}
+
+type LeafReaderDefaultSPI interface {
+	Terms(field string) (Terms, error)
 }
 
 type LeafReaderDefaultConfig struct {
 	Terms         func(field string) (Terms, error)
 	ReaderContext *LeafReaderContext
-	IndexReaderDefaultConfig
 }
 
-func NewLeafReaderDefault(cfg *LeafReaderDefaultConfig) *LeafReaderDefault {
-	leafReader := &LeafReaderDefault{
-		Terms:         cfg.Terms,
-		readerContext: cfg.ReaderContext,
+func NewLeafReaderDefault(reader LeafReader) *LeafReaderDefault {
+	return &LeafReaderDefault{
+		LeafReaderDefaultSPI: reader,
+		readerContext:        NewLeafReaderContext(reader),
+		IndexReaderDefault:   NewIndexReaderDefault(reader),
 	}
-
-	config := &IndexReaderDefaultConfig{
-		GetTermVectors:       cfg.GetTermVectors,
-		NumDocs:              cfg.NumDocs,
-		MaxDoc:               cfg.MaxDoc,
-		DocumentV1:           cfg.DocumentV1,
-		DoClose:              cfg.DoClose,
-		GetReaderCacheHelper: cfg.GetReaderCacheHelper,
-		GetContext:           leafReader.GetContext,
-		DocFreq:              leafReader.DocFreq,
-		TotalTermFreq:        leafReader.TotalTermFreq,
-		GetSumDocFreq:        leafReader.GetSumDocFreq,
-		GetDocCount:          leafReader.GetDocCount,
-		GetSumTotalTermFreq:  leafReader.GetSumTotalTermFreq,
-	}
-
-	leafReader.IndexReaderDefault = NewIndexReaderDefault(config)
-
-	return leafReader
 }
 
 func (r *LeafReaderDefault) Postings(term *Term, flags int) (PostingsEnum, error) {
@@ -123,8 +108,8 @@ func (r *LeafReaderDefault) Postings(term *Term, flags int) (PostingsEnum, error
 	return nil, nil
 }
 
-func (r *LeafReaderDefault) GetContext() IndexReaderContext {
-	return r.readerContext
+func (r *LeafReaderDefault) GetContext() (IndexReaderContext, error) {
+	return r.readerContext, nil
 }
 
 func (r *LeafReaderDefault) DocFreq(term Term) (int, error) {

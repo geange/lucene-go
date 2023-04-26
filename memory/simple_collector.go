@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search"
 )
@@ -8,18 +9,18 @@ import (
 var _ search.SimpleCollector = &simpleCollector{}
 
 type simpleCollector struct {
-	*search.SimpleCollectorImp
+	*search.SimpleCollectorDefault
 	scorer search.Scorable
 	scores []float64
 }
 
 func newSimpleCollector(scores []float64) *simpleCollector {
 	collector := &simpleCollector{
-		SimpleCollectorImp: nil,
-		scorer:             nil,
-		scores:             scores,
+		SimpleCollectorDefault: nil,
+		scorer:                 nil,
+		scores:                 scores,
 	}
-	collector.SimpleCollectorImp = search.NewSimpleCollectorImp(collector)
+	collector.SimpleCollectorDefault = search.NewSimpleCollectorDefault(collector)
 	return collector
 }
 
@@ -27,9 +28,13 @@ func (s *simpleCollector) ScoreMode() *search.ScoreMode {
 	return search.COMPLETE
 }
 
-func (s *simpleCollector) Collect(doc int) error {
+func (s *simpleCollector) Collect(ctx context.Context, doc int) error {
 	var err error
-	s.scores[0], err = s.scorer.Score()
+	score, err := s.scorer.Score()
+	if err != nil {
+		return err
+	}
+	s.scores[0] = float64(score)
 	return err
 }
 

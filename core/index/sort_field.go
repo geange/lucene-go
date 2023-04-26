@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
 	"math"
-	"sync"
+	"reflect"
 )
 
 const (
@@ -14,21 +14,122 @@ const (
 	STRING_LAST  = "SortField.STRING_LAST"
 )
 
-// SortField Stores information about how to sort documents by terms in an individual field.
+type SortField interface {
+	// GetMissingValue Return the value to use for documents that don't have a value.
+	// A value of null indicates that default should be used.
+	GetMissingValue() any
+
+	// SetMissingValue Set the value to use for documents that don't have a value.
+	SetMissingValue(missingValue any) error
+
+	// GetField Returns the name of the field. Could return null if the sort is by SCORE or DOC.
+	// Returns: Name of field, possibly null.
+	GetField() string
+
+	// GetType Returns the type of contents in the field.
+	// Returns: One of the constants SCORE, DOC, STRING, INT or FLOAT.
+	GetType() SortFieldType
+
+	// GetReverse Returns whether the sort should be reversed.
+	// Returns: True if natural order should be reversed.
+	GetReverse() bool
+
+	GetComparatorSource() FieldComparatorSource
+
+	// SetCanUsePoints For numeric sort fields, setting this field, indicates that the same numeric data
+	// has been indexed with two fields: doc values and points and that these fields have the same name.
+	// This allows to use sort optimization and skip non-competitive documents.
+	SetCanUsePoints()
+
+	GetCanUsePoints() bool
+
+	SetBytesComparator(fn BytesComparator)
+
+	GetBytesComparator() BytesComparator
+
+	// GetComparator Returns the FieldComparator to use for sorting.
+	//Params: 	numHits – number of top hits the queue will store
+	//			sortPos – position of this SortField within Sort. The comparator is primary if
+	//			sortPos==0, secondary if sortPos==1, etc. Some comparators can optimize
+	//			themselves when they are the primary sort.
+	//Returns: FieldComparator to use when sorting
+	//lucene.experimental
+	GetComparator(numHits, sortPos int) FieldComparator
+
+	//rewrite(searcher search.IndexSearcher)
+
+	GetIndexSorter() IndexSorter
+
+	Serialize(out store.DataOutput) error
+	Equals(other SortField) bool
+	String() string
+}
+
+type BytesComparator func(a, b []byte) int
+
+var _ SortField = &SortFieldDefault{}
+
+var (
+	FIELD_SCORE = NewSortField("", SCORE)
+	FIELD_DOC   = NewSortField("", DOC)
+)
+
+// SortFieldDefault Stores information about how to sort documents by terms in an individual field.
 // Fields must be indexed in order to sort by them.
 // Created: Feb 11, 2004 1:25:29 PM
 // Since: lucene 1.4
 // See Also: Sort
-type SortField struct {
-	field        string
-	_type        SortFieldType
-	reverse      bool
-	canUsePoints bool
-	missingValue any
+type SortFieldDefault struct {
+	field            string
+	_type            SortFieldType
+	reverse          bool
+	comparatorSource FieldComparatorSource
+	canUsePoints     bool
+	bytesComparator  BytesComparator
+	missingValue     any
 }
 
-func NewSortField(field string, _type SortFieldType, reverse bool) (*SortField, error) {
-	sortField := &SortField{reverse: reverse}
+func NewSortField(field string, _type SortFieldType) *SortFieldDefault {
+	s := &SortFieldDefault{}
+	s.initFieldType(&field, _type)
+	return s
+}
+
+func NewSortFieldV1(field string, _type SortFieldType, reverse bool) *SortFieldDefault {
+	s := NewSortField(field, _type)
+	s.reverse = reverse
+	return s
+}
+
+func (s *SortFieldDefault) GetComparatorSource() FieldComparatorSource {
+	return s.comparatorSource
+}
+
+func (s *SortFieldDefault) GetReverse() bool {
+	return s.reverse
+}
+
+func (s *SortFieldDefault) SetBytesComparator(fn BytesComparator) {
+	s.bytesComparator = fn
+}
+
+func (s *SortFieldDefault) GetBytesComparator() BytesComparator {
+	return s.bytesComparator
+}
+
+func (s *SortFieldDefault) GetComparator(numHits, sortPos int) FieldComparator {
+	var fieldComparator FieldComparator
+	switch s._type {
+	// TODO: fix it
+	}
+	if !s.GetCanUsePoints() {
+		fieldComparator.DisableSkipping()
+	}
+	return fieldComparator
+}
+
+func newSortField(field string, _type SortFieldType, reverse bool) (*SortFieldDefault, error) {
+	sortField := &SortFieldDefault{reverse: reverse}
 	if err := sortField.initFieldType(&field, _type); err != nil {
 		return nil, err
 	}
@@ -37,7 +138,7 @@ func NewSortField(field string, _type SortFieldType, reverse bool) (*SortField, 
 
 // Sets field & type, and ensures field is not NULL unless
 // type is SCORE or DOC
-func (s *SortField) initFieldType(field *string, _type SortFieldType) error {
+func (s *SortFieldDefault) initFieldType(field *string, _type SortFieldType) error {
 	s._type = _type
 	if field == nil {
 		switch _type {
@@ -50,7 +151,7 @@ func (s *SortField) initFieldType(field *string, _type SortFieldType) error {
 	return nil
 }
 
-func (s *SortField) String() string {
+func (s *SortFieldDefault) String() string {
 	buffer := new(bytes.Buffer)
 
 	switch s._type {
@@ -92,40 +193,41 @@ func (s *SortField) String() string {
 
 // GetField Returns the name of the field. Could return null if the sort is by SCORE or DOC.
 // Returns: Name of field, possibly null.
-func (s *SortField) GetField() string {
+func (s *SortFieldDefault) GetField() string {
 	return s.field
 }
 
 // GetType Returns the type of contents in the field.
 // Returns: One of the constants SCORE, DOC, STRING, INT or FLOAT.
-func (s *SortField) GetType() SortFieldType {
+func (s *SortFieldDefault) GetType() SortFieldType {
 	return s._type
 }
 
 // SetCanUsePoints For numeric sort fields, setting this field, indicates that the same numeric
 // data has been indexed with two fields: doc values and points and that these fields have the
 // same name. This allows to use sort optimization and skip non-competitive documents.
-func (s *SortField) SetCanUsePoints() {
+func (s *SortFieldDefault) SetCanUsePoints() {
 	s.canUsePoints = true
 }
 
-func (s *SortField) GetCanUsePoints() bool {
+func (s *SortFieldDefault) GetCanUsePoints() bool {
 	return s.canUsePoints
 }
 
 // NeedsScores Whether the relevance score is needed to sort documents.
-func (s *SortField) NeedsScores() bool {
+func (s *SortFieldDefault) NeedsScores() bool {
 	return s._type == SCORE
 }
 
 // GetMissingValue Return the value to use for documents that don't have a value. A value of null indicates that default should be used.
-func (s *SortField) GetMissingValue() any {
+func (s *SortFieldDefault) GetMissingValue() any {
 	return s.missingValue
 }
 
 // SetMissingValue Set the value to use for documents that don't have a value.
-func (s *SortField) SetMissingValue(missingValue any) {
+func (s *SortFieldDefault) SetMissingValue(missingValue any) error {
 	s.missingValue = missingValue
+	return nil
 }
 
 const (
@@ -138,7 +240,7 @@ const (
 // this method should also implement a companion SortFieldProvider to serialize and deserialize
 // the sort in index segment headers
 // lucene.experimental
-func (s *SortField) GetIndexSorter() IndexSorter {
+func (s *SortFieldDefault) GetIndexSorter() IndexSorter {
 	sorter := &EmptyNumericDocValuesProvider{
 		FnGet: func(reader LeafReader) (NumericDocValues, error) {
 			return GetNumeric(reader, s.field)
@@ -166,7 +268,7 @@ func (s *SortField) GetIndexSorter() IndexSorter {
 	}
 }
 
-func (s *SortField) serialize(out store.DataOutput) error {
+func (s *SortFieldDefault) Serialize(out store.DataOutput) error {
 	out.WriteString(s.field)
 	out.WriteString(s._type.String())
 
@@ -207,12 +309,18 @@ func (s *SortField) serialize(out store.DataOutput) error {
 	}
 }
 
-func (s *SortField) Equals(other *SortField) bool {
-	return s.field == other.field &&
-		s._type == other._type &&
-		s.reverse == other.reverse &&
-		s.canUsePoints == other.canUsePoints &&
-		s.missingValue == other.missingValue
+func (s *SortFieldDefault) Equals(other SortField) bool {
+	return s.field == other.GetField() &&
+		s._type == other.GetType() &&
+		s.reverse == other.GetReverse() &&
+		s.canUsePoints == other.GetCanUsePoints() &&
+		reflect.DeepEqual(s.missingValue, other.GetMissingValue())
+
+	//return s.field == other.field &&
+	//	s._type == other._type &&
+	//	s.reverse == other.reverse &&
+	//	s.canUsePoints == other.canUsePoints &&
+	//	s.missingValue == other.missingValue
 }
 
 // SortFieldType Specifies the type of the terms to be sorted, or special types such as CUSTOM
@@ -287,14 +395,9 @@ const (
 	REWRITEABLE
 )
 
-var _ SortFieldProvider = &sortFieldProvider{}
-
-var once sync.Once
-
 func init() {
-	once.Do(func() {
-		SingleSortFieldProvider.Register(ProviderName, newSortFieldProvider())
-	})
+	RegisterSortFieldProvider(newSortFieldProvider())
+	RegisterSortFieldProvider(NewSortedSetSortFieldProvider())
 }
 
 type sortFieldProvider struct {
@@ -309,7 +412,7 @@ func (s *sortFieldProvider) GetName() string {
 	return s.name
 }
 
-func (s *sortFieldProvider) ReadSortField(in store.DataInput) (*SortField, error) {
+func (s *sortFieldProvider) ReadSortField(in store.DataInput) (SortField, error) {
 	field, err := in.ReadString()
 	if err != nil {
 		return nil, err
@@ -327,7 +430,7 @@ func (s *sortFieldProvider) ReadSortField(in store.DataInput) (*SortField, error
 
 	reverse := num == 1
 
-	sf, err := NewSortField(field, fieldType, reverse)
+	sf, err := newSortField(field, fieldType, reverse)
 	if err != nil {
 		return nil, err
 	}
@@ -380,8 +483,8 @@ func (s *sortFieldProvider) ReadSortField(in store.DataInput) (*SortField, error
 	return sf, nil
 }
 
-func (s *sortFieldProvider) WriteSortField(sf *SortField, out store.DataOutput) error {
-	return sf.serialize(out)
+func (s *sortFieldProvider) WriteSortField(sf SortField, out store.DataOutput) error {
+	return sf.Serialize(out)
 }
 
 func readType(in store.DataInput) (SortFieldType, error) {

@@ -305,5 +305,5 @@ func writeValue[T int | int64 | string | bool | []byte](out store.DataOutput, la
 		}
 	}
 
-	return utils.Newline(out)
+	return utils.NewLine(out)
 }
