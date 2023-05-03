@@ -9,12 +9,12 @@ import (
 func main() {
 	bytes := fst.NewByteStore(10)
 
-	err := bytes.WriteBytes([]byte("1111111112"))
+	_, err := bytes.Write([]byte("1111111112"))
 	if err != nil {
 		panic(err)
 	}
 
-	err = bytes.WriteBytes([]byte("Aaaaaaaaab"))
+	_, err = bytes.Write([]byte("Aaaaaaaaab"))
 	if err != nil {
 		panic(err)
 	}
