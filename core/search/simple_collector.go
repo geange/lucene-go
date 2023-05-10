@@ -31,8 +31,8 @@ func NewSimpleCollectorDefault(spi SimpleCollectorSPI) *SimpleCollectorDefault {
 	return &SimpleCollectorDefault{SimpleCollectorSPI: spi}
 }
 
-func (s *SimpleCollectorDefault) GetLeafCollector(ctx context.Context, leafCtx *index.LeafReaderContext) (LeafCollector, error) {
-	err := s.DoSetNextReader(leafCtx)
+func (s *SimpleCollectorDefault) GetLeafCollector(_ context.Context, ctx *index.LeafReaderContext) (LeafCollector, error) {
+	err := s.DoSetNextReader(ctx)
 	if err != nil {
 		return nil, err
 	}

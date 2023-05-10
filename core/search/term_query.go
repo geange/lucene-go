@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
-	"reflect"
 )
 
 var _ Query = &TermQuery{}

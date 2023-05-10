@@ -25,17 +25,20 @@ type Query interface {
 	// ToString(field string) string
 	String(field string) string
 
-	// CreateWeight Expert: Constructs an appropriate Weight implementation for this query.
+	// CreateWeight
+	// Expert: Constructs an appropriate Weight implementation for this query.
 	// Only implemented by primitive queries, which re-write to themselves.
 	// Params: 	scoreMode – How the produced scorers will be consumed.
 	//			boost – The boost that is propagated by the parent queries.
 	CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error)
 
-	// Rewrite Expert: called to re-write queries into primitive queries. For example, a PrefixQuery will be
+	// Rewrite
+	// Expert: called to re-write queries into primitive queries. For example, a PrefixQuery will be
 	// rewritten into a BooleanQuery that consists of TermQuerys.
 	Rewrite(reader index.IndexReader) (Query, error)
 
-	// Visit Recurse through the query tree, visiting any child queries
+	// Visit
+	// Recurse through the query tree, visiting any child queries
 	// Params: visitor – a QueryVisitor to be called by each query in the tree
 	Visit(visitor QueryVisitor)
 }
