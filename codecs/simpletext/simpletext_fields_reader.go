@@ -19,36 +19,36 @@ type SimpleTextFieldsReader struct {
 	in         store.IndexInput
 	fieldInfos *index.FieldInfos
 	maxDoc     int
-	termsCache map[string]*fieldsReaderTerm
+	termsCache map[string]*simpleTextTerms
 }
 
-func (r *SimpleTextFieldsReader) Names() []string {
+func (s *SimpleTextFieldsReader) Names() []string {
 	keys := make([]string, 0)
-	r.fields.All(func(key interface{}, value interface{}) bool {
+	s.fields.All(func(key interface{}, value interface{}) bool {
 		keys = append(keys, key.(string))
 		return true
 	})
 	return keys
 }
 
-func (r *SimpleTextFieldsReader) Terms(field string) (index.Terms, error) {
-	v, ok := r.termsCache[field]
+func (s *SimpleTextFieldsReader) Terms(field string) (index.Terms, error) {
+	v, ok := s.termsCache[field]
 	if !ok {
-		fp, ok := r.fields.Get(field)
+		fp, ok := s.fields.Get(field)
 		if !ok {
 			return nil, nil
 		}
-		terms, err := r.newFieldsReaderTerm(field, fp.(int64), r.maxDoc)
+		terms, err := s.newFieldsReaderTerm(field, fp.(int64), s.maxDoc)
 		if err != nil {
 			return nil, err
 		}
-		r.termsCache[field] = terms
+		s.termsCache[field] = terms
 		return terms, nil
 	}
 	return v, nil
 }
 
-func (r *SimpleTextFieldsReader) Size() int {
+func (s *SimpleTextFieldsReader) Size() int {
 	return -1
 }
 
@@ -69,7 +69,7 @@ func NewSimpleTextFieldsReader(state *index.SegmentReadState) (*SimpleTextFields
 		in:         input,
 		fieldInfos: state.FieldInfos,
 		maxDoc:     maxDoc,
-		termsCache: make(map[string]*fieldsReaderTerm),
+		termsCache: make(map[string]*simpleTextTerms),
 	}
 
 	fields, err := reader.readFields(reader.in.Clone())
@@ -81,7 +81,7 @@ func NewSimpleTextFieldsReader(state *index.SegmentReadState) (*SimpleTextFields
 	return reader, nil
 }
 
-func (r *SimpleTextFieldsReader) readFields(in store.IndexInput) (*treemap.Map, error) {
+func (s *SimpleTextFieldsReader) readFields(in store.IndexInput) (*treemap.Map, error) {
 	input := store.NewBufferedChecksumIndexInput(in)
 	scratch := new(bytes.Buffer)
 	fields := treemap.NewWithStringComparator()
@@ -102,14 +102,14 @@ func (r *SimpleTextFieldsReader) readFields(in store.IndexInput) (*treemap.Map, 
 	}
 }
 
-func (r *SimpleTextFieldsReader) Close() error {
-	return r.in.Close()
+func (s *SimpleTextFieldsReader) Close() error {
+	return s.in.Close()
 }
 
-func (r *SimpleTextFieldsReader) CheckIntegrity() error {
+func (s *SimpleTextFieldsReader) CheckIntegrity() error {
 	return nil
 }
 
-func (r *SimpleTextFieldsReader) GetMergeInstance() index.FieldsProducer {
-	return r
+func (s *SimpleTextFieldsReader) GetMergeInstance() index.FieldsProducer {
+	return s
 }

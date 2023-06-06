@@ -8,7 +8,7 @@ import (
 )
 
 // TODO: merge with PagedBytes, except PagedBytes doesn't
-// let you read while writing which FST needs
+// let you read while writing which Fst needs
 
 type ByteStore struct {
 	*store.DataOutputDefault

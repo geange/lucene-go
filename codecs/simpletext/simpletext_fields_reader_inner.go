@@ -5,16 +5,16 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/fst"
 	"io"
 	"strconv"
 )
 
-var _ index.Terms = &fieldsReaderTerm{}
+var _ index.Terms = &simpleTextTerms{}
 
-type fieldsReaderTerm struct {
+type simpleTextTerms struct {
 	*index.TermsDefault
 
 	termsStart       int64
@@ -23,15 +23,15 @@ type fieldsReaderTerm struct {
 	sumTotalTermFreq int64
 	sumDocFreq       int64
 	docCount         int
-	fst              *fst.FST[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]]
+	fst              *fst.Fst[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]]
 	termCount        int
 
 	scratch *bytes.Buffer
 }
 
-func (r *SimpleTextFieldsReader) newFieldsReaderTerm(field string, termsStart int64, maxDoc int) (*fieldsReaderTerm, error) {
-	info := r.fieldInfos.FieldInfo(field)
-	term := &fieldsReaderTerm{
+func (s *SimpleTextFieldsReader) newFieldsReaderTerm(field string, termsStart int64, maxDoc int) (*simpleTextTerms, error) {
+	info := s.fieldInfos.FieldInfo(field)
+	term := &simpleTextTerms{
 		termsStart: termsStart,
 		fieldInfo:  info,
 		maxDoc:     maxDoc,
@@ -43,20 +43,20 @@ func (r *SimpleTextFieldsReader) newFieldsReaderTerm(field string, termsStart in
 		Size:     term.Size,
 	})
 
-	if err := r.loadTerms(term); err != nil {
+	if err := s.loadTerms(term); err != nil {
 		return nil, err
 	}
 	return term, nil
 }
 
-func (r *SimpleTextFieldsReader) loadTerms(term *fieldsReaderTerm) error {
+func (s *SimpleTextFieldsReader) loadTerms(term *simpleTextTerms) error {
 	posIntOutputs := fst.NewPositiveIntOutputs()
 	outputsOuter := fst.NewPairOutputs[int64, int64](posIntOutputs, posIntOutputs)
 	outputsInner := fst.NewPairOutputs[int64, int64](posIntOutputs, posIntOutputs)
 	outputs := fst.NewPairOutputs[*fst.Pair[int64, int64], *fst.Pair[int64, int64]](outputsOuter, outputsInner)
 	fstCompiler := fst.NewBuilder[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]](fst.BYTE1, outputs)
 
-	in := r.in.Clone()
+	in := s.in.Clone()
 	if _, err := in.Seek(term.termsStart, 0); err != nil {
 		return err
 	}
@@ -125,67 +125,63 @@ func (r *SimpleTextFieldsReader) loadTerms(term *fieldsReaderTerm) error {
 			skipPointer = 0
 		}
 	}
-	term.termCount = len(visitedDocs)
+	term.docCount = len(visitedDocs)
 
 	var err error
 	term.fst, err = fstCompiler.Finish()
 	return err
 }
 
-func (f *fieldsReaderTerm) Iterator() (index.TermsEnum, error) {
+func (f *simpleTextTerms) Iterator() (index.TermsEnum, error) {
 	if f.fst != nil {
-		return newTermsEnum(f.fst, f.fieldInfo.GetIndexOptions()), nil
+		return newSimpleTextTermsEnum(f.fst, f.fieldInfo.GetIndexOptions()), nil
 	}
 	return nil, io.EOF
 }
 
-func (f *fieldsReaderTerm) Size() (int, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *simpleTextTerms) Size() (int, error) {
+	return f.termCount, nil
 }
 
-func (f *fieldsReaderTerm) GetSumTotalTermFreq() (int64, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *simpleTextTerms) GetSumTotalTermFreq() (int64, error) {
+	return f.sumTotalTermFreq, nil
 }
 
-func (f *fieldsReaderTerm) GetSumDocFreq() (int64, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *simpleTextTerms) GetSumDocFreq() (int64, error) {
+	return f.sumDocFreq, nil
 }
 
-func (f *fieldsReaderTerm) GetDocCount() (int, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *simpleTextTerms) GetDocCount() (int, error) {
+	return f.docCount, nil
 }
 
-func (f *fieldsReaderTerm) HasFreqs() bool {
-	//TODO implement me
-	panic("implement me")
+func (f *simpleTextTerms) HasFreqs() bool {
+	return f.fieldInfo.GetIndexOptions() >= types.INDEX_OPTIONS_DOCS_AND_FREQS
 }
 
-func (f *fieldsReaderTerm) HasOffsets() bool {
-	//TODO implement me
-	panic("implement me")
+func (f *simpleTextTerms) HasOffsets() bool {
+	return f.fieldInfo.GetIndexOptions() >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 }
 
-func (f *fieldsReaderTerm) HasPositions() bool {
-	//TODO implement me
-	panic("implement me")
+func (f *simpleTextTerms) HasPositions() bool {
+	return f.fieldInfo.GetIndexOptions() >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 }
 
-func (f *fieldsReaderTerm) HasPayloads() bool {
-	//TODO implement me
-	panic("implement me")
+func (f *simpleTextTerms) HasPayloads() bool {
+	return f.fieldInfo.HasPayloads()
 }
 
-var _ index.TermsEnum = &termsEnum{}
+var _ index.TermsEnum = &simpleTextTermsEnum{}
 
 type EnumPair fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]
 
 type BytesEnum fst.BytesRefFSTEnum[*EnumPair]
 
-type termsEnum struct {
+type simpleTextTermsEnum struct {
+	r *SimpleTextFieldsReader
+
+	*index.BaseTermsEnum
+
 	indexOptions  types.IndexOptions
 	docFreq       int
 	totalTermFreq int64
@@ -195,19 +191,17 @@ type termsEnum struct {
 	fstEnum       *fst.BytesRefFSTEnum[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]]
 }
 
-func newTermsEnum(fstInstance *fst.FST[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]], indexOptions types.IndexOptions) *termsEnum {
-	return &termsEnum{
+func newSimpleTextTermsEnum(fstInstance *fst.Fst[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]],
+	indexOptions types.IndexOptions) *simpleTextTermsEnum {
+	enum := &simpleTextTermsEnum{
 		indexOptions: indexOptions,
 		fstEnum:      fst.NewBytesRefFSTEnum(fstInstance),
 	}
+	enum.BaseTermsEnum = index.NewBaseTermsEnum(&index.BaseTermsEnumConfig{SeekCeil: enum.SeekCeil})
+	return enum
 }
 
-func (t *termsEnum) Attributes() *tokenattributes.AttributeSource {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *termsEnum) SeekExact(text []byte) (bool, error) {
+func (t *simpleTextTermsEnum) SeekExact(text []byte) (bool, error) {
 	result, err := t.fstEnum.SeekExact(text)
 	if err != nil {
 		return false, err
@@ -227,56 +221,423 @@ func (t *termsEnum) SeekExact(text []byte) (bool, error) {
 	return false, nil
 }
 
-func (t *termsEnum) SeekExactExpert(term []byte, state index.TermState) error {
-	//TODO implement me
-	panic("implement me")
+func (t *simpleTextTermsEnum) Next() ([]byte, error) {
+	result, err := t.fstEnum.Next()
+	if err != nil {
+		return nil, err
+	}
+	if result != nil {
+		pair := result.Output
+		// PairOutputs.Pair<Long, Long> pair1 = pair.output1;
+		//        PairOutputs.Pair<Long, Long> pair2 = pair.output2;
+		//        docsStart = pair1.output1;
+		//        skipPointer = pair1.output2;
+		//        docFreq = pair2.output1.intValue();
+		//        totalTermFreq = pair2.output2;
+		//        return result.input;
+
+		pair1, pair2 := pair.Output1, pair.Output2
+		t.docsStart = pair1.Output1
+		t.skipPointer = pair1.Output2
+		t.docFreq = int(pair2.Output1)
+		t.totalTermFreq = pair2.Output2
+		return result.Input, nil
+	} else {
+		return nil, nil
+	}
 }
 
-func (t *termsEnum) TermState() (index.TermState, error) {
-	//TODO implement me
-	panic("implement me")
+func (t *simpleTextTermsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
+	result, err := t.fstEnum.SeekCeil(text)
+	if err != nil {
+		return 0, err
+	}
+
+	if result == nil {
+		return index.SEEK_STATUS_END, nil
+	}
+
+	pair := result.Output
+	pair1 := pair.Output1
+	pair2 := pair.Output2
+
+	t.docsStart = pair1.Output1
+	t.skipPointer = pair1.Output2
+	t.docFreq = int(pair2.Output1)
+	t.totalTermFreq = pair2.Output2
+
+	if bytes.Equal(result.Input, text) {
+		//System.out.println("  match docsStart=" + docsStart);
+		return index.SEEK_STATUS_FOUND, nil
+	} else {
+		//System.out.println("  not match docsStart=" + docsStart);
+		return index.SEEK_STATUS_NOT_FOUND, nil
+	}
 }
 
-func (t *termsEnum) Next() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *termsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (t *termsEnum) SeekExactByOrd(ord int64) error {
+func (t *simpleTextTermsEnum) SeekExactByOrd(ord int64) error {
 	return errors.New("ErrUnsupportedOperation")
 }
 
-func (t *termsEnum) Term() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+func (t *simpleTextTermsEnum) Term() ([]byte, error) {
+	return t.fstEnum.Current().Input, nil
 }
 
-func (t *termsEnum) Ord() (int64, error) {
+func (t *simpleTextTermsEnum) Ord() (int64, error) {
 	return 0, errors.New("ErrUnsupportedOperation")
 }
 
-func (t *termsEnum) DocFreq() (int, error) {
+func (t *simpleTextTermsEnum) DocFreq() (int, error) {
 	return t.docFreq, nil
 }
 
-func (t *termsEnum) TotalTermFreq() (int64, error) {
+func (t *simpleTextTermsEnum) TotalTermFreq() (int64, error) {
 	if t.indexOptions == types.INDEX_OPTIONS_DOCS {
 		return int64(t.docFreq), nil
 	}
 	return t.totalTermFreq, nil
 }
 
-func (t *termsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
+func (t *simpleTextTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
+	hasPositions := t.indexOptions >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+	if hasPositions && index.FeatureRequested(flags, index.POSTINGS_ENUM_POSITIONS) {
+		var docsAndPositionsEnum *simpleTextPostingsEnum
+
+		enum, ok := reuse.(*simpleTextPostingsEnum)
+		if reuse != nil && ok && enum.CanReuse(t.r.in) {
+			docsAndPositionsEnum = reuse.(*simpleTextPostingsEnum)
+		} else {
+			docsAndPositionsEnum = newSimpleTextPostingsEnum()
+		}
+		return docsAndPositionsEnum.Reset(t.docsStart, t.indexOptions, t.docFreq, t.skipPointer), nil
+	}
+
+	var docsEnum *simpleTextDocsEnum
+	enum, ok := reuse.(*simpleTextDocsEnum)
+	if reuse != nil && ok && enum.CanReuse(t.r.in) {
+		docsEnum = reuse.(*simpleTextDocsEnum)
+	} else {
+		docsEnum = t.r.newSimpleTextDocsEnum()
+	}
+	return docsEnum.Reset(t.docsStart, t.indexOptions == types.INDEX_OPTIONS_DOCS, t.docFreq, t.skipPointer)
+}
+
+func (t *simpleTextTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
+	postings, err := t.Postings(nil, flags)
+	if err != nil {
+		return nil, err
+	}
+
+	if t.docFreq <= BLOCK_SIZE {
+		// no skip data
+		return index.NewSlowImpactsEnum(postings), nil
+	}
+
+	return postings.(index.ImpactsEnum), nil
+}
+
+var _ index.ImpactsEnum = &simpleTextPostingsEnum{}
+
+type simpleTextPostingsEnum struct {
+	inStart store.IndexInput
+	in      store.IndexInput
+	docID   int
+	tf      int
+
+	pos           int
+	payload       []byte
+	nextDocStart  int64
+	readOffsets   bool
+	readPositions bool
+
+	startOffset int
+	endOffset   int
+	cost        int
+	skipReader  *SimpleTextSkipReader
+	nextSkipDoc int
+	seekTo      int
+}
+
+func newSimpleTextPostingsEnum() *simpleTextPostingsEnum {
+	panic("")
+}
+
+func (s *simpleTextPostingsEnum) CanReuse(in store.IndexInput) bool {
+	return s.in == in
+}
+
+func (s *simpleTextPostingsEnum) DocID() int {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *termsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
+func (s *simpleTextPostingsEnum) NextDoc() (int, error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) Advance(target int) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) SlowAdvance(target int) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) Cost() int64 {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) Freq() (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) NextPosition() (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) StartOffset() (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) EndOffset() (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) GetPayload() ([]byte, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) AdvanceShallow(target int) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) GetImpacts() (index.Impacts, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions types.IndexOptions, docFreq int, skipPointer int64) index.PostingsEnum {
+
+	s.nextDocStart = fp
+	s.docID = -1
+	s.readPositions = indexOptions >= (types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	s.readOffsets = indexOptions >= (types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
+	if !s.readOffsets {
+		s.startOffset = -1
+		s.endOffset = -1
+	}
+	s.cost = docFreq
+	s.skipReader.Reset(skipPointer, docFreq)
+	s.nextSkipDoc = 0
+	s.seekTo = -1
+	return s
+}
+
+var _ index.ImpactsEnum = &simpleTextDocsEnum{}
+
+type simpleTextDocsEnum struct {
+	inStart     store.IndexInput
+	in          store.IndexInput
+	omitTF      bool
+	docID       int
+	tf          int
+	cost        int64
+	skipReader  *SimpleTextSkipReader
+	nextSkipDoc int
+	seekTo      int64
+}
+
+func (s *SimpleTextFieldsReader) newSimpleTextDocsEnum() *simpleTextDocsEnum {
+	return &simpleTextDocsEnum{
+		inStart:     s.in,
+		in:          s.in.Clone(),
+		omitTF:      false,
+		docID:       -1,
+		tf:          0,
+		cost:        0,
+		skipReader:  nil,
+		nextSkipDoc: 0,
+		seekTo:      -1,
+	}
+}
+
+func (s *simpleTextDocsEnum) DocID() int {
+	return s.docID
+}
+
+func (s *simpleTextDocsEnum) NextDoc() (int, error) {
+	return s.Advance(s.docID + 1)
+}
+
+func (s *simpleTextDocsEnum) Advance(target int) (int, error) {
+	err := s.AdvanceShallow(target)
+	if err != nil {
+		return 0, err
+	}
+	return s.advanceTarget(target)
+}
+
+func (s *simpleTextDocsEnum) SlowAdvance(target int) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *simpleTextDocsEnum) Cost() int64 {
+	return s.cost
+}
+
+func (s *simpleTextDocsEnum) Freq() (int, error) {
+	return s.tf, nil
+}
+
+func (s *simpleTextDocsEnum) NextPosition() (int, error) {
+	return -1, nil
+}
+
+func (s *simpleTextDocsEnum) StartOffset() (int, error) {
+	return -1, nil
+}
+
+func (s *simpleTextDocsEnum) EndOffset() (int, error) {
+	return -1, nil
+}
+
+func (s *simpleTextDocsEnum) GetPayload() ([]byte, error) {
+	return nil, nil
+}
+
+func (s *simpleTextDocsEnum) AdvanceShallow(target int) error {
+	if target > s.nextSkipDoc {
+		_, err := s.skipReader.SkipTo(target)
+		if err != nil {
+			return err
+		}
+		if s.skipReader.getNextSkipDoc() != index.NO_MORE_DOCS {
+			s.seekTo = s.skipReader.getNextSkipDocFP()
+		}
+		s.nextSkipDoc = s.skipReader.getNextSkipDoc()
+	}
+	return nil
+}
+
+func (s *simpleTextDocsEnum) GetImpacts() (index.Impacts, error) {
+	err := s.AdvanceShallow(s.docID)
+	if err != nil {
+		return nil, err
+	}
+	return s.skipReader.GetImpacts(), nil
+}
+
+func (s *simpleTextDocsEnum) CanReuse(in store.IndexInput) bool {
+	return in == s.inStart
+}
+
+func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPointer int64) (index.PostingsEnum, error) {
+	_, err := s.in.Seek(fp, 0)
+	if err != nil {
+		return nil, err
+	}
+	s.omitTF = omitTF
+	s.docID = -1
+	s.tf = 1
+	s.cost = int64(docFreq)
+	err = s.skipReader.reset(skipPointer, docFreq)
+	if err != nil {
+		return nil, err
+	}
+	s.nextSkipDoc = 0
+	s.seekTo = -1
+	return s, nil
+}
+
+func (s *simpleTextDocsEnum) readDoc() (int, error) {
+	if s.docID == index.NO_MORE_DOCS {
+		return s.docID, nil
+	}
+	first := true
+	termFreq := 0
+
+	scratch := new(bytes.Buffer)
+
+	for {
+		lineStart := s.in.GetFilePointer()
+		err := utils.ReadLine(s.in, scratch)
+		if err != nil {
+			return 0, err
+		}
+		if bytes.HasPrefix(scratch.Bytes(), FIELDS_DOC) {
+			if !first {
+				_, err := s.in.Seek(lineStart, 0)
+				if err != nil {
+					return 0, err
+				}
+				if !s.omitTF {
+					s.tf = termFreq
+				}
+				return s.docID, nil
+			}
+			scratch.Next(len(FIELDS_DOC))
+			s.docID, err = strconv.Atoi(scratch.String())
+			if err != nil {
+				return 0, err
+			}
+			termFreq = 0
+			first = false
+		} else if bytes.HasPrefix(scratch.Bytes(), FIELDS_FREQ) {
+			scratch.Next(len(FIELDS_FREQ))
+			termFreq, err = strconv.Atoi(scratch.String())
+			if err != nil {
+				return 0, err
+			}
+		} else if bytes.HasPrefix(scratch.Bytes(), FIELDS_POS) {
+			// skip termFreq++;
+		} else if bytes.HasPrefix(scratch.Bytes(), FIELDS_START_OFFSET) {
+			// skip
+		} else if bytes.HasPrefix(scratch.Bytes(), FIELDS_END_OFFSET) {
+			// skip
+		} else if bytes.HasPrefix(scratch.Bytes(), FIELDS_PAYLOAD) {
+			// skip
+		} else {
+			if !first {
+				_, err := s.in.Seek(lineStart, 0)
+				if err != nil {
+					return 0, err
+				}
+				if !s.omitTF {
+					s.tf = termFreq
+				}
+				return s.docID, nil
+			}
+		}
+	}
+}
+
+func (s *simpleTextDocsEnum) advanceTarget(target int) (int, error) {
+	if s.seekTo > 0 {
+		_, err := s.in.Seek(s.seekTo, 0)
+		if err != nil {
+			return 0, err
+		}
+		s.seekTo = -1
+	}
+
+	doc, err := s.readDoc()
+	if err != nil {
+		return 0, err
+	}
+
+	for doc >= target {
+		break
+	}
+	return doc, nil
 }

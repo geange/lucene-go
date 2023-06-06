@@ -12,12 +12,12 @@ type NodeHash[T any] struct {
 	table map[int]int64
 	//count      int64
 	//mask       int64
-	fst        *FST[T]
+	fst        *Fst[T]
 	scratchArc *Arc[T]
 	in         BytesReader
 }
 
-func NewNodeHash[T any](fst *FST[T], in BytesReader) *NodeHash[T] {
+func NewNodeHash[T any](fst *Fst[T], in BytesReader) *NodeHash[T] {
 	return &NodeHash[T]{
 		table: make(map[int]int64),
 		//mask:       15,

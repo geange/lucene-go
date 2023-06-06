@@ -31,7 +31,7 @@ type UnCompiledNode[T any] struct {
 
 	// TODO: instead of recording isFinal/output on the
 	// node, maybe we should use -1 arc to mean "end" (like
-	// we do when reading the FST).  Would simplify much
+	// we do when reading the Fst).  Would simplify much
 	// code here...
 	Arcs       []*BuilderArc[T]
 	Output     T

@@ -7,7 +7,7 @@ import (
 
 var _ Store = &OnHeapFSTStore{}
 
-// OnHeapFSTStore Provides storage of finite state machine (FST),
+// OnHeapFSTStore Provides storage of finite state machine (Fst),
 // using byte array or byte store allocated on heap.
 // lucene.experimental
 type OnHeapFSTStore struct {
@@ -26,7 +26,7 @@ func NewOnHeapFSTStore(maxBlockBits int) (*OnHeapFSTStore, error) {
 
 func (o *OnHeapFSTStore) Init(in store.DataInput, numBytes int64) error {
 	if numBytes > 1<<o.maxBlockBits {
-		// FST is big: we need multiple pages
+		// Fst is big: we need multiple pages
 		bytes, err := NewBytesStoreV1(in, numBytes, 1<<o.maxBlockBits)
 		if err != nil {
 			return err
@@ -35,7 +35,7 @@ func (o *OnHeapFSTStore) Init(in store.DataInput, numBytes int64) error {
 		return nil
 	}
 
-	// FST fits into a single block: use ByteArrayBytesStoreReader for less overhead
+	// Fst fits into a single block: use ByteArrayBytesStoreReader for less overhead
 	o.bytesArray = make([]byte, numBytes)
 	_, err := in.Read(o.bytesArray)
 	return err

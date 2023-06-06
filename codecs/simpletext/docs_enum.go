@@ -24,17 +24,17 @@ type SimpleTextDocsEnum struct {
 	seekTo       int64
 }
 
-func (r *SimpleTextFieldsReader) NewSimpleTextDocsEnum() *SimpleTextDocsEnum {
+func (s *SimpleTextFieldsReader) NewSimpleTextDocsEnum() *SimpleTextDocsEnum {
 	return &SimpleTextDocsEnum{
-		inStart:      r.in,
-		in:           r.in.Clone(),
+		inStart:      s.in,
+		in:           s.in.Clone(),
 		omitTF:       false,
 		docID:        -1,
 		tf:           0,
 		scratch:      nil,
 		scratchUTF16: nil,
 		cost:         0,
-		skipReader:   NewSimpleTextSkipReader(r.in.Clone()),
+		skipReader:   NewSimpleTextSkipReader(s.in.Clone()),
 		nextSkipDoc:  0,
 		seekTo:       -1,
 	}

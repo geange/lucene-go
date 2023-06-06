@@ -53,3 +53,27 @@ func (b *BulkScorerDefault) ScoreRange(collector LeafCollector, acceptDocs util.
 func (b *BulkScorerDefault) Cost() int64 {
 	return b.FnCost()
 }
+
+var _ BulkScorer = &BulkScorerAnon{}
+
+type BulkScorerAnon struct {
+	FnScore      func(collector LeafCollector, acceptDocs util.Bits) error
+	FnScoreRange func(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error)
+	FnCost       func() int64
+}
+
+func (b *BulkScorerAnon) Score(collector LeafCollector, acceptDocs util.Bits) error {
+	if b.FnScore != nil {
+		return b.FnScore(collector, acceptDocs)
+	}
+	_, err := b.ScoreRange(collector, acceptDocs, 0, math.MaxInt32)
+	return err
+}
+
+func (b *BulkScorerAnon) ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
+	return b.FnScoreRange(collector, acceptDocs, min, max)
+}
+
+func (b *BulkScorerAnon) Cost() int64 {
+	return b.FnCost()
+}

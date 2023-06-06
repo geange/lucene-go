@@ -4,7 +4,7 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-// Store Abstraction for reading/writing bytes necessary for FST.
+// Store Abstraction for reading/writing bytes necessary for Fst.
 type Store interface {
 	Init(in store.DataInput, numBytes int64) error
 

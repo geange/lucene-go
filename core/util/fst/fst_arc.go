@@ -20,7 +20,7 @@ type Arc[T any] struct {
 
 	//*** Fields for a direct addressing node. nodeFlags == ARCS_FOR_DIRECT_ADDRESSING.
 
-	// Start position in the FST.BytesReader of the presence bits for a direct addressing node, aka the bit-table
+	// Start position in the Fst.BytesReader of the presence bits for a direct addressing node, aka the bit-table
 	bitTableStart int64
 
 	// First label of a direct addressing node.

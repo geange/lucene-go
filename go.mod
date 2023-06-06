@@ -10,12 +10,12 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.3.0
 	go.uber.org/atomic v1.9.0
+	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 )
 
 //replace (

@@ -40,7 +40,7 @@ const (
 	// See Also: shouldExpandNodeWithDirectAddressing
 	DIRECT_ADDRESSING_MAX_OVERSIZE_WITH_CREDIT_FACTOR = 1.66
 
-	FILE_FORMAT_NAME = "FST"
+	FILE_FORMAT_NAME = "Fst"
 	VERSION_START    = 6
 	VERSION_CURRENT  = 7
 

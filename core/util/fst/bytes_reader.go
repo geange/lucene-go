@@ -2,7 +2,7 @@ package fst
 
 import "github.com/geange/lucene-go/core/store"
 
-// BytesReader Reads bytes stored in an FST.
+// BytesReader Reads bytes stored in an Fst.
 type BytesReader interface {
 	store.DataInput
 

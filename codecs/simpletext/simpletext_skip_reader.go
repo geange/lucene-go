@@ -106,3 +106,15 @@ func (s *SimpleTextSkipReader) getNextSkipDocFP() int64 {
 func (s *SimpleTextSkipReader) getImpacts() index.Impacts {
 	return s.impacts
 }
+
+func (s *SimpleTextSkipReader) Reset(skipPointer int64, docFreq int) {
+	s.init()
+	if skipPointer > 0 {
+		s.MultiLevelSkipListReaderDefault.Init(skipPointer, docFreq)
+		s.hasSkipList = true
+	}
+}
+
+func (s *SimpleTextSkipReader) GetImpacts() index.Impacts {
+	return s.impacts
+}

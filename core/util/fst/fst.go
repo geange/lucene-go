@@ -15,15 +15,15 @@ var (
 	DEFAULT_MAX_BLOCK_BITS = 30
 )
 
-type FST[T PairAble] struct {
+type Fst[T PairAble] struct {
 	inputType INPUT_TYPE
 
-	// if non-null, this FST accepts the empty string and
+	// if non-null, this Fst accepts the empty string and
 	// produces this output
 	emptyOutput    T
 	hasEmptyOutput bool
 
-	// A BytesStore, used during building, or during reading when the FST is very large (more than 1 GB). If the FST is less than 1 GB then bytesArray is set instead.
+	// A BytesStore, used during building, or during reading when the Fst is very large (more than 1 GB). If the Fst is less than 1 GB then bytesArray is set instead.
 	bytes *ByteStore
 
 	fstStore Store
@@ -33,11 +33,11 @@ type FST[T PairAble] struct {
 	outputs Outputs[T]
 }
 
-func NewFST[T any](inputType INPUT_TYPE, outputs Outputs[T], bytesPageBits int) *FST[T] {
+func NewFST[T any](inputType INPUT_TYPE, outputs Outputs[T], bytesPageBits int) *Fst[T] {
 	// TODO: fix
 	var emptyOutput T
 
-	return &FST[T]{
+	return &Fst[T]{
 		inputType:      inputType,
 		emptyOutput:    emptyOutput,
 		hasEmptyOutput: false,
@@ -48,15 +48,15 @@ func NewFST[T any](inputType INPUT_TYPE, outputs Outputs[T], bytesPageBits int) 
 	}
 }
 
-// NewFSTV1 Load a previously saved FST.
-func NewFSTV1[T any](metaIn, in store.DataInput, outputs Outputs[T]) (*FST[T], error) {
-	return NewFSTV2(metaIn, in, outputs, nil)
+// NewFstV1 Load a previously saved Fst.
+func NewFstV1[T any](metaIn, in store.DataInput, outputs Outputs[T]) (*Fst[T], error) {
+	return NewFstV2(metaIn, in, outputs, nil)
 }
 
-// NewFSTV2 Load a previously saved FST; maxBlockBits allows you to control the size of
-// the byte[] pages used to hold the FST bytes.
-func NewFSTV2[T any](metaIn, in store.DataInput, outputs Outputs[T], fstStore Store) (*FST[T], error) {
-	this := &FST[T]{}
+// NewFstV2 Load a previously saved Fst; maxBlockBits allows you to control the size of
+// the byte[] pages used to hold the Fst bytes.
+func NewFstV2[T any](metaIn, in store.DataInput, outputs Outputs[T], fstStore Store) (*Fst[T], error) {
+	this := &Fst[T]{}
 
 	this.bytes = nil
 	this.fstStore = fstStore
@@ -130,7 +130,7 @@ func NewFSTV2[T any](metaIn, in store.DataInput, outputs Outputs[T], fstStore St
 	return this, nil
 }
 
-func (f *FST[T]) SetEmptyOutput(v T) error {
+func (f *Fst[T]) SetEmptyOutput(v T) error {
 	if f.hasEmptyOutput {
 		var err error
 		f.emptyOutput, err = f.outputs.Merge(f.emptyOutput, v)
@@ -142,7 +142,7 @@ func (f *FST[T]) SetEmptyOutput(v T) error {
 	return nil
 }
 
-func (f *FST[T]) Save(metaOut store.DataOutput, out store.DataOutput) error {
+func (f *Fst[T]) Save(metaOut store.DataOutput, out store.DataOutput) error {
 	if f.startNode == -1 {
 		return errors.New("call finish first")
 	}
@@ -227,7 +227,7 @@ func (f *FST[T]) Save(metaOut store.DataOutput, out store.DataOutput) error {
 	return f.fstStore.WriteTo(out)
 }
 
-func (f *FST[T]) SaveToFile(path string) error {
+func (f *Fst[T]) SaveToFile(path string) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return err
@@ -237,7 +237,7 @@ func (f *FST[T]) SaveToFile(path string) error {
 }
 
 // NewFSTFromFile Reads an automaton from a file.
-func NewFSTFromFile[T any](path string, outputs Outputs[T]) (*FST[T], error) {
+func NewFSTFromFile[T any](path string, outputs Outputs[T]) (*Fst[T], error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -247,10 +247,10 @@ func NewFSTFromFile[T any](path string, outputs Outputs[T]) (*FST[T], error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewFSTV2(in, in, outputs, fstStore)
+	return NewFstV2(in, in, outputs, fstStore)
 }
 
-func (f *FST[T]) writeLabel(out store.DataOutput, v int) error {
+func (f *Fst[T]) writeLabel(out store.DataOutput, v int) error {
 	// TODO: assert v >= 0: "v=" + v;
 	switch f.inputType {
 	case BYTE1:
@@ -265,7 +265,7 @@ func (f *FST[T]) writeLabel(out store.DataOutput, v int) error {
 }
 
 // ReadLabel Reads one BYTE1/2/4 label from the provided DataInput.
-func (f *FST[T]) ReadLabel(in store.DataInput) (int, error) {
+func (f *Fst[T]) ReadLabel(in store.DataInput) (int, error) {
 	var v int
 	switch f.inputType {
 	case BYTE1:
@@ -298,7 +298,7 @@ func TargetHasArcs[T any](arc *Arc[T]) bool {
 
 // AddNode serializes new node by appending its bytes to the end
 // of the current byte[]
-func (f *FST[T]) AddNode(builder *Builder[T], nodeIn *UnCompiledNode[T]) (int64, error) {
+func (f *Fst[T]) AddNode(builder *Builder[T], nodeIn *UnCompiledNode[T]) (int64, error) {
 	//noOutput := f.output.GetNoOutput()
 
 	if nodeIn.NumArcs() == 0 {
@@ -452,7 +452,7 @@ func (f *FST[T]) AddNode(builder *Builder[T], nodeIn *UnCompiledNode[T]) (int64,
 // Nodes with fixed length arcs use more space, because they encode all arcs with a fixed
 // number of bytes, but they allow either binary search or direct addressing on the arcs
 // (instead of linear scan) on lookup by arc label.
-func (f *FST[T]) shouldExpandNodeWithFixedLengthArcs(builder *Builder[T], node *UnCompiledNode[T]) bool {
+func (f *Fst[T]) shouldExpandNodeWithFixedLengthArcs(builder *Builder[T], node *UnCompiledNode[T]) bool {
 	return builder.allowFixedLengthArcs &&
 		((node.Depth <= FIXED_LENGTH_ARC_SHALLOW_DEPTH &&
 			node.NumArcs() >= FIXED_LENGTH_ARC_SHALLOW_NUM_ARCS) ||
@@ -463,7 +463,7 @@ func (f *FST[T]) shouldExpandNodeWithFixedLengthArcs(builder *Builder[T], node *
 // Prefer direct addressing for performance if it does not oversize binary search byte size too much,
 // so that the arcs can be directly addressed by label.
 // See Also: Builder.getDirectAddressingMaxOversizingFactor()
-func (f *FST[T]) shouldExpandNodeWithDirectAddressing(builder *Builder[T], nodeIn *UnCompiledNode[T],
+func (f *Fst[T]) shouldExpandNodeWithDirectAddressing(builder *Builder[T], nodeIn *UnCompiledNode[T],
 	numBytesPerArc, maxBytesPerArcWithoutLabel, labelRange int64) (bool, error) {
 
 	// Anticipate precisely the size of the encodings.
@@ -476,7 +476,7 @@ func (f *FST[T]) shouldExpandNodeWithDirectAddressing(builder *Builder[T], nodeI
 	sizeForDirectAddressing := bytes + builder.numLabelBytesPerArc[0] + maxBytesPerArcWithoutLabel*nodeIn.NumArcs()
 
 	// Determine the allowed oversize compared to binary search.
-	// This is defined by a parameter of FST Builder (default 1: no oversize).
+	// This is defined by a parameter of Fst Builder (default 1: no oversize).
 	allowedOversize := int64(float64(sizeForBinarySearch) * builder.GetDirectAddressingMaxOversizingFactor())
 	expansionCost := (sizeForDirectAddressing) - allowedOversize
 
@@ -495,7 +495,7 @@ func (f *FST[T]) shouldExpandNodeWithDirectAddressing(builder *Builder[T], nodeI
 	return false, nil
 }
 
-func (f *FST[T]) writeNodeForBinarySearch(builder *Builder[T], nodeIn *UnCompiledNode[T],
+func (f *Fst[T]) writeNodeForBinarySearch(builder *Builder[T], nodeIn *UnCompiledNode[T],
 	startAddress int64, maxBytesPerArc int64) error {
 	// Build the header in a buffer.
 	// It is a false/special arc which is in fact a node header with node flags followed by node metadata.
@@ -549,7 +549,7 @@ func (f *FST[T]) writeNodeForBinarySearch(builder *Builder[T], nodeIn *UnCompile
 	return builder.bytes.WriteBytesAt(startAddress, bytes[0:headerLen])
 }
 
-func (f *FST[T]) writeNodeForDirectAddressing(builder *Builder[T], nodeIn *UnCompiledNode[T],
+func (f *Fst[T]) writeNodeForDirectAddressing(builder *Builder[T], nodeIn *UnCompiledNode[T],
 	startAddress, maxBytesPerArcWithoutLabel, labelRange int64) error {
 
 	// Expand the arcs backwards in a buffer because we remove the labels.
@@ -659,7 +659,7 @@ func (f *FST[T]) writeNodeForDirectAddressing(builder *Builder[T], nodeIn *UnCom
 	return builder.bytes.WriteBytesAt(writeOffset, buff[bufferOffset:bufferOffset+totalArcBytes])
 }
 
-func (f *FST[T]) writePresenceBits(builder *Builder[T], nodeIn *UnCompiledNode[T], dest, numPresenceBytes int64) error {
+func (f *Fst[T]) writePresenceBits(builder *Builder[T], nodeIn *UnCompiledNode[T], dest, numPresenceBytes int64) error {
 	bytePos := dest
 	presenceBits := 1 // The first arc is always present.
 	presenceIndex := 0
@@ -706,7 +706,7 @@ func getNumPresenceBytes(labelRange int64) (int64, error) {
 
 // Reads the presence bits of a direct-addressing node. Actually we don't read them here,
 // we just keep the pointer to the bit-table start and we skip them.
-func (f *FST[T]) readPresenceBytes(arc *Arc[T], in BytesReader) error {
+func (f *Fst[T]) readPresenceBytes(arc *Arc[T], in BytesReader) error {
 
 	// TODO: assert arc.bytesPerArc() > 0;
 	// TODO: assert arc.nodeFlags() == ARCS_FOR_DIRECT_ADDRESSING;
@@ -719,8 +719,8 @@ func (f *FST[T]) readPresenceBytes(arc *Arc[T], in BytesReader) error {
 	return in.SkipBytes(int(bytes))
 }
 
-// GetFirstArc Fills virtual 'start' arc, ie, an empty incoming arc to the FST's start node
-func (f *FST[T]) GetFirstArc(arc *Arc[T]) (*Arc[T], error) {
+// GetFirstArc Fills virtual 'start' arc, ie, an empty incoming arc to the Fst's start node
+func (f *Fst[T]) GetFirstArc(arc *Arc[T]) (*Arc[T], error) {
 	//noOutput := f.output.GetNoOutput()
 
 	if !f.outputs.IsNoOutput(f.emptyOutput) {
@@ -735,7 +735,7 @@ func (f *FST[T]) GetFirstArc(arc *Arc[T]) (*Arc[T], error) {
 	}
 	arc.output = f.outputs.GetNoOutput()
 
-	// If there are no nodes, ie, the FST only accepts the
+	// If there are no nodes, ie, the Fst only accepts the
 	// empty string, then startNode is 0
 	arc.target = f.startNode
 	return arc, nil
@@ -744,7 +744,7 @@ func (f *FST[T]) GetFirstArc(arc *Arc[T]) (*Arc[T], error) {
 // Follows the follow arc and reads the last arc of its target; this changes the provided
 // arc (2nd arg) in-place and returns it.
 // Returns: Returns the second argument (arc).
-func (f *FST[T]) readLastTargetArc(follow, arc *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) readLastTargetArc(follow, arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	if !TargetHasArcs(follow) {
 		//System.out.println("  end node");
 		// TODO: assert follow.isFinal();
@@ -844,7 +844,7 @@ func (f *FST[T]) readLastTargetArc(follow, arc *Arc[T], in BytesReader) (*Arc[T]
 
 }
 
-func (f *FST[T]) readUnpackedNodeTarget(in BytesReader) (int64, error) {
+func (f *Fst[T]) readUnpackedNodeTarget(in BytesReader) (int64, error) {
 	num, err := in.ReadUvarint()
 	if err != nil {
 		return 0, err
@@ -855,7 +855,7 @@ func (f *FST[T]) readUnpackedNodeTarget(in BytesReader) (int64, error) {
 // ReadFirstTargetArc Follow the follow arc and read the first arc of its target; this changes
 // fthe provided arc (2nd arg) in-place and returns it.
 // Returns: Returns the second argument (arc).
-func (f *FST[T]) ReadFirstTargetArc(follow, arc *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) ReadFirstTargetArc(follow, arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	if follow.IsFinal() {
 		// Insert "fake" final first arc:
 		arc.label = END_LABEL
@@ -875,7 +875,7 @@ func (f *FST[T]) ReadFirstTargetArc(follow, arc *Arc[T], in BytesReader) (*Arc[T
 	}
 }
 
-func (f *FST[T]) ReadFirstTarget(follow *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) ReadFirstTarget(follow *Arc[T], in BytesReader) (*Arc[T], error) {
 	arc := &Arc[T]{}
 
 	if follow.IsFinal() {
@@ -897,7 +897,7 @@ func (f *FST[T]) ReadFirstTarget(follow *Arc[T], in BytesReader) (*Arc[T], error
 	}
 }
 
-func (f *FST[T]) ReadFirstRealTargetArc(nodeAddress int64, arc *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) ReadFirstRealTargetArc(nodeAddress int64, arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	err := in.SetPosition(nodeAddress)
 	if err != nil {
 		return nil, err
@@ -966,7 +966,7 @@ func isExpandedTarget[T any](follow *Arc[T], in BytesReader) (bool, error) {
 }
 
 // ReadNextArc In-place read; returns the arc.
-func (f *FST[T]) ReadNextArc(arc *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) ReadNextArc(arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	if arc.Label() == END_LABEL {
 		// This was a fake inserted "final" arc
 		if arc.NextArc() <= 0 {
@@ -979,7 +979,7 @@ func (f *FST[T]) ReadNextArc(arc *Arc[T], in BytesReader) (*Arc[T], error) {
 }
 
 // Peeks at next arc's label; does not alter arc. Do not call this if arc.isLast()!
-func (f *FST[T]) readNextArcLabel(arc *Arc[T], in BytesReader) (int, error) {
+func (f *Fst[T]) readNextArcLabel(arc *Arc[T], in BytesReader) (int, error) {
 	// TODO: assert !arc.isLast();
 
 	if arc.Label() == END_LABEL {
@@ -1051,7 +1051,7 @@ func (f *FST[T]) readNextArcLabel(arc *Arc[T], in BytesReader) (int, error) {
 	return f.ReadLabel(in)
 }
 
-func (f *FST[T]) ReadArcByIndex(arc *Arc[T], in BytesReader, idx int) (*Arc[T], error) {
+func (f *Fst[T]) ReadArcByIndex(arc *Arc[T], in BytesReader, idx int) (*Arc[T], error) {
 	// TODO: assert arc.bytesPerArc() > 0;
 	// TODO: assert arc.nodeFlags() == ARCS_FOR_BINARY_SEARCH;
 	// TODO: assert idx >= 0 && idx < arc.numArcs();
@@ -1071,7 +1071,7 @@ func (f *FST[T]) ReadArcByIndex(arc *Arc[T], in BytesReader, idx int) (*Arc[T], 
 // Params: 	rangeIndex – The index of the arc in the label range. It must be present.
 //
 //	The real arc offset is computed based on the presence bits of the direct addressing node.
-func (f *FST[T]) ReadArcByDirectAddressing(arc *Arc[T], in BytesReader, rangeIndex int) (*Arc[T], error) {
+func (f *Fst[T]) ReadArcByDirectAddressing(arc *Arc[T], in BytesReader, rangeIndex int) (*Arc[T], error) {
 	// TODO: assert BitTable.assertIsValid(arc, in);
 	// TODO: assert rangeIndex >= 0 && rangeIndex < arc.numArcs();
 	// TODO: assert BitTable.IsBitSet(rangeIndex, arc, in);
@@ -1083,7 +1083,7 @@ func (f *FST[T]) ReadArcByDirectAddressing(arc *Arc[T], in BytesReader, rangeInd
 }
 
 // Reads a present direct addressing node arc, with the provided index in the label range and its corresponding presence index (which is the count of presence bits before it).
-func (f *FST[T]) readArcByDirectAddressingV1(arc *Arc[T], in BytesReader, rangeIndex, presenceIndex int) (*Arc[T], error) {
+func (f *Fst[T]) readArcByDirectAddressingV1(arc *Arc[T], in BytesReader, rangeIndex, presenceIndex int) (*Arc[T], error) {
 	if err := in.SetPosition(arc.PosArcsStart() - int64(presenceIndex*arc.BytesPerArc())); err != nil {
 		return nil, err
 	}
@@ -1100,9 +1100,9 @@ func (f *FST[T]) readArcByDirectAddressingV1(arc *Arc[T], in BytesReader, rangeI
 }
 
 // ReadLastArcByDirectAddressing Reads the last arc of a direct addressing node.
-// This method is equivalent to call readArcByDirectAddressing(FST.Arc, FST.BytesReader, int)
+// This method is equivalent to call readArcByDirectAddressing(Fst.Arc, Fst.BytesReader, int)
 // with rangeIndex equal to arc.numArcs() - 1, but it is faster.
-func (f *FST[T]) ReadLastArcByDirectAddressing(arc *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) ReadLastArcByDirectAddressing(arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	// TODO: assert BitTable.assertIsValid(arc, in);
 	presenceIndex, err := CountBits(arc, in)
 	if err != nil {
@@ -1113,7 +1113,7 @@ func (f *FST[T]) ReadLastArcByDirectAddressing(arc *Arc[T], in BytesReader) (*Ar
 }
 
 // ReadNextRealArc Never returns null, but you should never call this if arc.isLast() is true.
-func (f *FST[T]) ReadNextRealArc(arc *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) ReadNextRealArc(arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	// TODO: can't assert this because we call from readFirstArc
 	// assert !flag(arc.flags, BIT_LAST_ARC);
 
@@ -1161,7 +1161,7 @@ func (f *FST[T]) ReadNextRealArc(arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	return f.readArc(arc, in)
 }
 
-func (f *FST[T]) readArc(arc *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) readArc(arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	if arc.NodeFlags() == ARCS_FOR_DIRECT_ADDRESSING {
 		arc.label = arc.FirstLabel() + arc.ArcIdx()
 	} else {
@@ -1259,7 +1259,7 @@ func readEndArc[T any](follow, arc *Arc[T]) *Arc[T] {
 // FindTargetArc Finds an arc leaving the incoming arc, replacing the arc in place.
 // This returns null if the arc was not found, else the incoming arc.
 // 查找follow后满足label=${labelToMatch}的Arc
-func (f *FST[T]) FindTargetArc(labelToMatch int, follow, arc *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) FindTargetArc(labelToMatch int, follow, arc *Arc[T], in BytesReader) (*Arc[T], error) {
 
 	if labelToMatch == END_LABEL {
 		if follow.IsFinal() {
@@ -1394,7 +1394,7 @@ func (f *FST[T]) FindTargetArc(labelToMatch int, follow, arc *Arc[T], in BytesRe
 	}
 }
 
-func (f *FST[T]) FindTarget(labelToMatch int, current *Arc[T], in BytesReader) (*Arc[T], error) {
+func (f *Fst[T]) FindTarget(labelToMatch int, current *Arc[T], in BytesReader) (*Arc[T], error) {
 	targetArc := &Arc[T]{}
 
 	if labelToMatch == END_LABEL {
@@ -1528,7 +1528,7 @@ func (f *FST[T]) FindTarget(labelToMatch int, current *Arc[T], in BytesReader) (
 	}
 }
 
-func (f *FST[T]) seekToNextNode(in BytesReader) error {
+func (f *Fst[T]) seekToNextNode(in BytesReader) error {
 	for {
 		flags, err := in.ReadByte()
 		if err != nil {
@@ -1566,8 +1566,8 @@ func (f *FST[T]) seekToNextNode(in BytesReader) error {
 	}
 }
 
-// GetBytesReader Returns a FST.BytesReader for this FST, positioned at position 0.
-func (f *FST[T]) GetBytesReader() (BytesReader, error) {
+// GetBytesReader Returns a Fst.BytesReader for this Fst, positioned at position 0.
+func (f *Fst[T]) GetBytesReader() (BytesReader, error) {
 	if f.fstStore != nil {
 		return f.fstStore.GetReverseBytesReader()
 	} else {
@@ -1579,7 +1579,7 @@ const (
 	INTEGER_BYTES = 4
 )
 
-func (f *FST[T]) Finish(newStartNode int64) error {
+func (f *Fst[T]) Finish(newStartNode int64) error {
 	// TODO: assert newStartNode <= bytes.getPosition();
 	if f.startNode != -1 {
 		return errors.New("already finished")

@@ -18,7 +18,7 @@ const (
 //
 //	bitIndex – The bit zero-based index. It must be greater than or equal to 0, and strictly less
 //	than number of bit-table bytes * Byte.SIZE.
-//	reader – The FST.BytesReader to read. It must be positioned at the beginning of the bit-table.
+//	reader – The Fst.BytesReader to read. It must be positioned at the beginning of the bit-table.
 func isBitSet(bitIndex int, reader BytesReader) (bool, error) {
 	if err := assert(bitIndex >= 0,
 		fmt.Sprintf("bitIndex=%d", bitIndex)); err != nil {
@@ -40,7 +40,7 @@ func isBitSet(bitIndex int, reader BytesReader) (bool, error) {
 // Params:
 //
 //	bitTableBytes – The number of bytes in the bit-table.
-//	reader – The FST.BytesReader to read. It must be positioned at the beginning of the bit-table.
+//	reader – The Fst.BytesReader to read. It must be positioned at the beginning of the bit-table.
 func countBits(bitTableBytes int64, reader BytesReader) (int64, error) {
 	if err := assert(bitTableBytes >= 0,
 		fmt.Sprintf("bitTableBytes=%d", bitTableBytes)); err != nil {
@@ -76,7 +76,7 @@ func countBits(bitTableBytes int64, reader BytesReader) (int64, error) {
 //
 //	bitIndex – The bit zero-based index, exclusive. It must be greater than or equal to 0, and less
 //	than or equal to number of bit-table bytes * Byte.SIZE.
-//	reader – The FST.BytesReader to read. It must be positioned at the beginning of the bit-table.
+//	reader – The Fst.BytesReader to read. It must be positioned at the beginning of the bit-table.
 func countBitsUpTo(bitIndex int, reader BytesReader) (int, error) {
 	if err := assert(bitIndex > 0,
 		fmt.Sprintf("bitIndex=%d", bitIndex)); err != nil {
@@ -122,7 +122,7 @@ func countBitsUpTo(bitIndex int, reader BytesReader) (int, error) {
 //
 //	bitIndex – The bit zero-based index. It must be greater than or equal to -1, and strictly less
 //	than number of bit-table bytes * Byte.SIZE. bitTableBytes – The number of bytes in the bit-table.
-//	reader – The FST.BytesReader to read. It must be positioned at the beginning of the bit-table.
+//	reader – The Fst.BytesReader to read. It must be positioned at the beginning of the bit-table.
 //
 // Returns:
 //
@@ -176,7 +176,7 @@ func nextBitSet(bitIndex, bitTableBytes int, reader BytesReader) (int, error) {
 //
 //	bitIndex – The bit zero-based index. It must be greater than or equal to 0, and less
 //	than or equal to number of bit-table bytes * Byte.SIZE.
-//	reader – The FST.BytesReader to read. It must be positioned at the beginning of the bit-table.
+//	reader – The Fst.BytesReader to read. It must be positioned at the beginning of the bit-table.
 //
 // Returns:
 //
@@ -205,7 +205,7 @@ func previousBitSet(bitIndex int, reader BytesReader) (int, error) {
 			return -1, nil
 		}
 
-		// FST.BytesReader implementations support negative skip.
+		// Fst.BytesReader implementations support negative skip.
 		if err := reader.SkipBytes(-2); err != nil {
 			return 0, err
 		}

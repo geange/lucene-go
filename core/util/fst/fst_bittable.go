@@ -5,7 +5,7 @@ package fst
 type bitTable struct {
 }
 
-// IsBitSet See BitTableUtil.IsBitSet(int, FST.BytesReader).
+// IsBitSet See BitTableUtil.IsBitSet(int, Fst.BytesReader).
 func IsBitSet[T any](bitIndex int, arc *Arc[T], in BytesReader) (bool, error) {
 	if err := assert(arc.NodeFlags() == ARCS_FOR_DIRECT_ADDRESSING); err != nil {
 		return false, err
@@ -17,7 +17,7 @@ func IsBitSet[T any](bitIndex int, arc *Arc[T], in BytesReader) (bool, error) {
 	return isBitSet(bitIndex, in)
 }
 
-// CountBits See BitTableUtil.countBits(int, FST.BytesReader).
+// CountBits See BitTableUtil.countBits(int, Fst.BytesReader).
 // The count of bit set is the number of arcs of a direct addressing node.
 func CountBits[T any](arc *Arc[T], in BytesReader) (int64, error) {
 	if err := assert(arc.NodeFlags() == ARCS_FOR_DIRECT_ADDRESSING); err != nil {
@@ -35,7 +35,7 @@ func CountBits[T any](arc *Arc[T], in BytesReader) (int64, error) {
 	return countBits(numPresenceBytes, in)
 }
 
-// CountBitsUpTo See BitTableUtil.countBitsUpTo(int, FST.BytesReader).
+// CountBitsUpTo See BitTableUtil.countBitsUpTo(int, Fst.BytesReader).
 func CountBitsUpTo[T any](bitIndex int, arc *Arc[T], in BytesReader) (int, error) {
 	if err := assert(arc.NodeFlags() == ARCS_FOR_DIRECT_ADDRESSING); err != nil {
 		return 0, err
@@ -47,7 +47,7 @@ func CountBitsUpTo[T any](bitIndex int, arc *Arc[T], in BytesReader) (int, error
 	return countBitsUpTo(bitIndex, in)
 }
 
-// NextBitSet See BitTableUtil.NextBitSet(int, int, FST.BytesReader).
+// NextBitSet See BitTableUtil.NextBitSet(int, int, Fst.BytesReader).
 func NextBitSet[T any](bitIndex int, arc *Arc[T], in BytesReader) (int, error) {
 	if err := assert(arc.NodeFlags() == ARCS_FOR_DIRECT_ADDRESSING); err != nil {
 		return 0, err
@@ -63,7 +63,7 @@ func NextBitSet[T any](bitIndex int, arc *Arc[T], in BytesReader) (int, error) {
 	return nextBitSet(bitIndex, int(bytes), in)
 }
 
-// PreviousBitSet See BitTableUtil.previousBitSet(int, FST.BytesReader).
+// PreviousBitSet See BitTableUtil.previousBitSet(int, Fst.BytesReader).
 func PreviousBitSet[T any](bitIndex int, arc *Arc[T], in BytesReader) (int, error) {
 	if err := assert(arc.NodeFlags() == ARCS_FOR_DIRECT_ADDRESSING); err != nil {
 		return 0, err
@@ -75,7 +75,7 @@ func PreviousBitSet[T any](bitIndex int, arc *Arc[T], in BytesReader) (int, erro
 	return previousBitSet(bitIndex, in)
 }
 
-// AssertIsValid Asserts the bit-table of the provided FST.Arc is valid.
+// AssertIsValid Asserts the bit-table of the provided Fst.Arc is valid.
 func AssertIsValid[T any](arc *Arc[T], in BytesReader) (bool, error) {
 	err := assert(arc.BytesPerArc() > 0)
 	if err != nil {

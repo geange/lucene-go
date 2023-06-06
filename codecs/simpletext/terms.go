@@ -22,16 +22,16 @@ type textTerms struct {
 	sumTotalTermFreq int64
 	sumDocFreq       int64
 	docCount         int
-	fst              *fst.FST[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]]
+	fst              *fst.Fst[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]]
 	termCount        int
 	scratch          *bytes.Buffer
 }
 
-func (r *SimpleTextFieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc int) *textTerms {
+func (s *SimpleTextFieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc int) *textTerms {
 	terms := &textTerms{
-		reader:           r,
+		reader:           s,
 		termsStart:       termsStart,
-		fieldInfo:        r.fieldInfos.FieldInfo(field),
+		fieldInfo:        s.fieldInfos.FieldInfo(field),
 		maxDoc:           maxDoc,
 		sumTotalTermFreq: 0,
 		sumDocFreq:       0,

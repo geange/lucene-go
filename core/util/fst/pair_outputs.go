@@ -48,6 +48,10 @@ func (p *PairOutputs[A, B]) Common(output1, output2 *Pair[A, B]) (*Pair[A, B], e
 }
 
 func (p *PairOutputs[A, B]) Subtract(output1, inc *Pair[A, B]) (*Pair[A, B], error) {
+	if inc == nil {
+		return output1, nil
+	}
+
 	v1, err := p.outputs1.Subtract(output1.Output1, inc.Output1)
 	if err != nil {
 		return nil, err

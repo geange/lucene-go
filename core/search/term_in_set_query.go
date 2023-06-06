@@ -2,6 +2,10 @@ package search
 
 import "github.com/geange/lucene-go/core/index"
 
+const (
+	BOOLEAN_REWRITE_TERM_COUNT_THRESHOLD = 16
+)
+
 // TermInSetQuery
 // Specialization for a disjunction over many terms that behaves like a ConstantScoreQuery over
 // a BooleanQuery containing only BooleanClause.Occur.SHOULD clauses.

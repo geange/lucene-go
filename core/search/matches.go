@@ -59,3 +59,23 @@ func (m *matchForField) GetSubMatches() []Matches {
 	//TODO implement me
 	panic("implement me")
 }
+
+var _ Matches = &MatchesAnon{}
+
+type MatchesAnon struct {
+	FnStrings       func() []string
+	FnGetMatches    func(field string) (MatchesIterator, error)
+	FnGetSubMatches func() []Matches
+}
+
+func (m *MatchesAnon) Strings() []string {
+	return m.FnStrings()
+}
+
+func (m *MatchesAnon) GetMatches(field string) (MatchesIterator, error) {
+	return m.FnGetMatches(field)
+}
+
+func (m *MatchesAnon) GetSubMatches() []Matches {
+	return m.FnGetSubMatches()
+}

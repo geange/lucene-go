@@ -2,6 +2,7 @@ package search
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/index"
 
 	"github.com/geange/lucene-go/core/util/structure"
 )
@@ -10,6 +11,8 @@ var (
 	maxClauseCount = 1024
 )
 
+var _ Query = &BooleanQuery{}
+
 // BooleanQuery
 // A Query that matches documents matching boolean combinations of other queries,
 // e.g. TermQuerys, PhraseQuerys or other BooleanQuerys.
@@ -17,6 +20,33 @@ type BooleanQuery struct {
 	minimumNumberShouldMatch int
 	clauses                  []*BooleanClause
 	clauseSets               map[Occur][]Query
+}
+
+func (b *BooleanQuery) String(field string) string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b *BooleanQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+	query := b
+	if scoreMode.NeedsScores() == false {
+		var err error
+		query, err = b.rewriteNoScoring()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return NewBooleanWeight(query, searcher, scoreMode, boost)
+}
+
+func (b *BooleanQuery) Rewrite(reader index.IndexReader) (Query, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b *BooleanQuery) Visit(visitor QueryVisitor) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func newBooleanQuery(minimumNumberShouldMatch int, clauses []*BooleanClause) *BooleanQuery {
@@ -61,6 +91,32 @@ func (b *BooleanQuery) Iterator() structure.Iterator[*BooleanClause] {
 	return structure.NewArrayListArray(b.clauses).Iterator()
 }
 
+func (b *BooleanQuery) rewriteNoScoring() (*BooleanQuery, error) {
+	keepShould := b.GetMinimumNumberShouldMatch() > 0 ||
+		(len(b.clauseSets[MUST])+len(b.clauseSets[FILTER]) == 0)
+
+	if len(b.clauseSets[MUST]) == 0 && keepShould {
+		return b, nil
+	}
+
+	newQuery := NewBooleanQueryBuilder()
+	newQuery.SetMinimumNumberShouldMatch(b.GetMinimumNumberShouldMatch())
+
+	for _, clause := range b.clauses {
+		switch clause.GetOccur() {
+		case MUST:
+			newQuery.AddQuery(clause.GetQuery(), FILTER)
+		case SHOULD:
+			if keepShould {
+				newQuery.Add(clause)
+			}
+		default:
+			newQuery.Add(clause)
+		}
+	}
+	return newQuery.Build()
+}
+
 // GetMaxClauseCount
 // Return the maximum number of clauses permitted, 1024 by default.
 // Attempts to add more than the permitted number of clauses cause BooleanQuery.TooManyClauses
@@ -81,6 +137,14 @@ type BooleanQueryBuilder struct {
 	minimumNumberShouldMatch int
 	clauses                  []*BooleanClause
 	errs                     []error
+}
+
+func NewBooleanQueryBuilder() *BooleanQueryBuilder {
+	return &BooleanQueryBuilder{
+		minimumNumberShouldMatch: 0,
+		clauses:                  make([]*BooleanClause, 0),
+		errs:                     make([]error, 0),
+	}
 }
 
 // SetMinimumNumberShouldMatch
@@ -116,6 +180,9 @@ func (b *BooleanQueryBuilder) AddQuery(query Query, occur Occur) *BooleanQueryBu
 	return b.Add(NewBooleanClause(query, occur))
 }
 
-func (b *BooleanQueryBuilder) Build() *BooleanQuery {
-	return newBooleanQuery(b.minimumNumberShouldMatch, b.clauses)
+func (b *BooleanQueryBuilder) Build() (*BooleanQuery, error) {
+	if len(b.errs) != 0 {
+		return nil, errors.Join(b.errs...)
+	}
+	return newBooleanQuery(b.minimumNumberShouldMatch, b.clauses), nil
 }

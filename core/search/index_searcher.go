@@ -64,12 +64,17 @@ func newIndexSearcher(context index.IndexReaderContext) (*IndexSearcher, error) 
 		return nil, err
 	}
 
+	similarity, err := NewBM25Similarity()
+	if err != nil {
+		return nil, err
+	}
+
 	return &IndexSearcher{
 		reader:             context.Reader(),
 		readerContext:      context,
 		leafContexts:       leaves,
 		leafSlices:         nil,
-		similarity:         nil,
+		similarity:         similarity,
 		queryCache:         nil,
 		queryCachingPolicy: nil,
 	}, nil

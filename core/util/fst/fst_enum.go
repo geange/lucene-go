@@ -2,22 +2,23 @@ package fst
 
 import "errors"
 
-//	doFloor controls the behavior of advance: if it's true doFloor is true,
-//
-// advance positions to the biggest term before target.
+// FstEnum
+// Can next() and advance() through the terms in an Fst
+// lucene.experimental
 type FstEnum[T PairAble] struct {
-	fst    *FST[T]
-	arcs   []*Arc[T]
-	output []T
+	fst    *Fst[T]
+	arcs   []*Arc[T] //
+	output []T       // outputs are cumulative
 
-	noOutput  T
-	fstReader BytesReader
-	//upto         int
+	noOutput     T
+	fstReader    BytesReader
+	upto         int
 	targetLength int
 
 	GetTargetLabel  func() (int, error)
 	GetCurrentLabel func() (int, error)
 	SetCurrentLabel func(label int) error
+	Grow            func() error
 }
 
 func NewArcOutputs[T PairAble]() *ArcOutputs[T] {
@@ -31,7 +32,7 @@ type ArcOutputs[T PairAble] struct {
 	Output T
 }
 
-func NewFstEnum[T PairAble](fst *FST[T]) (*FstEnum[T], error) {
+func NewFstEnum[T PairAble](fst *Fst[T]) (*FstEnum[T], error) {
 	reader, err := fst.GetBytesReader()
 	if err != nil {
 		return nil, err
@@ -43,11 +44,17 @@ func NewFstEnum[T PairAble](fst *FST[T]) (*FstEnum[T], error) {
 		fst:       fst,
 		fstReader: reader,
 		noOutput:  noOutput,
-		arcs:      []*Arc[T]{&Arc[T]{}},
-		output:    []T{noOutput},
+		arcs:      make([]*Arc[T], 10),
+		output:    make([]T, 10),
 	}
 
-	if _, err := fst.GetFirstArc(enum.arcs[0]); err != nil {
+	enum.output[0] = noOutput
+
+	for i := range enum.arcs {
+		enum.arcs[i] = &Arc[T]{}
+	}
+
+	if _, err := fst.GetFirstArc(enum.getArc(0)); err != nil {
 		return nil, err
 	}
 
@@ -57,16 +64,17 @@ func NewFstEnum[T PairAble](fst *FST[T]) (*FstEnum[T], error) {
 // Rewinds enum state to match the shared prefix between current term and target term
 // 倒回枚举状态，以匹配当前term和目标term之间的共享前缀
 func (f *FstEnum[T]) rewindPrefix() error {
-	if len(f.arcs) == 1 {
-		f.arcs = append(f.arcs, &Arc[T]{})
-		_, err := f.fst.ReadFirstTargetArc(f.arcs[0], f.arcs[1], f.fstReader)
+
+	if len(f.arcs) == 0 {
+		f.upto = 1
+		_, err := f.fst.ReadFirstTargetArc(f.getArc(0), f.getArc(1), f.fstReader)
 		return err
 	}
 
-	currentLimit := len(f.arcs) - 1
-	i := 1
+	currentLimit := f.upto
+	f.upto = 1
 
-	for ; i < currentLimit && i < f.targetLength+1; i++ {
+	for f.upto < currentLimit && f.upto < f.targetLength+1 {
 		label1, err := f.GetCurrentLabel()
 		if err != nil {
 			return err
@@ -86,18 +94,14 @@ func (f *FstEnum[T]) rewindPrefix() error {
 		if cmp > 0 {
 			// seek backwards -- reset this arc to the first arc
 			// 向后搜索
-			if len(f.arcs) <= i {
-				f.arcs = append(f.arcs, &Arc[T]{})
-			}
-			if _, err := f.fst.ReadFirstTargetArc(f.arcs[i-1], f.arcs[i], f.fstReader); err != nil {
+			arc := f.getArc(f.upto)
+			if _, err := f.fst.ReadFirstTargetArc(f.arcs[f.upto-1], arc, f.fstReader); err != nil {
 				return err
 			}
 			break
 		}
-	}
 
-	if i <= currentLimit {
-		f.arcs = f.arcs[:i+1]
+		f.upto++
 	}
 
 	return nil
@@ -108,10 +112,13 @@ func (f *FstEnum[T]) doNext() error {
 	if len(f.arcs) == 1 {
 		//System.out.println("  init");
 		f.arcs = append(f.arcs, &Arc[T]{})
-		f.fst.ReadFirstTargetArc(f.getArc(0), f.getArc(1), f.fstReader)
+		_, err := f.fst.ReadFirstTargetArc(f.getArc(0), f.getArc(1), f.fstReader)
+		if err != nil {
+			return err
+		}
 	} else {
 		// pop
-		//System.out.println("  check pop curArc target=" + arcs[upto].target + " label=" + arcs[upto].label + " isLast?=" + arcs[upto].isLast());
+		// System.out.println("  check pop curArc target=" + arcs[upto].target + " label=" + arcs[upto].label + " isLast?=" + arcs[upto].isLast());
 		i := 0
 		for i = len(f.arcs); i >= 0; i-- {
 			if !f.arcs[i].IsFinal() {
@@ -119,7 +126,10 @@ func (f *FstEnum[T]) doNext() error {
 			}
 		}
 		f.arcs = f.arcs[:i+1]
-		f.fst.ReadNextArc(f.lastArc(), f.fstReader)
+		_, err := f.fst.ReadNextArc(f.lastArc(), f.fstReader)
+		if err != nil {
+			return err
+		}
 	}
 
 	return f.pushFirst()
@@ -159,7 +169,7 @@ func (f *FstEnum[T]) doSeekCeil() error {
 					return err
 				}
 			} else {
-				// assert arc.nodeFlags() == FST.ARCS_FOR_BINARY_SEARCH;
+				// assert arc.nodeFlags() == Fst.ARCS_FOR_BINARY_SEARCH;
 				arc, err = f.doSeekCeilArrayPacked(arc, targetLabel, in)
 				if err != nil {
 					return err
@@ -180,36 +190,314 @@ func (f *FstEnum[T]) doSeekCeilArrayDirectAddressing(
 
 	// The array is addressed directly by label, with presence bits to compute the actual arc offset.
 
-	// targetIndex := targetLabel - arc.FirstLabel()
-
-	panic("")
-
+	targetIndex := targetLabel - arc.FirstLabel()
+	if targetIndex >= int(arc.NumArcs()) {
+		// Target is beyond the last arc, out of label range.
+		// Dead end (target is after the last arc);
+		// rollback to last fork then push
+		f.upto--
+		for {
+			if f.upto == 0 {
+				return nil, nil
+			}
+			prevArc := f.getArc(f.upto)
+			//System.out.println("  rollback upto=" + upto + " arc.label=" + prevArc.label + " isLast?=" + prevArc.isLast());
+			if !prevArc.IsLast() {
+				f.fst.ReadNextArc(prevArc, f.fstReader)
+				f.pushFirst()
+				return nil, nil
+			}
+			f.upto--
+		}
+	} else {
+		if targetIndex < 0 {
+			targetIndex = -1
+		} else if ok, err := (IsBitSet(targetIndex, arc, in)); ok && err == nil {
+			f.fst.ReadArcByDirectAddressing(arc, in, targetIndex)
+			//assert arc.label() == targetLabel;
+			// found -- copy pasta from below
+			f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], arc.Output())
+			if targetLabel == END_LABEL {
+				return nil, nil
+			}
+			f.SetCurrentLabel(arc.Label())
+			f.incr()
+			return f.fst.ReadFirstTargetArc(arc, f.getArc(f.upto), f.fstReader)
+		}
+		// Not found, return the next arc (ceil).
+		ceilIndex, err := NextBitSet(targetIndex, arc, in)
+		if err != nil {
+			return nil, err
+		}
+		//assert ceilIndex != -1;
+		f.fst.ReadArcByDirectAddressing(arc, in, ceilIndex)
+		//assert arc.label() > targetLabel;
+		f.pushFirst()
+		return nil, nil
+	}
 }
 
 func (f *FstEnum[T]) doSeekCeilArrayPacked(arc *Arc[T], targetLabel int, in BytesReader) (*Arc[T], error) {
+	// The array is packed -- use binary search to find the target.
+	idx, err := binarySearch(f.fst, arc, targetLabel)
+	if err != nil {
+		return nil, err
+	}
 
-	panic("")
+	if (idx) >= 0 {
+		// Match
+		f.fst.ReadArcByIndex(arc, in, idx)
+		//assert arc.arcIdx() == idx;
+		//assert arc.label() == targetLabel: "arc.label=" + arc.label() + " vs targetLabel=" + targetLabel + " mid=" + idx;
+		f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], arc.Output())
+		if targetLabel == END_LABEL {
+			return nil, err
+		}
+		err := f.SetCurrentLabel(arc.Label())
+		if err != nil {
+			return nil, err
+		}
+		f.incr()
+		return f.fst.ReadFirstTargetArc(arc, f.getArc(f.upto), f.fstReader)
+	}
+
+	idx = -1 - idx
+	if idx == int(arc.NumArcs()) {
+		// Dead end
+		_, err := f.fst.ReadArcByIndex(arc, in, idx-1)
+		if err != nil {
+			return nil, err
+		}
+		//assert arc.isLast();
+		// Dead end (target is after the last arc);
+		// rollback to last fork then push
+		f.upto--
+		for {
+			if f.upto == 0 {
+				return nil, nil
+			}
+			prevArc := f.getArc(f.upto)
+			//System.out.println("  rollback upto=" + upto + " arc.label=" + prevArc.label + " isLast?=" + prevArc.isLast());
+			if !prevArc.IsLast() {
+				_, err := f.fst.ReadNextArc(prevArc, f.fstReader)
+				if err != nil {
+					return nil, err
+				}
+				err = f.pushFirst()
+				if err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+			f.upto--
+		}
+	} else {
+		// Ceiling - arc with least higher label
+		_, err := f.fst.ReadArcByIndex(arc, in, idx)
+		if err != nil {
+			return nil, err
+		}
+		//assert arc.label() > targetLabel;
+		err = f.pushFirst()
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
 }
 
 // Seeks to largest term that's <= target.
 func (f *FstEnum[T]) doSeekFloor() error {
-	panic("")
+	// TODO: possibly caller could/should provide common
+	// prefix length?  ie this work may be redundant if
+	// caller is in fact intersecting against its own
+	// automaton
+	//System.out.println("FE: seek floor upto=" + upto);
+
+	// Save CPU by starting at the end of the shared prefix
+	// b/w our current term & the target:
+	err := f.rewindPrefix()
+	if err != nil {
+		return err
+	}
+
+	//System.out.println("FE: after rewind upto=" + upto);
+
+	arc := f.getArc(f.upto)
+
+	//System.out.println("FE: init targetLabel=" + targetLabel);
+
+	// Now scan forward, matching the new suffix of the target
+	for arc != nil {
+		//System.out.println("  cycle upto=" + upto + " arc.label=" + arc.label + " (" + (char) arc.label + ") targetLabel=" + targetLabel + " isLast?=" + arc.isLast() + " bba=" + arc.bytesPerArc);
+		targetLabel, err := f.GetTargetLabel()
+		if err != nil {
+			return err
+		}
+
+		if arc.BytesPerArc() != 0 && arc.Label() != END_LABEL {
+			// Arcs are in an array
+			in, err := f.fst.GetBytesReader()
+			if err != nil {
+				return err
+			}
+			if arc.NodeFlags() == ARCS_FOR_DIRECT_ADDRESSING {
+				arc, err = f.doSeekFloorArrayDirectAddressing(arc, targetLabel, in)
+				if err != nil {
+					return err
+				}
+			} else {
+				//assert arc.nodeFlags() == Fst.ARCS_FOR_BINARY_SEARCH;
+				arc, err = f.doSeekFloorArrayPacked(arc, targetLabel, in)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			arc, err = f.doSeekFloorList(arc, targetLabel)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (f *FstEnum[T]) doSeekCeilList(arc *Arc[T], targetLabel int) (*Arc[T], error) {
-
-	panic("")
+	var err error
+	// Arcs are not array'd -- must do linear scan:
+	if arc.Label() == targetLabel {
+		// recurse
+		f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], arc.Output())
+		if err != nil {
+			return nil, err
+		}
+		if targetLabel == END_LABEL {
+			return nil, nil
+		}
+		f.SetCurrentLabel(arc.Label())
+		f.incr()
+		return f.fst.ReadFirstTargetArc(arc, f.getArc(f.upto), f.fstReader)
+	} else if arc.Label() > targetLabel {
+		f.pushFirst()
+		return nil, nil
+	} else if arc.IsLast() {
+		// Dead end (target is after the last arc);
+		// rollback to last fork then push
+		f.upto--
+		for {
+			if f.upto == 0 {
+				return nil, nil
+			}
+			prevArc := f.getArc(f.upto)
+			//System.out.println("  rollback upto=" + upto + " arc.label=" + prevArc.label + " isLast?=" + prevArc.isLast());
+			if !prevArc.IsLast() {
+				f.fst.ReadNextArc(prevArc, f.fstReader)
+				f.pushFirst()
+				return nil, nil
+			}
+			f.upto--
+		}
+	} else {
+		// keep scanning
+		//System.out.println("    next scan");
+		f.fst.ReadNextArc(arc, f.fstReader)
+	}
+	return arc, nil
 }
 
 func (f *FstEnum[T]) doSeekFloorArrayDirectAddressing(arc *Arc[T], targetLabel int, in BytesReader) (*Arc[T], error) {
-	panic("")
+	// The array is addressed directly by label, with presence bits to compute the actual arc offset.
+
+	targetIndex := targetLabel - arc.FirstLabel()
+	if targetIndex < 0 {
+		// Before first arc.
+		return f.backtrackToFloorArc(arc, targetLabel, in)
+	} else if targetIndex >= int(arc.NumArcs()) {
+		// After last arc.
+		f.fst.ReadLastArcByDirectAddressing(arc, in)
+		//assert arc.label() < targetLabel;
+		//assert arc.isLast();
+		f.pushLast()
+		return nil, nil
+	} else {
+		var err error
+		// Within label range.
+		if ok, _ := IsBitSet(targetIndex, arc, in); ok {
+			f.fst.ReadArcByDirectAddressing(arc, in, targetIndex)
+			//assert arc.label() == targetLabel;
+			// found -- copy pasta from below
+			f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], arc.Output())
+			if err != nil {
+				return nil, err
+			}
+			if targetLabel == END_LABEL {
+				return nil, nil
+			}
+			f.SetCurrentLabel(arc.Label())
+			f.incr()
+			return f.fst.ReadFirstTargetArc(arc, f.getArc(f.upto), f.fstReader)
+		}
+		// Scan backwards to find a floor arc.
+		floorIndex, err := PreviousBitSet(targetIndex, arc, in)
+		if err != nil {
+			return nil, err
+		}
+		//assert floorIndex != -1;
+		f.fst.ReadArcByDirectAddressing(arc, in, floorIndex)
+		//assert arc.label() < targetLabel;
+		//assert arc.isLast() || fst.readNextArcLabel(arc, in) > targetLabel;
+		f.pushLast()
+		return nil, nil
+	}
 }
 
 // Backtracks until it finds a node which first arc is before our target label.` Then on the node, finds the arc just before the targetLabel.
 // 返回值:
 // null to continue the seek floor recursion loop.
-func (f *FstEnum[T]) backtrackToFloorArc(arc *Arc[T], targetLabel int, in BytesReader) (*FST[T], error) {
-	panic("")
+func (f *FstEnum[T]) backtrackToFloorArc(arc *Arc[T], targetLabel int, in BytesReader) (*Arc[T], error) {
+	var err error
+	for {
+		// First, walk backwards until we find a node which first arc is before our target label.
+		f.fst.ReadFirstTargetArc(f.getArc(f.upto-1), arc, f.fstReader)
+		if arc.Label() < targetLabel {
+			// Then on this node, find the arc just before the targetLabel.
+			if !arc.IsLast() {
+				if arc.BytesPerArc() != 0 && arc.Label() != END_LABEL {
+					if arc.NodeFlags() == ARCS_FOR_BINARY_SEARCH {
+						f.findNextFloorArcBinarySearch(arc, targetLabel, in)
+					} else {
+						//assert arc.nodeFlags() == Fst.ARCS_FOR_DIRECT_ADDRESSING;
+						f.findNextFloorArcDirectAddressing(arc, targetLabel, in)
+					}
+				} else {
+
+					for {
+						if !arc.IsLast() {
+							if n, _ := f.fst.readNextArcLabel(arc, in); n < targetLabel {
+								f.fst.ReadNextArc(arc, f.fstReader)
+								continue
+							}
+						}
+						break
+					}
+				}
+			}
+			//assert arc.label() < targetLabel;
+			//assert arc.isLast() || fst.readNextArcLabel(arc, in) >= targetLabel;
+			f.pushLast()
+			return nil, nil
+		}
+		f.upto--
+		if f.upto == 0 {
+			return nil, nil
+		}
+		targetLabel, err = f.GetTargetLabel()
+		if err != nil {
+			return nil, err
+		}
+		arc = f.getArc(f.upto)
+	}
 }
 
 // Finds and reads an arc on the current node which label is strictly less than the given label.
@@ -217,20 +505,147 @@ func (f *FstEnum[T]) backtrackToFloorArc(arc *Arc[T], targetLabel int, in BytesR
 // (in this case it has already been read).
 // Precondition: the given arc is the first arc of the node.
 func (f *FstEnum[T]) findNextFloorArcDirectAddressing(arc *Arc[T], targetLabel int, in BytesReader) error {
-	panic("")
+	//assert arc.nodeFlags() == Fst.ARCS_FOR_DIRECT_ADDRESSING;
+	//assert arc.label() != Fst.END_LABEL;
+	//assert arc.label() == arc.firstLabel();
+	if arc.NumArcs() > 1 {
+		targetIndex := targetLabel - arc.FirstLabel()
+		//assert targetIndex >= 0;
+		if targetIndex >= int(arc.NumArcs()) {
+			// Beyond last arc. Take last arc.
+			f.fst.ReadLastArcByDirectAddressing(arc, in)
+		} else {
+			// Take the preceding arc, even if the target is present.
+			floorIndex, err := PreviousBitSet(targetIndex, arc, in)
+			if err != nil {
+				return err
+			}
+			if floorIndex > 0 {
+				f.fst.ReadArcByDirectAddressing(arc, in, floorIndex)
+			}
+		}
+	}
+	return nil
 }
 
 // Same as findNextFloorArcDirectAddressing for binary search node.
 func (f *FstEnum[T]) findNextFloorArcBinarySearch(arc *Arc[T], targetLabel int, in BytesReader) error {
-	panic("")
+	//assert arc.nodeFlags() == Fst.ARCS_FOR_BINARY_SEARCH;
+	//assert arc.label() != Fst.END_LABEL;
+	//assert arc.arcIdx() == 0;
+	if arc.NumArcs() > 1 {
+		idx, err := binarySearch(f.fst, arc, targetLabel)
+		if err != nil {
+			return err
+		}
+		//assert idx != -1;
+		if idx > 1 {
+			f.fst.ReadArcByIndex(arc, in, idx-1)
+		} else if idx < -2 {
+			f.fst.ReadArcByIndex(arc, in, -2-idx)
+		}
+	}
+	return nil
 }
 
-func (f *FstEnum[T]) doSeekFloorArrayPacked(arc *Arc[T], targetLabel int, in BytesReader) (*FST[T], error) {
-	panic("")
+func (f *FstEnum[T]) doSeekFloorArrayPacked(arc *Arc[T], targetLabel int, in BytesReader) (*Arc[T], error) {
+	// Arcs are fixed array -- use binary search to find the target.
+	idx, err := binarySearch(f.fst, arc, targetLabel)
+	if err != nil {
+		return nil, err
+	}
+
+	if idx >= 0 {
+		// Match -- recurse
+		//System.out.println("  match!  arcIdx=" + idx);
+		f.fst.ReadArcByIndex(arc, in, idx)
+		//assert arc.arcIdx() == idx;
+		//assert arc.label() == targetLabel: "arc.label=" + arc.label() + " vs targetLabel=" + targetLabel + " mid=" + idx;
+		f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], arc.Output())
+		if err != nil {
+			return nil, err
+		}
+		if targetLabel == END_LABEL {
+			return nil, nil
+		}
+		f.SetCurrentLabel(arc.Label())
+		f.incr()
+		return f.fst.ReadFirstTargetArc(arc, f.getArc(f.upto), f.fstReader)
+	} else if idx == -1 {
+		// Before first arc.
+		return f.backtrackToFloorArc(arc, targetLabel, in)
+	} else {
+		// There is a floor arc; idx will be (-1 - (floor + 1)).
+		f.fst.ReadArcByIndex(arc, in, -2-idx)
+		//assert arc.isLast() || fst.readNextArcLabel(arc, in) > targetLabel;
+		//assert arc.label() < targetLabel: "arc.label=" + arc.label() + " vs targetLabel=" + targetLabel;
+		f.pushLast()
+		return nil, nil
+	}
 }
 
 func (f *FstEnum[T]) doSeekFloorList(arc *Arc[T], targetLabel int) (*Arc[T], error) {
-	panic("")
+	var err error
+	if arc.Label() == targetLabel {
+		// Match -- recurse
+		f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], arc.Output())
+		if err != nil {
+			return nil, err
+		}
+		if targetLabel == END_LABEL {
+			return nil, nil
+		}
+		f.SetCurrentLabel(arc.Label())
+		f.incr()
+		return f.fst.ReadFirstTargetArc(arc, f.getArc(f.upto), f.fstReader)
+	} else if arc.Label() > targetLabel {
+		// TODO: if each arc could somehow read the arc just
+		// before, we can save this re-scan.  The ceil case
+		// doesn't need this because it reads the next arc
+		// instead:
+		for {
+			// First, walk backwards until we find a first arc
+			// that's before our target label:
+			f.fst.ReadFirstTargetArc(f.getArc(f.upto-1), arc, f.fstReader)
+			if arc.Label() < targetLabel {
+				// Then, scan forwards to the arc just before
+				// the targetLabel:
+				for {
+					if !arc.IsLast() {
+						if n, _ := f.fst.readNextArcLabel(arc, f.fstReader); n < targetLabel {
+							f.fst.ReadNextArc(arc, f.fstReader)
+							continue
+						}
+					}
+					break
+				}
+
+				f.pushLast()
+				return nil, nil
+			}
+			f.upto--
+			if f.upto == 0 {
+				return nil, nil
+			}
+			targetLabel, err = f.GetTargetLabel()
+			if err != nil {
+				return nil, err
+			}
+			arc = f.getArc(f.upto)
+		}
+	} else if !arc.IsLast() {
+		//System.out.println("  check next label=" + fst.readNextArcLabel(arc) + " (" + (char) fst.readNextArcLabel(arc) + ")");
+		if n, _ := f.fst.readNextArcLabel(arc, f.fstReader); n > targetLabel {
+			f.pushLast()
+			return nil, nil
+		} else {
+			// keep scanning
+			return f.fst.ReadNextArc(arc, f.fstReader)
+		}
+	} else {
+		f.pushLast()
+		return nil, nil
+	}
 }
 
 // DoSeekExact Seeks to exactly target term.
@@ -242,11 +657,11 @@ func (f *FstEnum[T]) DoSeekExact() (bool, error) {
 
 	// Save time by starting at the end of the shared prefix
 	// b/w our current term & the target:
-	//if err := f.rewindPrefix(); err != nil {
-	//	return false, err
-	//}
+	if err := f.rewindPrefix(); err != nil {
+		return false, err
+	}
 
-	arc := f.arcs[0]
+	arc := f.getArc(f.upto - 1)
 	targetLabel, err := f.GetTargetLabel()
 	if err != nil {
 		return false, err
@@ -258,44 +673,38 @@ func (f *FstEnum[T]) DoSeekExact() (bool, error) {
 	}
 
 	for {
-		next, err := f.fst.FindTarget(targetLabel, arc, fstReader)
+		nextArc, err := f.fst.FindTargetArc(targetLabel, arc, f.getArc(f.upto), fstReader)
 		if err != nil {
 			return false, err
 		}
-		f.arcs = append(f.arcs, next)
 
-		if next == nil {
-			next, err := f.fst.ReadFirstTarget(arc, fstReader)
+		if nextArc == nil {
+			_, err := f.fst.ReadFirstTargetArc(arc, f.getArc(f.upto), fstReader)
 			if err != nil {
 				return false, err
 			}
-			f.arcs = append(f.arcs, next)
 			return false, nil
 		}
 
-		currentOutput := f.noOutput
-		if len(f.output) > 0 {
-			currentOutput = f.output[len(f.output)-1]
-		}
-
-		newOutput, err := f.fst.outputs.Add(currentOutput, next.Output())
+		// Match -- recurse:
+		f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], nextArc.Output())
 		if err != nil {
 			return false, err
 		}
-		f.output = append(f.output, newOutput)
 
 		if targetLabel == END_LABEL {
-			//System.out.println("  return found; upto=" + upto + " output=" + output[upto] + " next=" + next.isLast());
 			return true, nil
 		}
+
 		if err = f.SetCurrentLabel(targetLabel); err != nil {
 			return false, err
 		}
+		f.incr()
 		targetLabel, err = f.GetTargetLabel()
 		if err != nil {
 			return false, err
 		}
-		arc = next
+		arc = nextArc
 	}
 }
 
@@ -337,7 +746,28 @@ func (f *FstEnum[T]) pushFirst() error {
 // Recurses from current arc, appending last arc all the
 // way to the first final node
 func (f *FstEnum[T]) pushLast() error {
-	panic("")
+	arc := f.arcs[f.upto]
+	//assert arc != null;
+
+	var err error
+	for {
+		f.SetCurrentLabel(arc.Label())
+		f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], arc.Output())
+		if err != nil {
+			return err
+		}
+		if arc.Label() == END_LABEL {
+			// Final node
+			break
+		}
+		f.incr()
+
+		arc, err = f.fst.readLastTargetArc(arc, f.getArc(f.upto), f.fstReader)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (f *FstEnum[T]) getArc(idx int) *Arc[T] {
@@ -349,4 +779,15 @@ func (f *FstEnum[T]) getArc(idx int) *Arc[T] {
 
 func (f *FstEnum[T]) lastArc() *Arc[T] {
 	return f.arcs[len(f.arcs)-1]
+}
+
+func (f *FstEnum[T]) incr() {
+	f.upto++
+	f.Grow()
+	if len(f.arcs) <= f.upto {
+		f.arcs = append(f.arcs, &Arc[T]{})
+	}
+	if len(f.output) <= f.upto {
+		f.output = append(f.output, f.noOutput)
+	}
 }

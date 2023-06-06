@@ -78,3 +78,23 @@ func (*LeafCollectorDefault) CompetitiveIterator() (index.DocIdSetIterator, erro
 type FilterLeafCollector struct {
 	in LeafCollector
 }
+
+var _ LeafCollector = &LeafCollectorAnon{}
+
+type LeafCollectorAnon struct {
+	FnSetScorer           func(scorer Scorable) error
+	FnCollect             func(ctx context.Context, doc int) error
+	FnCompetitiveIterator func() (index.DocIdSetIterator, error)
+}
+
+func (l *LeafCollectorAnon) SetScorer(scorer Scorable) error {
+	return l.FnSetScorer(scorer)
+}
+
+func (l *LeafCollectorAnon) Collect(ctx context.Context, doc int) error {
+	return l.FnCollect(ctx, doc)
+}
+
+func (l *LeafCollectorAnon) CompetitiveIterator() (index.DocIdSetIterator, error) {
+	return l.FnCompetitiveIterator()
+}
