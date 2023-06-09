@@ -1,7 +1,5 @@
 package fst
 
-import "errors"
-
 // FstEnum
 // Can next() and advance() through the terms in an Fst
 // lucene.experimental
@@ -64,8 +62,7 @@ func NewFstEnum[T PairAble](fst *Fst[T]) (*FstEnum[T], error) {
 // Rewinds enum state to match the shared prefix between current term and target term
 // 倒回枚举状态，以匹配当前term和目标term之间的共享前缀
 func (f *FstEnum[T]) rewindPrefix() error {
-
-	if len(f.arcs) == 0 {
+	if f.upto == 0 {
 		f.upto = 1
 		_, err := f.fst.ReadFirstTargetArc(f.getArc(0), f.getArc(1), f.fstReader)
 		return err
@@ -109,9 +106,9 @@ func (f *FstEnum[T]) rewindPrefix() error {
 
 func (f *FstEnum[T]) doNext() error {
 	//System.out.println("FE: next upto=" + upto);
-	if len(f.arcs) == 1 {
+	if f.upto == 0 {
 		//System.out.println("  init");
-		f.arcs = append(f.arcs, &Arc[T]{})
+		f.upto = 1
 		_, err := f.fst.ReadFirstTargetArc(f.getArc(0), f.getArc(1), f.fstReader)
 		if err != nil {
 			return err
@@ -119,14 +116,13 @@ func (f *FstEnum[T]) doNext() error {
 	} else {
 		// pop
 		// System.out.println("  check pop curArc target=" + arcs[upto].target + " label=" + arcs[upto].label + " isLast?=" + arcs[upto].isLast());
-		i := 0
-		for i = len(f.arcs); i >= 0; i-- {
-			if !f.arcs[i].IsFinal() {
-				break
+		for f.arcs[f.upto].IsLast() {
+			f.upto--
+			if f.upto == 0 {
+				return nil
 			}
 		}
-		f.arcs = f.arcs[:i+1]
-		_, err := f.fst.ReadNextArc(f.lastArc(), f.fstReader)
+		_, err := f.fst.ReadNextArc(f.arcs[f.upto], f.fstReader)
 		if err != nil {
 			return err
 		}
@@ -149,7 +145,7 @@ func (f *FstEnum[T]) doSeekCeil() error {
 		return err
 	}
 
-	arc := f.lastArc()
+	arc := f.getArc(f.upto)
 
 	for arc != nil {
 		targetLabel, err := f.GetTargetLabel()
@@ -375,11 +371,17 @@ func (f *FstEnum[T]) doSeekCeilList(arc *Arc[T], targetLabel int) (*Arc[T], erro
 		if targetLabel == END_LABEL {
 			return nil, nil
 		}
-		f.SetCurrentLabel(arc.Label())
+		err := f.SetCurrentLabel(arc.Label())
+		if err != nil {
+			return nil, err
+		}
 		f.incr()
 		return f.fst.ReadFirstTargetArc(arc, f.getArc(f.upto), f.fstReader)
 	} else if arc.Label() > targetLabel {
-		f.pushFirst()
+		err := f.pushFirst()
+		if err != nil {
+			return nil, err
+		}
 		return nil, nil
 	} else if arc.IsLast() {
 		// Dead end (target is after the last arc);
@@ -392,8 +394,14 @@ func (f *FstEnum[T]) doSeekCeilList(arc *Arc[T], targetLabel int) (*Arc[T], erro
 			prevArc := f.getArc(f.upto)
 			//System.out.println("  rollback upto=" + upto + " arc.label=" + prevArc.label + " isLast?=" + prevArc.isLast());
 			if !prevArc.IsLast() {
-				f.fst.ReadNextArc(prevArc, f.fstReader)
-				f.pushFirst()
+				_, err := f.fst.ReadNextArc(prevArc, f.fstReader)
+				if err != nil {
+					return nil, err
+				}
+				err = f.pushFirst()
+				if err != nil {
+					return nil, err
+				}
 				return nil, nil
 			}
 			f.upto--
@@ -401,7 +409,10 @@ func (f *FstEnum[T]) doSeekCeilList(arc *Arc[T], targetLabel int) (*Arc[T], erro
 	} else {
 		// keep scanning
 		//System.out.println("    next scan");
-		f.fst.ReadNextArc(arc, f.fstReader)
+		_, err := f.fst.ReadNextArc(arc, f.fstReader)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return arc, nil
 }
@@ -711,17 +722,12 @@ func (f *FstEnum[T]) DoSeekExact() (bool, error) {
 // Appends current arc, and then recurses from its target,
 // appending first arc all the way to the final node
 func (f *FstEnum[T]) pushFirst() error {
-	if len(f.arcs) == 0 {
-		return errors.New("arcs size is zero")
-	}
 
-	upto := len(f.arcs) - 1
-
-	arc := f.arcs[upto]
+	arc := f.arcs[f.upto]
 
 	var err error
 	for {
-		f.output[upto], err = f.fst.outputs.Add(f.output[upto-1], arc.Output())
+		f.output[f.upto], err = f.fst.outputs.Add(f.output[f.upto-1], arc.Output())
 		if err != nil {
 			return err
 		}
@@ -734,7 +740,7 @@ func (f *FstEnum[T]) pushFirst() error {
 			return err
 		}
 
-		nextArc := f.getArc(upto)
+		nextArc := f.getArc(f.upto)
 		if _, err := f.fst.ReadFirstTargetArc(arc, nextArc, f.fstReader); err != nil {
 			return err
 		}
@@ -775,10 +781,6 @@ func (f *FstEnum[T]) getArc(idx int) *Arc[T] {
 		f.arcs = append(f.arcs, &Arc[T]{})
 	}
 	return f.arcs[idx]
-}
-
-func (f *FstEnum[T]) lastArc() *Arc[T] {
-	return f.arcs[len(f.arcs)-1]
 }
 
 func (f *FstEnum[T]) incr() {

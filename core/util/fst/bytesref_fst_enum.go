@@ -84,9 +84,11 @@ func (b *BytesRefFSTEnum[T]) SeekExact(target []byte) (*InputOutput[T], error) {
 }
 
 func (b *BytesRefFSTEnum[T]) setResult() *InputOutput[T] {
-	size := len(b.output)
-	b.current = b.current[:size]
-	b.result.Output = b.output[size-1]
+	if b.upto == 0 {
+		return nil
+	}
+	b.current = b.current[:b.upto-1]
+	b.result.Output = b.output[b.upto]
 	return b.result
 }
 

@@ -5,6 +5,7 @@ import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
+	"io"
 	"math"
 )
 
@@ -255,12 +256,16 @@ func (d *DefaultBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.
 func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 	twoPhase TwoPhaseIterator, acceptDocs util.Bits) error {
 
-	if twoPhase == nil {
-		doc, err := iterator.NextDoc()
-		if err != nil {
-			return err
+	doc, err := iterator.NextDoc()
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
 		}
-		for doc != index.NO_MORE_DOCS {
+		return err
+	}
+
+	if twoPhase == nil {
+		for {
 			if acceptDocs == nil || acceptDocs.Test(uint(doc)) {
 				err := collector.Collect(nil, doc)
 				if err != nil {
@@ -270,31 +275,31 @@ func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 
 			doc, err = iterator.NextDoc()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return nil
+				}
 				return err
 			}
 		}
 	} else {
-		doc, err := iterator.NextDoc()
-		if err != nil {
-			return err
-		}
-
 		// The scorer has an approximation, so run the approximation first, then check acceptDocs, then confirm
-		for doc != index.NO_MORE_DOCS {
+		for {
 			if ok, _ := twoPhase.Matches(); ok && (acceptDocs == nil || acceptDocs.Test(uint(doc))) {
-				err := collector.Collect(nil, doc)
-				if err != nil {
+				if err := collector.Collect(nil, doc); err != nil {
 					return err
 				}
 			}
 
 			doc, err = iterator.NextDoc()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return nil
+				}
 				return err
 			}
 		}
 	}
-	return nil
+
 }
 
 func scoreRange(collector LeafCollector, iterator index.DocIdSetIterator, twoPhase TwoPhaseIterator,

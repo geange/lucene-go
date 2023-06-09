@@ -10,7 +10,7 @@ var _ Scorer = &TermScorer{}
 type TermScorer struct {
 	*ScorerDefault
 
-	weight       Weight
+	//weight       Weight
 	postingsEnum index.PostingsEnum
 	impactsEnum  index.ImpactsEnum
 	iterator     index.DocIdSetIterator
@@ -20,12 +20,12 @@ type TermScorer struct {
 
 func NewTermScorerWithPostings(weight Weight, postingsEnum index.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
 	this := &TermScorer{
-		weight:       weight,
 		iterator:     postingsEnum,
 		postingsEnum: postingsEnum,
 		impactsEnum:  index.NewSlowImpactsEnum(postingsEnum),
 		docScorer:    docScorer,
 	}
+	this.ScorerDefault = NewScorer(weight)
 
 	this.impactsDISI = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
 	return this
@@ -33,11 +33,11 @@ func NewTermScorerWithPostings(weight Weight, postingsEnum index.PostingsEnum, d
 
 func NewTermScorerWithImpacts(weight Weight, impactsEnum index.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
 	this := &TermScorer{
-		weight:       weight,
 		postingsEnum: impactsEnum,
 		impactsEnum:  impactsEnum,
 		docScorer:    docScorer,
 	}
+	this.ScorerDefault = NewScorer(weight)
 
 	this.impactsDISI = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
 	this.iterator = this.impactsDISI
@@ -94,7 +94,7 @@ func (t *TermScorer) TwoPhaseIterator() TwoPhaseIterator {
 }
 
 func (t *TermScorer) GetMaxScore(upTo int) (float32, error) {
-	score, err := t.impactsDISI.getMaxScore(upTo)
+	score, err := t.impactsDISI.GetMaxScore(upTo)
 	if err != nil {
 		return 0, err
 	}

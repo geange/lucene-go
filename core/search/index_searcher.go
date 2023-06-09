@@ -120,58 +120,23 @@ func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (T
 
 	cappedNumHits := util.Min(numHits, limit)
 
-	var minScoreAcc *MaxScoreAccumulator
-	if !(r.executor == nil || len(r.leafSlices) <= 1) {
-		minScoreAcc = NewMaxScoreAccumulator()
+	manager := &searchAfterCollectorManager{
+		cappedNumHits: cappedNumHits,
+		after:         after,
 	}
 
-	hitsThresholdChecker, err := func() (HitsThresholdChecker, error) {
-		if r.executor == nil || len(r.leafSlices) <= 1 {
-			return HitsThresholdCheckerCreate(util.Max(TOTAL_HITS_THRESHOLD, numHits))
-		}
-		return HitsThresholdCheckerCreateShared(util.Max(TOTAL_HITS_THRESHOLD, numHits))
-	}()
-	if err != nil {
-		return nil, err
-	}
-
-	manager := struct {
-		minScoreAcc          *MaxScoreAccumulator
-		hitsThresholdChecker HitsThresholdChecker
-		*CollectorManagerDefault
-	}{
-		hitsThresholdChecker: hitsThresholdChecker,
-	}
-
-	if !(r.executor == nil || len(r.leafSlices) <= 1) {
-		manager.minScoreAcc = NewMaxScoreAccumulator()
-
+	var err error
+	if r.executor == nil || len(r.leafSlices) <= 1 {
 		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreate(util.Max(TOTAL_HITS_THRESHOLD, numHits))
 		if err != nil {
 			return nil, err
 		}
 	} else {
+		manager.minScoreAcc = NewMaxScoreAccumulator()
 		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreateShared(util.Max(TOTAL_HITS_THRESHOLD, numHits))
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	manager.CollectorManagerDefault = &CollectorManagerDefault{
-		FnNewCollector: func() (Collector, error) {
-			return TopScoreDocCollectorCreate(cappedNumHits, after, manager.hitsThresholdChecker, minScoreAcc)
-		},
-		FnReduce: func(collectors []TopScoreDocCollector) (any, error) {
-			topDocs := make([]TopDocs, len(collectors))
-			for i, collector := range collectors {
-				docs, err := collector.TopDocs()
-				if err != nil {
-					return nil, err
-				}
-				topDocs[i] = docs
-			}
-			return MergeTopDocs(0, cappedNumHits, topDocs, true)
-		},
 	}
 
 	v, err := r.SearchByCollectorManager(query, manager)
@@ -179,6 +144,31 @@ func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (T
 		return nil, err
 	}
 	return v.(TopDocs), nil
+}
+
+var _ CollectorManager = &searchAfterCollectorManager{}
+
+type searchAfterCollectorManager struct {
+	hitsThresholdChecker HitsThresholdChecker
+	minScoreAcc          *MaxScoreAccumulator
+	cappedNumHits        int
+	after                ScoreDoc
+}
+
+func (s *searchAfterCollectorManager) NewCollector() (Collector, error) {
+	return TopScoreDocCollectorCreate(s.cappedNumHits, s.after, s.hitsThresholdChecker, s.minScoreAcc)
+}
+
+func (s *searchAfterCollectorManager) Reduce(collectors []Collector) (any, error) {
+	topDocs := make([]TopDocs, len(collectors))
+	for i, collector := range collectors {
+		docs, err := collector.(TopScoreDocCollector).TopDocs()
+		if err != nil {
+			return nil, err
+		}
+		topDocs[i] = docs
+	}
+	return MergeTopDocs(0, s.cappedNumHits, topDocs, true)
 }
 
 // SearchByCollectorManager
@@ -197,7 +187,7 @@ func (r *IndexSearcher) SearchByCollectorManager(query Query, collectorManager C
 		if err != nil {
 			return nil, err
 		}
-		return collectorManager.Reduce([]TopScoreDocCollector{collector.(TopScoreDocCollector)})
+		return collectorManager.Reduce([]Collector{collector.(TopScoreDocCollector)})
 	}
 
 	// TODO: fix it

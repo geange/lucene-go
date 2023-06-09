@@ -15,6 +15,7 @@ import (
 var _ index.Terms = &simpleTextTerms{}
 
 type simpleTextTerms struct {
+	r *SimpleTextFieldsReader
 	*index.TermsDefault
 
 	termsStart       int64
@@ -32,6 +33,7 @@ type simpleTextTerms struct {
 func (s *SimpleTextFieldsReader) newFieldsReaderTerm(field string, termsStart int64, maxDoc int) (*simpleTextTerms, error) {
 	info := s.fieldInfos.FieldInfo(field)
 	term := &simpleTextTerms{
+		r:          s,
 		termsStart: termsStart,
 		fieldInfo:  info,
 		maxDoc:     maxDoc,
@@ -134,7 +136,7 @@ func (s *SimpleTextFieldsReader) loadTerms(term *simpleTextTerms) error {
 
 func (f *simpleTextTerms) Iterator() (index.TermsEnum, error) {
 	if f.fst != nil {
-		return newSimpleTextTermsEnum(f.fst, f.fieldInfo.GetIndexOptions()), nil
+		return f.r.newSimpleTextTermsEnum(f.fst, f.fieldInfo.GetIndexOptions()), nil
 	}
 	return nil, io.EOF
 }
@@ -191,11 +193,12 @@ type simpleTextTermsEnum struct {
 	fstEnum       *fst.BytesRefFSTEnum[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]]
 }
 
-func newSimpleTextTermsEnum(fstInstance *fst.Fst[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]],
+func (s *SimpleTextFieldsReader) newSimpleTextTermsEnum(fstInstance *fst.Fst[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]],
 	indexOptions types.IndexOptions) *simpleTextTermsEnum {
 	enum := &simpleTextTermsEnum{
 		indexOptions: indexOptions,
 		fstEnum:      fst.NewBytesRefFSTEnum(fstInstance),
+		r:            s,
 	}
 	enum.BaseTermsEnum = index.NewBaseTermsEnum(&index.BaseTermsEnumConfig{SeekCeil: enum.SeekCeil})
 	return enum
@@ -465,7 +468,7 @@ func (s *SimpleTextFieldsReader) newSimpleTextDocsEnum() *simpleTextDocsEnum {
 		docID:       -1,
 		tf:          0,
 		cost:        0,
-		skipReader:  nil,
+		skipReader:  NewSimpleTextSkipReader(s.in.Clone()),
 		nextSkipDoc: 0,
 		seekTo:      -1,
 	}
@@ -488,8 +491,7 @@ func (s *simpleTextDocsEnum) Advance(target int) (int, error) {
 }
 
 func (s *simpleTextDocsEnum) SlowAdvance(target int) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.Advance(target)
 }
 
 func (s *simpleTextDocsEnum) Cost() int64 {
@@ -608,16 +610,30 @@ func (s *simpleTextDocsEnum) readDoc() (int, error) {
 		} else if bytes.HasPrefix(scratch.Bytes(), FIELDS_PAYLOAD) {
 			// skip
 		} else {
-			if !first {
-				_, err := s.in.Seek(lineStart, 0)
-				if err != nil {
-					return 0, err
+			//assert StringHelper.startsWith(scratch.get(), SimpleTextSkipWriter.SKIP_LIST)
+			//|| StringHelper.startsWith(scratch.get(), TERM)
+			//|| StringHelper.startsWith(scratch.get(), FIELD)
+			//|| StringHelper.startsWith(scratch.get(), END)
+			//: "scratch=" + scratch.get().utf8ToString();
+			if bytes.HasPrefix(scratch.Bytes(), SKIP_LIST) ||
+				bytes.HasPrefix(scratch.Bytes(), FIELDS_TERM) ||
+				bytes.HasPrefix(scratch.Bytes(), FIELDS_FIELD) ||
+				bytes.HasPrefix(scratch.Bytes(), FIELDS_END) {
+
+				if !first {
+					_, err := s.in.Seek(lineStart, 0)
+					if err != nil {
+						return 0, err
+					}
+					if !s.omitTF {
+						s.tf = termFreq
+					}
+					return s.docID, nil
 				}
-				if !s.omitTF {
-					s.tf = termFreq
-				}
-				return s.docID, nil
+
 			}
+			s.docID = index.NO_MORE_DOCS
+			return s.docID, io.EOF
 		}
 	}
 }

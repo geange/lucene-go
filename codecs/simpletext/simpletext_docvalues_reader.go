@@ -246,7 +246,11 @@ func (s *SimpleTextDocValuesReader) getNumericNonIterator(fieldInfo *types.Field
 		if err != nil {
 			return 0, err
 		}
-		return int64(num), nil
+
+		// read the line telling us if it's real or not
+		utils.ReadLine(in, scratch)
+
+		return field.minValue + int64(num), nil
 	}, nil
 }
 

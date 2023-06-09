@@ -1,5 +1,7 @@
 package index
 
+import "math"
+
 var _ ImpactsEnum = &SlowImpactsEnum{}
 
 type SlowImpactsEnum struct {
@@ -11,61 +13,71 @@ func NewSlowImpactsEnum(delegate PostingsEnum) *SlowImpactsEnum {
 }
 
 func (s *SlowImpactsEnum) DocID() int {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.DocID()
 }
 
 func (s *SlowImpactsEnum) NextDoc() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.NextDoc()
 }
 
 func (s *SlowImpactsEnum) Advance(target int) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.Advance(target)
 }
 
 func (s *SlowImpactsEnum) SlowAdvance(target int) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.Advance(target)
 }
 
 func (s *SlowImpactsEnum) Cost() int64 {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.Cost()
 }
 
 func (s *SlowImpactsEnum) Freq() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.Freq()
 }
 
 func (s *SlowImpactsEnum) NextPosition() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.NextPosition()
 }
 
 func (s *SlowImpactsEnum) StartOffset() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.StartOffset()
 }
 
 func (s *SlowImpactsEnum) EndOffset() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.EndOffset()
 }
 
 func (s *SlowImpactsEnum) GetPayload() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.delegate.GetPayload()
 }
 
 func (s *SlowImpactsEnum) AdvanceShallow(target int) error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (s *SlowImpactsEnum) GetImpacts() (Impacts, error) {
-	//TODO implement me
-	panic("implement me")
+	return dummyImpacts, nil
+}
+
+var _ Impacts = &slowImpactsEnumImpacts{}
+
+type slowImpactsEnumImpacts struct {
+	impacts []*Impact
+}
+
+func (s *slowImpactsEnumImpacts) NumLevels() int {
+	return 1
+}
+
+var dummyImpacts = &slowImpactsEnumImpacts{
+	impacts: []*Impact{NewImpact(math.MaxInt32, 1)},
+}
+
+func (s *slowImpactsEnumImpacts) GetDocIdUpTo(level int) int {
+	return NO_MORE_DOCS
+}
+
+func (s *slowImpactsEnumImpacts) GetImpacts(level int) []*Impact {
+	return s.impacts
 }

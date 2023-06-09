@@ -55,9 +55,7 @@ func (t *TopScoreDocCollectorDefault) updateGlobalMinCompetitiveScore(scorer Sco
 }
 
 func (t *TopScoreDocCollectorDefault) updateMinCompetitiveScore(scorer Scorable) error {
-	if t.hitsThresholdChecker.IsThresholdReached() &&
-		t.pqTop != nil &&
-		!math.IsInf(t.pqTop.GetScore(), -1) { // -Infinity is the score of sentinels
+	if t.hitsThresholdChecker.IsThresholdReached() && t.pqTop != nil && !math.IsInf(t.pqTop.GetScore(), -1) { // -Infinity is the score of sentinels
 
 		// since we tie-break on doc id and collect in doc id order, we can require
 		// the next float
@@ -129,29 +127,13 @@ func TopScoreDocCollectorCreate(numHits int, after ScoreDoc,
 	return NewPagingTopScoreDocCollector(numHits, after, hitsThresholdChecker, minScoreAcc)
 }
 
-var _ LeafCollector = &ScorerLeafCollector{}
-
 type ScorerLeafCollector struct {
+	p      *TopScoreDocCollectorDefault
 	scorer Scorable
-
-	FnSetScorer func(scorer Scorable) error
-	FnCollect   func(ctx context.Context, doc int) error
-}
-
-func (s *ScorerLeafCollector) Collect(ctx context.Context, doc int) error {
-	return s.FnCollect(ctx, doc)
-}
-
-func (s *ScorerLeafCollector) CompetitiveIterator() (index.DocIdSetIterator, error) {
-	return nil, nil
 }
 
 func (s *ScorerLeafCollector) SetScorer(scorer Scorable) error {
 	s.scorer = scorer
-
-	if s.FnSetScorer != nil {
-		return s.FnSetScorer(scorer)
-	}
 	return nil
 }
 
@@ -168,58 +150,74 @@ func NewSimpleTopScoreDocCollector(numHits int, hitsThresholdChecker HitsThresho
 	}, nil
 }
 
+var _ LeafCollector = &simpleTopScoreDocCollectorLeafCollector{}
+
+type simpleTopScoreDocCollectorLeafCollector struct {
+	*ScorerLeafCollector
+}
+
+func (s *simpleTopScoreDocCollectorLeafCollector) Collect(ctx context.Context, doc int) error {
+	score, err := s.scorer.Score()
+	if err != nil {
+		return err
+	}
+
+	// This collector relies on the fact that scorers produce positive values:
+	// assert score >= 0; // NOTE: false for NaN
+	s.p.totalHits++
+	s.p.hitsThresholdChecker.IncrementHitCount()
+
+	if s.p.minScoreAcc != nil && (int64(s.p.totalHits)&s.p.minScoreAcc.modInterval) == 0 {
+		if err := s.p.updateGlobalMinCompetitiveScore(s.scorer); err != nil {
+			return err
+		}
+	}
+
+	if float64(score) <= s.p.pqTop.GetScore() {
+		if s.p.totalHitsRelation == EQUAL_TO {
+			// we just reached totalHitsThreshold, we can start setting the min
+			// competitive score now
+			if err := s.p.updateMinCompetitiveScore(s.scorer); err != nil {
+				return err
+			}
+		}
+		// Since docs are returned in-order (i.e., increasing doc Id), a document
+		// with equal score to pqTop.score cannot compete since HitQueue favors
+		// documents with lower doc Ids. Therefore reject those docs too.
+		return nil
+	}
+
+	s.p.pqTop.SetDoc(doc + s.p.docBase)
+	s.p.pqTop.SetScore(float64(score))
+	s.p.pqTop = s.p.pq.UpdateTop()
+	return s.p.updateMinCompetitiveScore(s.scorer)
+}
+
+func (s *simpleTopScoreDocCollectorLeafCollector) SetScorer(scorer Scorable) error {
+	err := s.ScorerLeafCollector.SetScorer(scorer)
+	if err != nil {
+		return err
+	}
+
+	if s.p.minScoreAcc == nil {
+		return s.p.updateMinCompetitiveScore(s.scorer)
+	}
+	return s.p.updateGlobalMinCompetitiveScore(s.scorer)
+}
+
+func (s *simpleTopScoreDocCollectorLeafCollector) CompetitiveIterator() (index.DocIdSetIterator, error) {
+	return nil, nil
+}
+
 func (s *SimpleTopScoreDocCollector) GetLeafCollector(_ context.Context,
 	readerContext *index.LeafReaderContext) (LeafCollector, error) {
 	// reset the minimum competitive score
 	s.minCompetitiveScore = 0
 	s.docBase = readerContext.DocBase
 
-	c := &ScorerLeafCollector{
-		FnSetScorer: func(scorer Scorable) error {
-			if s.minScoreAcc == nil {
-				return s.updateMinCompetitiveScore(scorer)
-			}
-			return s.updateGlobalMinCompetitiveScore(scorer)
-		},
-	}
-
-	c.FnCollect = func(ctx context.Context, doc int) error {
-		score, err := c.scorer.Score()
-		if err != nil {
-			return err
-		}
-
-		// This collector relies on the fact that scorers produce positive values:
-		// assert score >= 0; // NOTE: false for NaN
-		s.totalHits++
-		s.hitsThresholdChecker.IncrementHitCount()
-
-		if s.minScoreAcc != nil && (int64(s.totalHits)&s.minScoreAcc.modInterval) == 0 {
-			if err := s.updateGlobalMinCompetitiveScore(c.scorer); err != nil {
-				return err
-			}
-		}
-
-		if float64(score) <= s.pqTop.GetScore() {
-			if s.totalHitsRelation == EQUAL_TO {
-				// we just reached totalHitsThreshold, we can start setting the min
-				// competitive score now
-				if err := s.updateMinCompetitiveScore(c.scorer); err != nil {
-					return err
-				}
-			}
-			// Since docs are returned in-order (i.e., increasing doc Id), a document
-			// with equal score to pqTop.score cannot compete since HitQueue favors
-			// documents with lower doc Ids. Therefore reject those docs too.
-			return nil
-		}
-
-		s.pqTop.SetDoc(doc + s.docBase)
-		s.pqTop.SetScore(float64(score))
-		s.pqTop = s.pq.UpdateTop()
-		return s.updateMinCompetitiveScore(c.scorer)
-	}
-	return c, nil
+	return &simpleTopScoreDocCollectorLeafCollector{&ScorerLeafCollector{
+		p: s.TopScoreDocCollectorDefault,
+	}}, nil
 
 }
 
@@ -235,73 +233,91 @@ type PagingTopScoreDocCollector struct {
 	collectedHits int
 }
 
+var _ LeafCollector = &pagingTopScoreDocCollectorLeafCollector{}
+
+type pagingTopScoreDocCollectorLeafCollector struct {
+	*PagingTopScoreDocCollector
+	scorer   Scorable
+	afterDoc int
+}
+
+func (p *pagingTopScoreDocCollectorLeafCollector) SetScorer(scorer Scorable) error {
+	p.scorer = scorer
+	if p.minScoreAcc == nil {
+		return p.updateMinCompetitiveScore(scorer)
+	}
+	return p.updateGlobalMinCompetitiveScore(scorer)
+}
+
+func (p *pagingTopScoreDocCollectorLeafCollector) Collect(ctx context.Context, doc int) error {
+	score, err := p.scorer.Score()
+	if err != nil {
+		return err
+	}
+
+	// This collector relies on the fact that scorers produce positive values:
+	// assert score >= 0; // NOTE: false for NaN
+	p.totalHits++
+	p.hitsThresholdChecker.IncrementHitCount()
+
+	if p.minScoreAcc != nil && (int64(p.totalHits)&p.minScoreAcc.modInterval) == 0 {
+		err := p.updateGlobalMinCompetitiveScore(p.scorer)
+		if err != nil {
+			return err
+		}
+	}
+
+	if float64(score) > p.after.GetScore() || (float64(score) == p.after.GetScore() && doc <= p.afterDoc) {
+		// hit was collected on a previous page
+		if p.totalHitsRelation == EQUAL_TO {
+			// we just reached totalHitsThreshold, we can start setting the min
+			// competitive score now
+			err := p.updateMinCompetitiveScore(p.scorer)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if float64(score) <= p.pqTop.GetScore() {
+		if p.totalHitsRelation == EQUAL_TO {
+			// we just reached totalHitsThreshold, we can start setting the min
+			// competitive score now
+			err := p.updateMinCompetitiveScore(p.scorer)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Since docs are returned in-order (i.e., increasing doc Id), a document
+		// with equal score to pqTop.score cannot compete since HitQueue favors
+		// documents with lower doc Ids. Therefore reject those docs too.
+		return nil
+	}
+
+	p.collectedHits++
+	p.pqTop.SetDoc(doc + p.docBase)
+	p.pqTop.SetScore(float64(score))
+	p.pqTop = p.pq.UpdateTop()
+	return p.updateMinCompetitiveScore(p.scorer)
+}
+
+func (p *pagingTopScoreDocCollectorLeafCollector) CompetitiveIterator() (index.DocIdSetIterator, error) {
+	return nil, nil
+}
+
 func (p *PagingTopScoreDocCollector) GetLeafCollector(ctx context.Context, leafCtx *index.LeafReaderContext) (LeafCollector, error) {
 	// reset the minimum competitive score
 	p.minCompetitiveScore = 0
 	p.docBase = leafCtx.DocBase
 	afterDoc := p.after.GetDoc() - leafCtx.DocBase
 
-	c := &ScorerLeafCollector{}
-	c.FnSetScorer = func(scorer Scorable) error {
-		if p.minScoreAcc == nil {
-			return p.updateMinCompetitiveScore(scorer)
-		}
-		return p.updateGlobalMinCompetitiveScore(scorer)
-	}
-	c.FnCollect = func(ctx context.Context, doc int) error {
-		score, err := c.scorer.Score()
-		if err != nil {
-			return err
-		}
-
-		// This collector relies on the fact that scorers produce positive values:
-		// assert score >= 0; // NOTE: false for NaN
-		p.totalHits++
-		p.hitsThresholdChecker.IncrementHitCount()
-
-		if p.minScoreAcc != nil && (int64(p.totalHits)&p.minScoreAcc.modInterval) == 0 {
-			err := p.updateGlobalMinCompetitiveScore(c.scorer)
-			if err != nil {
-				return err
-			}
-		}
-
-		if float64(score) > p.after.GetScore() || (float64(score) == p.after.GetScore() && doc <= afterDoc) {
-			// hit was collected on a previous page
-			if p.totalHitsRelation == EQUAL_TO {
-				// we just reached totalHitsThreshold, we can start setting the min
-				// competitive score now
-				err := p.updateMinCompetitiveScore(c.scorer)
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-
-		if float64(score) <= p.pqTop.GetScore() {
-			if p.totalHitsRelation == EQUAL_TO {
-				// we just reached totalHitsThreshold, we can start setting the min
-				// competitive score now
-				err := p.updateMinCompetitiveScore(c.scorer)
-				if err != nil {
-					return err
-				}
-			}
-
-			// Since docs are returned in-order (i.e., increasing doc Id), a document
-			// with equal score to pqTop.score cannot compete since HitQueue favors
-			// documents with lower doc Ids. Therefore reject those docs too.
-			return nil
-		}
-
-		p.collectedHits++
-		p.pqTop.SetDoc(doc + p.docBase)
-		p.pqTop.SetScore(float64(score))
-		p.pqTop = p.pq.UpdateTop()
-		return p.updateMinCompetitiveScore(c.scorer)
-	}
-	return c, nil
+	return &pagingTopScoreDocCollectorLeafCollector{
+		PagingTopScoreDocCollector: p,
+		scorer:                     nil,
+		afterDoc:                   afterDoc,
+	}, nil
 }
 
 func (p *PagingTopScoreDocCollector) ScoreMode() *ScoreMode {
