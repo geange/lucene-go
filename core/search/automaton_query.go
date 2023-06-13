@@ -5,6 +5,7 @@ import (
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
+// AutomatonQuery
 // A Query that will match terms against a finite-state machine.
 //
 // This query will match documents that contain terms accepted by a given finite-state machine.

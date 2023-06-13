@@ -9,7 +9,7 @@ type Boolean2ScorerSupplier struct {
 	subs           map[Occur][]ScorerSupplier
 	scoreMode      *ScoreMode
 	minShouldMatch int
-	cost           int
+	cost           int64
 }
 
 func NewBoolean2ScorerSupplier(weight Weight, subs map[Occur][]ScorerSupplier,
@@ -59,11 +59,11 @@ func (b *Boolean2ScorerSupplier) Get(leadCost int64) (Scorer, error) {
 }
 
 func (b *Boolean2ScorerSupplier) Cost() int64 {
-	//     if (cost == -1) {
-	//      cost = computeCost();
-	//    }
-	//    return cost;
-	return 0
+	if b.cost == -1 {
+		b.cost = b.computeCost()
+	}
+	return int64(b.cost)
+
 }
 
 func (b *Boolean2ScorerSupplier) getInternal(leadCost int64) (Scorer, error) {
@@ -116,4 +116,8 @@ func (b *Boolean2ScorerSupplier) opt(optional []ScorerSupplier, minShouldMatch i
 		return newWANDScorer(b.weight, optionalScorers, minShouldMatch, scoreMode)
 	}
 	return newDisjunctionScorer(b.weight, optionalScorers, scoreMode)
+}
+
+func (b *Boolean2ScorerSupplier) computeCost() int64 {
+	panic("")
 }

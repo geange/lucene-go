@@ -10,20 +10,6 @@ import (
 )
 
 func main() {
-
-	//q1 := search.NewTermQuery(index.NewTerm("content", []byte("h")))
-	//q2 := search.NewTermQuery(index.NewTerm("content", []byte("f")))
-	//
-	//builder := search.NewBooleanQueryBuilder()
-	//builder.AddQuery(q1, search.SHOULD)
-	//builder.AddQuery(q2, search.SHOULD)
-	//builder.SetMinimumNumberShouldMatch(1)
-	//
-	//query, err := builder.Build()
-	//if err != nil {
-	//	panic(err)
-	//}
-
 	dir, err := store.NewNIOFSDirectory("./data")
 	if err != nil {
 		panic(err)
@@ -49,15 +35,7 @@ func main() {
 		panic(err)
 	}
 
-	query0 := search.NewTermQuery(index.NewTerm("content", []byte("a")))
-	query1 := search.NewTermQuery(index.NewTerm("content", []byte("e")))
-	builder := search.NewBooleanQueryBuilder()
-	builder.AddQuery(query0, search.MUST)
-	builder.AddQuery(query1, search.MUST)
-	query, err := builder.Build()
-	if err != nil {
-		return
-	}
+	query := search.NewTermQuery(index.NewTerm("content", []byte("a")))
 
 	topDocs, err := searcher.SearchTopN(query, 5)
 	if err != nil {
@@ -67,17 +45,4 @@ func main() {
 	for i, doc := range topDocs.GetScoreDocs() {
 		fmt.Printf("result%d: 文档%d\n", i, doc.GetDoc())
 	}
-
-	//q2 := search.NewTermQuery(index.NewTerm("content", []byte("f")))
-	//
-	//builder := search.NewBooleanQueryBuilder()
-	//builder.AddQuery(q1, search.SHOULD)
-	//builder.AddQuery(q2, search.SHOULD)
-	//builder.SetMinimumNumberShouldMatch(1)
-	//
-	//query, err := builder.Build()
-	//if err != nil {
-	//	panic(err)
-	//}
-
 }

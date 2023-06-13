@@ -7,10 +7,9 @@ import "github.com/geange/lucene-go/core/index"
 // lucene.experimental
 type SpanCollector interface {
 	// CollectLeaf Collect information from postings
-	// Params: 	postings – a PostingsEnum
-	//			position – the position of the PostingsEnum
-	//			term – the Term for this postings list
-	// Throws: IOException – on error
+	// postings: a PostingsEnum
+	// position: – the position of the PostingsEnum
+	// term: – the Term for this postings list
 	CollectLeaf(postings index.PostingsEnum, position int, term *index.Term) error
 
 	// Reset
