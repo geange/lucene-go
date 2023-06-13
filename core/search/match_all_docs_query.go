@@ -29,8 +29,8 @@ func (m *MatchAllDocsQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	return m, nil
 }
 
-func (m *MatchAllDocsQuery) Visit(visitor QueryVisitor) {
-	visitor.VisitLeaf(m)
+func (m *MatchAllDocsQuery) Visit(visitor QueryVisitor) error {
+	return visitor.VisitLeaf(m)
 }
 
 var _ Weight = &constantScoreWeight{}

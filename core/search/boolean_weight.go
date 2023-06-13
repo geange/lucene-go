@@ -292,8 +292,47 @@ func (b *BooleanWeight) IsCacheable(ctx *index.LeafReaderContext) bool {
 	return true
 }
 
-func (b *BooleanWeight) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
-	panic("")
+func (b *BooleanWeight) ScorerSupplier(context *index.LeafReaderContext) (ScorerSupplier, error) {
+	minShouldMatch := b.query.GetMinimumNumberShouldMatch()
+
+	scorers := map[Occur][]ScorerSupplier{}
+	for _, occur := range OccurValues() {
+		scorers[occur] = []ScorerSupplier{}
+	}
+
+	for _, wc := range b.weightedClauses {
+		w := wc.weight
+		c := wc.clause
+		subScorer, err := w.ScorerSupplier(context)
+		if err != nil {
+			return nil, err
+		}
+		if subScorer == nil {
+			if c.IsRequired() {
+				return nil, nil
+			}
+		} else {
+			scorers[c.GetOccur()] = append(scorers[c.GetOccur()], subScorer)
+		}
+	}
+
+	// scorer simplifications:
+
+	if len(scorers[SHOULD]) == minShouldMatch {
+		// any optional clauses are in fact required
+		scorers[MUST] = append(scorers[MUST], scorers[SHOULD]...)
+		scorers[SHOULD] = scorers[SHOULD][:0]
+		minShouldMatch = 0
+	}
+
+	if len(scorers[FILTER]) == 0 && len(scorers[MUST]) == 0 && len(scorers[SHOULD]) == 0 {
+		// no required and optional clauses.
+		return nil, nil
+	} else if len(scorers[SHOULD]) < minShouldMatch {
+		return nil, nil
+	}
+
+	return NewBoolean2ScorerSupplier(b, scorers, b.scoreMode, minShouldMatch)
 }
 
 type weightedBooleanClause struct {

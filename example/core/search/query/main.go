@@ -49,7 +49,15 @@ func main() {
 		panic(err)
 	}
 
-	query := search.NewTermQuery(index.NewTerm("content", []byte("a")))
+	query0 := search.NewTermQuery(index.NewTerm("content", []byte("a")))
+	query1 := search.NewTermQuery(index.NewTerm("content", []byte("e")))
+	builder := search.NewBooleanQueryBuilder()
+	builder.AddQuery(query0, search.MUST)
+	builder.AddQuery(query1, search.MUST)
+	query, err := builder.Build()
+	if err != nil {
+		return
+	}
 
 	topDocs, err := searcher.SearchTopN(query, 5)
 	if err != nil {

@@ -58,3 +58,45 @@ func NewConstantScoreScorer(weight Weight, score float32,
 
 	return scorer, nil
 }
+
+func NewConstantScoreScorerV1(weight Weight, score float32,
+	scoreMode *ScoreMode, twoPhaseIterator TwoPhaseIterator) (*ConstantScoreScorer, error) {
+
+	scorer := &ConstantScoreScorer{
+		score:     score,
+		scoreMode: *scoreMode,
+	}
+
+	if scoreMode == TOP_SCORES {
+		scorer.approximation = NewStartDISIWrapper(twoPhaseIterator.Approximation())
+		scorer.twoPhaseIterator = &constantTwoPhaseIterator{
+			approximation:    scorer.approximation,
+			twoPhaseIterator: twoPhaseIterator,
+		}
+	} else {
+		scorer.approximation = twoPhaseIterator.Approximation()
+		scorer.twoPhaseIterator = twoPhaseIterator
+	}
+	scorer.ScorerDefault = NewScorer(weight)
+	scorer.disi = AsDocIdSetIterator(twoPhaseIterator)
+	return scorer, nil
+}
+
+var _ TwoPhaseIterator = &constantTwoPhaseIterator{}
+
+type constantTwoPhaseIterator struct {
+	approximation    index.DocIdSetIterator
+	twoPhaseIterator TwoPhaseIterator
+}
+
+func (t *constantTwoPhaseIterator) Approximation() index.DocIdSetIterator {
+	return t.approximation
+}
+
+func (t *constantTwoPhaseIterator) Matches() (bool, error) {
+	return t.twoPhaseIterator.Matches()
+}
+
+func (t *constantTwoPhaseIterator) MatchCost() float64 {
+	return t.twoPhaseIterator.MatchCost()
+}

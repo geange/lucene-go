@@ -13,3 +13,6 @@ type ScorerSupplier interface {
 	// See Also: DocIdSetIterator.cost
 	Cost() int64
 }
+
+type ScorerSupplierDefault struct {
+}

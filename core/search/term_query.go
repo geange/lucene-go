@@ -71,10 +71,11 @@ func (t *TermQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	return t, nil
 }
 
-func (t *TermQuery) Visit(visitor QueryVisitor) {
+func (t *TermQuery) Visit(visitor QueryVisitor) error {
 	if visitor.AcceptField(t.term.Field()) {
 		visitor.ConsumeTerms(t, t.term)
 	}
+	return nil
 }
 
 var _ Weight = &TermWeight{}

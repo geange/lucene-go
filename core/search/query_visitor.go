@@ -23,7 +23,7 @@ type QueryVisitor interface {
 
 	// VisitLeaf Called by leaf queries that do not match on terms
 	// Params: query – the query
-	VisitLeaf(query Query)
+	VisitLeaf(query Query) (err error)
 
 	// AcceptField
 	// Whether or not terms from this field are of interest to the visitor Implement this to
@@ -31,11 +31,12 @@ type QueryVisitor interface {
 	// on fields of interest
 	AcceptField(field string) bool
 
+	// GetSubVisitor
 	// Pulls a visitor instance for visiting child clauses of a query The default implementation
 	// returns this, unless occur is equal to BooleanClause.Occur.MUST_NOT in which case it
 	// returns EMPTY_VISITOR
 	// Params:
 	//			occur – the relationship between the parent and its children
 	//			parent – the query visited
-	//getSubVisitor()
+	GetSubVisitor(occur Occur, parent Query) QueryVisitor
 }

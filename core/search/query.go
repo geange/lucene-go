@@ -40,5 +40,5 @@ type Query interface {
 	// Visit
 	// Recurse through the query tree, visiting any child queries
 	// Params: visitor – a QueryVisitor to be called by each query in the tree
-	Visit(visitor QueryVisitor)
+	Visit(visitor QueryVisitor) (err error)
 }

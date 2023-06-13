@@ -47,9 +47,16 @@ func (o Occur) String() string {
 	return string(o)
 }
 
+func OccurValues() []Occur {
+	return []Occur{
+		MUST, FILTER, SHOULD, MUST_NOT,
+	}
+}
+
 const (
 	// MUST
 	// Use this operator for clauses that must appear in the matching documents.
+	// 等同于 AND
 	MUST = Occur("+")
 
 	// FILTER
@@ -61,11 +68,13 @@ const (
 	// For a BooleanQuery with no MUST clauses one or more SHOULD clauses must match
 	// a document for the BooleanQuery to match.
 	// See Also: BooleanQuery.BooleanQueryBuilder.setMinimumNumberShouldMatch
+	// 等同于 OR
 	SHOULD = Occur("")
 
 	// MUST_NOT
 	// Use this operator for clauses that must not appear in the matching documents.
 	// Note that it is not possible to search for queries that only consist of a MUST_NOT clause.
 	// These clauses do not contribute to the score of documents.
+	// 等同于 NOT
 	MUST_NOT = Occur("-")
 )
