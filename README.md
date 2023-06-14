@@ -11,52 +11,6 @@ Only a small number of class libraries can run independently, but there may be s
 
 ## example
 
-### query
-
-> IndexSearch has not been developed yet～
-
-[query detail](example/core/search/query/README.md)
-
-```go
-func main() {
-	dir, err := store.NewNIOFSDirectory("./data")
-	if err != nil {
-		panic(err)
-	}
-
-	codec := simpletext.NewSimpleTextCodec()
-	similarity := search.NewCastBM25Similarity()
-
-	config := index.NewIndexWriterConfig(codec, similarity)
-
-	writer, err := index.NewIndexWriter(dir, config)
-	if err != nil {
-		panic(err)
-	}
-
-	reader, err := index.DirectoryReaderOpen(writer)
-	if err != nil {
-		panic(err)
-	}
-
-	searcher, err := search.NewIndexSearcher(reader)
-	if err != nil {
-		panic(err)
-	}
-
-	query := search.NewTermQuery(index.NewTerm("content", []byte("a")))
-
-	topDocs, err := searcher.SearchTopN(query, 5)
-	if err != nil {
-		panic(err)
-	}
-
-	for i, doc := range topDocs.GetScoreDocs() {
-		fmt.Printf("result%d: 文档%d\n", i, doc.GetDoc())
-	}
-}
-```
-
 ### IndexWriter
 
 ```go
@@ -134,59 +88,76 @@ func main() {
 
 ```
 
-## IndexSearch
+### IndexSearch
 
 use indexSearch to get TopN docs
 
+> IndexSearch has not been developed yet～
+
+[more detail](example/core/search/query/README.md)
+
+
 ```go
-// only support simpleText codec 😅
-dir, err := store.NewNIOFSDirectory("data")
-if err != nil {
-    panic(err)
+package main
+
+import (
+	"fmt"
+
+	"github.com/geange/lucene-go/codecs/simpletext"
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/search"
+	"github.com/geange/lucene-go/core/store"
+)
+
+func main() {
+	dir, err := store.NewNIOFSDirectory("./data")
+	if err != nil {
+		panic(err)
+	}
+
+	codec := simpletext.NewSimpleTextCodec()
+	similarity := search.NewCastBM25Similarity()
+
+	config := index.NewIndexWriterConfig(codec, similarity)
+
+	writer, err := index.NewIndexWriter(dir, config)
+	if err != nil {
+		panic(err)
+	}
+
+	reader, err := index.DirectoryReaderOpen(writer)
+	if err != nil {
+		panic(err)
+	}
+
+	searcher, err := search.NewIndexSearcher(reader)
+	if err != nil {
+		panic(err)
+	}
+
+	query := search.NewTermQuery(index.NewTerm("content", []byte("a")))
+
+	topDocs, err := searcher.SearchTopN(query, 5)
+	if err != nil {
+		panic(err)
+	}
+
+	for i, doc := range topDocs.GetScoreDocs() {
+		fmt.Printf("result%d: 文档%d\n", i, doc.GetDoc())
+	}
 }
-
-codec := simpletext.NewSimpleTextCodec()
-similarity := search.NewCastBM25Similarity()
-
-config := index.NewIndexWriterConfig(codec, similarity)
-
-writer, err := index.NewIndexWriter(dir, config)
-if err != nil {
-    panic(err)
-}
-
-reader, err := index.DirectoryReaderOpen(writer)
-if err != nil {
-    panic(err)
-}
-
-searcher, err := search.NewIndexSearcher(reader)
-if err != nil {
-panic(err)
-}
-topDocs, err := searcher.SearchTopN(search.NewMatchAllDocsQuery(), 100)
-if err != nil {
-panic(err)
-}
-
-result := topDocs.GetScoreDocs()
-for _, scoreDoc := range result {
-    docID := scoreDoc.GetDoc()
-    document, err := reader.Document(docID)
-    if err != nil {
-        panic(err)
-    }
-    value, err := document.Get("sequence")
-    if err != nil {
-        panic(err)
-    }
-    fmt.Printf("段内排序后的文档号: %d  VS 段内排序前的文档: %s\n",
-        scoreDoc.GetDoc(), value)
-}
-
 ```
 
-## memory
+output
+
+```shell
+result0: 文档2
+result1: 文档9
+result2: 文档3
+result3: 文档6
+```
+
+### memory
 
 ```go
 package main
