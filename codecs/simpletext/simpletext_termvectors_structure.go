@@ -251,16 +251,10 @@ func NewSimpleTVPostingsEnum() *SimpleTVPostingsEnum {
 		startOffsets: nil,
 		endOffsets:   nil,
 	}
-	enum.DocIdSetIteratorDefault = index.NewDocIdSetIteratorDefault(
-		&index.DocIdSetIteratorDefaultConfig{
-			NextDoc: enum.NextDoc,
-		})
 	return enum
 }
 
 type SimpleTVPostingsEnum struct {
-	*index.DocIdSetIteratorDefault
-
 	didNext      bool
 	doc          int
 	nextPos      int
@@ -295,6 +289,10 @@ func (s *SimpleTVPostingsEnum) NextDoc() (int, error) {
 
 func (s *SimpleTVPostingsEnum) Advance(target int) (int, error) {
 	return s.SlowAdvance(target)
+}
+
+func (s *SimpleTVPostingsEnum) SlowAdvance(target int) (int, error) {
+	return index.SlowAdvance(s, target)
 }
 
 func (s *SimpleTVPostingsEnum) Cost() int64 {
@@ -343,8 +341,6 @@ var _ index.PostingsEnum = &SimpleTVDocsEnum{}
 
 // SimpleTVDocsEnum note: these two enum classes are exactly like the Default impl...
 type SimpleTVDocsEnum struct {
-	*index.DocIdSetIteratorDefault
-
 	didNext bool
 	doc     int
 	freq    int
@@ -354,9 +350,6 @@ func NewSimpleTVDocsEnum() *SimpleTVDocsEnum {
 	enum := &SimpleTVDocsEnum{
 		doc: -1,
 	}
-	enum.DocIdSetIteratorDefault = index.NewDocIdSetIteratorDefault(
-		&index.DocIdSetIteratorDefaultConfig{NextDoc: enum.NextDoc},
-	)
 	return enum
 }
 
@@ -381,6 +374,10 @@ func (s *SimpleTVDocsEnum) NextDoc() (int, error) {
 
 func (s *SimpleTVDocsEnum) Advance(target int) (int, error) {
 	return s.SlowAdvance(target)
+}
+
+func (s *SimpleTVDocsEnum) SlowAdvance(target int) (int, error) {
+	return index.SlowAdvance(s, target)
 }
 
 func (s *SimpleTVDocsEnum) Cost() int64 {

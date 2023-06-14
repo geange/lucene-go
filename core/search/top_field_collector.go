@@ -87,7 +87,7 @@ type TopFieldCollector struct {
 	minScoreAcc *MaxScoreAccumulator
 
 	// the current local minimum competitive score already propagated to the underlying scorer
-	minCompetitiveScore float32
+	minCompetitiveScore float64
 
 	numComparators int
 
@@ -109,7 +109,7 @@ func (t *TopFieldCollector) ScoreMode() *ScoreMode {
 func (t *TopFieldCollector) updateMinCompetitiveScore(scorer Scorable) error {
 	if t.canSetMinScore && t.queueFull && t.hitsThresholdChecker.IsThresholdReached() {
 		//assert bottom != null;
-		minScore := t.firstComparator.Value(t.bottom.slot).(float32)
+		minScore := t.firstComparator.Value(t.bottom.slot).(float64)
 		if minScore > t.minCompetitiveScore {
 			err := scorer.SetMinCompetitiveScore(minScore)
 			if err != nil {

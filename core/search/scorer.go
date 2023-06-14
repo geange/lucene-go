@@ -46,7 +46,7 @@ type Scorer interface {
 
 	// GetMaxScore Return the maximum score that documents between the last target that this iterator
 	// was shallow-advanced to included and upTo included.
-	GetMaxScore(upTo int) (float32, error)
+	GetMaxScore(upTo int) (float64, error)
 }
 
 type ScorerDefault struct {

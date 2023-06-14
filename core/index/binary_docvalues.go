@@ -33,7 +33,10 @@ func (n *BinaryDocValuesDefault) Advance(target int) (int, error) {
 }
 
 func (n *BinaryDocValuesDefault) SlowAdvance(target int) (int, error) {
-	return n.FnSlowAdvance(target)
+	if n.FnSlowAdvance != nil {
+		return n.FnSlowAdvance(target)
+	}
+	return SlowAdvance(n, target)
 }
 
 func (n *BinaryDocValuesDefault) Cost() int64 {

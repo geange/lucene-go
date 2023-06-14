@@ -6,7 +6,13 @@ import (
 
 var _ index.DocIdSetIterator = &ConjunctionDISI{}
 
+// ConjunctionDISI
+// A conjunction of DocIdSetIterators. Requires that all of its sub-iterators must be on the same
+// document all the time. This iterates over the doc ids that are present in each given DocIdSetIterator.
+// Public only for use in org.apache.lucene.search.spans.
+// lucene.internal
 type ConjunctionDISI struct {
+	lead1, lead2 index.DocIdSetIterator
 }
 
 func (c *ConjunctionDISI) DocID() int {
@@ -25,8 +31,7 @@ func (c *ConjunctionDISI) Advance(target int) (int, error) {
 }
 
 func (c *ConjunctionDISI) SlowAdvance(target int) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return index.SlowAdvance(c, target)
 }
 
 func (c *ConjunctionDISI) Cost() int64 {
@@ -36,5 +41,9 @@ func (c *ConjunctionDISI) Cost() int64 {
 
 // IntersectIterators Create a conjunction over the provided Scorers. Note that the returned DocIdSetIterator might leverage two-phase iteration in which case it is possible to retrieve the TwoPhaseIterator using TwoPhaseIterator.unwrap.
 func IntersectIterators(iterators []index.DocIdSetIterator) index.DocIdSetIterator {
+	panic("")
+}
+
+func (c *ConjunctionDISI) doNext(doc int) (int, error) {
 	panic("")
 }

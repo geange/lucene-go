@@ -7,14 +7,14 @@ var _ Scorer = &ConstantScoreScorer{}
 type ConstantScoreScorer struct {
 	*ScorerDefault
 
-	score            float32
+	score            float64
 	scoreMode        ScoreMode
 	approximation    index.DocIdSetIterator
 	twoPhaseIterator TwoPhaseIterator
 	disi             index.DocIdSetIterator
 }
 
-func (c *ConstantScoreScorer) Score() (float32, error) {
+func (c *ConstantScoreScorer) Score() (float64, error) {
 	return c.score, nil
 }
 
@@ -26,7 +26,7 @@ func (c *ConstantScoreScorer) Iterator() index.DocIdSetIterator {
 	return c.disi
 }
 
-func (c *ConstantScoreScorer) GetMaxScore(upTo int) (float32, error) {
+func (c *ConstantScoreScorer) GetMaxScore(upTo int) (float64, error) {
 	return c.score, nil
 }
 
@@ -40,7 +40,7 @@ func (c *ConstantScoreScorer) GetMaxScore(upTo int) (float32, error) {
 //	score – the score to return on each document
 //	scoreMode – the score mode
 //	disi – the iterator that defines matching documents
-func NewConstantScoreScorer(weight Weight, score float32,
+func NewConstantScoreScorer(weight Weight, score float64,
 	scoreMode *ScoreMode, disi index.DocIdSetIterator) (*ConstantScoreScorer, error) {
 
 	if scoreMode.Equal(TOP_SCORES) {
@@ -59,7 +59,7 @@ func NewConstantScoreScorer(weight Weight, score float32,
 	return scorer, nil
 }
 
-func NewConstantScoreScorerV1(weight Weight, score float32,
+func NewConstantScoreScorerV1(weight Weight, score float64,
 	scoreMode *ScoreMode, twoPhaseIterator TwoPhaseIterator) (*ConstantScoreScorer, error) {
 
 	scorer := &ConstantScoreScorer{

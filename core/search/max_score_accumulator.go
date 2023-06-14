@@ -59,17 +59,17 @@ func (m *MaxScoreAccumulator) Get() *DocAndScore {
 		return nil
 	}
 
-	score := math.Float32frombits(uint32(value >> 32))
+	score := math.Float64frombits(uint64(value >> 32))
 	docBase := int(value)
 	return NewDocAndScore(docBase, score)
 }
 
 type DocAndScore struct {
 	docBase int
-	score   float32
+	score   float64
 }
 
-func NewDocAndScore(docBase int, score float32) *DocAndScore {
+func NewDocAndScore(docBase int, score float64) *DocAndScore {
 	return &DocAndScore{
 		docBase: docBase,
 		score:   score,

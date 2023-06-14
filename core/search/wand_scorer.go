@@ -28,7 +28,7 @@ func newWANDScorer(weight Weight, scorers []Scorer, minShouldMatch int, scoreMod
 	panic("")
 }
 
-func (w *WANDScorer) Score() (float32, error) {
+func (w *WANDScorer) Score() (float64, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -43,7 +43,7 @@ func (w *WANDScorer) Iterator() index.DocIdSetIterator {
 	panic("implement me")
 }
 
-func (w *WANDScorer) GetMaxScore(upTo int) (float32, error) {
+func (w *WANDScorer) GetMaxScore(upTo int) (float64, error) {
 	//TODO implement me
 	panic("implement me")
 }

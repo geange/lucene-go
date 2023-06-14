@@ -46,7 +46,7 @@ func NewReqExclScorer(reqScorer, exclScorer Scorer) *ReqExclScorer {
 	return scorer
 }
 
-func (r *ReqExclScorer) Score() (float32, error) {
+func (r *ReqExclScorer) Score() (float64, error) {
 	return r.reqScorer.Score()
 }
 
@@ -58,7 +58,7 @@ func (r *ReqExclScorer) Iterator() index.DocIdSetIterator {
 	return AsDocIdSetIterator(r.TwoPhaseIterator())
 }
 
-func (r *ReqExclScorer) GetMaxScore(upTo int) (float32, error) {
+func (r *ReqExclScorer) GetMaxScore(upTo int) (float64, error) {
 	return r.reqScorer.GetMaxScore(upTo)
 }
 

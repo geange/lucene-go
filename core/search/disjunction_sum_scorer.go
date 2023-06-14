@@ -14,7 +14,7 @@ func newDisjunctionScorer(weight Weight, subScorers []Scorer, scoreMode *ScoreMo
 	panic("")
 }
 
-func (d *DisjunctionSumScorer) Score() (float32, error) {
+func (d *DisjunctionSumScorer) Score() (float64, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -29,7 +29,7 @@ func (d *DisjunctionSumScorer) Iterator() index.DocIdSetIterator {
 	panic("implement me")
 }
 
-func (d *DisjunctionSumScorer) GetMaxScore(upTo int) (float32, error) {
+func (d *DisjunctionSumScorer) GetMaxScore(upTo int) (float64, error) {
 	//TODO implement me
 	panic("implement me")
 }

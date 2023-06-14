@@ -44,7 +44,7 @@ func NewTermScorerWithImpacts(weight Weight, impactsEnum index.ImpactsEnum, docS
 	return this
 }
 
-func (t *TermScorer) Score() (float32, error) {
+func (t *TermScorer) Score() (float64, error) {
 	freq, err := t.postingsEnum.Freq()
 	if err != nil {
 		return 0, err
@@ -54,15 +54,15 @@ func (t *TermScorer) Score() (float32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return float32(score), nil
+	return score, nil
 }
 
-func (t *TermScorer) SmoothingScore(docId int) (float32, error) {
+func (t *TermScorer) SmoothingScore(docId int) (float64, error) {
 	score, err := t.docScorer.Score(docId, 0)
 	if err != nil {
 		return 0, err
 	}
-	return float32(score), nil
+	return score, nil
 }
 
 func (t *TermScorer) DocID() int {
@@ -73,7 +73,7 @@ func (t *TermScorer) Freq() (int, error) {
 	return t.postingsEnum.Freq()
 }
 
-func (t *TermScorer) SetMinCompetitiveScore(minScore float32) error {
+func (t *TermScorer) SetMinCompetitiveScore(minScore float64) error {
 	return t.impactsDISI.setMinCompetitiveScore(float64(minScore))
 }
 
@@ -93,10 +93,10 @@ func (t *TermScorer) TwoPhaseIterator() TwoPhaseIterator {
 	return nil
 }
 
-func (t *TermScorer) GetMaxScore(upTo int) (float32, error) {
+func (t *TermScorer) GetMaxScore(upTo int) (float64, error) {
 	score, err := t.impactsDISI.GetMaxScore(upTo)
 	if err != nil {
 		return 0, err
 	}
-	return float32(score), nil
+	return score, nil
 }

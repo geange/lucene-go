@@ -137,8 +137,6 @@ func (m *MyNormsProducer) GetMergeInstance() index.NormsProducer {
 var _ index.NumericDocValues = &MyNumericDocValues{}
 
 type MyNumericDocValues struct {
-	*index.DocIdSetIteratorDefault
-
 	doc int
 	si  *index.SegmentInfo
 }
@@ -148,8 +146,6 @@ func NewMyNumericDocValues(si *index.SegmentInfo) *MyNumericDocValues {
 		doc: -1,
 		si:  si,
 	}
-	values.DocIdSetIteratorDefault = index.NewDocIdSetIteratorDefault(
-		&index.DocIdSetIteratorDefaultConfig{NextDoc: values.NextDoc})
 	return values
 }
 
@@ -172,6 +168,10 @@ func (m *MyNumericDocValues) Advance(target int) (int, error) {
 		m.doc = target
 		return target, nil
 	}
+}
+
+func (m *MyNumericDocValues) SlowAdvance(target int) (int, error) {
+	return index.SlowAdvance(m, target)
 }
 
 func (m *MyNumericDocValues) Cost() int64 {

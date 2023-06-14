@@ -359,26 +359,27 @@ func NewStartDISIWrapper(in index.DocIdSetIterator) *StartDISIWrapper {
 }
 
 func (s *StartDISIWrapper) DocID() int {
-	//TODO implement me
-	panic("implement me")
+	return s.docID
 }
 
 func (s *StartDISIWrapper) NextDoc() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.Advance(s.docID + 1)
 }
 
 func (s *StartDISIWrapper) Advance(target int) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	if target <= s.startDocID {
+		s.docID = s.startDocID
+		return s.docID, nil
+	}
+	var err error
+	s.docID, err = s.in.Advance(target)
+	return s.docID, err
 }
 
 func (s *StartDISIWrapper) SlowAdvance(target int) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return index.SlowAdvance(s, target)
 }
 
 func (s *StartDISIWrapper) Cost() int64 {
-	//TODO implement me
-	panic("implement me")
+	return s.in.Cost()
 }

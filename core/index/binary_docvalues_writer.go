@@ -55,24 +55,17 @@ func (b *BinaryDocValuesWriter) GetDocValues() DocIdSetIterator {
 var _ BinaryDocValues = &BufferedBinaryDocValues{}
 
 type BufferedBinaryDocValues struct {
-	*DocIdSetIteratorDefault
 	docsWithField DocIdSetIterator
 	values        [][]byte
 	pos           int
 }
 
 func NewBufferedBinaryDocValues(values [][]byte, docsWithField DocIdSetIterator) *BufferedBinaryDocValues {
-	docValues := &BufferedBinaryDocValues{
+	return &BufferedBinaryDocValues{
 		docsWithField: docsWithField,
 		values:        values,
 		pos:           -1,
 	}
-	docValues.DocIdSetIteratorDefault = NewDocIdSetIteratorDefault(
-		&DocIdSetIteratorDefaultConfig{
-			NextDoc: docValues.NextDoc,
-		},
-	)
-	return docValues
 }
 
 func (b *BufferedBinaryDocValues) DocID() int {
@@ -90,6 +83,10 @@ func (b *BufferedBinaryDocValues) NextDoc() (int, error) {
 
 func (b *BufferedBinaryDocValues) Advance(target int) (int, error) {
 	return 0, errors.New("unsupported operation exception")
+}
+
+func (b *BufferedBinaryDocValues) SlowAdvance(target int) (int, error) {
+	return SlowAdvance(b, target)
 }
 
 func (b *BufferedBinaryDocValues) Cost() int64 {

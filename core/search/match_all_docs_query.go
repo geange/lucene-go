@@ -22,7 +22,7 @@ func (m *MatchAllDocsQuery) String(field string) string {
 }
 
 func (m *MatchAllDocsQuery) CreateWeight(_ *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
-	return newConstantScoreWeight(float32(boost), m, scoreMode), nil
+	return newConstantScoreWeight(boost, m, scoreMode), nil
 }
 
 func (m *MatchAllDocsQuery) Rewrite(reader index.IndexReader) (Query, error) {
@@ -41,7 +41,7 @@ type constantScoreWeight struct {
 	scoreMode *ScoreMode
 }
 
-func newConstantScoreWeight(score float32, query Query, scoreMode *ScoreMode) *constantScoreWeight {
+func newConstantScoreWeight(score float64, query Query, scoreMode *ScoreMode) *constantScoreWeight {
 	weight := &constantScoreWeight{
 		scoreMode: scoreMode,
 	}

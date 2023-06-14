@@ -8,7 +8,6 @@ import (
 var _ DocIdSetIterator = &BitSetIterator{}
 
 type BitSetIterator struct {
-	*DocIdSetIteratorDefault
 	bits *bitset.BitSet
 	cost int
 	doc  int
@@ -20,9 +19,7 @@ func NewBitSetIterator(bits *bitset.BitSet, cost int) *BitSetIterator {
 		cost: cost,
 		doc:  -1,
 	}
-	it.DocIdSetIteratorDefault = NewDocIdSetIteratorDefault(&DocIdSetIteratorDefaultConfig{
-		NextDoc: it.NextDoc,
-	})
+
 	return it
 }
 
@@ -42,6 +39,10 @@ func (b *BitSetIterator) Advance(target int) (int, error) {
 
 	b.doc = int(value)
 	return int(b.doc), nil
+}
+
+func (b *BitSetIterator) SlowAdvance(target int) (int, error) {
+	return SlowAdvance(b, target)
 }
 
 func (b *BitSetIterator) Cost() int64 {

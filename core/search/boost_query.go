@@ -8,7 +8,8 @@ import (
 
 var _ Query = &BoostQuery{}
 
-// BoostQuery A Query wrapper that allows to give a boost to the wrapped query.
+// BoostQuery
+// A Query wrapper that allows to give a boost to the wrapped query.
 // Boost values that are less than one will give less importance to this query compared to other ones
 // while values that are greater than one will give more importance to the scores returned by this query.
 // More complex boosts can be applied by using FunctionScoreQuery in the lucene-queries module

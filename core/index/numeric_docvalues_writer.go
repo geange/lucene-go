@@ -56,8 +56,6 @@ func (n *NumericDocValuesWriter) GetDocValues() DocIdSetIterator {
 var _ NumericDocValues = &BufferedNumericDocValues{}
 
 type BufferedNumericDocValues struct {
-	*DocIdSetIteratorDefault
-
 	iter          *packed.PackedLongValuesIterator
 	docsWithField DocIdSetIterator
 	value         int64
@@ -71,7 +69,6 @@ func NewBufferedNumericDocValues(values *packed.PackedLongValues,
 		docsWithField: docsWithFields,
 		value:         0,
 	}
-	docValues.DocIdSetIteratorDefault = NewDocIdSetIteratorDefault(&DocIdSetIteratorDefaultConfig{NextDoc: docValues.NextDoc})
 	return docValues
 }
 
@@ -92,6 +89,10 @@ func (b *BufferedNumericDocValues) Advance(target int) (int, error) {
 	return 0, errors.New("unsupported Operation")
 }
 
+func (b *BufferedNumericDocValues) SlowAdvance(target int) (int, error) {
+	return SlowAdvance(b, target)
+}
+
 func (b *BufferedNumericDocValues) Cost() int64 {
 	return b.docsWithField.Cost()
 }
@@ -107,8 +108,6 @@ func (b *BufferedNumericDocValues) LongValue() (int64, error) {
 var _ NumericDocValues = &SortingNumericDocValues{}
 
 type SortingNumericDocValues struct {
-	*DocIdSetIteratorDefault
-
 	dvs   *NumericDVs
 	docID int
 	cost  int
@@ -129,6 +128,10 @@ func (s *SortingNumericDocValues) NextDoc() (int, error) {
 
 func (s *SortingNumericDocValues) Advance(target int) (int, error) {
 	return 0, errors.New("unsupported Operation")
+}
+
+func (s *SortingNumericDocValues) SlowAdvance(target int) (int, error) {
+	return SlowAdvance(s, target)
 }
 
 func (s *SortingNumericDocValues) Cost() int64 {

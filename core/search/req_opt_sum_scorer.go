@@ -24,7 +24,7 @@ type ReqOptSumScorer struct {
 	optIsRequired      bool
 }
 
-func (r *ReqOptSumScorer) Score() (float32, error) {
+func (r *ReqOptSumScorer) Score() (float64, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -39,7 +39,7 @@ func (r *ReqOptSumScorer) Iterator() index.DocIdSetIterator {
 	panic("implement me")
 }
 
-func (r *ReqOptSumScorer) GetMaxScore(upTo int) (float32, error) {
+func (r *ReqOptSumScorer) GetMaxScore(upTo int) (float64, error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -5,7 +5,7 @@ var _ Scorable = &ScoreAndDoc{}
 type ScoreAndDoc struct {
 	*ScorableDefault
 
-	score float32
+	score float64
 	doc   int
 }
 
@@ -13,7 +13,7 @@ func NewScoreAndDoc() *ScoreAndDoc {
 	return &ScoreAndDoc{ScorableDefault: &ScorableDefault{}}
 }
 
-func (s *ScoreAndDoc) Score() (float32, error) {
+func (s *ScoreAndDoc) Score() (float64, error) {
 	return s.score, nil
 }
 

@@ -55,7 +55,7 @@ func (t *TwoPhaseIteratorAsDocIdSetIterator) Advance(target int) (int, error) {
 }
 
 func (t *TwoPhaseIteratorAsDocIdSetIterator) SlowAdvance(target int) (int, error) {
-	return t.Advance(target)
+	return index.SlowAdvance(t, target)
 }
 
 func (t *TwoPhaseIteratorAsDocIdSetIterator) Cost() int64 {
@@ -78,4 +78,11 @@ func (t *TwoPhaseIteratorAsDocIdSetIterator) doNext(doc int) (int, error) {
 
 		doc = t.approximation.DocID()
 	}
+}
+
+func UnwrapIterator(iterator index.DocIdSetIterator) TwoPhaseIterator {
+	if v, ok := iterator.(*TwoPhaseIteratorAsDocIdSetIterator); ok {
+		return v.twoPhaseIterator
+	}
+	return nil
 }

@@ -28,7 +28,7 @@ type TopScoreDocCollectorDefault struct {
 	pqTop                ScoreDoc
 	hitsThresholdChecker HitsThresholdChecker
 	minScoreAcc          *MaxScoreAccumulator
-	minCompetitiveScore  float32
+	minCompetitiveScore  float64
 }
 
 func (t *TopScoreDocCollectorDefault) updateGlobalMinCompetitiveScore(scorer Scorable) error {
@@ -61,12 +61,12 @@ func (t *TopScoreDocCollectorDefault) updateMinCompetitiveScore(scorer Scorable)
 		// the next float
 		localMinScore := t.pqTop.GetScore()
 		if localMinScore > float64(t.minCompetitiveScore) {
-			err := scorer.SetMinCompetitiveScore(float32(localMinScore))
+			err := scorer.SetMinCompetitiveScore(localMinScore)
 			if err != nil {
 				return err
 			}
 			t.totalHitsRelation = GREATER_THAN_OR_EQUAL_TO
-			t.minCompetitiveScore = float32(localMinScore)
+			t.minCompetitiveScore = localMinScore
 			if t.minScoreAcc != nil {
 				// we don't use the next float but we register the document
 				// id so that other leaves can require it if they are after

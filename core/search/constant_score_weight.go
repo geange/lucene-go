@@ -10,14 +10,14 @@ import (
 //var _ Weight = &ConstantScoreWeight{}
 
 type ConstantScoreWeight struct {
-	score float32
+	score float64
 
 	*WeightDefault
 
 	//FnScorer func(ctx *index.LeafReaderContext) (Scorer, error)
 }
 
-func NewConstantScoreWeight(score float32, query Query, spi WeightSPI) *ConstantScoreWeight {
+func NewConstantScoreWeight(score float64, query Query, spi WeightSPI) *ConstantScoreWeight {
 	weight := &ConstantScoreWeight{score: score}
 	weight.WeightDefault = NewWeight(query, spi)
 	return weight

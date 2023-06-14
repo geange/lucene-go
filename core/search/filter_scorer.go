@@ -13,7 +13,7 @@ type FilterScorer struct {
 	in Scorer
 }
 
-func (f *FilterScorer) Score() (float32, error) {
+func (f *FilterScorer) Score() (float64, error) {
 	return f.in.Score()
 }
 
