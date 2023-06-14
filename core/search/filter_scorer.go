@@ -13,6 +13,13 @@ type FilterScorer struct {
 	in Scorer
 }
 
+func newFilterScorer(in Scorer) *FilterScorer {
+	return &FilterScorer{
+		ScorerDefault: NewScorer(in.GetWeight()),
+		in:            in,
+	}
+}
+
 func (f *FilterScorer) Score() (float64, error) {
 	return f.in.Score()
 }

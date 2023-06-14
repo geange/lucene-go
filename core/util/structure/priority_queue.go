@@ -47,6 +47,26 @@ func (p *PriorityQueue[T]) Add(element T) T {
 	return p.heap[1]
 }
 
+// InsertWithOverflow
+// Adds an Object to a PriorityQueue in log(size) time. It returns the object (if any) that was dropped off
+// the heap because it was full. This can be the given parameter (in case it is smaller than the full
+// heap's minimum, and couldn't be added), or another object that was previously the smallest value
+// in the heap and now has been replaced by a larger one, or null if the queue wasn't yet full with
+// maxSize elements.
+func (p *PriorityQueue[T]) InsertWithOverflow(element T) T {
+	if p.size < p.maxSize {
+		p.Add(element)
+		return p.none
+	} else if p.size > 0 && !p.lessThan(element, p.heap[1]) {
+		ret := p.heap[1]
+		p.heap[1] = element
+		p.UpdateTop()
+		return ret
+	} else {
+		return element
+	}
+}
+
 // Top
 // Returns the least element of the PriorityQueue in constant time.
 func (p *PriorityQueue[T]) Top() T {

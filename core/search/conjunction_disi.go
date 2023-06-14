@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"sort"
 )
 
 var _ index.DocIdSetIterator = &ConjunctionDISI{}
@@ -12,7 +13,36 @@ var _ index.DocIdSetIterator = &ConjunctionDISI{}
 // Public only for use in org.apache.lucene.search.spans.
 // lucene.internal
 type ConjunctionDISI struct {
-	lead1, lead2 index.DocIdSetIterator
+	lead1  index.DocIdSetIterator
+	lead2  index.DocIdSetIterator
+	others []index.DocIdSetIterator
+}
+
+func newConjunctionDISI(iterators []index.DocIdSetIterator) *ConjunctionDISI {
+	// Sort the array the first time to allow the least frequent DocsEnum to
+	// lead the matching.
+	sort.Sort(TimSort(iterators))
+	return &ConjunctionDISI{
+		lead1:  iterators[0],
+		lead2:  iterators[1],
+		others: iterators[2:],
+	}
+}
+
+var _ sort.Interface = TimSort{}
+
+type TimSort []index.DocIdSetIterator
+
+func (t TimSort) Len() int {
+	return len(t)
+}
+
+func (t TimSort) Less(i, j int) bool {
+	return t[i].Cost() < t[j].Cost()
+}
+
+func (t TimSort) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
 }
 
 func (c *ConjunctionDISI) DocID() int {

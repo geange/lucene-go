@@ -23,6 +23,10 @@ func NewBitSetIterator(bits *bitset.BitSet, cost int) *BitSetIterator {
 	return it
 }
 
+func (b *BitSetIterator) GetBitSet() *bitset.BitSet {
+	return b.bits
+}
+
 func (b *BitSetIterator) DocID() int {
 	return int(b.doc)
 }
