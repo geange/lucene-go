@@ -88,7 +88,7 @@ func (b *BooleanWeight) Matches(context *index.LeafReaderContext, doc int) (Matc
 			}
 			matches = append(matches, m)
 		}
-		if bc.GetOccur() == SHOULD {
+		if bc.GetOccur() == OccurShould {
 			if m != nil {
 				matches = append(matches, m)
 				shouldMatchCount++
@@ -162,8 +162,8 @@ func (b *BooleanWeight) requiredBulkScorer(context *index.LeafReaderContext) (Bu
 
 // Try to build a boolean scorer for this weight. Returns null if BooleanScorer cannot be used.
 func (b *BooleanWeight) booleanScorer(context *index.LeafReaderContext) (BulkScorer, error) {
-	numOptionalClauses := len(b.query.GetClauses(SHOULD))
-	numRequiredClauses := len(b.query.GetClauses(MUST)) + len(b.query.GetClauses(FILTER))
+	numOptionalClauses := len(b.query.GetClauses(OccurShould))
+	numRequiredClauses := len(b.query.GetClauses(OccurMust)) + len(b.query.GetClauses(OccurFilter))
 
 	var positiveScorer BulkScorer
 	var err error
@@ -318,17 +318,17 @@ func (b *BooleanWeight) ScorerSupplier(context *index.LeafReaderContext) (Scorer
 
 	// scorer simplifications:
 
-	if len(scorers[SHOULD]) == minShouldMatch {
+	if len(scorers[OccurShould]) == minShouldMatch {
 		// any optional clauses are in fact required
-		scorers[MUST] = append(scorers[MUST], scorers[SHOULD]...)
-		scorers[SHOULD] = scorers[SHOULD][:0]
+		scorers[OccurMust] = append(scorers[OccurMust], scorers[OccurShould]...)
+		scorers[OccurShould] = scorers[OccurShould][:0]
 		minShouldMatch = 0
 	}
 
-	if len(scorers[FILTER]) == 0 && len(scorers[MUST]) == 0 && len(scorers[SHOULD]) == 0 {
+	if len(scorers[OccurFilter]) == 0 && len(scorers[OccurMust]) == 0 && len(scorers[OccurShould]) == 0 {
 		// no required and optional clauses.
 		return nil, nil
-	} else if len(scorers[SHOULD]) < minShouldMatch {
+	} else if len(scorers[OccurShould]) < minShouldMatch {
 		return nil, nil
 	}
 

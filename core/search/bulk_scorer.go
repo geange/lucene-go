@@ -9,6 +9,11 @@ import (
 // BulkScorer This class is used to Score a range of documents at once, and is returned by Weight.bulkScorer.
 // Only queries that have a more optimized means of scoring across a range of documents need to override this.
 // Otherwise, a default implementation is wrapped around the Scorer returned by Weight.scorer.
+//
+// GPT3.5：
+// 这个类用于一次对一系列文档进行评分，它是由Weight.bulkScorer返回的。
+// 只有那些在一系列文档上有更优化的评分方法的查询才需要覆盖它。
+// 否则，会使用默认实现，该实现会封装在Weight.scorer返回的Scorer周围。
 type BulkScorer interface {
 	// Score Scores and collects all matching documents.
 	// Params: 	collector – The collector to which all matching documents are passed.

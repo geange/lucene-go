@@ -23,16 +23,16 @@ func NewBoolean2ScorerSupplier(weight Weight, subs map[Occur][]ScorerSupplier,
 		return nil, errors.New("minShouldMatch must be positive")
 	}
 
-	if minShouldMatch != 0 && minShouldMatch >= len(subs[SHOULD]) {
-		return nil, errors.New("minShouldMatch must be strictly less than the number of SHOULD clauses")
+	if minShouldMatch != 0 && minShouldMatch >= len(subs[OccurShould]) {
+		return nil, errors.New("minShouldMatch must be strictly less than the number of OccurShould clauses")
 	}
 
-	if scoreMode.NeedsScores() == false && minShouldMatch == 0 && len(subs[SHOULD]) > 0 &&
-		len(subs[MUST])+len(subs[FILTER]) > 0 {
+	if scoreMode.NeedsScores() == false && minShouldMatch == 0 && len(subs[OccurShould]) > 0 &&
+		len(subs[OccurMust])+len(subs[OccurFilter]) > 0 {
 		return nil, errors.New("cannot pass purely optional clauses if scores are not needed")
 	}
 
-	if len(subs[SHOULD])+len(subs[MUST])+len(subs[FILTER]) == 0 {
+	if len(subs[OccurShould])+len(subs[OccurMust])+len(subs[OccurFilter]) == 0 {
 		return nil, errors.New("there should be at least one positive clause")
 	}
 
@@ -50,7 +50,7 @@ func (b *Boolean2ScorerSupplier) Get(leadCost int64) (Scorer, error) {
 		return nil, err
 	}
 
-	if b.scoreMode == TOP_SCORES && len(b.subs[SHOULD]) == 0 && len(b.subs[MUST]) == 0 {
+	if b.scoreMode.Equal(TOP_SCORES) && len(b.subs[OccurShould]) == 0 && len(b.subs[OccurMust]) == 0 {
 		// no scoring clauses but scores are needed so we wrap the scorer in
 		// a constant score in order to allow early termination
 		if scorer.TwoPhaseIterator() != nil {
@@ -71,7 +71,65 @@ func (b *Boolean2ScorerSupplier) Cost() int64 {
 }
 
 func (b *Boolean2ScorerSupplier) getInternal(leadCost int64) (Scorer, error) {
-	panic("")
+	// three cases: conjunction, disjunction, or mix
+	leadCost = util.Min(leadCost, b.Cost())
+
+	// pure conjunction
+	if len(b.subs[OccurShould]) == 0 {
+		scorer, err := b.req(b.subs[OccurFilter], b.subs[OccurMust], leadCost)
+		if err != nil {
+			return nil, err
+		}
+
+		return b.excl(scorer, b.subs[OccurMustNot], leadCost)
+	}
+
+	// pure disjunction
+	if len(b.subs[OccurFilter]) == 0 && len(b.subs[OccurMust]) == 0 {
+		scorer, err := b.opt(b.subs[OccurShould], b.minShouldMatch, b.scoreMode, leadCost)
+		if err != nil {
+			return nil, err
+		}
+		return b.excl(scorer, b.subs[OccurMustNot], leadCost)
+	}
+
+	// conjunction-disjunction mix:
+	// we create the required and optional pieces, and then
+	// combine the two: if minNrShouldMatch > 0, then it's a conjunction: because the
+	// optional side must match. otherwise it's required + optional
+	if b.minShouldMatch > 0 {
+		scorer, err := b.req(b.subs[OccurFilter], b.subs[OccurMust], leadCost)
+		if err != nil {
+			return nil, err
+		}
+		req, err := b.excl(scorer, b.subs[OccurMustNot], leadCost)
+		if err != nil {
+			return nil, err
+		}
+		opt, err := b.opt(b.subs[OccurShould], b.minShouldMatch, b.scoreMode, leadCost)
+		if err != nil {
+			return nil, err
+		}
+		return NewConjunctionScorer(b.weight, []Scorer{req, opt}, []Scorer{req, opt})
+	}
+
+	if !b.scoreMode.NeedsScores() {
+		return nil, errors.New("scoreMode need scores")
+	}
+	req, err := b.req(b.subs[OccurFilter], b.subs[OccurMust], leadCost)
+	if err != nil {
+		return nil, err
+	}
+	excl, err := b.excl(req, b.subs[OccurMustNot], leadCost)
+	if err != nil {
+		return nil, err
+	}
+	opt, err := b.opt(b.subs[OccurShould], b.minShouldMatch, b.scoreMode, leadCost)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewReqOptSumScorer(excl, opt, b.scoreMode)
 }
 
 var _ Scorer = &filterScorer{}
@@ -135,7 +193,7 @@ func (b *Boolean2ScorerSupplier) req(requiredNoScoring, requiredScoring []Scorer
 		scoringScorers = append(scoringScorers, scorer)
 	}
 
-	if b.scoreMode == TOP_SCORES && len(scoringScorers) > 1 {
+	if b.scoreMode.Equal(TOP_SCORES) && len(scoringScorers) > 1 {
 		blockMaxScorer := NewBlockMaxConjunctionScorer(b.weight, scoringScorers)
 		if len(requiredScorers) == 0 {
 			return blockMaxScorer, nil
@@ -181,7 +239,7 @@ func (b *Boolean2ScorerSupplier) opt(optional []ScorerSupplier, minShouldMatch i
 	//
 	// However, as WANDScorer uses more complex algorithm and data structure, we would like to
 	// still use DisjunctionSumScorer to handle exhaustive pure disjunctions, which may be faster
-	if scoreMode == TOP_SCORES || minShouldMatch > 1 {
+	if scoreMode.Equal(TOP_SCORES) || minShouldMatch > 1 {
 		return newWANDScorer(b.weight, optionalScorers, minShouldMatch, scoreMode)
 	}
 	return newDisjunctionScorer(b.weight, optionalScorers, scoreMode)
@@ -190,14 +248,14 @@ func (b *Boolean2ScorerSupplier) opt(optional []ScorerSupplier, minShouldMatch i
 func (b *Boolean2ScorerSupplier) computeCost() int64 {
 	minRequiredCost := int64(math.MaxInt64)
 
-	for _, supplier := range b.subs[MUST] {
+	for _, supplier := range b.subs[OccurMust] {
 		cost := supplier.Cost()
 		if cost < minRequiredCost {
 			minRequiredCost = cost
 		}
 	}
 
-	for _, supplier := range b.subs[FILTER] {
+	for _, supplier := range b.subs[OccurFilter] {
 		cost := supplier.Cost()
 		if cost < minRequiredCost {
 			minRequiredCost = cost
@@ -207,7 +265,7 @@ func (b *Boolean2ScorerSupplier) computeCost() int64 {
 	if b.minShouldMatch == 0 && minRequiredCost != int64(math.MaxInt64) {
 		return minRequiredCost
 	} else {
-		optionalScorers := b.subs[SHOULD]
+		optionalScorers := b.subs[OccurShould]
 		costs := make([]int64, 0, len(optionalScorers))
 		for _, scorer := range optionalScorers {
 			costs = append(costs, scorer.Cost())

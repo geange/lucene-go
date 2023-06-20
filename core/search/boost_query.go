@@ -55,7 +55,7 @@ func (b *BoostQuery) Rewrite(reader index.IndexReader) (Query, error) {
 }
 
 func (b *BoostQuery) Visit(visitor QueryVisitor) error {
-	return b.query.Visit(visitor.GetSubVisitor(MUST, b))
+	return b.query.Visit(visitor.GetSubVisitor(OccurMust, b))
 }
 
 func (b *BoostQuery) GetQuery() Query {

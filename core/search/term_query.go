@@ -152,7 +152,7 @@ func (t *TermWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
 		return nil, err
 	}
 
-	if t.scoreMode == TOP_SCORES {
+	if t.scoreMode.Equal(TOP_SCORES) {
 		impacts, err := termsEnum.Impacts(index.POSTINGS_ENUM_FREQS)
 		if err != nil {
 			return nil, err

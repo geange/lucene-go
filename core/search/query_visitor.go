@@ -33,7 +33,7 @@ type QueryVisitor interface {
 
 	// GetSubVisitor
 	// Pulls a visitor instance for visiting child clauses of a query The default implementation
-	// returns this, unless occur is equal to BooleanClause.Occur.MUST_NOT in which case it
+	// returns this, unless occur is equal to BooleanClause.Occur.OccurMustNot in which case it
 	// returns EMPTY_VISITOR
 	// Params:
 	//			occur – the relationship between the parent and its children

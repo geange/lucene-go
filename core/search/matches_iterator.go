@@ -8,27 +8,27 @@ type MatchesIterator interface {
 	// Returns: true if matches have not been exhausted
 	Next() (bool, error)
 
-	// StartPosition The start position of the current match Should only be called after next() has returned true
+	// StartPosition The start position of the current match OccurShould only be called after next() has returned true
 	StartPosition() int
 
-	// EndPosition The end position of the current match Should only be called after next() has returned true
+	// EndPosition The end position of the current match OccurShould only be called after next() has returned true
 	EndPosition() int
 
-	// StartOffset The starting offset of the current match, or -1 if offsets are not available Should only be
+	// StartOffset The starting offset of the current match, or -1 if offsets are not available OccurShould only be
 	// called after next() has returned true
 	StartOffset() (int, error)
 
-	// EndOffset The ending offset of the current match, or -1 if offsets are not available Should only be
+	// EndOffset The ending offset of the current match, or -1 if offsets are not available OccurShould only be
 	// called after next() has returned true
 	EndOffset() (int, error)
 
 	// GetSubMatches Returns a MatchesIterator that iterates over the positions and offsets of individual
 	// terms within the current match Returns null if there are no submatches (ie the current iterator is
-	// at the leaf level) Should only be called after next() has returned true
+	// at the leaf level) OccurShould only be called after next() has returned true
 	GetSubMatches() (MatchesIterator, error)
 
 	// GetQuery Returns the Query causing the current match If this MatchesIterator has been returned from a
-	// getSubMatches() call, then returns a TermQuery equivalent to the current match Should only be called
+	// getSubMatches() call, then returns a TermQuery equivalent to the current match OccurShould only be called
 	// after next() has returned true
 	GetQuery() Query
 }

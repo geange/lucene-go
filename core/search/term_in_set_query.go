@@ -8,14 +8,14 @@ const (
 
 // TermInSetQuery
 // Specialization for a disjunction over many terms that behaves like a ConstantScoreQuery over
-// a BooleanQuery containing only BooleanClause.Occur.SHOULD clauses.
+// a BooleanQuery containing only BooleanClause.Occur.OccurShould clauses.
 //
 // For instance in the following example, both q1 and q2 would yield the same scores:
 // Query q1 = new TermInSetQuery("field", new BytesRef("foo"), new BytesRef("bar"));
 //
 // BooleanQuery bq = new BooleanQuery();
-// bq.add(new TermQuery(new Term("field", "foo")), Occur.SHOULD);
-// bq.add(new TermQuery(new Term("field", "bar")), Occur.SHOULD);
+// bq.add(new TermQuery(new Term("field", "foo")), Occur.OccurShould);
+// bq.add(new TermQuery(new Term("field", "bar")), Occur.OccurShould);
 // Query q2 = new ConstantScoreQuery(bq);
 //
 // When there are few terms, this query executes like a regular disjunction. However,

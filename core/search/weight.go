@@ -64,10 +64,25 @@ type Weight interface {
 	//scorer
 	ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error)
 
-	// BulkScorer Optional method, to return a BulkScorer to score the query and send hits to a Collector. Only queries that have a different top-level approach need to override this; the default implementation pulls a normal Scorer and iterates and collects the resulting hits which are not marked as deleted.
-	// Params: 	context – the LeafReaderContext for which to return the Scorer.
+	// BulkScorer
+	// Optional method, to return a BulkScorer to score the query and send hits to a Collector.
+	// Only queries that have a different top-level approach need to override this;
+	// the default implementation pulls a normal Scorer and iterates and collects
+	// the resulting hits which are not marked as deleted.
+	//
+	// context: the LeafReaderContext for which to return the Scorer.
+	//
 	// Returns: a BulkScorer which scores documents and passes them to a collector.
 	// Throws: 	IOException – if there is a low-level I/O error
+	//
+	// GPT3.5:
+	// 可选方法，用于返回一个BulkScorer，对查询进行评分并将结果传递给Collector。
+	// 只有那些具有不同顶层方法的查询才需要覆盖此方法；默认实现获取一个普通的Scorer，
+	// 迭代并收集未标记为删除的结果hits。
+	//
+	// 参数：
+	// context - 要返回Scorer的LeafReaderContext。
+	// 返回： 一个BulkScorer，对文档进行评分并将其传递给Collector。
 	BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error)
 }
 

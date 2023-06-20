@@ -24,15 +24,15 @@ func (b *BooleanClause) GetQuery() Query {
 }
 
 func (b *BooleanClause) IsProhibited() bool {
-	return MUST_NOT == b.occur
+	return OccurMustNot == b.occur
 }
 
 func (b *BooleanClause) IsRequired() bool {
-	return b.occur == MUST || b.occur == FILTER
+	return b.occur == OccurMust || b.occur == OccurFilter
 }
 
 func (b *BooleanClause) IsScoring() bool {
-	return b.occur == MUST || b.occur == SHOULD
+	return b.occur == OccurMust || b.occur == OccurShould
 }
 
 func (b *BooleanClause) String() string {
@@ -49,32 +49,32 @@ func (o Occur) String() string {
 
 func OccurValues() []Occur {
 	return []Occur{
-		MUST, FILTER, SHOULD, MUST_NOT,
+		OccurMust, OccurFilter, OccurShould, OccurMustNot,
 	}
 }
 
 const (
-	// MUST
+	// OccurMust
 	// Use this operator for clauses that must appear in the matching documents.
 	// 等同于 AND
-	MUST = Occur("+")
+	OccurMust = Occur("+")
 
-	// FILTER
-	// Like MUST except that these clauses do not participate in scoring.
-	FILTER = Occur("#")
+	// OccurFilter
+	// Like OccurMust except that these clauses do not participate in scoring.
+	OccurFilter = Occur("#")
 
-	// SHOULD
+	// OccurShould
 	// Use this operator for clauses that should appear in the matching documents.
-	// For a BooleanQuery with no MUST clauses one or more SHOULD clauses must match
+	// For a BooleanQuery with no OccurMust clauses one or more OccurShould clauses must match
 	// a document for the BooleanQuery to match.
 	// See Also: BooleanQuery.BooleanQueryBuilder.setMinimumNumberShouldMatch
 	// 等同于 OR
-	SHOULD = Occur("")
+	OccurShould = Occur("")
 
-	// MUST_NOT
+	// OccurMustNot
 	// Use this operator for clauses that must not appear in the matching documents.
-	// Note that it is not possible to search for queries that only consist of a MUST_NOT clause.
+	// Note that it is not possible to search for queries that only consist of a OccurMustNot clause.
 	// These clauses do not contribute to the score of documents.
 	// 等同于 NOT
-	MUST_NOT = Occur("-")
+	OccurMustNot = Occur("-")
 )

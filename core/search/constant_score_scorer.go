@@ -67,7 +67,7 @@ func NewConstantScoreScorerV1(weight Weight, score float64,
 		scoreMode: *scoreMode,
 	}
 
-	if scoreMode == TOP_SCORES {
+	if scoreMode.Equal(TOP_SCORES) {
 		scorer.approximation = NewStartDISIWrapper(twoPhaseIterator.Approximation())
 		scorer.twoPhaseIterator = &constantTwoPhaseIterator{
 			approximation:    scorer.approximation,
