@@ -103,7 +103,7 @@ func computeSumOfComplement(v []float64) []float64 {
 	return result
 }
 
-func (m *MaxScoreSumPropagator) setMinCompetitiveScore(minScore float64) error {
+func (m *MaxScoreSumPropagator) SetMinCompetitiveScore(minScore float64) error {
 	if minScore == 0 {
 		return nil
 	}
@@ -166,7 +166,7 @@ func (m *MaxScoreSumPropagator) getMinCompetitiveScore(minScoreSum, sumOfOtherMa
 			continue
 		}
 	}
-	return util.Max(minScore, 0)
+	return max(minScore, 0)
 }
 
 // GPT3.5:

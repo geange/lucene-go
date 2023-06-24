@@ -1,9 +1,5 @@
 package packed
 
-import (
-	. "github.com/geange/lucene-go/math"
-)
-
 var _ Mutable = &Direct8{}
 
 // Direct8 Direct wrapping of 8-bits values to a backing array.
@@ -35,7 +31,7 @@ func (d *Direct8) Clear() {
 }
 
 func (d *Direct8) GetBulk(index int, arr []uint64) int {
-	gets := Min(d.valueCount-index, len(arr))
+	gets := min(d.valueCount-index, len(arr))
 	for i := range arr {
 		arr[i] = uint64(d.values[index+i] & 0xFF)
 	}
@@ -43,7 +39,7 @@ func (d *Direct8) GetBulk(index int, arr []uint64) int {
 }
 
 func (d *Direct8) SetBulk(index int, arr []uint64) int {
-	sets := Min(d.valueCount-index, len(arr))
+	sets := min(d.valueCount-index, len(arr))
 	for i := range arr {
 		d.values[index+i] = byte(arr[i])
 	}

@@ -267,7 +267,7 @@ func (r *ByteBlockPool) ReadBytes(offset int, bytes []byte, bytesOffset, bytesLe
 	for bytesLeft > 0 {
 		buffer := r.buffers[bufferIndex]
 		bufferIndex++
-		chunk := Min(bytesLeft, BYTE_BLOCK_SIZE-pos)
+		chunk := min(bytesLeft, BYTE_BLOCK_SIZE-pos)
 		copy(bytes[bytesOffset:], buffer[pos:pos+chunk])
 		bytesOffset += chunk
 		bytesLeft -= chunk

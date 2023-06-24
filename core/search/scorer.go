@@ -2,7 +2,6 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
-	"io"
 )
 
 // Scorer Expert: Common scoring functionality for different types of queries.
@@ -68,5 +67,5 @@ func (s *ScorerDefault) TwoPhaseIterator() TwoPhaseIterator {
 }
 
 func (s *ScorerDefault) AdvanceShallow(target int) (int, error) {
-	return 0, io.EOF
+	return index.NO_MORE_DOCS, nil
 }

@@ -29,7 +29,7 @@ func NewRunAutomatonV1(a *Automaton, alphabetSize, determinizeWorkLimit int) *Ru
 		accept:       make([]bool, size),
 		transitions:  make([]int, size*len(points)),
 		points:       points,
-		classmap:     make([]int, Min(256, alphabetSize)),
+		classmap:     make([]int, min(256, alphabetSize)),
 	}
 
 	for i := 0; i < len(r.transitions); i++ {

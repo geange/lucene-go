@@ -21,7 +21,7 @@ func NewRecyclingByteBlockAllocator(blockSize, maxBufferedBlocks int) *Recycling
 }
 
 func (r *RecyclingByteBlockAllocator) RecycleByteBlocks(blocks [][]byte, start, end int) {
-	//numBlocks := Min(r.maxBufferedBlocks-r.freeBlocks, end-start)
+	//numBlocks :=min(r.maxBufferedBlocks-r.freeBlocks, end-start)
 	//size := r.freeBlocks + numBlocks
 	//if size >= len(r.freeByteBlocks) {
 	//	newBlocks := make([][]byte)

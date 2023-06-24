@@ -1,9 +1,5 @@
 package packed
 
-import (
-	. "github.com/geange/lucene-go/math"
-)
-
 var _ Mutable = &Direct16{}
 
 type Direct16 struct {
@@ -33,7 +29,7 @@ func (d *Direct16) Clear() {
 }
 
 func (d *Direct16) GetBulk(index int, arr []uint64) int {
-	gets := Min(d.valueCount-index, len(arr))
+	gets := min(d.valueCount-index, len(arr))
 	for i := range arr {
 		arr[i] = uint64(d.values[index+i] & 0xFFFF)
 	}
@@ -41,7 +37,7 @@ func (d *Direct16) GetBulk(index int, arr []uint64) int {
 }
 
 func (d *Direct16) SetBulk(index int, arr []uint64) int {
-	sets := Min(d.valueCount-index, len(arr))
+	sets := min(d.valueCount-index, len(arr))
 	for i := range arr {
 		d.values[index+i] = uint16(arr[i])
 	}

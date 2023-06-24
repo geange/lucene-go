@@ -2,7 +2,6 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/util/structure"
-	"github.com/geange/lucene-go/math"
 )
 
 // TopDocsCollector
@@ -131,7 +130,7 @@ func (t *TopDocsCollectorDefault[T]) TopDocsRange(start, howMany int) (TopDocs, 
 	}
 
 	// We know that start < pqsize, so just fix howMany.
-	howMany = math.Min(size-start, howMany)
+	howMany = min(size-start, howMany)
 	results := make([]ScoreDoc, howMany)
 
 	// pq's pop() returns the 'least' element in the queue, therefore need

@@ -3,8 +3,6 @@ package store
 import (
 	"encoding/binary"
 	"fmt"
-
-	"github.com/geange/lucene-go/core/util"
 )
 
 type DataInputDefaultConfig struct {
@@ -191,7 +189,7 @@ func (d *DataInputDefault) SkipBytes(numBytes int) error {
 		d.skipBuffer = make([]byte, SKIP_BUFFER_SIZE)
 	}
 	for skipped := 0; skipped < numBytes; {
-		step := util.Min(SKIP_BUFFER_SIZE, numBytes-skipped)
+		step := min(SKIP_BUFFER_SIZE, numBytes-skipped)
 		if _, err := d.read(d.skipBuffer[0:step]); err != nil {
 			return err
 		}

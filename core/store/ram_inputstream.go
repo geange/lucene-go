@@ -2,7 +2,6 @@ package store
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/util"
 	"io"
 	"math"
 )
@@ -172,7 +171,7 @@ func (r *RAMInputStream) setCurrentBuffer() error {
 	if r.currentBufferIndex < r.file.numBuffers() {
 		r.currentBuffer = r.file.getBuffer(r.currentBufferIndex)
 		bufferStart := r.bufferSize * r.currentBufferIndex
-		r.bufferLength = util.Min(r.bufferSize, int(r.length)-bufferStart)
+		r.bufferLength = min(r.bufferSize, int(r.length)-bufferStart)
 	} else {
 		r.currentBuffer = nil
 	}

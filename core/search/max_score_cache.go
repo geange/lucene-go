@@ -2,7 +2,6 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util"
 )
 
 // MaxScoreCache Compute maximum scores based on Impacts and keep them in a cache in order not to run
@@ -66,7 +65,7 @@ func (c *MaxScoreCache) ensureCacheSize(size int) {
 func (c *MaxScoreCache) computeMaxScore(impacts []*index.Impact) float64 {
 	maxScore := float64(0)
 	for _, impact := range impacts {
-		maxScore = util.Max(c.scorer.Score(float64(impact.Freq), impact.Norm), maxScore)
+		maxScore = max(c.scorer.Score(float64(impact.Freq), impact.Norm), maxScore)
 	}
 	return maxScore
 }

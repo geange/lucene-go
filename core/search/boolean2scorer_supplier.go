@@ -2,7 +2,6 @@ package search
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/util"
 	"math"
 )
 
@@ -72,7 +71,7 @@ func (b *Boolean2ScorerSupplier) Cost() int64 {
 
 func (b *Boolean2ScorerSupplier) getInternal(leadCost int64) (Scorer, error) {
 	// three cases: conjunction, disjunction, or mix
-	leadCost = util.Min(leadCost, b.Cost())
+	leadCost = min(leadCost, b.Cost())
 
 	// pure conjunction
 	if len(b.subs[OccurShould]) == 0 {
@@ -194,7 +193,11 @@ func (b *Boolean2ScorerSupplier) req(requiredNoScoring, requiredScoring []Scorer
 	}
 
 	if b.scoreMode.Equal(TOP_SCORES) && len(scoringScorers) > 1 {
-		blockMaxScorer := NewBlockMaxConjunctionScorer(b.weight, scoringScorers)
+		blockMaxScorer, err := NewBlockMaxConjunctionScorer(b.weight, scoringScorers)
+		if err != nil {
+			return nil, err
+		}
+
 		if len(requiredScorers) == 0 {
 			return blockMaxScorer, nil
 		}
@@ -271,6 +274,6 @@ func (b *Boolean2ScorerSupplier) computeCost() int64 {
 			costs = append(costs, scorer.Cost())
 		}
 		shouldCost := costWithMinShouldMatch(costs, len(optionalScorers), b.minShouldMatch)
-		return util.Min(minRequiredCost, shouldCost)
+		return min(minRequiredCost, shouldCost)
 	}
 }

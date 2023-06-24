@@ -242,7 +242,7 @@ func (m *MultiLevelSkipListReaderDefault) loadSkipLevels() error {
 			if m.inputIsBuffered && length < store.BUFFER_SIZE {
 				input, ok := m.skipStream[i].(store.BufferedIndexInput)
 				if ok {
-					input.SetBufferSize(util.Max(store.MIN_BUFFER_SIZE, int(length)))
+					input.SetBufferSize(max(store.MIN_BUFFER_SIZE, int(length)))
 				}
 			}
 

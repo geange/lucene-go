@@ -9,6 +9,12 @@ Due to the complexity of Lucene, the readability of the project code needs to be
 The current project is not fully operational, and there is still a lot of work to be improved.
 Only a small number of class libraries can run independently, but there may be some bugs.
 
+## env
+
+```text
+go 1.21+
+```
+
 ## example
 
 ### IndexWriter

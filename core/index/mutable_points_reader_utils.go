@@ -95,7 +95,7 @@ func Partition(config *bkd.BKDConfig, maxDoc, splitDim, commonPrefixLen int,
 				return int(reader.GetByteAt(i, config.PackedIndexBytesLength+k-dimCmpBytes))
 			} else {
 				shift := bitsPerDocId - ((k - dataCmpBytes + 1) << 3)
-				return (reader.GetDocID(i) >> util.Max(0, shift)) & 0xff
+				return (reader.GetDocID(i) >> max(0, shift)) & 0xff
 			}
 		},
 		FnSwap: func(i, j int) {

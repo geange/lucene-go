@@ -2,7 +2,6 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util"
 )
 
 var _ Scorer = &ReqExclScorer{}
@@ -90,7 +89,7 @@ func matchCost(reqApproximation index.DocIdSetIterator, reqTwoPhaseIterator TwoP
 	} else if exclApproximation.Cost() <= 0 {
 		ratio = 0
 	} else {
-		ratio = float64(util.Min(reqApproximation.Cost(), exclApproximation.Cost())) / float64(reqApproximation.Cost())
+		ratio = float64(min(reqApproximation.Cost(), exclApproximation.Cost())) / float64(reqApproximation.Cost())
 	}
 	matchCostVar += ratio * exclMatchCost
 

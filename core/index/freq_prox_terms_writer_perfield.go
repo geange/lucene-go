@@ -118,7 +118,7 @@ func (f *FreqProxTermsWriterPerField) NewTerm(termID, docID int) error {
 	if !f.hasFreq {
 		//assert postings.termFreqs == null;
 		postings.SetLastDocCodes(termID, docID)
-		f.fieldState.maxTermFrequency = util.Max(1, f.fieldState.maxTermFrequency)
+		f.fieldState.maxTermFrequency = max(1, f.fieldState.maxTermFrequency)
 	} else {
 		postings.SetLastDocCodes(termID, docID<<1)
 		termFreq, err := f.getTermFreq()
@@ -134,7 +134,7 @@ func (f *FreqProxTermsWriterPerField) NewTerm(termID, docID int) error {
 		} else {
 			//assert !hasOffsets;
 		}
-		f.fieldState.maxTermFrequency = util.Max(postings.termFreqs[termID], f.fieldState.maxTermFrequency)
+		f.fieldState.maxTermFrequency = max(postings.termFreqs[termID], f.fieldState.maxTermFrequency)
 	}
 	f.fieldState.uniqueTermCount++
 	return nil
@@ -177,7 +177,7 @@ func (f *FreqProxTermsWriterPerField) AddTerm(termID, docID int) error {
 			return err
 		}
 		postings.SetTermFreqs(termID, termFreq)
-		f.fieldState.maxTermFrequency = util.Max(postings.termFreqs[termID], f.fieldState.maxTermFrequency)
+		f.fieldState.maxTermFrequency = max(postings.termFreqs[termID], f.fieldState.maxTermFrequency)
 		postings.lastDocCodes[termID] = (docID - postings.lastDocIDs[termID]) << 1
 		postings.lastDocIDs[termID] = docID
 		if f.hasProx {
@@ -197,7 +197,7 @@ func (f *FreqProxTermsWriterPerField) AddTerm(termID, docID int) error {
 		}
 
 		postings.SetTermFreqs(termID, postings.termFreqs[termID]+termFreq)
-		f.fieldState.maxTermFrequency = util.Max(f.fieldState.maxTermFrequency, postings.termFreqs[termID])
+		f.fieldState.maxTermFrequency = max(f.fieldState.maxTermFrequency, postings.termFreqs[termID])
 		if f.hasProx {
 			f.writeProx(termID, f.fieldState.position-postings.lastPositions[termID])
 			if f.hasOffsets {

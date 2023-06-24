@@ -8,7 +8,6 @@ import (
 
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
-	"github.com/geange/lucene-go/math"
 )
 
 var (
@@ -404,8 +403,8 @@ func (f *Fst[T]) AddNode(builder *Builder[T], nodeIn *UnCompiledNode[T]) (int64,
 			builder.numBytesPerArc[arcIdx] = numArcBytes
 			builder.numLabelBytesPerArc[arcIdx] = numLabelBytes
 			lastArcStart = builder.bytes.GetPosition()
-			maxBytesPerArc = math.Max(maxBytesPerArc, numArcBytes)
-			maxBytesPerArcWithoutLabel = math.Max(maxBytesPerArcWithoutLabel, numArcBytes-int(numLabelBytes))
+			maxBytesPerArc = max(maxBytesPerArc, numArcBytes)
+			maxBytesPerArcWithoutLabel = max(maxBytesPerArcWithoutLabel, numArcBytes-int(numLabelBytes))
 		}
 	}
 

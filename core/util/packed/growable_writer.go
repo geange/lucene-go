@@ -2,7 +2,6 @@ package packed
 
 import (
 	"github.com/geange/lucene-go/core/store"
-	. "github.com/geange/lucene-go/math"
 )
 
 var _ Mutable = &GrowableWriter{}
@@ -107,7 +106,7 @@ func (g *GrowableWriter) GetFormat() Format {
 
 func (g *GrowableWriter) Resize(newSize int) *GrowableWriter {
 	next := NewGrowableWriter(g.GetBitsPerValue(), newSize, g.acceptableOverheadRatio)
-	limit := Min(g.Size(), newSize)
+	limit := min(g.Size(), newSize)
 	PackedIntsCopy(g.current, 0, next, 0, limit, DEFAULT_BUFFER_SIZE)
 	return next
 }

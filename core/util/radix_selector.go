@@ -53,7 +53,7 @@ type RadixSelector struct {
 func NewRadixSelector(cfg *RadixSelectorConfig) *RadixSelector {
 	return &RadixSelector{
 		histogram:    make([]int, HISTOGRAM_SIZE),
-		commonPrefix: make([]int, Min(24, cfg.MaxLength)),
+		commonPrefix: make([]int, min(24, cfg.MaxLength)),
 		maxLength:    cfg.MaxLength,
 		fnByteAt:     cfg.FnByteAt,
 		fnSwap:       cfg.FnSwap,

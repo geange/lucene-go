@@ -383,7 +383,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 			info.sliceArray.start[ord] = m.postingsWriter.StartNewSlice()
 		}
 		info.sliceArray.freq[ord]++
-		info.maxTermFrequency = util.Max(info.maxTermFrequency, info.sliceArray.freq[ord])
+		info.maxTermFrequency = max(info.maxTermFrequency, info.sliceArray.freq[ord])
 		info.sumTotalTermFreq++
 		m.postingsWriter.WriteInt(pos)
 		if m.storeOffsets {

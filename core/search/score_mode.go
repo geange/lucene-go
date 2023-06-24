@@ -28,7 +28,7 @@ var (
 	// COMPLETE_NO_SCORES Produced scorers will allow visiting all matches but scores won't be available.
 	COMPLETE_NO_SCORES = &ScoreMode{true, false}
 
-	// TOP_SCORES Produced scorers will optionally allow skipping over non-competitive hits using the Scorer.setMinCompetitiveScore(float) API.
+	// TOP_SCORES Produced scorers will optionally allow skipping over non-competitive hits using the Scorer.SetMinCompetitiveScore(float) API.
 	TOP_SCORES = &ScoreMode{false, true}
 
 	// TOP_DOCS ScoreMode for top field collectors that can provide their own iterators, to optionally allow to skip for non-competitive docs

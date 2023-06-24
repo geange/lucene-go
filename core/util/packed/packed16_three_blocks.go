@@ -1,7 +1,6 @@
 package packed
 
 import (
-	. "github.com/geange/lucene-go/math"
 	"math"
 )
 
@@ -33,7 +32,7 @@ func (p *Packed16ThreeBlocks) Get(index int) uint64 {
 }
 
 func (p *Packed16ThreeBlocks) GetBulk(index int, arr []uint64) int {
-	gets := Min(p.valueCount-index, len(arr))
+	gets := min(p.valueCount-index, len(arr))
 	end := (index + gets) * 3
 
 	off := 0
@@ -54,7 +53,7 @@ func (p *Packed16ThreeBlocks) Set(index int, value uint64) {
 }
 
 func (p *Packed16ThreeBlocks) SetBulk(index int, arr []uint64) int {
-	sets := Min(p.valueCount-index, len(arr))
+	sets := min(p.valueCount-index, len(arr))
 
 	for i := 0; i < sets; i++ {
 		off := index * 3

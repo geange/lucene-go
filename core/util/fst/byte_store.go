@@ -3,7 +3,6 @@ package fst
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/pkg/collection"
 )
 
@@ -59,7 +58,7 @@ func NewBytesStoreV1(in store.DataInput, numBytes, maxBlockSize int64) (*ByteSto
 	bs.blockMask = blockSize - 1
 	left := numBytes
 	for left > 0 {
-		chunk := util.Min(blockSize, left)
+		chunk := min(blockSize, left)
 		block := make([]byte, chunk)
 		_, err := in.Read(block)
 		if err != nil {

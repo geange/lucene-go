@@ -1,7 +1,6 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/util"
 	"math"
 
 	"github.com/geange/lucene-go/core/index"
@@ -376,9 +375,9 @@ func (r *ReqOptSumScorer) AdvanceShallow(target int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		upTo = util.Min(upTo, shallow)
+		upTo = min(upTo, shallow)
 	} else if r.optScorer.DocID() != index.NO_MORE_DOCS {
-		upTo = util.Min(upTo, r.optScorer.DocID()-1)
+		upTo = min(upTo, r.optScorer.DocID()-1)
 	}
 	return upTo, nil
 }
@@ -404,5 +403,5 @@ func (r *ReqOptSumScorer) SetMinCompetitiveScore(minScore float64) error {
 	if r.reqMaxScore < minScore {
 		r.optIsRequired = true
 	}
-	return r.maxScorePropagator.setMinCompetitiveScore(minScore)
+	return r.maxScorePropagator.SetMinCompetitiveScore(minScore)
 }

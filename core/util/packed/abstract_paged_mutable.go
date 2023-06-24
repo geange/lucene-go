@@ -1,9 +1,5 @@
 package packed
 
-import (
-	. "github.com/geange/lucene-go/math"
-)
-
 type AbstractPagedMutable interface {
 	Get(index int) uint64
 	Set(index int, value uint64)
@@ -130,7 +126,7 @@ func (a *AbstractPagedMutableDefault) SetSubMutableByIndex(index int, value Muta
 // This method is much more efficient than creating a new instance and copying values one by one.
 func (a *AbstractPagedMutableDefault) Resize(newSize int) AbstractPagedMutable {
 	ucopy := a.spi.NewUnfilledCopy(newSize)
-	numCommonPages := Min(len(ucopy.SubMutables()), len(a.subMutables))
+	numCommonPages := min(len(ucopy.SubMutables()), len(a.subMutables))
 	copyBuffer := make([]uint64, 1024)
 
 	size := len(ucopy.SubMutables())
@@ -149,7 +145,7 @@ func (a *AbstractPagedMutableDefault) Resize(newSize int) AbstractPagedMutable {
 
 		ucopy.SetSubMutableByIndex(i, a.spi.NewMutable(valueCount, bpv))
 		if i < numCommonPages {
-			copyLength := Min(valueCount, a.subMutables[i].Size())
+			copyLength := min(valueCount, a.subMutables[i].Size())
 			PackedIntsCopyBuff(a.subMutables[i], 0, subMutables[i], 0, copyLength, copyBuffer)
 		}
 	}

@@ -3,7 +3,6 @@ package index
 import (
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
 	"math"
 	"sort"
 	"strconv"
@@ -269,13 +268,13 @@ func inflateGens(infos *SegmentInfos, files map[string]struct{}) {
 			if err != nil {
 				return
 			}
-			maxSegmentGen = int(util.Max(num, int64(maxSegmentGen)))
+			maxSegmentGen = int(max(num, int64(maxSegmentGen)))
 		} else if strings.HasPrefix(fileName, PENDING_SEGMENTS) {
 			num, err := GenerationFromSegmentsFileName(fileName[8:])
 			if err != nil {
 				return
 			}
-			maxSegmentGen = int(util.Max(num, int64(maxSegmentGen)))
+			maxSegmentGen = int(max(num, int64(maxSegmentGen)))
 		} else {
 			segmentName := ParseSegmentName(fileName)
 
@@ -288,20 +287,20 @@ func inflateGens(infos *SegmentInfos, files map[string]struct{}) {
 				return
 			}
 
-			maxSegmentName = util.Max(maxSegmentGen, int(parseInt))
+			maxSegmentName = max(maxSegmentGen, int(parseInt))
 
 			curGen, ok := maxPerSegmentGen[segmentName]
 			if !ok {
 				curGen = 0
 			}
 			generation := ParseGeneration(fileName)
-			curGen = util.Max(curGen, generation)
+			curGen = max(curGen, generation)
 			maxPerSegmentGen[segmentName] = curGen
 		}
 	}
 
 	// Generation is advanced before write:
-	infos.SetNextWriteGeneration(util.Max(infos.GetGeneration(), int64(maxSegmentGen)))
+	infos.SetNextWriteGeneration(max(infos.GetGeneration(), int64(maxSegmentGen)))
 	value := int64(1 + maxSegmentName)
 	if infos.counter < value {
 		infos.counter = value

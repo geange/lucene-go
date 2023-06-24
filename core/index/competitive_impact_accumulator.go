@@ -3,7 +3,6 @@ package index
 import (
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/emirpasic/gods/utils"
-	"github.com/geange/lucene-go/core/util"
 	"math"
 )
 
@@ -38,7 +37,7 @@ func (c *CompetitiveImpactAccumulator) Clear() {
 func (c *CompetitiveImpactAccumulator) Add(freq int, norm int64) {
 	if norm >= math.MinInt8 && norm <= math.MaxInt8 {
 		index := uint(norm)
-		c.maxFreqs[index] = util.Max(c.maxFreqs[index], freq)
+		c.maxFreqs[index] = max(c.maxFreqs[index], freq)
 		return
 	}
 	c.add(NewImpact(freq, norm), c.otherFreqNormPairs)
@@ -79,7 +78,7 @@ func (c *CompetitiveImpactAccumulator) AddAll(acc *CompetitiveImpactAccumulator)
 	otherMaxFreqs := acc.maxFreqs
 
 	for i := 0; i < len(maxFreqs); i++ {
-		maxFreqs[i] = util.Max(maxFreqs[i], otherMaxFreqs[i])
+		maxFreqs[i] = max(maxFreqs[i], otherMaxFreqs[i])
 	}
 
 	for _, v := range acc.otherFreqNormPairs.Values() {

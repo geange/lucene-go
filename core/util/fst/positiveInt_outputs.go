@@ -2,7 +2,6 @@ package fst
 
 import (
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/math"
 )
 
 var _ Outputs[int64] = &PositiveIntOutputs[int64]{}
@@ -16,7 +15,7 @@ type PositiveIntOutputs[T int64] struct {
 }
 
 func (p *PositiveIntOutputs[int64]) Common(output1, output2 int64) (int64, error) {
-	return math.Min(output1, output2), nil
+	return min(output1, output2), nil
 }
 
 func (p *PositiveIntOutputs[int64]) Subtract(output1, inc int64) (int64, error) {

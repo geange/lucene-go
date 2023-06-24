@@ -1,11 +1,9 @@
 package fst
 
 import (
-	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
 	"math"
 
-	. "github.com/geange/lucene-go/math"
+	"github.com/geange/lucene-go/core/store"
 )
 
 // Builder Builds a minimal Fst (maps an IntsRef term to an arbitrary output) from pre-sorted terms with output.
@@ -202,7 +200,7 @@ func (b *Builder[T]) compileNode(nodeIn *UnCompiledNode[T], tailLength int) (*Co
 }
 
 func (b *Builder[T]) freezeTail(prefixLenPlus1 int) error {
-	downTo := util.Max(1, prefixLenPlus1)
+	downTo := max(1, prefixLenPlus1)
 
 	// idx := len(b.lastInput) 因为 b.frontier 长度比 b.lastInput 多一位
 	for idx := len(b.lastInput); idx >= downTo; idx-- {
@@ -344,7 +342,7 @@ func (b *Builder[T]) Add(input []rune, output T) error {
 	// compare shared prefix length
 	pos1 := 0
 	pos2 := 0
-	pos1Stop := Min(len(b.lastInput), len(input))
+	pos1Stop := min(len(b.lastInput), len(input))
 	for {
 		b.frontier[pos1].InputCount++
 		if pos1 >= pos1Stop || b.lastInput[pos1] != input[pos2] {

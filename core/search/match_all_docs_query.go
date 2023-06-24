@@ -68,7 +68,7 @@ func (c *constantScoreWeight) BulkScorer(context *index.LeafReaderContext) (Bulk
 
 	return &BulkScorerDefault{
 		FnScoreRange: func(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
-			max = util.Min(maxDoc, max)
+			max = min(maxDoc, max)
 			scorer := NewScoreAndDoc()
 			scorer.score = score
 			if err := collector.SetScorer(scorer); err != nil {

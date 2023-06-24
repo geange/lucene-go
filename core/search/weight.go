@@ -206,8 +206,8 @@ func NewDefaultBulkScorer(scorer Scorer) *DefaultBulkScorer {
 }
 
 func (d *DefaultBulkScorer) Score(collector LeafCollector, acceptDocs util.Bits) error {
-	NO_MORE_DOCS := math.MaxInt32
-	_, err := d.ScoreRange(collector, acceptDocs, 0, NO_MORE_DOCS)
+	NoMoreDocs := math.MaxInt32
+	_, err := d.ScoreRange(collector, acceptDocs, 0, NoMoreDocs)
 	return err
 }
 

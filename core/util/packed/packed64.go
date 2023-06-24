@@ -2,7 +2,6 @@ package packed
 
 import (
 	"github.com/geange/lucene-go/core/store"
-	. "github.com/geange/lucene-go/math"
 )
 
 const (
@@ -65,7 +64,7 @@ func (p *Packed64) Get(index int) uint64 {
 
 func (p *Packed64) GetBulk(index int, arr []uint64) int {
 	off, length := 0, len(arr)
-	length = Min(length, p.valueCount-index)
+	length = min(length, p.valueCount-index)
 
 	originalIndex := index
 
@@ -126,7 +125,7 @@ func (p *Packed64) Set(index int, value uint64) {
 
 func (p *Packed64) SetBulk(index int, arr []uint64) int {
 	off := 0
-	size := Min(len(arr), p.valueCount-index)
+	size := min(len(arr), p.valueCount-index)
 	originalIndex := index
 
 	encoder, err := Of(FormatPacked, p.bitsPerValue)

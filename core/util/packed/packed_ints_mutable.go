@@ -2,7 +2,6 @@ package packed
 
 import (
 	"github.com/geange/lucene-go/core/store"
-	. "github.com/geange/lucene-go/math"
 )
 
 // Mutable A packed integer array that can be modified.
@@ -48,7 +47,7 @@ type mutable struct {
 
 func (m *mutable) GetBulk(index int, arr []uint64) int {
 	length := len(arr)
-	gets := Min(m.spi.Size()-index, length)
+	gets := min(m.spi.Size()-index, length)
 
 	for i, o, end := index, 0, index+gets; i < end; i++ {
 		arr[o] = m.spi.Get(i)
@@ -60,7 +59,7 @@ func (m *mutable) GetBulk(index int, arr []uint64) int {
 }
 
 func (m *mutable) SetBulk(index int, arr []uint64) int {
-	size := Min(len(arr), m.spi.Size()-index)
+	size := min(len(arr), m.spi.Size()-index)
 
 	for i, o, end := index, 0, index+len(arr); i < end; {
 		m.spi.Set(i, arr[o])
@@ -129,7 +128,7 @@ func Fill(spi mutableSpi, fromIndex, toIndex int, value uint64) {
 }
 
 func SetBulk(spi mutableSpi, index int, arr []uint64) int {
-	size := Min(len(arr), spi.Size()-index)
+	size := min(len(arr), spi.Size()-index)
 
 	for i, o, end := index, 0, len(arr); i < end; {
 		spi.Set(i, arr[o])

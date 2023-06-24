@@ -3,8 +3,6 @@ package search
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util"
-
 	"github.com/geange/lucene-go/core/util/structure"
 )
 
@@ -214,7 +212,7 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (Query, error) {
 				}
 			}
 
-			builder.SetMinimumNumberShouldMatch(util.Max(0, minShouldMatch))
+			builder.SetMinimumNumberShouldMatch(max(0, minShouldMatch))
 			return builder.Build()
 		}
 	}

@@ -8,7 +8,6 @@ import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 	"io"
 	"math"
 	"strconv"
@@ -96,14 +95,14 @@ func (s *SimpleTextDocValuesWriter) AddNumericField(field *types.FieldInfo, valu
 			return err
 		}
 
-		minValue = util.Min(minValue, v)
-		maxValue = util.Max(maxValue, v)
+		minValue = min(minValue, v)
+		maxValue = max(maxValue, v)
 		numValues++
 	}
 
 	if numValues != s.numDocs {
-		minValue = util.Min(minValue, 0)
-		maxValue = util.Max(maxValue, 0)
+		minValue = min(minValue, 0)
+		maxValue = max(maxValue, 0)
 	}
 
 	// write our minimum value to the .dat, all entries are deltas from that
@@ -208,7 +207,7 @@ func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *types.FieldInfo, val
 			return err
 		}
 
-		maxLength = util.Max(maxLength, len(binaryValue))
+		maxLength = max(maxLength, len(binaryValue))
 	}
 	s.writeFieldEntry(field, types.DOC_VALUES_TYPE_BINARY)
 
@@ -309,7 +308,7 @@ func (s *SimpleTextDocValuesWriter) AddSortedField(field *types.FieldInfo, value
 			break
 		}
 
-		maxLength = util.Max(maxLength, len(value))
+		maxLength = max(maxLength, len(value))
 	}
 
 	// write numValues

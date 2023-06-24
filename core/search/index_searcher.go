@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 	"reflect"
 )
 
@@ -113,12 +112,12 @@ func (r *IndexSearcher) Search(query Query, results Collector) error {
 // efficient 'deep-paging' across potentially large result sets.
 // Throws: BooleanQuery.TooManyClauses – If a query would exceed BooleanQuery.getMaxClauseCount() clauses.
 func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (TopDocs, error) {
-	limit := util.Max(1, r.reader.MaxDoc())
+	limit := max(1, r.reader.MaxDoc())
 	if after != nil && after.GetDoc() >= limit {
 		return nil, errors.New("after.doc exceeds the number of documents in the reader")
 	}
 
-	cappedNumHits := util.Min(numHits, limit)
+	cappedNumHits := min(numHits, limit)
 
 	manager := &searchAfterCollectorManager{
 		cappedNumHits: cappedNumHits,
@@ -127,13 +126,13 @@ func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (T
 
 	var err error
 	if r.executor == nil || len(r.leafSlices) <= 1 {
-		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreate(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreate(max(TOTAL_HITS_THRESHOLD, numHits))
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		manager.minScoreAcc = NewMaxScoreAccumulator()
-		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreateShared(util.Max(TOTAL_HITS_THRESHOLD, numHits))
+		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreateShared(max(TOTAL_HITS_THRESHOLD, numHits))
 		if err != nil {
 			return nil, err
 		}

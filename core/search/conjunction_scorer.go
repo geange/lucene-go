@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util"
 	"math"
 	"sort"
 )
@@ -47,7 +46,11 @@ func (c *ConjunctionScorer) Score() (float64, error) {
 }
 
 func (c *ConjunctionScorer) DocID() int {
-	return c.disi.DocID()
+	docID := c.disi.DocID()
+	if err != nil {
+		return 0
+	}
+	return docID
 }
 
 func (c *ConjunctionScorer) TwoPhaseIterator() TwoPhaseIterator {
@@ -121,7 +124,11 @@ func createConjunction(allIterators []index.DocIdSetIterator,
 
 	iteratorsOnTheSameDoc := true
 	for _, iterator := range allIterators {
-		if iterator.DocID() != curDoc {
+		docID := iterator.DocID()
+		if err != nil {
+			return nil, err
+		}
+		if docID != curDoc {
 			iteratorsOnTheSameDoc = false
 			break
 		}
@@ -130,7 +137,11 @@ func createConjunction(allIterators []index.DocIdSetIterator,
 	if iteratorsOnTheSameDoc {
 		match := true
 		for _, iterator := range twoPhaseIterators {
-			if iterator.Approximation().DocID() != curDoc {
+			docID := iterator.Approximation().DocID()
+			if err != nil {
+				return nil, err
+			}
+			if docID != curDoc {
 				match = false
 				break
 			}
@@ -298,7 +309,7 @@ func newBitSetConjunctionDISI(lead index.DocIdSetIterator, bitSetIterators []*in
 	for i, iterator := range disi.bitSetIterators {
 		bitSet := iterator.GetBitSet()
 		disi.bitSets[i] = bitSet
-		minLen = util.Min(minLen, int(bitSet.Count()))
+		minLen = min(minLen, int(bitSet.Count()))
 	}
 	disi.minLength = minLen
 	return disi

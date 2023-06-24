@@ -2,7 +2,7 @@ package packed
 
 import (
 	"github.com/geange/lucene-go/core/store"
-	. "github.com/geange/lucene-go/math"
+
 	"github.com/pkg/errors"
 	"math"
 	"math/bits"
@@ -58,8 +58,8 @@ func fastestFormatAndBits(valueCount, bitsPerValue int, acceptableOverheadRatio 
 		valueCount = math.MaxInt32
 	}
 
-	acceptableOverheadRatio = Max(COMPACT, acceptableOverheadRatio)
-	acceptableOverheadRatio = Min(FASTEST, acceptableOverheadRatio)
+	acceptableOverheadRatio = max(COMPACT, acceptableOverheadRatio)
+	acceptableOverheadRatio = min(FASTEST, acceptableOverheadRatio)
 	acceptableOverheadPerValue := acceptableOverheadRatio * float64(bitsPerValue) // in bits
 
 	maxBitsPerValue := bitsPerValue + int(acceptableOverheadPerValue)
@@ -102,7 +102,7 @@ func fastestFormatAndBits(valueCount, bitsPerValue int, acceptableOverheadRatio 
 }
 
 func GetBulk(reader PackedIntsReader, index int, arr []uint64) int {
-	gets := Min(reader.Size()-index, len(arr))
+	gets := min(reader.Size()-index, len(arr))
 
 	for i, o, end := index, 0, index+gets; i < end; {
 		arr[o] = reader.Get(i)
@@ -146,7 +146,7 @@ func PackedIntsCopy(src PackedIntsReader, srcPos int, dest Mutable, destPos, siz
 
 	if size > 0 {
 		// use bulk operations
-		buf := make([]uint64, Min(capacity, size))
+		buf := make([]uint64, min(capacity, size))
 		PackedIntsCopyBuff(src, srcPos, dest, destPos, size, buf)
 	}
 }
@@ -154,7 +154,7 @@ func PackedIntsCopy(src PackedIntsReader, srcPos int, dest Mutable, destPos, siz
 func PackedIntsCopyBuff(src PackedIntsReader, srcPos int, dest Mutable, destPos, size int, buf []uint64) {
 	remaining := 0
 	for size > 0 {
-		read := src.GetBulk(srcPos, buf[0:Min(size, len(buf)-remaining)])
+		read := src.GetBulk(srcPos, buf[0:min(size, len(buf)-remaining)])
 		srcPos += read
 		size -= read
 		remaining += read
@@ -261,7 +261,7 @@ func PackedIntsBitsRequired(maxValue uint64) int {
 }
 
 func unsignedBitsRequired(v uint64) int {
-	return Max(1, 64-bits.LeadingZeros64(v))
+	return max(1, 64-bits.LeadingZeros64(v))
 }
 
 func checkBlockSize(blockSize, minBlockSize, maxBlockSize int) int {

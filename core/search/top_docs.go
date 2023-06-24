@@ -3,7 +3,6 @@ package search
 import (
 	"fmt"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/structure"
 )
 
@@ -67,9 +66,9 @@ func mergeAuxTopDocs(sort *index.Sort, start, size int, shardHits []TopDocs, set
 		if availHitCount <= start {
 			hits = make([]ScoreDoc, 0)
 		} else {
-			hits = make([]ScoreDoc, util.Min(size, availHitCount-start))
+			hits = make([]ScoreDoc, min(size, availHitCount-start))
 			requestedResultWindow := start + size
-			numIterOnHits := util.Min(availHitCount, requestedResultWindow)
+			numIterOnHits := min(availHitCount, requestedResultWindow)
 			hitUpto := 0
 
 			for hitUpto < numIterOnHits {

@@ -3,7 +3,7 @@ package memory
 import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util"
-	"math"
+	"io"
 )
 
 var _ index.PostingsEnum = &MemoryPostingsEnum{}
@@ -58,8 +58,7 @@ func (m *MemoryPostingsEnum) NextDoc() (int, error) {
 		m.doc = 0
 		return m.doc, nil
 	} else {
-		m.doc = math.MaxInt32
-		return m.doc, nil
+		return 0, io.EOF
 	}
 }
 
