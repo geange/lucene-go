@@ -1,5 +1,0 @@
-# DocConsumer
-
-```go
-
-```
