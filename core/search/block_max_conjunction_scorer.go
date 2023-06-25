@@ -225,6 +225,7 @@ func (b *bmcDocIdSetIterator) Advance(target int) (int, error) {
 }
 
 func (b *bmcDocIdSetIterator) doNext(doc int) (int, error) {
+advanceHead:
 	for {
 		if doc == index.NO_MORE_DOCS {
 			return index.NO_MORE_DOCS, io.EOF
@@ -247,6 +248,34 @@ func (b *bmcDocIdSetIterator) doNext(doc int) (int, error) {
 				continue
 			}
 		}
+
+		// then find agreement with other iterators
+		for i := 0; i < len(b.p.approximations); i++ {
+			other := b.p.approximations[i]
+
+			// other.doc may already be equal to doc if we "continued advanceHead"
+			// on the previous iteration and the advance on the lead scorer exactly matched.
+			if other.DocID() < doc {
+				next, err := other.Advance(doc)
+				if err != nil {
+					return 0, err
+				}
+
+				if next > doc {
+					// iterator beyond the current doc - advance lead and continue to the new highest doc.
+					advanceTarget, err := b.advanceTarget(next)
+					if err != nil {
+						return 0, err
+					}
+					doc, err = b.lead.Advance(advanceTarget)
+					if err != nil {
+						return 0, err
+					}
+					continue advanceHead
+				}
+			}
+		}
+		return doc, nil
 	}
 }
 
@@ -259,15 +288,14 @@ func (b *bmcDocIdSetIterator) Cost() int64 {
 }
 
 func (b *bmcDocIdSetIterator) moveToNextBlock(target int) (err error) {
-	b.upTo, err = b.SlowAdvance(target)
+	b.upTo, err = b.p.AdvanceShallow(target)
 	if err != nil {
 		return err
 	}
-	maxScore, err := b.p.GetMaxScore(b.upTo)
+	b.maxScore, err = b.p.GetMaxScore(b.upTo)
 	if err != nil {
 		return err
 	}
-	b.maxScore = maxScore
 	return nil
 }
 

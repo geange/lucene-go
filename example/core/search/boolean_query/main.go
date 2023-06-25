@@ -37,10 +37,12 @@ func main() {
 
 	q1 := search.NewTermQuery(index.NewTerm("content", []byte("a")))
 	q2 := search.NewTermQuery(index.NewTerm("content", []byte("c")))
+	q3 := search.NewTermQuery(index.NewTerm("content", []byte("e")))
 
 	builder := search.NewBooleanQueryBuilder()
 	builder.AddQuery(q1, search.OccurMust)
 	builder.AddQuery(q2, search.OccurMust)
+	builder.AddQuery(q3, search.OccurMust)
 	query, err := builder.Build()
 	if err != nil {
 		panic(err)
