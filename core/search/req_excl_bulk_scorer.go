@@ -25,13 +25,13 @@ func (r *ReqExclBulkScorer) Score(collector LeafCollector, acceptDocs util.Bits)
 	return err
 }
 
-func (r *ReqExclBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
-	upTo := min
+func (r *ReqExclBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.Bits, minDoc, maxDoc int) (int, error) {
+	upTo := minDoc
 	exclDoc := r.excl.DocID()
 
 	var err error
 
-	for upTo < max {
+	for upTo < maxDoc {
 		if exclDoc < upTo {
 			exclDoc, err = r.excl.Advance(upTo)
 			if err != nil {
@@ -46,14 +46,14 @@ func (r *ReqExclBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.
 				return 0, err
 			}
 		} else {
-			upTo, err = r.req.ScoreRange(collector, acceptDocs, upTo, min(exclDoc, max))
+			upTo, err = r.req.ScoreRange(collector, acceptDocs, upTo, min(exclDoc, maxDoc))
 			if err != nil {
 				return 0, err
 			}
 		}
 	}
 
-	if upTo == max {
+	if upTo == maxDoc {
 		upTo, err = r.req.ScoreRange(collector, acceptDocs, upTo, upTo)
 		if err != nil {
 			return 0, err

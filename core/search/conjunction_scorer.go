@@ -46,11 +46,7 @@ func (c *ConjunctionScorer) Score() (float64, error) {
 }
 
 func (c *ConjunctionScorer) DocID() int {
-	docID := c.disi.DocID()
-	if err != nil {
-		return 0
-	}
-	return docID
+	return c.disi.DocID()
 }
 
 func (c *ConjunctionScorer) TwoPhaseIterator() TwoPhaseIterator {
@@ -124,11 +120,7 @@ func createConjunction(allIterators []index.DocIdSetIterator,
 
 	iteratorsOnTheSameDoc := true
 	for _, iterator := range allIterators {
-		docID := iterator.DocID()
-		if err != nil {
-			return nil, err
-		}
-		if docID != curDoc {
+		if iterator.DocID() != curDoc {
 			iteratorsOnTheSameDoc = false
 			break
 		}
@@ -137,11 +129,7 @@ func createConjunction(allIterators []index.DocIdSetIterator,
 	if iteratorsOnTheSameDoc {
 		match := true
 		for _, iterator := range twoPhaseIterators {
-			docID := iterator.Approximation().DocID()
-			if err != nil {
-				return nil, err
-			}
-			if docID != curDoc {
+			if iterator.Approximation().DocID() != curDoc {
 				match = false
 				break
 			}

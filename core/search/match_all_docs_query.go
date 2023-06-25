@@ -67,14 +67,14 @@ func (c *constantScoreWeight) BulkScorer(context *index.LeafReaderContext) (Bulk
 	maxDoc := context.Reader().MaxDoc()
 
 	return &BulkScorerDefault{
-		FnScoreRange: func(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
-			max = min(maxDoc, max)
+		FnScoreRange: func(collector LeafCollector, acceptDocs util.Bits, fromDoc, toDoc int) (int, error) {
+			toDoc = min(maxDoc, toDoc)
 			scorer := NewScoreAndDoc()
 			scorer.score = score
 			if err := collector.SetScorer(scorer); err != nil {
 				return 0, err
 			}
-			for doc := min; doc < max; doc++ {
+			for doc := fromDoc; doc < toDoc; doc++ {
 				scorer.doc = doc
 				if acceptDocs == nil || acceptDocs.Test(uint(doc)) {
 					err := collector.Collect(context2.Background(), doc)
@@ -83,10 +83,10 @@ func (c *constantScoreWeight) BulkScorer(context *index.LeafReaderContext) (Bulk
 					}
 				}
 			}
-			if max == maxDoc {
+			if toDoc == maxDoc {
 				return math.MaxInt, io.EOF
 			}
-			return max, nil
+			return toDoc, nil
 		},
 		FnCost: func() int64 {
 			return int64(maxDoc)

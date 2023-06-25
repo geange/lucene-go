@@ -21,7 +21,7 @@ type MaxScoreAccumulator struct {
 
 func NewMaxScoreAccumulator() *MaxScoreAccumulator {
 	return &MaxScoreAccumulator{
-		acc:         atomic.NewInt64(minInt64),
+		acc:         atomic.NewInt64(math.MinInt64),
 		modInterval: DEFAULT_INTERVAL,
 	}
 }
@@ -55,7 +55,7 @@ func (m *MaxScoreAccumulator) maxEncode(v1, v2 int64) int64 {
 
 func (m *MaxScoreAccumulator) Get() *DocAndScore {
 	value := m.acc.Load()
-	if value == minInt64 {
+	if value == math.MinInt64 {
 		return nil
 	}
 
