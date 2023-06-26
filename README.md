@@ -107,7 +107,7 @@ use indexSearch to get TopN docs
 
 > IndexSearch has not been developed yet～
 
-[more detail](example/core/search/query/README.md)
+[more detail](../lucene-go-example/core/search/query/README.md)
 
 
 ```go
