@@ -1,7 +1,9 @@
 package search
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util/structure"
 )
@@ -22,8 +24,38 @@ type BooleanQuery struct {
 }
 
 func (b *BooleanQuery) String(field string) string {
-	//TODO implement me
-	panic("implement me")
+	buf := new(bytes.Buffer)
+	needParens := b.GetMinimumNumberShouldMatch() > 0
+	if needParens {
+		buf.WriteString("(")
+	}
+
+	for i, c := range b.clauses {
+		buf.WriteString(c.GetOccur().String())
+
+		subQuery := c.GetQuery()
+		if _, ok := subQuery.(*BooleanQuery); ok {
+			buf.WriteString("(")
+			buf.WriteString(subQuery.String(field))
+			buf.WriteString(")")
+		} else {
+			buf.WriteString(subQuery.String(field))
+		}
+
+		if i != len(b.clauses)-1 {
+			buf.WriteString(" ")
+		}
+	}
+
+	if needParens {
+		buf.WriteString(")")
+	}
+
+	if b.GetMinimumNumberShouldMatch() > 0 {
+		buf.WriteString("~")
+		buf.WriteString(fmt.Sprintf("%d", b.GetMinimumNumberShouldMatch()))
+	}
+	return buf.String()
 }
 
 func (b *BooleanQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
