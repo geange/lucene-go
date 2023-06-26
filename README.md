@@ -15,6 +15,13 @@ Only a small number of class libraries can run independently, but there may be s
 go 1.21+
 ```
 
+### install go1.21
+
+```shell
+go install golang.org/dl/go1.21rc2@latest
+go1.21rc2 download
+```
+
 ## example
 
 ### IndexWriter
