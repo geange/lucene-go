@@ -1,6 +1,9 @@
 package index
 
-import "math"
+import (
+	"io"
+	"math"
+)
 
 // DocIdSetIterator This abstract class defines methods to iterate over a set of non-decreasing doc ids.
 // Note that this class assumes it iterates on doc Ids, and therefore NO_MORE_DOCS is set to 2147483647
@@ -106,4 +109,39 @@ func (d *docIdSetIteratorAll) Advance(target int) (int, error) {
 
 func (d *docIdSetIteratorAll) Cost() int64 {
 	return int64(d.maxDoc)
+}
+
+var _ DocIdSetIterator = &emptyDocIdSetIterator{}
+
+func GetEmptyDocIdSetIterator() DocIdSetIterator {
+	return &emptyDocIdSetIterator{}
+}
+
+type emptyDocIdSetIterator struct {
+	exhausted bool
+}
+
+func (e *emptyDocIdSetIterator) DocID() int {
+	if e.exhausted {
+		return NO_MORE_DOCS
+	}
+	return -1
+}
+
+func (e *emptyDocIdSetIterator) NextDoc() (int, error) {
+	e.exhausted = true
+	return NO_MORE_DOCS, io.EOF
+}
+
+func (e *emptyDocIdSetIterator) Advance(target int) (int, error) {
+	e.exhausted = true
+	return NO_MORE_DOCS, io.EOF
+}
+
+func (e *emptyDocIdSetIterator) SlowAdvance(target int) (int, error) {
+	return SlowAdvance(e, target)
+}
+
+func (e *emptyDocIdSetIterator) Cost() int64 {
+	return 0
 }

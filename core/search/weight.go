@@ -162,6 +162,12 @@ func (r *WeightDefault) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupp
 	return &scorerSupplier{scorer: scorer}, nil
 }
 
+func (r *WeightDefault) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
+	return r.parentQuery.(interface {
+		Scorer(ctx *index.LeafReaderContext) (Scorer, error)
+	}).Scorer(ctx)
+}
+
 var _ ScorerSupplier = &scorerSupplier{}
 
 type scorerSupplier struct {
