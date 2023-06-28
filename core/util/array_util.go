@@ -20,3 +20,9 @@ func Grow[T any](array []T, minSize int) []T {
 	}
 	return array
 }
+
+func GrowExact[T any](array []T, size int) []T {
+	newArray := make([]T, size)
+	copy(newArray, array)
+	return newArray
+}

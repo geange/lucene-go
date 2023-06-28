@@ -3,6 +3,7 @@ package search
 import (
 	"bytes"
 	"errors"
+
 	"github.com/geange/lucene-go/core/index"
 )
 
