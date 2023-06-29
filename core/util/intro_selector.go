@@ -11,7 +11,7 @@ package util
 //	// SetPivot Save the value at slot i so that it can later be used as a buffer, see fnComparePivot(int).
 //	SetPivot(i int)
 //
-//	// ComparePivot Compare the buffer with the slot at j, similarly to Compare(i, j).
+//	// ComparePivot CompareFn the buffer with the slot at j, similarly to CompareFn(i, j).
 //	ComparePivot(i int) int
 //}
 

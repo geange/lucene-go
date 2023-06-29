@@ -60,3 +60,7 @@ func (c *ConstantScoreWeight) Explain(ctx *index.LeafReaderContext, doc int) (*t
 	}
 	return types.ExplanationNoMatch(c.GetQuery().String("") + fmt.Sprintf(" doesn't match id %d", doc)), nil
 }
+
+func (c *ConstantScoreWeight) Score() float64 {
+	return c.score
+}

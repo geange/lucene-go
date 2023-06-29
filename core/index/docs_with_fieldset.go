@@ -23,7 +23,7 @@ func NewDocsWithFieldSet() *DocsWithFieldSet {
 }
 
 func (d *DocsWithFieldSet) Iterator() (DocIdSetIterator, error) {
-	return NewBitSetIterator(d.set, d.cost), nil
+	return NewBitSetIterator(d.set, int64(d.cost)), nil
 }
 
 func (d *DocsWithFieldSet) Bits() (util.Bits, error) {

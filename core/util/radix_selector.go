@@ -124,7 +124,7 @@ func (r *RadixSelector) fnSelect(from, to, k, d, l int) {
 	}
 }
 
-// Params:  d – the character number to Compare
+// Params:  d – the character number to CompareFn
 //
 //	l – the level of recursion
 func (r *RadixSelector) radixSelect(from, to, k, d, l int) {
@@ -135,7 +135,7 @@ func (r *RadixSelector) radixSelect(from, to, k, d, l int) {
 
 	commonPrefixLength := r.computeCommonPrefixLengthAndBuildHistogram(from, to, d, histogram)
 	if commonPrefixLength > 0 {
-		// if there are no more chars to Compare or if all entries fell into the
+		// if there are no more chars to CompareFn or if all entries fell into the
 		// first bucket (which means strings are shorter than d) then we are done
 		// otherwise recurse
 		if d+commonPrefixLength < r.maxLength && histogram[0] < to-from {

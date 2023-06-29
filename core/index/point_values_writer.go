@@ -101,7 +101,7 @@ type innerMutablePointValues struct {
 	temp        []int
 }
 
-func (r *innerMutablePointValues) Intersect(visitor *IntersectVisitor) error {
+func (r *innerMutablePointValues) Intersect(visitor IntersectVisitor) error {
 	scratch := new(bytes.Buffer)
 	packedValue := make([]byte, r.pw.packedBytesLength)
 
@@ -115,9 +115,13 @@ func (r *innerMutablePointValues) Intersect(visitor *IntersectVisitor) error {
 	return nil
 }
 
-func (r *innerMutablePointValues) EstimatePointCount(visitor *IntersectVisitor) int64 {
+func (r *innerMutablePointValues) EstimatePointCount(visitor IntersectVisitor) int64 {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (r *innerMutablePointValues) EstimateDocCount(visitor IntersectVisitor) int64 {
+	return EstimateDocCount(r, visitor)
 }
 
 func (r *innerMutablePointValues) GetMinPackedValue() ([]byte, error) {

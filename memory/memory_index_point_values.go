@@ -14,7 +14,7 @@ func newMemoryIndexPointValues(info *Info) *MemoryIndexPointValues {
 	return &MemoryIndexPointValues{info: info}
 }
 
-func (m *MemoryIndexPointValues) Intersect(visitor *index.IntersectVisitor) error {
+func (m *MemoryIndexPointValues) Intersect(visitor index.IntersectVisitor) error {
 	values := m.info.pointValues
 	visitor.Grow(m.info.pointValuesCount)
 	for i := 0; i < m.info.pointValuesCount; i++ {
@@ -26,8 +26,12 @@ func (m *MemoryIndexPointValues) Intersect(visitor *index.IntersectVisitor) erro
 	return nil
 }
 
-func (m *MemoryIndexPointValues) EstimatePointCount(visitor *index.IntersectVisitor) int64 {
+func (m *MemoryIndexPointValues) EstimatePointCount(visitor index.IntersectVisitor) int64 {
 	return 1
+}
+
+func (m *MemoryIndexPointValues) EstimateDocCount(visitor index.IntersectVisitor) int64 {
+	return index.EstimateDocCount(m, visitor)
 }
 
 func (m *MemoryIndexPointValues) GetMinPackedValue() ([]byte, error) {

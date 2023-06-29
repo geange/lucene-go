@@ -1,6 +1,6 @@
 package index
 
-// SortedNumericDocValues A list of per-document numeric values, sorted according to Long.Compare(long, long).
+// SortedNumericDocValues A list of per-document numeric values, sorted according to Long.CompareFn(long, long).
 type SortedNumericDocValues interface {
 	DocValuesIterator
 

@@ -84,14 +84,18 @@ type innerPointValues struct {
 	docCount int
 }
 
-func (i *innerPointValues) Intersect(visitor *IntersectVisitor) error {
+func (i *innerPointValues) Intersect(visitor IntersectVisitor) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (i *innerPointValues) EstimatePointCount(visitor *IntersectVisitor) int64 {
+func (i *innerPointValues) EstimatePointCount(visitor IntersectVisitor) int64 {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (i *innerPointValues) EstimateDocCount(visitor IntersectVisitor) int64 {
+	return EstimateDocCount(i, visitor)
 }
 
 func (i *innerPointValues) GetMinPackedValue() ([]byte, error) {

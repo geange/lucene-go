@@ -161,14 +161,18 @@ func (c *CodecReaderDefault) GetNormValues(field string) (NumericDocValues, erro
 	return c.GetNormsReader().GetNorms(fi)
 }
 
-func (c *CodecReaderDefault) GetPointValues(field string) (PointValues, error) {
+func (c *CodecReaderDefault) GetPointValues(field string) (PointValues, bool) {
 	//ensureOpen();
 	fi := c.GetFieldInfos().FieldInfo(field)
 	if fi == nil || fi.GetPointDimensionCount() == 0 {
 		// Field does not exist or does not index points
-		return nil, nil
+		return nil, false
 	}
-	return c.GetPointsReader().GetValues(field)
+	values, err := c.GetPointsReader().GetValues(field)
+	if err != nil {
+		return nil, false
+	}
+	return values, true
 }
 
 func (c *CodecReaderDefault) CheckIntegrity() error {

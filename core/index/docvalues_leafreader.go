@@ -93,7 +93,7 @@ func (d *DocValuesLeafReader) GetLiveDocs() util.Bits {
 	panic("implement me")
 }
 
-func (d *DocValuesLeafReader) GetPointValues(field string) (PointValues, error) {
+func (d *DocValuesLeafReader) GetPointValues(field string) (PointValues, bool) {
 	//TODO implement me
 	panic("implement me")
 }

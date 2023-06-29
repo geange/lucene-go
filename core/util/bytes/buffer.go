@@ -155,7 +155,7 @@ func (b *Buffer) grow(n int) int {
 // If the buffer can't grow it will panic with ErrTooLarge.
 func (b *Buffer) Grow(n int) {
 	if n < 0 {
-		panic("bytes.Buffer.Grow: negative count")
+		panic("bytes.Buffer.GrowFn: negative count")
 	}
 	m := b.grow(n)
 	b.buf = b.buf[:m]
@@ -289,7 +289,7 @@ func (b *Buffer) WriteByte(c byte) error {
 // included to match bufio.Writer's WriteRune. The buffer is grown as needed;
 // if it becomes too large, WriteRune will panic with ErrTooLarge.
 func (b *Buffer) WriteRune(r rune) (n int, err error) {
-	// Compare as uint32 to correctly handle negative runes.
+	// CompareFn as uint32 to correctly handle negative runes.
 	if uint32(r) < utf8.RuneSelf {
 		b.WriteByte(byte(r))
 		return 1, nil

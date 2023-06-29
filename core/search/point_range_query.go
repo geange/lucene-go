@@ -3,7 +3,11 @@ package search
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"io"
+	"math"
 
+	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
 )
 
@@ -75,19 +79,26 @@ func (p *PointRangeQuery) CreateWeight(searcher *IndexSearcher, scoreMode *Score
 
 	// We don't use RandomAccessWeight here: it's no good to approximate with "match all docs".
 	// This is an inverted structure and should be used in the first pass:
-	weight := &pointRangeQueryConstantScoreWeight{
-		p: p,
+	return p.newPrQueryWeight(boost, scoreMode), nil
+}
+
+type prQueryWeight struct {
+	*ConstantScoreWeight
+	p         *PointRangeQuery
+	scoreMode *ScoreMode
+}
+
+func (p *PointRangeQuery) newPrQueryWeight(boost float64, scoreMode *ScoreMode) *prQueryWeight {
+	weight := &prQueryWeight{
+		ConstantScoreWeight: nil,
+		p:                   p,
+		scoreMode:           scoreMode,
 	}
 	weight.ConstantScoreWeight = NewConstantScoreWeight(boost, p, weight)
-	return weight, nil
+	return weight
 }
 
-type pointRangeQueryConstantScoreWeight struct {
-	*ConstantScoreWeight
-	p *PointRangeQuery
-}
-
-func (r *pointRangeQueryConstantScoreWeight) matches(packedValue []byte) bool {
+func (r *prQueryWeight) matches(packedValue []byte) bool {
 	for dim := 0; dim < r.p.numDims; dim++ {
 		fromIndex := dim * r.p.bytesPerDim
 		toIndex := fromIndex + r.p.bytesPerDim
@@ -105,7 +116,7 @@ func (r *pointRangeQueryConstantScoreWeight) matches(packedValue []byte) bool {
 	return true
 }
 
-func (r *pointRangeQueryConstantScoreWeight) relate(minPackedValue, maxPackedValue []byte) index.Relation {
+func (r *prQueryWeight) relate(minPackedValue, maxPackedValue []byte) index.Relation {
 	crosses := false
 
 	for dim := 0; dim < r.p.numDims; dim++ {
@@ -128,30 +139,290 @@ func (r *pointRangeQueryConstantScoreWeight) relate(minPackedValue, maxPackedVal
 	return index.CELL_INSIDE_QUERY
 }
 
-func (r *pointRangeQueryConstantScoreWeight) getIntersectVisitor(result DocIdSetBuilder) index.IntersectVisitor {
+func (r *prQueryWeight) getIntersectVisitor(result *DocIdSetBuilder) index.IntersectVisitor {
+	return &prQueryVisitor{
+		weight: r,
+		addr:   nil,
+		result: result,
+	}
+}
+
+var _ index.IntersectVisitor = &prQueryVisitor{}
+
+type prQueryVisitor struct {
+	weight *prQueryWeight
+	addr   BulkAdder
+	result *DocIdSetBuilder
+}
+
+func (p *prQueryVisitor) Visit(docID int) error {
+	p.addr.Add(docID)
+	return nil
+}
+
+func (p *prQueryVisitor) VisitLeaf(docID int, packedValue []byte) error {
+	if p.weight.matches(packedValue) {
+		return p.Visit(docID)
+	}
+	return nil
+}
+
+func (p *prQueryVisitor) VisitIterator(iterator index.DocValuesIterator, packedValue []byte) error {
+	if p.weight.matches(packedValue) {
+		for {
+			doc, err := iterator.NextDoc()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return nil
+				}
+				return err
+			}
+			err = p.Visit(doc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (p *prQueryVisitor) Compare(minPackedValue, maxPackedValue []byte) index.Relation {
+	return p.weight.relate(minPackedValue, maxPackedValue)
+}
+
+func (p *prQueryVisitor) Grow(count int) {
+	p.addr = p.result.Grow(count)
+}
+
+func (r *prQueryWeight) getInverseIntersectVisitor(result *bitset.BitSet, cost []int64) index.IntersectVisitor {
 	panic("")
 }
 
-func (r *pointRangeQueryConstantScoreWeight) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
-	panic("")
+var _ index.IntersectVisitor = &invPrQueryVisitor{}
+
+type invPrQueryVisitor struct {
+	result *bitset.BitSet
+	cost   []int64
+	weight *prQueryWeight
 }
 
-func (r *pointRangeQueryConstantScoreWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
-	panic("")
+func (r *invPrQueryVisitor) Visit(docID int) error {
+	r.result.Clear(uint(docID))
+	r.cost[0]--
+	return nil
 }
 
-func (r *pointRangeQueryConstantScoreWeight) IsCacheable(ctx *index.LeafReaderContext) bool {
+func (r *invPrQueryVisitor) VisitLeaf(docID int, packedValue []byte) error {
+	if r.weight.matches(packedValue) == false {
+		return r.Visit(docID)
+	}
+	return nil
+}
+
+func (r *invPrQueryVisitor) VisitIterator(iterator index.DocValuesIterator, packedValue []byte) error {
+	if r.weight.matches(packedValue) == false {
+		for {
+			doc, err := iterator.NextDoc()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return nil
+				}
+				return err
+			}
+			err = r.Visit(doc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *invPrQueryVisitor) Compare(minPackedValue, maxPackedValue []byte) index.Relation {
+	relation := r.weight.relate(minPackedValue, maxPackedValue)
+	switch relation {
+	case index.CELL_INSIDE_QUERY:
+		// all points match, skip this subtree
+		return index.CELL_OUTSIDE_QUERY
+	case index.CELL_OUTSIDE_QUERY:
+		// none of the points match, clear all documents
+		return index.CELL_INSIDE_QUERY
+	default:
+		return relation
+	}
+}
+
+func (r *invPrQueryVisitor) Grow(count int) {
+	return
+}
+
+func (r *prQueryWeight) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
+	reader, ok := ctx.Reader().(index.LeafReader)
+	if !ok {
+		return nil, errors.New("get reader error")
+	}
+
+	field := r.p.field
+
+	values, exist := reader.GetPointValues(field)
+	if !exist {
+		return nil, nil
+	}
+
+	dimensions, err := values.GetNumIndexDimensions()
+	if err != nil {
+		return nil, err
+	}
+	if dimensions != r.p.numDims {
+		return nil, fmt.Errorf("field=%s numIndexDimensions not equal", field)
+	}
+
+	bytesPerDimension, err := values.GetBytesPerDimension()
+	if err != nil {
+		return nil, err
+	}
+	if bytesPerDimension != r.p.bytesPerDim {
+		return nil, fmt.Errorf("field=%s bytesPerDim not equal", field)
+	}
+
+	allDocsMatch := false
+	if values.GetDocCount() == reader.MaxDoc() {
+		fieldPackedLower, err := values.GetMinPackedValue()
+		if err != nil {
+			return nil, err
+		}
+		fieldPackedUpper, err := values.GetMaxPackedValue()
+		if err != nil {
+			return nil, err
+		}
+		allDocsMatch = true
+
+		for i := 0; i < r.p.numDims; i++ {
+			offset := i * r.p.bytesPerDim
+			toIndex := offset + r.p.bytesPerDim
+
+			if bytes.Compare(r.p.lowerPoint[offset:toIndex], fieldPackedLower[offset:toIndex]) > 0 ||
+				bytes.Compare(r.p.upperPoint[offset:toIndex], fieldPackedUpper[offset:toIndex]) < 0 {
+				allDocsMatch = false
+				break
+			}
+		}
+	}
+
+	if allDocsMatch {
+		// all docs have a value and all points are within bounds, so everything matches
+		return &allDocsScorerSupplier{
+			reader:    reader,
+			weight:    r,
+			scoreMode: r.scoreMode,
+		}, nil
+	} else {
+		result := NewDocIdSetBuilderV2(reader.MaxDoc(), values, field)
+		return &notAllDocsScorerSupplier{
+			result:    result,
+			visitor:   r.getIntersectVisitor(result),
+			reader:    reader,
+			values:    values,
+			cost:      -1,
+			weight:    r,
+			scoreMode: r.scoreMode,
+		}, nil
+	}
+
+}
+
+var _ ScorerSupplier = &allDocsScorerSupplier{}
+
+type allDocsScorerSupplier struct {
+	reader    index.LeafReader
+	weight    *prQueryWeight
+	scoreMode *ScoreMode
+}
+
+func (r *allDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
+	return NewConstantScoreScorer(r.weight, r.weight.Score(), r.scoreMode, index.DocIdSetIteratorAll(r.reader.MaxDoc()))
+}
+
+func (a *allDocsScorerSupplier) Cost() int64 {
+	return int64(a.reader.MaxDoc())
+}
+
+var _ ScorerSupplier = &notAllDocsScorerSupplier{}
+
+type notAllDocsScorerSupplier struct {
+	result    *DocIdSetBuilder
+	visitor   index.IntersectVisitor
+	reader    index.LeafReader
+	values    index.PointValues
+	cost      int64
+	weight    *prQueryWeight
+	scoreMode *ScoreMode
+}
+
+func (r *notAllDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
+	if r.values.GetDocCount() == r.reader.MaxDoc() &&
+		int64(r.values.GetDocCount()) == r.values.Size() && r.Cost() > int64(r.reader.MaxDoc()/2) {
+
+		// If all docs have exactly one value and the cost is greater
+		// than half the leaf size then maybe we can make things faster
+		// by computing the set of documents that do NOT match the range
+		result := bitset.New(uint(r.reader.MaxDoc()))
+		for i := range result.Bytes() {
+			result.Bytes()[i] = math.MaxUint64
+		}
+		cost := []int64{int64(r.reader.MaxDoc())}
+		err := r.values.Intersect(r.weight.getInverseIntersectVisitor(result, cost))
+		if err != nil {
+			return nil, err
+		}
+		iterator := index.NewBitSetIterator(result, cost[0])
+		return NewConstantScoreScorer(r.weight, r.weight.Score(), r.scoreMode, iterator)
+	}
+
+	err := r.values.Intersect(r.visitor)
+	if err != nil {
+		return nil, err
+	}
+	iterator := r.result.Build().Iterator()
+	return NewConstantScoreScorer(r.weight, r.weight.Score(), r.scoreMode, iterator)
+}
+
+func (r *notAllDocsScorerSupplier) Cost() int64 {
+	if r.cost == -1 {
+		// Computing the cost may be expensive, so only do it if necessary
+		r.cost = r.values.EstimateDocCount(r.visitor)
+		//assert cost >= 0;
+	}
+	return r.cost
+}
+
+func (r *prQueryWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
+	scorerSupplier, err := r.ScorerSupplier(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if scorerSupplier == nil {
+		return nil, nil
+	}
+	return scorerSupplier.Get(math.MaxInt32)
+}
+
+func (r *prQueryWeight) IsCacheable(ctx *index.LeafReaderContext) bool {
 	return true
 }
 
 func (p *PointRangeQuery) Rewrite(reader index.IndexReader) (Query, error) {
-	//TODO implement me
-	panic("implement me")
+	return p, nil
 }
 
 func (p *PointRangeQuery) Visit(visitor QueryVisitor) (err error) {
-	//TODO implement me
-	panic("implement me")
+	if visitor.AcceptField(p.field) {
+		err := visitor.VisitLeaf(p)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func copyOfSubArray(bs []byte, from, to int) []byte {

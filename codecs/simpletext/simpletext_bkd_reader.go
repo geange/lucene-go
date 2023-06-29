@@ -70,7 +70,7 @@ func NewSimpleTextBKDReader(in store.IndexInput, numDims, numIndexDims, maxPoint
 	return reader, nil
 }
 
-func (s *SimpleTextBKDReader) Intersect(visitor *index.IntersectVisitor) error {
+func (s *SimpleTextBKDReader) Intersect(visitor index.IntersectVisitor) error {
 	return s.intersect(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue)
 }
 
@@ -88,7 +88,7 @@ func (s *SimpleTextBKDReader) addAll(state *IntersectState, nodeID int) error {
 }
 
 // Create a new SimpleTextBKDReader.IntersectState
-func (s *SimpleTextBKDReader) getIntersectState(visitor *index.IntersectVisitor) *IntersectState {
+func (s *SimpleTextBKDReader) getIntersectState(visitor index.IntersectVisitor) *IntersectState {
 	return s.NewIntersectState(s.in.Clone(), s.numDims,
 		s.packedBytesLength, s.maxPointsInLeafNode, visitor)
 }
@@ -167,7 +167,7 @@ func (s *SimpleTextBKDReader) intersect(state *IntersectState, nodeID int, cellM
 	return nil
 }
 
-func (s *SimpleTextBKDReader) visitDocIDs(in store.IndexInput, blockFP int64, visitor *index.IntersectVisitor) error {
+func (s *SimpleTextBKDReader) visitDocIDs(in store.IndexInput, blockFP int64, visitor index.IntersectVisitor) error {
 	scratch := new(bytes.Buffer)
 	if _, err := in.Seek(blockFP, io.SeekStart); err != nil {
 		return err
@@ -192,7 +192,7 @@ func (s *SimpleTextBKDReader) visitDocIDs(in store.IndexInput, blockFP int64, vi
 			return err
 		}
 
-		if err := visitor.VisitByDocID(docID); err != nil {
+		if err := visitor.Visit(docID); err != nil {
 			return err
 		}
 	}
@@ -228,7 +228,7 @@ func (s *SimpleTextBKDReader) readDocIDs(in store.IndexInput, blockFP int64, doc
 }
 
 func (s *SimpleTextBKDReader) visitDocValues(commonPrefixLengths []int, scratchPackedValue []byte,
-	in store.IndexInput, docIDs []int, count int, visitor *index.IntersectVisitor) error {
+	in store.IndexInput, docIDs []int, count int, visitor index.IntersectVisitor) error {
 
 	visitor.Grow(count)
 	// NOTE: we don't do prefix coding, so we ignore commonPrefixLengths
@@ -267,8 +267,13 @@ func (s *SimpleTextBKDReader) visitDocValues(commonPrefixLengths []int, scratchP
 	return nil
 }
 
-func (s *SimpleTextBKDReader) EstimatePointCount(visitor *index.IntersectVisitor) int64 {
+func (s *SimpleTextBKDReader) EstimatePointCount(visitor index.IntersectVisitor) int64 {
 	return s.estimatePointCount(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue)
+}
+
+func (s *SimpleTextBKDReader) EstimateDocCount(visitor index.IntersectVisitor) int64 {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (s *SimpleTextBKDReader) estimatePointCount(state *IntersectState, nodeID int,
@@ -349,12 +354,12 @@ type IntersectState struct {
 	scratchDocIDs       []int
 	scratchPackedValue  []byte
 	commonPrefixLengths []int
-	visitor             *index.IntersectVisitor
+	visitor             index.IntersectVisitor
 }
 
 func (s *SimpleTextBKDReader) NewIntersectState(in store.IndexInput,
 	numDims, packedBytesLength, maxPointsInLeafNode int,
-	visitor *index.IntersectVisitor) *IntersectState {
+	visitor index.IntersectVisitor) *IntersectState {
 
 	return &IntersectState{
 		reader:              s,

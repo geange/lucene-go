@@ -148,17 +148,17 @@ func (s *SimpleTextPointsWriter) WriteField(fieldInfo *types.FieldInfo, reader i
 		DEFAULT_MAX_MB_SORT_IN_HEAP,
 		values.Size())
 
-	err = values.Intersect(&index.IntersectVisitor{
-		VisitByDocID: func(docID int) error {
+	err = values.Intersect(&index.BytesVisitor{
+		VisitFn: func(docID int) error {
 			return errors.New("illegal State")
 		},
-		VisitLeaf: func(docID int, packedValue []byte) error {
+		VisitLeafFn: func(docID int, packedValue []byte) error {
 			return writer.Add(packedValue, docID)
 		},
-		Compare: func(minPackedValue, maxPackedValue []byte) index.Relation {
+		CompareFn: func(minPackedValue, maxPackedValue []byte) index.Relation {
 			return index.CELL_CROSSES_QUERY
 		},
-		Grow: func(count int) {
+		GrowFn: func(count int) {
 		},
 	})
 	if err != nil {

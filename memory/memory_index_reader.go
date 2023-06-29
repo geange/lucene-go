@@ -166,13 +166,13 @@ func (m *MemoryIndexReader) GetLiveDocs() util.Bits {
 	return nil
 }
 
-func (m *MemoryIndexReader) GetPointValues(field string) (index.PointValues, error) {
+func (m *MemoryIndexReader) GetPointValues(field string) (index.PointValues, bool) {
 	v, ok := m.fields.Get(field)
 	if ok {
 		info := v.(*Info)
-		return newMemoryIndexPointValues(info), nil
+		return newMemoryIndexPointValues(info), true
 	}
-	return nil, nil
+	return nil, false
 }
 
 func (m *MemoryIndexReader) CheckIntegrity() error {

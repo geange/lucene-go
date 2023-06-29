@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 	"io"
+	"math"
 )
 
 type Relation int
@@ -57,12 +58,19 @@ type PointValues interface {
 	// Intersect Finds all documents and points matching the provided visitor.
 	// This method does not enforce live documents,
 	// so it's up to the caller to test whether each document is deleted, if necessary.
-	Intersect(visitor *IntersectVisitor) error
+	Intersect(visitor IntersectVisitor) error
 
 	// EstimatePointCount Estimate the number of points that would be visited
-	// by intersect with the given PointValues.IntersectVisitor.
-	// This should run many times faster than intersect(PointValues.IntersectVisitor).
-	EstimatePointCount(visitor *IntersectVisitor) int64
+	// by intersect with the given PointValues.BytesVisitor.
+	// This should run many times faster than intersect(PointValues.BytesVisitor).
+	EstimatePointCount(visitor IntersectVisitor) int64
+
+	// EstimateDocCount
+	// Estimate the number of documents that would be matched by intersect with the given
+	// PointValues.IntersectVisitor. This should run many times faster than
+	// intersect(PointValues.IntersectVisitor).
+	// See Also: DocIdSetIterator.cost
+	EstimateDocCount(visitor IntersectVisitor) int64
 
 	// GetMinPackedValue Returns minimum value for each dimension, packed, or null if size is 0
 	GetMinPackedValue() ([]byte, error)
@@ -86,25 +94,88 @@ type PointValues interface {
 	GetDocCount() int
 }
 
-type IntersectVisitor struct {
-	// VisitByDocID Called for all documents in a leaf cell that's fully contained by the query. The consumer
-	// should blindly accept the docID.
-	VisitByDocID func(docID int) error
-
-	// Visit Called for all documents in a leaf cell that crosses the query. The consumer should scrutinize the
-	// packedValue to decide whether to accept it. In the 1D case, values are visited in increasing order,
-	// and in the case of ties, in increasing docID order.
-	VisitLeaf func(docID int, packedValue []byte) error
-
-	// Compare Called for non-leaf cells to test how the cell relates to the query,
-	// to determine how to further recurse down the tree.
-	Compare func(minPackedValue, maxPackedValue []byte) Relation
-
-	// Grow Notifies the caller that this many documents are about to be visited
-	Grow func(count int)
+type EstimateDocCountSPI interface {
+	EstimatePointCount(visitor IntersectVisitor) int64
+	Size() int64
+	GetDocCount() int
 }
 
-func (i *IntersectVisitor) Visit(iterator DocValuesIterator, packedValue []byte) error {
+func EstimateDocCount(spi EstimateDocCountSPI, visitor IntersectVisitor) int64 {
+
+	estimatedPointCount := spi.EstimatePointCount(visitor)
+	docCount := spi.GetDocCount()
+	size := spi.Size()
+	if estimatedPointCount >= size {
+		// math all docs
+		return int64(docCount)
+	} else if size == int64(docCount) || estimatedPointCount == 0 {
+		// if the point count estimate is 0 or we have only single values
+		// return this estimate
+		return estimatedPointCount
+	} else {
+		// in case of multi values estimate the number of docs using the solution provided in
+		// https://math.stackexchange.com/questions/1175295/urn-problem-probability-of-drawing-balls-of-k-unique-colors
+		// then approximate the solution for points per doc << size() which results in the expression
+		// D * (1 - ((N - n) / N)^(N/D))
+		// where D is the total number of docs, N the total number of points and n the estimated point count
+		f64Size := float64(size)
+		f64EstimatedPointCount := float64(estimatedPointCount)
+		f64DocCount := float64(docCount)
+
+		docEstimate := f64DocCount * (1 - math.Pow((f64Size-f64EstimatedPointCount)/f64Size, f64Size/f64DocCount))
+
+		if docEstimate == 0 {
+			return 1
+		}
+		return int64(docEstimate)
+	}
+}
+
+type IntersectVisitor interface {
+	Visit(docID int) error
+	VisitLeaf(docID int, packedValue []byte) error
+	VisitIterator(iterator DocValuesIterator, packedValue []byte) error
+	Compare(minPackedValue, maxPackedValue []byte) Relation
+	Grow(count int)
+}
+
+var _ IntersectVisitor = &BytesVisitor{}
+
+type BytesVisitor struct {
+	// VisitFn Called for all documents in a leaf cell that's fully contained by the query. The consumer
+	// should blindly accept the docID.
+	VisitFn func(docID int) error
+
+	// VisitLeafFn Called for all documents in a leaf cell that crosses the query. The consumer should scrutinize the
+	// packedValue to decide whether to accept it. In the 1D case, values are visited in increasing order,
+	// and in the case of ties, in increasing docID order.
+	VisitLeafFn func(docID int, packedValue []byte) error
+
+	// CompareFn Called for non-leaf cells to test how the cell relates to the query,
+	// to determine how to further recurse down the tree.
+	CompareFn func(minPackedValue, maxPackedValue []byte) Relation
+
+	// GrowFn Notifies the caller that this many documents are about to be visited
+	GrowFn func(count int)
+}
+
+func (r *BytesVisitor) Visit(docID int) error {
+	return r.VisitFn(docID)
+}
+
+func (r *BytesVisitor) VisitLeaf(docID int, packedValue []byte) error {
+	return r.VisitLeafFn(docID, packedValue)
+}
+
+func (r *BytesVisitor) Compare(minPackedValue, maxPackedValue []byte) Relation {
+	return r.CompareFn(minPackedValue, maxPackedValue)
+}
+
+func (r *BytesVisitor) Grow(count int) {
+	r.GrowFn(count)
+}
+
+func (r *BytesVisitor) VisitIterator(iterator DocValuesIterator, packedValue []byte) error {
 	for {
 		docID, err := iterator.NextDoc()
 		if err != nil {
@@ -113,7 +184,7 @@ func (i *IntersectVisitor) Visit(iterator DocValuesIterator, packedValue []byte)
 			}
 			return err
 		}
-		if err := i.VisitLeaf(docID, packedValue); err != nil {
+		if err := r.VisitLeafFn(docID, packedValue); err != nil {
 			return err
 		}
 	}
