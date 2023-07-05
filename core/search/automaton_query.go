@@ -2,8 +2,11 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
+
+var _ MultiTermQuery = &AutomatonQuery{}
 
 // AutomatonQuery
 // A Query that will match terms against a finite-state machine.
@@ -28,4 +31,45 @@ type AutomatonQuery struct {
 	term *index.Term
 
 	automatonIsBinary bool
+
+	rewriteMethod RewriteMethod
+}
+
+func (r *AutomatonQuery) GetField() string {
+	return r.field
+}
+
+func (r *AutomatonQuery) GetTermsEnum(terms index.Terms, atts *tokenattributes.AttributeSource) (index.TermsEnum, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *AutomatonQuery) GetRewriteMethod() RewriteMethod {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *AutomatonQuery) SetRewriteMethod(method RewriteMethod) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *AutomatonQuery) String(field string) string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *AutomatonQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *AutomatonQuery) Rewrite(reader index.IndexReader) (Query, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *AutomatonQuery) Visit(visitor QueryVisitor) (err error) {
+	//TODO implement me
+	panic("implement me")
 }

@@ -4,8 +4,8 @@ import "reflect"
 
 var MATCH_WITH_NO_TERMS Matches
 
-// FromSubMatches Amalgamate a collection of Matches into a single object
-func FromSubMatches(subMatches []Matches) (Matches, error) {
+// MatchesFromSubMatches Amalgamate a collection of Matches into a single object
+func MatchesFromSubMatches(subMatches []Matches) (Matches, error) {
 	sm := make([]Matches, 0)
 	for i, match := range subMatches {
 		if reflect.DeepEqual(match, MATCH_WITH_NO_TERMS) {
@@ -45,4 +45,59 @@ func FromSubMatches(subMatches []Matches) (Matches, error) {
 			return subMatches
 		},
 	}, nil
+}
+
+// MatchesForField
+// Create a Matches for a single field
+func MatchesForField(field string, mis IOSupplier[MatchesIterator]) Matches {
+	// The indirection here, using a Supplier object rather than a MatchesIterator
+	// directly, is to allow for multiple calls to Matches.getMatches() to return
+	// new iterators.  We still need to call MatchesIteratorSupplier.get() eagerly
+	// to work out if we have a hit or not.
+	mi, err := mis.Get()
+	if err != nil {
+		return nil
+	}
+	if mi == nil {
+		return nil
+	}
+
+	return &forFieldMatches{
+		mis:    mis,
+		cached: false,
+		field:  field,
+		mi:     mi,
+	}
+}
+
+var _ Matches = &forFieldMatches{}
+
+type forFieldMatches struct {
+	mis    IOSupplier[MatchesIterator]
+	cached bool
+	field  string
+	mi     MatchesIterator
+}
+
+func (f *forFieldMatches) Strings() []string {
+	return []string{f.field}
+}
+
+func (f *forFieldMatches) GetMatches(field string) (MatchesIterator, error) {
+	if field == f.field {
+		return nil, nil
+	}
+	if f.cached == false {
+		return f.mis.Get()
+	}
+	f.cached = false
+	return f.mi, nil
+}
+
+func (f *forFieldMatches) GetSubMatches() []Matches {
+	return nil
+}
+
+type IOSupplier[T any] interface {
+	Get() (T, error)
 }

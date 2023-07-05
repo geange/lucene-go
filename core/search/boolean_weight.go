@@ -99,7 +99,7 @@ func (b *BooleanWeight) Matches(context *index.LeafReaderContext, doc int) (Matc
 		return nil, nil
 	}
 
-	return FromSubMatches(matches)
+	return MatchesFromSubMatches(matches)
 }
 
 func disableScoring(scorer BulkScorer) BulkScorer {

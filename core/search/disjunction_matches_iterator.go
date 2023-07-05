@@ -1,6 +1,12 @@
 package search
 
-import "github.com/geange/lucene-go/core/util/structure"
+import (
+	"errors"
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/structure"
+	"io"
+)
 
 var _ MatchesIterator = &DisjunctionMatchesIterator{}
 
@@ -81,4 +87,145 @@ func newDisjunctionMatchesIterator(matches []MatchesIterator) (MatchesIterator, 
 		queue:   queue,
 		started: false,
 	}, nil
+}
+
+// FromTermsEnumMatchesIterator
+// Create a DisjunctionMatchesIterator over a list of terms extracted from a BytesRefIterator
+// Only terms that have at least one match in the given document will be included
+func FromTermsEnumMatchesIterator(context *index.LeafReaderContext, doc int, query Query,
+	field string, terms util.BytesRefIterator) (MatchesIterator, error) {
+
+	t, err := context.Reader().(index.LeafReader).Terms(field)
+	if err != nil {
+		return nil, err
+	}
+	te, err := t.Iterator()
+	if err != nil {
+		return nil, err
+	}
+
+	var reuse index.PostingsEnum
+
+	for {
+		term, err := terms.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
+		}
+		ok, _ := te.SeekExact(term)
+		if ok {
+			pe, err := te.Postings(reuse, index.POSTINGS_ENUM_OFFSETS)
+			if err != nil {
+				return nil, err
+			}
+			if v, _ := pe.Advance(doc); v == doc {
+				iterator, err := NewTermMatchesIterator(query, pe)
+				if err != nil {
+					return nil, err
+				}
+				return newTermsEnumDisjunctionMatchesIterator(
+					iterator, terms, te, doc, query), nil
+			} else {
+				reuse = pe
+			}
+		}
+	}
+	return nil, nil
+}
+
+var _ MatchesIterator = &termsEnumDisjunctionMatchesIterator{}
+
+type termsEnumDisjunctionMatchesIterator struct {
+	first MatchesIterator
+	terms util.BytesRefIterator
+	te    index.TermsEnum
+	doc   int
+	query Query
+	it    MatchesIterator
+}
+
+func newTermsEnumDisjunctionMatchesIterator(first MatchesIterator, terms util.BytesRefIterator,
+	te index.TermsEnum, doc int, query Query) *termsEnumDisjunctionMatchesIterator {
+	return &termsEnumDisjunctionMatchesIterator{
+		first: first,
+		terms: terms,
+		te:    te,
+		doc:   doc,
+		query: query,
+	}
+}
+
+func (t *termsEnumDisjunctionMatchesIterator) init() error {
+	mis := make([]MatchesIterator, 0)
+	mis = append(mis, t.first)
+	var reuse index.PostingsEnum
+
+	for {
+		term, err := t.terms.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return err
+		}
+
+		ok, _ := t.te.SeekExact(term)
+		if ok {
+			pe, err := t.te.Postings(reuse, index.POSTINGS_ENUM_OFFSETS)
+			if err != nil {
+				return err
+			}
+			if v, err := pe.Advance(t.doc); err != nil {
+				return err
+			} else if v == t.doc {
+				iterator, err := NewTermMatchesIterator(t.query, pe)
+				if err != nil {
+					return err
+				}
+				mis = append(mis, iterator)
+				reuse = nil
+			} else {
+				reuse = pe
+			}
+		}
+	}
+	var err error
+	t.it, err = fromSubIterators(mis)
+	return err
+}
+
+func (t *termsEnumDisjunctionMatchesIterator) Next() (bool, error) {
+	if t.it == nil {
+		err := t.init()
+		if err != nil {
+			return false, err
+		}
+	}
+	return t.it.Next()
+}
+
+func (t *termsEnumDisjunctionMatchesIterator) StartPosition() int {
+	return t.it.StartPosition()
+}
+
+func (t *termsEnumDisjunctionMatchesIterator) EndPosition() int {
+	return t.it.EndPosition()
+}
+
+func (t *termsEnumDisjunctionMatchesIterator) StartOffset() (int, error) {
+	return t.it.StartOffset()
+}
+
+func (t *termsEnumDisjunctionMatchesIterator) EndOffset() (int, error) {
+	return t.it.EndOffset()
+}
+
+func (t *termsEnumDisjunctionMatchesIterator) GetSubMatches() (MatchesIterator, error) {
+	return t.it.GetSubMatches()
+}
+
+func (t *termsEnumDisjunctionMatchesIterator) GetQuery() Query {
+	return t.it.GetQuery()
 }

@@ -96,9 +96,9 @@ type WeightDefault struct {
 	parentQuery Query
 }
 
-func NewWeight(parentQuery Query, extra WeightSPI) *WeightDefault {
+func NewWeight(parentQuery Query, spi WeightSPI) *WeightDefault {
 	return &WeightDefault{
-		WeightSPI:   extra,
+		WeightSPI:   spi,
 		parentQuery: parentQuery,
 	}
 }
@@ -161,12 +161,6 @@ func (r *WeightDefault) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupp
 
 	return &scorerSupplier{scorer: scorer}, nil
 }
-
-//func (r *WeightDefault) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
-//	return r.WeightSPI.(interface {
-//		Scorer(ctx *index.LeafReaderContext) (Scorer, error)
-//	}).Scorer(ctx)
-//}
 
 var _ ScorerSupplier = &scorerSupplier{}
 
