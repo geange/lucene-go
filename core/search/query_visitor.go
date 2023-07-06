@@ -1,6 +1,9 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/util/automaton"
+)
 
 // QueryVisitor
 // Allows recursion through a query tree
@@ -14,12 +17,12 @@ type QueryVisitor interface {
 	//			terms – the terms the query will match on
 	ConsumeTerms(query Query, terms ...*index.Term)
 
-	// Called by leaf queries that match on a class of terms
+	// ConsumeTermsMatching Called by leaf queries that match on a class of terms
 	// Params:
 	//			query – the leaf query
 	//			field – the field queried against
 	//			automaton – a supplier for an automaton defining which terms match
-	//consumeTermsMatching(query Query, )
+	ConsumeTermsMatching(query Query, field string, automaton func() *automaton.ByteRunAutomaton)
 
 	// VisitLeaf Called by leaf queries that do not match on terms
 	// Params: query – the query

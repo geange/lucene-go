@@ -101,3 +101,7 @@ func (f *forFieldMatches) GetSubMatches() []Matches {
 type IOSupplier[T any] interface {
 	Get() (T, error)
 }
+
+type Supplier[T any] interface {
+	Get() T
+}

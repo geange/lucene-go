@@ -23,7 +23,7 @@ func NewRunAutomatonV1(a *Automaton, alphabetSize, determinizeWorkLimit int) *Ru
 	points := a.GetStartPoints()
 
 	r := RunAutomaton{
-		automaton:    Determinize(a, determinizeWorkLimit),
+		automaton:    DeterminizeAutomaton(a, determinizeWorkLimit),
 		alphabetSize: alphabetSize,
 		size:         size,
 		accept:       make([]bool, size),

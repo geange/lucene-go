@@ -35,13 +35,22 @@ type AutomatonQuery struct {
 	rewriteMethod RewriteMethod
 }
 
+func NewAutomatonQuery(term *index.Term, auto *automaton.Automaton, determinizeWorkLimit int, isBinary bool) *AutomatonQuery {
+	return &AutomatonQuery{
+		field:             term.Field(),
+		automaton:         auto,
+		term:              term,
+		automatonIsBinary: isBinary,
+		compiled:          automaton.NewCompiledAutomaton(auto, nil, true, determinizeWorkLimit, isBinary),
+	}
+}
+
 func (r *AutomatonQuery) GetField() string {
 	return r.field
 }
 
 func (r *AutomatonQuery) GetTermsEnum(terms index.Terms, atts *tokenattributes.AttributeSource) (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
+	return r.compiled.GetTermsEnum(terms)
 }
 
 func (r *AutomatonQuery) GetRewriteMethod() RewriteMethod {
@@ -65,11 +74,28 @@ func (r *AutomatonQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreM
 }
 
 func (r *AutomatonQuery) Rewrite(reader index.IndexReader) (Query, error) {
-	//TODO implement me
-	panic("implement me")
+	return r, nil
 }
 
 func (r *AutomatonQuery) Visit(visitor QueryVisitor) (err error) {
-	//TODO implement me
-	panic("implement me")
+	if visitor.AcceptField(r.field) {
+		visit(r.compiled, visitor, r, r.field)
+	}
+	return nil
+}
+
+func visit(auto *automaton.CompiledAutomaton, visitor QueryVisitor, parent Query, field string) {
+	if visitor.AcceptField(field) {
+		switch auto.Type() {
+		case automaton.AUTOMATON_TYPE_NORMAL:
+			visitor.ConsumeTermsMatching(parent, field, auto.RunAutomaton)
+		case automaton.AUTOMATON_TYPE_NONE:
+		case automaton.AUTOMATON_TYPE_ALL:
+			visitor.ConsumeTermsMatching(parent, field, func() *automaton.ByteRunAutomaton {
+				return automaton.NewByteRunAutomaton(automaton.MakeAnyString())
+			})
+		case automaton.AUTOMATON_TYPE_SINGLE:
+			visitor.ConsumeTerms(parent, index.NewTerm(field, auto.Term()))
+		}
+	}
 }

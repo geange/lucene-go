@@ -480,7 +480,7 @@ func (r *Automaton) transitionSorted(t *Transition) bool {
 	return false
 }
 
-//Fill the provided Transition with the index'th transition leaving the specified state.
+// Fill the provided Transition with the index'th transition leaving the specified state.
 func (r *Automaton) getTransition(state, index int, t *Transition) {
 	i := r.states[2*state] + 3*index
 	t.Source = state
@@ -523,7 +523,9 @@ func (r *Automaton) GetStartPoints() []int {
 
 // Step Performs lookup in transitions, assuming determinism.
 // Params: 	state – starting state
-//			label – codepoint to look up
+//
+//	label – codepoint to look up
+//
 // Returns: destination state, -1 if no matching outgoing transition
 func (r *Automaton) Step(state, label int) int {
 	return r.next(state, 0, label, nil)
@@ -535,8 +537,10 @@ func (r *Automaton) Step(state, label int) int {
 // transition.transitionUpto so the next call to this method can continue from there instead of restarting
 // from the first transition.
 // Params: 	transition – The transition to start the lookup from (inclusive, using its Transition.source
-// 			and Transition.transitionUpto). It is updated with the matched transition; or with Transition.dest = -1 if no match.
-// 			label – The codepoint to look up.
+//
+//	and Transition.transitionUpto). It is updated with the matched transition; or with Transition.dest = -1 if no match.
+//	label – The codepoint to look up.
+//
 // Returns: The destination state; or -1 if no matching outgoing transition.
 func (r *Automaton) Next(transition *Transition, label int) int {
 	return r.next(transition.Source, 0, label, transition)
@@ -544,9 +548,11 @@ func (r *Automaton) Next(transition *Transition, label int) int {
 
 // Looks for the next transition that matches the provided label, assuming determinism.
 // Params: 	state – The source state.
-//			fromTransitionIndex – The transition index to start the lookup from (inclusive); negative interpreted as 0.
-//			label – The codepoint to look up.
-//			transition – The output transition to update with the matching transition; or null for no update.
+//
+//	fromTransitionIndex – The transition index to start the lookup from (inclusive); negative interpreted as 0.
+//	label – The codepoint to look up.
+//	transition – The output transition to update with the matching transition; or null for no update.
+//
 // Returns: The destination state; or -1 if no matching outgoing transition.
 func (r *Automaton) next(state, fromTransitionIndex, label int, transition *Transition) int {
 	stateIndex := 2 * state
@@ -634,4 +640,99 @@ func (r *Builder) CopyStates(other *Automaton) {
 		newState := r.CreateState()
 		r.SetAccept(newState, other.IsAccept(s))
 	}
+}
+
+func (r *Builder) AddTransition(source, dest, min, max int) {
+	if len(r.transitions) < r.nextTransition+4 {
+		r.transitions = append(r.transitions, make([]int, 4)...)
+	}
+	r.transitions[r.nextTransition] = source
+	r.nextTransition++
+	r.transitions[r.nextTransition] = dest
+	r.nextTransition++
+	r.transitions[r.nextTransition] = min
+	r.nextTransition++
+	r.transitions[r.nextTransition] = max
+	r.nextTransition++
+}
+
+func (r *Builder) Finish() *Automaton {
+	// Create automaton with the correct size.
+	numStates := r.nextState
+	numTransitions := r.nextTransition / 4
+	a := NewAutomatonV1(numStates, numTransitions)
+
+	// Create all states.
+	for state := 0; state < numStates; state++ {
+		a.CreateState()
+		a.SetAccept(state, r.IsAccept(state))
+	}
+
+	// Create all transitions
+	r.sort(0, numTransitions)
+	for upto := 0; upto < r.nextTransition; upto += 4 {
+		a.AddTransition(r.transitions[upto],
+			r.transitions[upto+1],
+			r.transitions[upto+2],
+			r.transitions[upto+3])
+	}
+
+	a.finishState()
+
+	return a
+}
+
+var _ sort.Interface = &builderSorter{}
+
+type builderSorter struct {
+	values []int
+	size   int
+}
+
+func (b *builderSorter) Len() int {
+	return b.size
+}
+
+func (b *builderSorter) Less(i, j int) bool {
+	i *= 4
+	j *= 4
+
+	if b.values[i] < b.values[j] {
+		return true
+	}
+
+	if b.values[i+1] < b.values[j+1] {
+		return true
+	}
+
+	if b.values[i+2] < b.values[j+2] {
+		return true
+	}
+
+	if b.values[i+3] < b.values[j+3] {
+		return true
+	}
+
+	return false
+}
+
+func (b *builderSorter) Swap(i, j int) {
+	i *= 4
+	j *= 4
+
+	b.values[i], b.values[j] = b.values[j], b.values[i]
+	b.values[i+1], b.values[j+1] = b.values[j+1], b.values[i+1]
+	b.values[i+2], b.values[j+2] = b.values[j+2], b.values[i+2]
+	b.values[i+3], b.values[j+3] = b.values[j+3], b.values[i+3]
+}
+
+func (r *Builder) sort(from, to int) {
+	sort.Sort(&builderSorter{
+		values: r.transitions,
+		size:   to - from,
+	})
+}
+
+func (r *Builder) IsAccept(state int) bool {
+	return r.isAccept.Test(uint(state))
 }

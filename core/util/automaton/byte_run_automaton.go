@@ -11,6 +11,20 @@ func NewByteRunAutomaton(a *Automaton) *ByteRunAutomaton {
 	}
 }
 
+func NewByteRunAutomatonV1(a *Automaton, isBinary bool, determinizeWorkLimit int) *ByteRunAutomaton {
+	var auto *Automaton
+
+	if isBinary {
+		auto = a
+	} else {
+
+	}
+
+	return &ByteRunAutomaton{
+		NewRunAutomatonV1(auto, 256, determinizeWorkLimit),
+	}
+}
+
 // Run Returns true if the given byte array is accepted by this automaton
 func (r *ByteRunAutomaton) Run(s []byte) bool {
 	p := 0

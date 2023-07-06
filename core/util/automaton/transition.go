@@ -19,3 +19,7 @@ type Transition struct {
 	// called without first initTransition.
 	TransitionUpto int
 }
+
+func NewTransition() *Transition {
+	return &Transition{}
+}

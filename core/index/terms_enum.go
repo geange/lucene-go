@@ -99,3 +99,75 @@ const (
 	// SEEK_STATUS_NOT_FOUND A different term was found after the requested term
 	SEEK_STATUS_NOT_FOUND
 )
+
+var _ TermsEnum = &emptyTermsEnum{}
+
+var EmptyTermsEnum = &emptyTermsEnum{}
+
+type emptyTermsEnum struct {
+	atts *tokenattributes.AttributeSource
+}
+
+func (e *emptyTermsEnum) Next() ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (e *emptyTermsEnum) Attributes() *tokenattributes.AttributeSource {
+	if e.atts == nil {
+		e.atts = tokenattributes.NewAttributeSource()
+	}
+	return e.atts
+}
+
+func (e *emptyTermsEnum) SeekExact(text []byte) (bool, error) {
+	return false, nil
+}
+
+func (e *emptyTermsEnum) SeekCeil(text []byte) (SeekStatus, error) {
+	return SEEK_STATUS_END, nil
+}
+
+func (e *emptyTermsEnum) SeekExactByOrd(ord int64) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *emptyTermsEnum) SeekExactExpert(term []byte, state TermState) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *emptyTermsEnum) Term() ([]byte, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *emptyTermsEnum) Ord() (int64, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *emptyTermsEnum) DocFreq() (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *emptyTermsEnum) TotalTermFreq() (int64, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *emptyTermsEnum) Postings(reuse PostingsEnum, flags int) (PostingsEnum, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *emptyTermsEnum) Impacts(flags int) (ImpactsEnum, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *emptyTermsEnum) TermState() (TermState, error) {
+	//TODO implement me
+	panic("implement me")
+}
