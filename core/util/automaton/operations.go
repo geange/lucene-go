@@ -28,7 +28,7 @@ func DeterminizeAutomaton(a *Automaton, workLimit int) *Automaton {
 	}
 
 	// subset construction
-	b := NewNewBuilderDefault()
+	b := NewNewBuilder()
 
 	// Same initial values and state will always have the same hashCode
 	initialset := NewFrozenIntSet([]int{0}, bitmixer.Mix32(0)+1, 0)
@@ -251,7 +251,7 @@ func reverseAutomatonIntSet(a *Automaton, initialStates map[int]struct{}) *Autom
 	numStates := a.GetNumStates()
 
 	// Build a new automaton with all edges reversed
-	builder := NewNewBuilderDefault()
+	builder := NewNewBuilder()
 
 	// Initial node; we'll add epsilon transitions in the end:
 	builder.CreateState()

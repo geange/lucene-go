@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/tokenattributes"
 	"github.com/geange/lucene-go/core/util/automaton"
@@ -50,7 +51,26 @@ func (r *AutomatonQuery) GetField() string {
 }
 
 func (r *AutomatonQuery) GetTermsEnum(terms index.Terms, atts *tokenattributes.AttributeSource) (index.TermsEnum, error) {
-	return r.compiled.GetTermsEnum(terms)
+	return GetTermsEnum(r.compiled, terms)
+}
+
+func GetTermsEnum(r *automaton.CompiledAutomaton, terms index.Terms) (index.TermsEnum, error) {
+	switch r.Type() {
+	case automaton.AUTOMATON_TYPE_NONE:
+		return index.EmptyTermsEnum, nil
+	case automaton.AUTOMATON_TYPE_ALL:
+		return terms.Iterator()
+	case automaton.AUTOMATON_TYPE_SINGLE:
+		it, err := terms.Iterator()
+		if err != nil {
+			return nil, err
+		}
+		return index.NewSingleTermsEnum(it, r.Term()), nil
+	case automaton.AUTOMATON_TYPE_NORMAL:
+		return terms.Intersect(r, nil)
+	default:
+		return nil, errors.New("unhandled case")
+	}
 }
 
 func (r *AutomatonQuery) GetRewriteMethod() RewriteMethod {

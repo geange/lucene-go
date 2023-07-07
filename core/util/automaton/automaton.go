@@ -27,7 +27,8 @@ type Automaton struct {
 	// before moving onto another state.
 	curState int
 
-	// Index in the transitions array, where this states leaving transitions are stored, or -1 if this state has not added any transitions yet, followed by number of transitions.
+	// Index in the transitions array, where this states leaving transitions are stored, or -1
+	// if this state has not added any transitions yet, followed by number of transitions.
 	states []int
 
 	isAccept *bitset.BitSet
@@ -95,6 +96,11 @@ func (r *Automaton) getAcceptStates() *bitset.BitSet {
 // IsAccept Returns true if this state is an accept state.
 func (r *Automaton) IsAccept(state int) bool {
 	return r.isAccept.Test(uint(state))
+}
+
+// AddTransitionLabel Add a new transition with min = max = label.
+func (r *Automaton) AddTransitionLabel(source, dest, label int) error {
+	return r.AddTransition(source, dest, label, label)
 }
 
 // AddTransition Add a new transition with the specified source, dest, min, max.
@@ -201,8 +207,8 @@ func (r *Automaton) finishCurrentState() {
 
 	// Reduce any "adjacent" transitions:
 	upto := 0
-	min := -1
-	max := -1
+	minValue := -1
+	maxValue := -1
 	dest := -1
 
 	for i := 0; i < numTransitions; i++ {
@@ -211,45 +217,45 @@ func (r *Automaton) finishCurrentState() {
 		tMax := r.transitions[offset+3*i+2]
 
 		if dest == tDest {
-			if tMin <= max+1 {
-				if tMax > max {
-					max = tMax
+			if tMin <= maxValue+1 {
+				if tMax > maxValue {
+					maxValue = tMax
 				}
 			} else {
 				if dest != -1 {
 					r.transitions[offset+3*upto] = dest
-					r.transitions[offset+3*upto+1] = min
-					r.transitions[offset+3*upto+2] = max
+					r.transitions[offset+3*upto+1] = minValue
+					r.transitions[offset+3*upto+2] = maxValue
 					upto++
 				}
-				min = tMin
-				max = tMax
+				minValue = tMin
+				maxValue = tMax
 			}
 		} else {
 			if dest != -1 {
 				r.transitions[offset+3*upto] = dest
-				r.transitions[offset+3*upto+1] = min
-				r.transitions[offset+3*upto+2] = max
+				r.transitions[offset+3*upto+1] = minValue
+				r.transitions[offset+3*upto+2] = maxValue
 				upto++
 			}
 			dest = tDest
-			min = tMin
-			max = tMax
+			minValue = tMin
+			maxValue = tMax
 		}
 	}
 
 	if dest != -1 {
 		// Last transition
 		r.transitions[offset+3*upto] = dest
-		r.transitions[offset+3*upto+1] = min
-		r.transitions[offset+3*upto+2] = max
+		r.transitions[offset+3*upto+1] = minValue
+		r.transitions[offset+3*upto+2] = maxValue
 		upto++
 	}
 
 	r.nextTransition -= (numTransitions - upto) * 3
 	r.states[2*r.curState+1] = upto
 
-	// Sort transitions by min/max/dest:
+	// Sort transitions by minValue/maxValue/dest:
 	sort.Sort(&minMaxDestSorter{
 		from:      start,
 		to:        start + upto,
@@ -259,8 +265,8 @@ func (r *Automaton) finishCurrentState() {
 	if r.deterministic && upto > 1 {
 		lastMax := r.transitions[offset+2]
 		for i := 1; i < upto; i++ {
-			min = r.transitions[offset+3*i+1]
-			if min <= lastMax {
+			minValue = r.transitions[offset+3*i+1]
+			if minValue <= lastMax {
 				r.deterministic = false
 				break
 			}
@@ -275,7 +281,9 @@ func (r *Automaton) IsDeterministic() bool {
 	return r.deterministic
 }
 
-// Finishes the current state; call this once you are done adding transitions for a state. This is automatically called if you start adding transitions to a new source state, but for the last state you add you need to this method yourself.
+// Finishes the current state; call this once you are done adding transitions for a state.
+// This is automatically called if you start adding transitions to a new source state,
+// but for the last state you add you need to this method yourself.
 func (r *Automaton) finishState() {
 	if r.curState != -1 {
 		r.finishCurrentState()
@@ -333,27 +341,27 @@ func (r *destMinMaxSorter) Less(i, j int) bool {
 
 	// First dest:
 	if iDest < jDest {
-		return false
-	} else if iDest > jDest {
 		return true
+	} else if iDest > jDest {
+		return false
 	}
 
 	// Then min:
 	iMin := r.transitions[iStart+1]
 	jMin := r.transitions[jStart+1]
 	if iMin < jMin {
-		return false
-	} else if iMin > jMin {
 		return true
+	} else if iMin > jMin {
+		return false
 	}
 
 	// Then max:
 	iMax := r.transitions[iStart+2]
 	jMax := r.transitions[jStart+2]
 	if iMax < jMax {
-		return false
-	} else if iMax > jMax {
 		return true
+	} else if iMax > jMax {
+		return false
 	}
 
 	return false
@@ -389,27 +397,27 @@ func (r *minMaxDestSorter) Less(i, j int) bool {
 	iMin := r.transitions[iStart+1]
 	jMin := r.transitions[jStart+1]
 	if iMin < jMin {
-		return false
-	} else if iMin > jMin {
 		return true
+	} else if iMin > jMin {
+		return false
 	}
 
 	// Then max:
 	iMax := r.transitions[iStart+2]
 	jMax := r.transitions[jStart+2]
 	if iMax < jMax {
-		return false
-	} else if iMax > jMax {
 		return true
+	} else if iMax > jMax {
+		return false
 	}
 
 	// Then dest:
 	iDest := r.transitions[iStart]
 	jDest := r.transitions[jStart]
 	if iDest < jDest {
-		return false
-	} else if iDest > jDest {
 		return true
+	} else if iDest > jDest {
+		return false
 	}
 
 	return false
@@ -531,15 +539,18 @@ func (r *Automaton) Step(state, label int) int {
 	return r.next(state, 0, label, nil)
 }
 
-// Next Looks for the next transition that matches the provided label, assuming determinism.
+// Next
+// Looks for the next transition that matches the provided label, assuming determinism.
 // This method is similar to step(int, int) but is used more efficiently when iterating over multiple
 // transitions from the same source state. It keeps the latest reached transition index in
 // transition.transitionUpto so the next call to this method can continue from there instead of restarting
 // from the first transition.
-// Params: 	transition – The transition to start the lookup from (inclusive, using its Transition.source
 //
-//	and Transition.transitionUpto). It is updated with the matched transition; or with Transition.dest = -1 if no match.
-//	label – The codepoint to look up.
+// transition: The transition to start the lookup from (inclusive, using its Transition.source
+// and Transition.transitionUpto). It is updated with the matched transition; or with
+// Transition.dest = -1 if no match.
+//
+// label: The codepoint to look up.
 //
 // Returns: The destination state; or -1 if no matching outgoing transition.
 func (r *Automaton) Next(transition *Transition, label int) int {
@@ -547,11 +558,10 @@ func (r *Automaton) Next(transition *Transition, label int) int {
 }
 
 // Looks for the next transition that matches the provided label, assuming determinism.
-// Params: 	state – The source state.
-//
-//	fromTransitionIndex – The transition index to start the lookup from (inclusive); negative interpreted as 0.
-//	label – The codepoint to look up.
-//	transition – The output transition to update with the matching transition; or null for no update.
+// state: The source state.
+// fromTransitionIndex: The transition index to start the lookup from (inclusive); negative interpreted as 0.
+// label: The codepoint to look up.
+// transition: The output transition to update with the matching transition; or null for no update.
 //
 // Returns: The destination state; or -1 if no matching outgoing transition.
 func (r *Automaton) next(state, fromTransitionIndex, label int, transition *Transition) int {
@@ -561,12 +571,7 @@ func (r *Automaton) next(state, fromTransitionIndex, label int, transition *Tran
 
 	// Since transitions are sorted,
 	// binary search the transition for which label is within [minLabel, maxLabel].
-	low := func() int {
-		if fromTransitionIndex > 0 {
-			return fromTransitionIndex
-		}
-		return 0
-	}()
+	low := max(fromTransitionIndex, 0)
 	high := numTransitions - 1
 
 	for low <= high {
@@ -610,11 +615,11 @@ type Builder struct {
 	nextTransition int
 }
 
-func NewNewBuilderDefault() *Builder {
-	return NewBuilder(16, 16)
+func NewNewBuilder() *Builder {
+	return NewBuilderV1(16, 16)
 }
 
-func NewBuilder(numStates, numTransitions int) *Builder {
+func NewBuilderV1(numStates, numTransitions int) *Builder {
 	return &Builder{
 		nextState:      0,
 		isAccept:       bitset.New(uint(numStates)),
@@ -699,18 +704,26 @@ func (b *builderSorter) Less(i, j int) bool {
 
 	if b.values[i] < b.values[j] {
 		return true
+	} else if b.values[i] > b.values[j] {
+		return false
 	}
 
 	if b.values[i+1] < b.values[j+1] {
 		return true
+	} else if b.values[i+1] > b.values[j+1] {
+		return false
 	}
 
 	if b.values[i+2] < b.values[j+2] {
 		return true
+	} else if b.values[i+2] > b.values[j+2] {
+		return false
 	}
 
 	if b.values[i+3] < b.values[j+3] {
 		return true
+	} else if b.values[i+3] > b.values[j+3] {
+		return false
 	}
 
 	return false

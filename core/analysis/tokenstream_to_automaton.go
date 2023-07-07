@@ -47,7 +47,7 @@ const (
 )
 
 func (r *TokenStreamToAutomaton) ToAutomaton(in TokenStream) (*automaton.Automaton, error) {
-	builder := automaton.NewNewBuilderDefault()
+	builder := automaton.NewNewBuilder()
 	builder.CreateState()
 
 	//in.GetAttributeSource().Add(tokenattributes.NewPackedTokenAttributeImp())

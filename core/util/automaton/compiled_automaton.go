@@ -5,7 +5,6 @@ import (
 	"math"
 	"unicode/utf8"
 
-	"github.com/geange/lucene-go/core/index"
 	"sync/atomic"
 )
 
@@ -215,24 +214,24 @@ func (r *CompiledAutomaton) RunAutomaton() *ByteRunAutomaton {
 	return r.runAutomaton
 }
 
-func (r *CompiledAutomaton) GetTermsEnum(terms index.Terms) (index.TermsEnum, error) {
-	switch r._type {
-	case AUTOMATON_TYPE_NONE:
-		return index.EmptyTermsEnum, nil
-	case AUTOMATON_TYPE_ALL:
-		return terms.Iterator()
-	case AUTOMATON_TYPE_SINGLE:
-		it, err := terms.Iterator()
-		if err != nil {
-			return nil, err
-		}
-		return index.NewSingleTermsEnum(it, r.term), nil
-	case AUTOMATON_TYPE_NORMAL:
-		return terms.Intersect(r, nil)
-	default:
-		return nil, errors.New("unhandled case")
-	}
-}
+//func (r *CompiledAutomaton) GetTermsEnum(terms index.Terms) (index.TermsEnum, error) {
+//	switch r._type {
+//	case AUTOMATON_TYPE_NONE:
+//		return index.EmptyTermsEnum, nil
+//	case AUTOMATON_TYPE_ALL:
+//		return terms.Iterator()
+//	case AUTOMATON_TYPE_SINGLE:
+//		it, err := terms.Iterator()
+//		if err != nil {
+//			return nil, err
+//		}
+//		return index.NewSingleTermsEnum(it, r.term), nil
+//	case AUTOMATON_TYPE_NORMAL:
+//		return terms.Intersect(r, nil)
+//	default:
+//		return nil, errors.New("unhandled case")
+//	}
+//}
 
 const (
 	AUTOMATON_TYPE_NONE   = iota // Automaton that accepts no strings.
