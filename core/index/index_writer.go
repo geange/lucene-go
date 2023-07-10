@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/emirpasic/gods/maps/hashmap"
-	"github.com/emirpasic/gods/sets/hashset"
+	"github.com/geange/gods-generic/maps/hashmap"
+	"github.com/geange/gods-generic/sets/hashset"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"go.uber.org/atomic"
@@ -33,7 +33,7 @@ const (
 	// WRITE_LOCK_NAME Name of the write lock in the index.
 	WRITE_LOCK_NAME = "write.lock"
 
-	// SOURCE Key for the source of a segment in the diagnostics.
+	// SOURCE key for the source of a segment in the diagnostics.
 	SOURCE = "source"
 
 	// SOURCE_MERGE Source of a segment which results from a merge of other segments.

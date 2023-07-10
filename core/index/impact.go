@@ -1,6 +1,6 @@
 package index
 
-import "github.com/emirpasic/gods/utils"
+import "github.com/geange/gods-generic/utils"
 
 // Impact Per-document scoring factors.
 type Impact struct {

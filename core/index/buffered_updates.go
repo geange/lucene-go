@@ -1,7 +1,7 @@
 package index
 
 import (
-	"github.com/emirpasic/gods/maps/treemap"
+	"github.com/geange/gods-generic/maps/treemap"
 	"go.uber.org/atomic"
 )
 

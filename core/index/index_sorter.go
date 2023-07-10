@@ -48,7 +48,7 @@ type ComparableProvider interface {
 // 用于段内文档的排序
 type DocComparator interface {
 	// Compare docID1 against docID2. The contract for the return value is
-	// the same as Comparator.Compare(Object, Object).
+	// the same as cmp.Compare(Object, Object).
 	Compare(docID1, docID2 int) int
 }
 

@@ -1,7 +1,7 @@
 package index
 
 import (
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -47,10 +47,10 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 		}
 	})
 
-	max := 0
+	maxNum := 0
 	for _, info := range infos {
-		if info.Number() > max {
-			max = info.Number()
+		if info.Number() > maxNum {
+			maxNum = info.Number()
 		}
 	}
 

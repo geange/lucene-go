@@ -1,6 +1,6 @@
 package index
 
-import "github.com/emirpasic/gods/utils"
+import "github.com/geange/gods-generic/utils"
 
 // A Term represents a word from text. This is the unit of search. It is composed of two elements, the text of the
 // word, as a string, and the name of the field that the text occurred in. Note that terms may represent more
@@ -27,6 +27,14 @@ func (r *Term) Text() string {
 
 func (r *Term) Bytes() []byte {
 	return r.bytes
+}
+
+func TermCompare(a, b *Term) int {
+	cmp := utils.StringComparator(a.field, b.field)
+	if cmp == 0 {
+		return utils.ByteComparator(a.bytes, b.bytes)
+	}
+	return cmp
 }
 
 func TermComparator(a, b any) int {

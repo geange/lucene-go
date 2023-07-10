@@ -382,7 +382,7 @@ const (
 	// Sort values are Double and lower values are at the front.
 	DOUBLE
 
-	// CUSTOM Sort using a custom Comparator.
+	// CUSTOM Sort using a custom cmp.
 	// Sort values are any Comparable and sorting is done according to natural order.
 	CUSTOM
 

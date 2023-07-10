@@ -2,7 +2,7 @@ package simpletext
 
 import (
 	"bytes"
-	"github.com/emirpasic/gods/maps/treemap"
+	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"

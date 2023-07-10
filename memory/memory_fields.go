@@ -1,7 +1,7 @@
 package memory
 
 import (
-	"github.com/emirpasic/gods/maps/treemap"
+	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/index"
 )
 

@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/emirpasic/gods/utils"
+	"github.com/geange/gods-generic/utils"
 	"go.uber.org/atomic"
 	"math"
 )

@@ -288,7 +288,7 @@ func (f *FstEnum[T]) doSeekCeilArrayPacked(arc *Arc[T], targetLabel int, in Byte
 			f.upto--
 		}
 	} else {
-		// Ceiling - arc with least higher label
+		// ceiling - arc with least higher label
 		_, err := f.fst.ReadArcByIndex(arc, in, idx)
 		if err != nil {
 			return nil, err

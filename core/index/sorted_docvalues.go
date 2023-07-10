@@ -30,7 +30,7 @@ type SortedDocValues interface {
 	GetValueCount() int
 
 	// LookupTerm If key exists, returns its ordinal, else returns -insertionPoint-1, like Arrays.binarySearch.
-	// Params: key – Key to look up
+	// Params: key – key to look up
 	LookupTerm(key []byte) (int, error)
 
 	// TermsEnum Returns a TermsEnum over the values. The enum supports TermsEnum.ord() and TermsEnum.seekExact(long).

@@ -19,11 +19,11 @@ const (
 
 	BIT_ARC_HAS_FINAL_OUTPUT = 1 << 5
 
-	// ARCS_FOR_BINARY_SEARCH Value of the arc flags to declare a node with fixed length arcs designed for binary search.
+	// ARCS_FOR_BINARY_SEARCH value of the arc flags to declare a node with fixed length arcs designed for binary search.
 	// We use this as a marker because this one flag is illegal by itself.
 	ARCS_FOR_BINARY_SEARCH = BIT_ARC_HAS_FINAL_OUTPUT
 
-	// ARCS_FOR_DIRECT_ADDRESSING Value of the arc flags to declare a node with fixed length arcs and bit table designed for direct addressing.
+	// ARCS_FOR_DIRECT_ADDRESSING value of the arc flags to declare a node with fixed length arcs and bit table designed for direct addressing.
 	ARCS_FOR_DIRECT_ADDRESSING = 1 << 6
 
 	// FIXED_LENGTH_ARC_SHALLOW_DEPTH See Also: shouldExpandNodeWithFixedLengthArcs

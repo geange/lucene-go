@@ -5,8 +5,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/emirpasic/gods/containers"
-	"github.com/emirpasic/gods/maps/treemap"
+	"github.com/geange/gods-generic/containers"
+	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/index"
 )
 

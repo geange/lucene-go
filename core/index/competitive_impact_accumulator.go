@@ -1,8 +1,8 @@
 package index
 
 import (
-	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/emirpasic/gods/utils"
+	"github.com/geange/gods-generic/sets/treeset"
+	"github.com/geange/gods-generic/utils"
 	"math"
 )
 

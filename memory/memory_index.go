@@ -3,7 +3,7 @@ package memory
 import (
 	"errors"
 	"fmt"
-	"github.com/emirpasic/gods/maps/treemap"
+	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
