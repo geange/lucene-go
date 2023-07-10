@@ -6,12 +6,12 @@ import (
 )
 
 type MemoryFields struct {
-	fields *treemap.Map
+	fields *treemap.Map[string, *Info]
 
 	*MemoryIndex
 }
 
-func (m *MemoryIndex) NewMemoryFields(fields *treemap.Map) *MemoryFields {
+func (m *MemoryIndex) NewMemoryFields(fields *treemap.Map[string, *Info]) *MemoryFields {
 	return &MemoryFields{
 		fields:      fields,
 		MemoryIndex: m,
@@ -19,54 +19,26 @@ func (m *MemoryIndex) NewMemoryFields(fields *treemap.Map) *MemoryFields {
 }
 
 func (m *MemoryFields) Iterator() func() string {
-	m.fields.Keys()
-	keys := make([]string, 0)
-
-	m.fields.Each(func(key interface{}, value interface{}) {
-		if value.(*Info).numTokens > 0 {
-			keys = append(keys, value.(string))
-		}
-	})
-
-	for _, v := range m.fields.Keys() {
-		keys = append(keys, v.(string))
-	}
-
-	i := 0
+	iterator := m.fields.Iterator()
 
 	return func() string {
-		if i < len(keys) {
-			res := keys[i]
-			i++
-			return res
+		if iterator.Next() {
+			return iterator.Key()
 		}
 		return ""
 	}
 }
 
 func (m *MemoryFields) Names() []string {
-	m.fields.Keys()
-	keys := make([]string, 0)
-
-	m.fields.Each(func(key interface{}, value interface{}) {
-		if value.(*Info).numTokens > 0 {
-			keys = append(keys, value.(string))
-		}
-	})
-
-	for _, v := range m.fields.Keys() {
-		keys = append(keys, v.(string))
-	}
-
-	return keys
+	return m.fields.Keys()
 }
 
 func (m *MemoryFields) Terms(field string) (index.Terms, error) {
-	v, ok := m.fields.Get(field)
+	info, ok := m.fields.Get(field)
 	if !ok {
 		return nil, nil
 	}
-	info := v.(*Info)
+
 	if info.numTokens <= 0 {
 		return nil, nil
 	}

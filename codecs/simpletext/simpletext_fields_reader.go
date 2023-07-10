@@ -2,9 +2,9 @@ package simpletext
 
 import (
 	"bytes"
-	"github.com/geange/lucene-go/codecs/utils"
 
 	"github.com/geange/gods-generic/maps/treemap"
+	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -15,7 +15,7 @@ var (
 )
 
 type SimpleTextFieldsReader struct {
-	fields     *treemap.Map
+	fields     *treemap.Map[string, int64]
 	in         store.IndexInput
 	fieldInfos *index.FieldInfos
 	maxDoc     int
@@ -23,12 +23,7 @@ type SimpleTextFieldsReader struct {
 }
 
 func (s *SimpleTextFieldsReader) Names() []string {
-	keys := make([]string, 0)
-	s.fields.All(func(key interface{}, value interface{}) bool {
-		keys = append(keys, key.(string))
-		return true
-	})
-	return keys
+	return s.fields.Keys()
 }
 
 func (s *SimpleTextFieldsReader) Terms(field string) (index.Terms, error) {
@@ -38,7 +33,7 @@ func (s *SimpleTextFieldsReader) Terms(field string) (index.Terms, error) {
 		if !ok {
 			return nil, nil
 		}
-		terms, err := s.newFieldsReaderTerm(field, fp.(int64), s.maxDoc)
+		terms, err := s.newFieldsReaderTerm(field, fp, s.maxDoc)
 		if err != nil {
 			return nil, err
 		}
@@ -81,10 +76,10 @@ func NewSimpleTextFieldsReader(state *index.SegmentReadState) (*SimpleTextFields
 	return reader, nil
 }
 
-func (s *SimpleTextFieldsReader) readFields(in store.IndexInput) (*treemap.Map, error) {
+func (s *SimpleTextFieldsReader) readFields(in store.IndexInput) (*treemap.Map[string, int64], error) {
 	input := store.NewBufferedChecksumIndexInput(in)
 	scratch := new(bytes.Buffer)
-	fields := treemap.NewWithStringComparator()
+	fields := treemap.New[string, int64]()
 
 	for {
 		if err := utils.ReadLine(input, scratch); err != nil {

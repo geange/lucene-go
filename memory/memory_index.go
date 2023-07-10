@@ -84,7 +84,7 @@ import (
 // '-server -agentlib:hprof=cpu=samples,depth=10' flags, then study the trace log and correlate its hotspot
 // trailer with its call stack headers (see hprof tracing ).
 type MemoryIndex struct {
-	fields *treemap.Map
+	fields *treemap.Map[string, *Info]
 
 	storeOffsets  bool
 	storePayloads bool
@@ -111,7 +111,7 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 	}
 
 	index := MemoryIndex{
-		fields:           treemap.NewWithStringComparator(),
+		fields:           treemap.New[string, *Info](),
 		storeOffsets:     storeOffsets,
 		storePayloads:    storePayloads,
 		bytesUsed:        atomic.NewInt64(0),
@@ -240,8 +240,8 @@ func (m *MemoryIndex) SetSimilarity(similarity index.Similarity) error {
 		return nil
 	}
 
-	m.fields.Each(func(key interface{}, value interface{}) {
-		value.(*Info).norm = nil
+	m.fields.Each(func(key string, value *Info) {
+		value.norm = nil
 	})
 
 	return nil
@@ -259,8 +259,8 @@ func (m *MemoryIndex) CreateSearcher() *search.IndexSearcher {
 // After calling this you can query the MemoryIndex from multiple threads, but you cannot subsequently add new data.
 func (m *MemoryIndex) Freeze() {
 	m.frozen = true
-	m.fields.Each(func(key interface{}, value interface{}) {
-		value.(*Info).freeze()
+	m.fields.Each(func(key string, value *Info) {
+		value.freeze()
 	})
 }
 
@@ -302,7 +302,7 @@ func (m *MemoryIndex) getInfo(fieldName string, fieldType types.IndexableFieldTy
 		info = m.NewInfo(m.createFieldInfo(fieldName, m.fields.Size(), fieldType), m.byteBlockPool)
 		m.fields.Put(fieldName, info)
 	} else {
-		info = v.(*Info)
+		info = v
 	}
 
 	if !ok {

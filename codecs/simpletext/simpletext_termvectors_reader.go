@@ -2,12 +2,13 @@ package simpletext
 
 import (
 	"bytes"
+	"io"
+	"strconv"
+
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"io"
-	"strconv"
 )
 
 var _ index.TermVectorsReader = &SimpleTextTermVectorsReader{}
@@ -74,7 +75,7 @@ func (s *SimpleTextTermVectorsReader) Close() error {
 }
 
 func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
-	fields := treemap.NewWithStringComparator()
+	fields := treemap.New[string, index.Terms]()
 	if _, err := s.in.Seek(s.offsets[doc], io.SeekStart); err != nil {
 		return nil, err
 	}
@@ -151,7 +152,7 @@ func (s *SimpleTextTermVectorsReader) Get(doc int) (index.Fields, error) {
 			}
 			postings := NewSimpleTVPostings()
 
-			terms.terms.Put(value, postings)
+			terms.terms.Put([]byte(value), postings)
 			value, err = r.ReadLabel(VECTORS_TERMFREQ)
 			if err != nil {
 				return nil, err

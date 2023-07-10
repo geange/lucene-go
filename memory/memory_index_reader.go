@@ -1,13 +1,13 @@
 package memory
 
 import (
+	"math"
+
 	"github.com/geange/gods-generic/maps/treemap"
-	_ "github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
-	"math"
 )
 
 var _ index.LeafReader = &MemoryIndexReader{}
@@ -20,18 +20,18 @@ type MemoryIndexReader struct {
 	memoryFields *MemoryFields
 	fieldInfos   *index.FieldInfos
 
-	fields *treemap.Map
+	fields *treemap.Map[string, *Info]
 
 	*MemoryIndex
 }
 
-func (m *MemoryIndex) NewMemoryIndexReader(fields *treemap.Map) *MemoryIndexReader {
+func (m *MemoryIndex) NewMemoryIndexReader(fields *treemap.Map[string, *Info]) *MemoryIndexReader {
 	fieldInfosArr := make([]*types.FieldInfo, fields.Size())
 	i := 0
 	it := fields.Iterator()
 
 	for it.Next() {
-		info := it.Value().(*Info)
+		info := it.Value()
 		info.prepareDocValuesAndPointValues()
 		fieldInfosArr[i] = info.fieldInfo
 		i++
@@ -115,13 +115,7 @@ func (m *MemoryIndexReader) GetSortedNumericDocValues(field string) (index.Sorte
 }
 
 func (m *MemoryIndexReader) GetNormValues(field string) (index.NumericDocValues, error) {
-	v, _ := m.fields.Get(field)
-	info := v.(*Info)
-	if info == nil {
-		return nil, nil
-	}
-
-	info, ok := v.(*Info)
+	info, ok := m.fields.Get(field)
 	if !ok {
 		return nil, nil
 	}
@@ -146,12 +140,11 @@ func (m *MemoryIndexReader) getInfoForExpectedDocValuesType(fieldName string, ex
 		return nil
 	}
 
-	v, found := m.fields.Get(fieldName)
+	info, found := m.fields.Get(fieldName)
 	if !found {
 		return nil
 	}
 
-	info := v.(*Info)
 	if info.fieldInfo.GetDocValuesType() != expectedType {
 		return nil
 	}
@@ -167,9 +160,8 @@ func (m *MemoryIndexReader) GetLiveDocs() util.Bits {
 }
 
 func (m *MemoryIndexReader) GetPointValues(field string) (index.PointValues, bool) {
-	v, ok := m.fields.Get(field)
+	info, ok := m.fields.Get(field)
 	if ok {
-		info := v.(*Info)
 		return newMemoryIndexPointValues(info), true
 	}
 	return nil, false

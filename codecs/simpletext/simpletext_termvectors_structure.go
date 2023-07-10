@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 
-	"github.com/geange/gods-generic/containers"
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/index"
 )
@@ -15,7 +14,7 @@ var _ index.Terms = &SimpleTVTerms{}
 type SimpleTVTerms struct {
 	*index.TermsDefault
 
-	terms        *treemap.Map
+	terms        *treemap.Map[[]byte, *SimpleTVPostings]
 	hasOffsets   bool
 	hasPositions bool
 	hasPayloads  bool
@@ -23,9 +22,7 @@ type SimpleTVTerms struct {
 
 func NewSimpleTVTerms(hasOffsets, hasPositions, hasPayloads bool) *SimpleTVTerms {
 	terms := &SimpleTVTerms{
-		terms: treemap.NewWith(func(a, b interface{}) int {
-			return bytes.Compare(a.([]byte), b.([]byte))
-		}),
+		terms:        treemap.NewWith[[]byte, *SimpleTVPostings](bytes.Compare),
 		hasOffsets:   hasOffsets,
 		hasPositions: hasPositions,
 		hasPayloads:  hasPayloads,
@@ -118,7 +115,7 @@ func NewSimpleTVPostings() *SimpleTVPostings {
 
 var _ index.TermsEnum = &SimpleTVTermsEnum{}
 
-func NewSimpleTVTermsEnum(terms *treemap.Map) *SimpleTVTermsEnum {
+func NewSimpleTVTermsEnum(terms *treemap.Map[[]byte, *SimpleTVPostings]) *SimpleTVTermsEnum {
 	iterator := terms.Iterator()
 	enum := &SimpleTVTermsEnum{
 		terms:    terms,
@@ -133,21 +130,21 @@ func NewSimpleTVTermsEnum(terms *treemap.Map) *SimpleTVTermsEnum {
 type SimpleTVTermsEnum struct {
 	*index.BaseTermsEnum
 
-	terms *treemap.Map
+	terms *treemap.Map[[]byte, *SimpleTVPostings]
 
-	iterator containers.IteratorWithKey
+	iterator *treemap.Iterator[[]byte, *SimpleTVPostings]
 }
 
 func (s *SimpleTVTermsEnum) Next() ([]byte, error) {
 	if !s.iterator.Next() {
 		return nil, io.EOF
 	}
-	return s.iterator.Key().([]byte), nil
+	return s.iterator.Key(), nil
 }
 
 func (s *SimpleTVTermsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
-	k, v := s.terms.Ceiling(text)
-	if k != nil && v != nil {
+	_, _, ok := s.terms.Ceiling(text)
+	if ok {
 		return index.SEEK_STATUS_FOUND, nil
 	}
 	return index.SEEK_STATUS_NOT_FOUND, nil
@@ -158,7 +155,7 @@ func (s *SimpleTVTermsEnum) SeekExactByOrd(ord int64) error {
 }
 
 func (s *SimpleTVTermsEnum) Term() ([]byte, error) {
-	return s.iterator.Key().([]byte), nil
+	return s.iterator.Key(), nil
 }
 
 func (s *SimpleTVTermsEnum) Ord() (int64, error) {
@@ -170,19 +167,14 @@ func (s *SimpleTVTermsEnum) DocFreq() (int, error) {
 }
 
 func (s *SimpleTVTermsEnum) TotalTermFreq() (int64, error) {
-	postings, ok := s.iterator.Value().(*SimpleTVPostings)
-	if !ok {
-		return 0, errors.New("type error")
-	}
+	postings := s.iterator.Value()
 	return int64(postings.freq), nil
 }
 
 func (s *SimpleTVTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
 	if index.FeatureRequested(flags, index.POSTINGS_ENUM_POSITIONS) {
-		postings, ok := s.iterator.Value().(*SimpleTVPostings)
-		if !ok {
-			return nil, errors.New("type error")
-		}
+		postings := s.iterator.Value()
+
 		if len(postings.positions) > 0 || len(postings.startOffsets) > 0 {
 			o := NewSimpleTVPostingsEnum()
 			o.Reset(postings.positions, postings.startOffsets, postings.endOffsets, postings.payloads)
@@ -193,7 +185,7 @@ func (s *SimpleTVTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index
 	e := NewSimpleTVDocsEnum()
 	freq := 1
 	if !index.FeatureRequested(flags, index.POSTINGS_ENUM_FREQS) {
-		freq = s.iterator.Value().(*SimpleTVPostings).freq
+		freq = s.iterator.Value().freq
 	}
 	e.Reset(freq)
 	return e, nil
@@ -210,21 +202,16 @@ func (s *SimpleTVTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 
 var _ index.Fields = &SimpleTVFields{}
 
-func NewSimpleTVFields(fields *treemap.Map) *SimpleTVFields {
+func NewSimpleTVFields(fields *treemap.Map[string, index.Terms]) *SimpleTVFields {
 	return &SimpleTVFields{fields: fields}
 }
 
 type SimpleTVFields struct {
-	fields *treemap.Map
+	fields *treemap.Map[string, index.Terms]
 }
 
 func (s *SimpleTVFields) Names() []string {
-	keys := s.fields.Keys()
-	values := make([]string, 0, len(keys))
-	for _, key := range keys {
-		values = append(values, key.(string))
-	}
-	return values
+	return s.fields.Keys()
 }
 
 func (s *SimpleTVFields) Terms(field string) (index.Terms, error) {

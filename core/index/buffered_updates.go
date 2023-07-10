@@ -16,17 +16,17 @@ import (
 type BufferedUpdates struct {
 	numTermDeletes  *atomic.Int64
 	numFieldUpdates *atomic.Int64
-	deleteTerms     *treemap.Map
-	deleteQueries   *treemap.Map
-	gen             int64
-	segmentName     string
+	deleteTerms     *treemap.Map[*Term, int]
+	//deleteQueries   *treemap.Map
+	gen         int64
+	segmentName string
 }
 
 func NewBufferedUpdates() *BufferedUpdates {
 	return &BufferedUpdates{
 		numTermDeletes:  nil,
 		numFieldUpdates: nil,
-		deleteTerms:     treemap.NewWith(TermComparator),
+		deleteTerms:     treemap.NewWith[*Term, int](TermCompare),
 	}
 }
 
@@ -34,15 +34,15 @@ func NewBufferedUpdatesV1(segmentName string) *BufferedUpdates {
 	return &BufferedUpdates{
 		numTermDeletes:  nil,
 		numFieldUpdates: nil,
-		deleteTerms:     treemap.NewWith(TermComparator),
+		deleteTerms:     treemap.NewWith[*Term, int](TermCompare),
 		segmentName:     segmentName,
 	}
 }
 
 func (b *BufferedUpdates) AddTerm(term *Term, docIDUpto int) {
-	value, ok := b.deleteTerms.Get(term)
+	current, ok := b.deleteTerms.Get(term)
 	if ok {
-		if current, ok := value.(int); ok && current > docIDUpto {
+		if current > docIDUpto {
 			// Only record the new number if it's greater than the
 			// current one.  This is important because if multiple
 			// threads are replacing the same doc at nearly the
