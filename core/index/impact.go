@@ -16,9 +16,9 @@ func NewImpact(freq int, norm int64) *Impact {
 	return &Impact{Freq: freq, Norm: norm}
 }
 
-func ImpactComparator(a, b interface{}) int {
-	c1 := a.(Impact)
-	c2 := b.(Impact)
+func ImpactComparator(c1, c2 *Impact) int {
+	//c1 := a.(Impact)
+	//c2 := b.(Impact)
 
 	cmp := utils.IntComparator(c1.Freq, c2.Freq)
 	if cmp == 0 {

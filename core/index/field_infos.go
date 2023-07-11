@@ -35,9 +35,7 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 	hasPointValues := false
 	softDeletesField := ""
 
-	tmap := treeset.NewWith(func(a, b interface{}) int {
-		info1 := a.(*types.FieldInfo)
-		info2 := b.(*types.FieldInfo)
+	tmap := treeset.NewWith[*types.FieldInfo](func(info1, info2 *types.FieldInfo) int {
 		if info1.Number() == info2.Number() {
 			return 0
 		} else if info1.Number() > info2.Number() {
@@ -106,11 +104,7 @@ func NewFieldInfos(infos []*types.FieldInfo) *FieldInfos {
 	values := tmap.Values()
 	items := make([]*types.FieldInfo, 0, len(values))
 	for _, value := range values {
-		info, ok := value.(*types.FieldInfo)
-		if ok {
-			items = append(items, info)
-		}
-
+		items = append(items, value)
 	}
 	this.byNumber = items
 	this.values = items
