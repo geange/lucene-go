@@ -6,14 +6,14 @@ type Hash interface {
 
 type Map[K Hash, V any] struct {
 	mp     map[int64]int
-	values []*Entry[K, V]
+	values []*MapEntry[K, V]
 	rmIdx  []int
 }
 
 func NewMap[K Hash, V any]() *Map[K, V] {
 	return &Map[K, V]{
 		mp:     map[int64]int{},
-		values: make([]*Entry[K, V], 0),
+		values: make([]*MapEntry[K, V], 0),
 		rmIdx:  make([]int, 0),
 	}
 }
@@ -27,7 +27,7 @@ func (m *Map[K, V]) Put(key K, value V) {
 			m.values[idx].Key = key
 			m.values[idx].Value = value
 		} else {
-			m.values = append(m.values, &Entry[K, V]{Key: key, Value: value})
+			m.values = append(m.values, &MapEntry[K, V]{Key: key, Value: value})
 			m.mp[code] = len(m.values) - 1
 		}
 	}
@@ -62,7 +62,7 @@ func (m *Map[K, V]) Clear() {
 	clear(m.mp)
 }
 
-type Entry[K Hash, V any] struct {
+type MapEntry[K Hash, V any] struct {
 	Key   K
 	Value V
 }
