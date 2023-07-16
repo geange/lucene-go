@@ -1,12 +1,13 @@
 package automaton
 
 import (
-	"cmp"
 	"errors"
+	"sync/atomic"
+
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/gods-generic/cmp"
 	"github.com/geange/lucene-go/core/util/bitmixer"
 	"github.com/geange/lucene-go/core/util/structure"
-	"sync/atomic"
 )
 
 // DeterminizeAutomaton Determinizes the given automaton.
