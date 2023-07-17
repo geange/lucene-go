@@ -311,10 +311,7 @@ func NewSkipBuffer(in store.IndexInput, length int) (*SkipBuffer, error) {
 		pointer: in.GetFilePointer(),
 	}
 	input.IndexInputDefault = store.NewIndexInputDefault(&store.IndexInputDefaultConfig{
-		DataInputDefaultConfig: store.DataInputDefaultConfig{
-			ReadByte: input.ReadByte,
-			Read:     input.Read,
-		},
+		Reader:         input,
 		Close:          input.Close,
 		GetFilePointer: input.GetFilePointer,
 		Seek:           input.Seek,

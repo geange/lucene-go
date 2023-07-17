@@ -12,7 +12,7 @@ import (
 // let you read while writing which Fst needs
 
 type ByteStore struct {
-	*store.DataOutputDefault
+	*store.WriterX
 
 	blocks *arraylist.List[[]byte]
 
@@ -36,10 +36,7 @@ func NewByteStore(blockBits int) *ByteStore {
 		nextWrite: 0,
 	}
 	byteStore.blocks.Add(byteStore.current)
-	byteStore.DataOutputDefault = store.NewDataOutputDefault(&store.DataOutputDefaultConfig{
-		WriteByte:  byteStore.WriteByte,
-		WriteBytes: byteStore.Write,
-	})
+	byteStore.WriterX = store.NewWriterX(byteStore)
 	return byteStore
 }
 

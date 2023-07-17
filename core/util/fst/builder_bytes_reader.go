@@ -1,11 +1,13 @@
 package fst
 
-import "github.com/geange/lucene-go/core/store"
+import (
+	"github.com/geange/lucene-go/core/store"
+)
 
 var _ BytesReader = &BuilderBytesReader{}
 
 type BuilderBytesReader struct {
-	*store.DataInputDefault
+	*store.ReaderX
 	bs         *ByteStore
 	current    []byte
 	nextBuffer int
@@ -15,9 +17,9 @@ type BuilderBytesReader struct {
 func NewBuilderBytesReader(bs *ByteStore) (*BuilderBytesReader, error) {
 	var current []byte
 	if bs.blocks.Size() != 0 {
-		v, err := bs.blocks.Get(0)
-		if err != nil {
-			return nil, err
+		v, ok := bs.blocks.Get(0)
+		if !ok {
+			return nil, ErrItemNotFound
 		}
 		current = v
 	}
@@ -29,19 +31,16 @@ func NewBuilderBytesReader(bs *ByteStore) (*BuilderBytesReader, error) {
 		nextRead:   0,
 	}
 
-	reader.DataInputDefault = store.NewDataInputDefault(&store.DataInputDefaultConfig{
-		ReadByte: reader.ReadByte,
-		Read:     reader.Read,
-	})
+	reader.ReaderX = store.NewReaderX(reader)
 	return reader, nil
 }
 
 func (b *BuilderBytesReader) ReadByte() (byte, error) {
 	if b.nextRead == -1 {
-		var err error
-		b.current, err = b.bs.blocks.Get(b.nextBuffer)
-		if err != nil {
-			return 0, err
+		var ok bool
+		b.current, ok = b.bs.blocks.Get(b.nextBuffer)
+		if !ok {
+			return 0, ErrItemNotFound
 		}
 		b.nextBuffer++
 		b.nextRead = int(b.bs.blockSize - 1)
@@ -74,13 +73,13 @@ func (b *BuilderBytesReader) SetPosition(pos int64) error {
 	// NOTE: a little weird because if you
 	// setPosition(0), the next byte you read is
 	// bytes[0] ... but I would expect bytes[-1] (ie,
-	// EOF)...?
+	// isEof)...?
 	bufferIndex := (int)(pos >> b.bs.blockBits)
 	if b.nextBuffer != bufferIndex-1 {
 		b.nextBuffer = bufferIndex - 1
-		v, err := b.bs.blocks.Get(bufferIndex)
-		if err != nil {
-			return err
+		v, ok := b.bs.blocks.Get(bufferIndex)
+		if !ok {
+			return ErrItemNotFound
 		}
 		b.current = v
 	}

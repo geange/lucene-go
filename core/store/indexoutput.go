@@ -19,15 +19,15 @@ type IndexOutput interface {
 }
 
 type IndexOutputDefault struct {
-	*DataOutputDefault
+	*WriterX
 
 	name string
 }
 
-func NewIndexOutputDefault(name string, cfg *DataOutputDefaultConfig) *IndexOutputDefault {
+func NewIndexOutputDefault(name string, writer io.Writer) *IndexOutputDefault {
 	return &IndexOutputDefault{
-		DataOutputDefault: NewDataOutputDefault(cfg),
-		name:              name,
+		WriterX: NewWriterX(writer),
+		name:    name,
 	}
 }
 

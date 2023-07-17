@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/gods-generic/maps/hashmap"
-	"github.com/geange/gods-generic/sets/hashset"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"go.uber.org/atomic"
@@ -74,31 +72,31 @@ type IndexWriter struct {
 	mergeSource              MergeSource
 	writeDocValuesLock       sync.RWMutex
 	deleter                  *IndexFileDeleter
-	segmentsToMerge          *hashmap.Map
-	mergeMaxNumSegments      int
-	writeLock                store.Lock
-	closed                   bool
-	closing                  bool
-	_maybeMerge              *atomic.Bool
-	commitUserData           []map[string]string
-	mergingSegments          *hashset.Set
-	mergeScheduler           MergeScheduler
-	runningAddIndexesMerges  *hashset.Set
-	pendingMerges            []*OneMerge
-	runningMerges            *hashset.Set
-	mergeExceptions          []*OneMerge
-	mergeGen                 int64
-	merges                   *Merges
-	didMessageState          bool
-	flushCount               *atomic.Int64
-	flushDeletesCount        *atomic.Int64
-	readerPool               *ReaderPool
-	mergeFinishedGen         *atomic.Int64
-	bufferedUpdatesStream    *BufferedUpdatesStream
-	config                   *IndexWriterConfig
-	startCommitTime          int64
-	pendingNumDocs           *atomic.Int64
-	softDeletesEnabled       bool
+	//segmentsToMerge          *hashmap.Map
+	mergeMaxNumSegments int
+	writeLock           store.Lock
+	closed              bool
+	closing             bool
+	_maybeMerge         *atomic.Bool
+	commitUserData      []map[string]string
+	//mergingSegments          *hashset.Set
+	mergeScheduler MergeScheduler
+	//runningAddIndexesMerges  *hashset.Set
+	pendingMerges []*OneMerge
+	//runningMerges            *hashset.Set
+	mergeExceptions       []*OneMerge
+	mergeGen              int64
+	merges                *Merges
+	didMessageState       bool
+	flushCount            *atomic.Int64
+	flushDeletesCount     *atomic.Int64
+	readerPool            *ReaderPool
+	mergeFinishedGen      *atomic.Int64
+	bufferedUpdatesStream *BufferedUpdatesStream
+	config                *IndexWriterConfig
+	startCommitTime       int64
+	pendingNumDocs        *atomic.Int64
+	softDeletesEnabled    bool
 }
 
 func NewIndexWriter(d store.Directory, conf *IndexWriterConfig) (*IndexWriter, error) {

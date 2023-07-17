@@ -21,10 +21,7 @@ func NewBufferedChecksumIndexInput(main IndexInput) *BufferedChecksumIndexInput 
 		digest: crc32.NewIEEE(),
 	}
 	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		DataInputDefaultConfig: DataInputDefaultConfig{
-			ReadByte: input.ReadByte,
-			Read:     input.Read,
-		},
+		Reader:         input,
 		Close:          input.Close,
 		GetFilePointer: input.GetFilePointer,
 		Seek:           input.Seek,

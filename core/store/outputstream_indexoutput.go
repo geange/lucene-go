@@ -33,10 +33,7 @@ func NewOutputStreamIndexOutput(name string, out io.WriteCloser) *OutputStreamIn
 		closer: out,
 		crc:    crc32.NewIEEE(),
 	}
-	output.IndexOutputDefault = NewIndexOutputDefault(name, &DataOutputDefaultConfig{
-		WriteByte:  output.WriteByte,
-		WriteBytes: output.Write,
-	})
+	output.IndexOutputDefault = NewIndexOutputDefault(name, output)
 	return output
 }
 

@@ -82,10 +82,7 @@ func NewNIOFSIndexInput(file *os.File, ctx *IOContext) *NIOFSIndexInput {
 	}
 
 	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		DataInputDefaultConfig: DataInputDefaultConfig{
-			ReadByte: nil,
-			Read:     input.Read,
-		},
+		Reader:         input,
 		Close:          input.Close,
 		GetFilePointer: input.GetFilePointer,
 		Seek:           input.Seek,
@@ -106,10 +103,7 @@ func NewNIOFSIndexInputV1(file *os.File, off, length int64) *NIOFSIndexInput {
 	}
 
 	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		DataInputDefaultConfig: DataInputDefaultConfig{
-			ReadByte: nil,
-			Read:     input.Read,
-		},
+		Reader:         input,
 		Close:          input.Close,
 		GetFilePointer: input.GetFilePointer,
 		Seek:           input.Seek,
@@ -145,10 +139,7 @@ func (n *NIOFSIndexInput) Clone() IndexInput {
 	//	SeekInternal: input.SeekInternal,
 	//}
 	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		DataInputDefaultConfig: DataInputDefaultConfig{
-			ReadByte: nil,
-			Read:     input.Read,
-		},
+		Reader:         input,
 		Close:          input.Close,
 		GetFilePointer: input.GetFilePointer,
 		Seek:           input.Seek,
@@ -171,7 +162,7 @@ func (n *NIOFSIndexInput) Clone() IndexInput {
 //func (n *NIOFSIndexInput) Read(b []byte) (int, error) {
 //	num, err := n.file.ReadAt(b, n.pointer)
 //	if err != nil {
-//		if err != io.EOF {
+//		if err != io.isEof {
 //			return 0, err
 //		}
 //	}

@@ -8,17 +8,14 @@ var (
 )
 
 type OutputStreamDataOutput struct {
-	*DataOutputDefault
+	*WriterX
 
 	os io.WriteCloser
 }
 
 func NewOutputStreamDataOutput(os io.WriteCloser) *OutputStreamDataOutput {
 	output := &OutputStreamDataOutput{os: os}
-	output.DataOutputDefault = NewDataOutputDefault(&DataOutputDefaultConfig{
-		WriteByte:  nil,
-		WriteBytes: output.Write,
-	})
+	output.WriterX = NewWriterX(output)
 	return output
 }
 

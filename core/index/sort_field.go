@@ -14,6 +14,12 @@ const (
 	STRING_LAST  = "SortField.STRING_LAST"
 )
 
+// SortField
+// Stores information about how to sort documents by terms in an individual field.
+// Fields must be indexed in order to sort by them.
+// Created: Feb 11, 2004 1:25:29 PM
+// Since: lucene 1.4
+// See Also: Sort
 type SortField interface {
 	// GetMissingValue Return the value to use for documents that don't have a value.
 	// A value of null indicates that default should be used.

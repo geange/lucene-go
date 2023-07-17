@@ -44,7 +44,7 @@ type IndexInput interface {
 }
 
 type IndexInputDefault struct {
-	*DataInputDefault
+	*ReaderX
 
 	close          func() error
 	getFilePointer func() int64
@@ -66,8 +66,7 @@ func (i *IndexInputDefault) RandomAccessSlice(offset int64, length int64) (Rando
 }
 
 type IndexInputDefaultConfig struct {
-	DataInputDefaultConfig
-
+	Reader         io.Reader
 	Close          func() error
 	GetFilePointer func() int64
 	Seek           func(pos int64, whence int) (int64, error)
@@ -77,7 +76,7 @@ type IndexInputDefaultConfig struct {
 
 func NewIndexInputDefault(cfg *IndexInputDefaultConfig) *IndexInputDefault {
 	return &IndexInputDefault{
-		DataInputDefault: NewDataInputDefault(&cfg.DataInputDefaultConfig),
+		ReaderX: NewReaderX(cfg.Reader),
 
 		close:          cfg.Close,
 		getFilePointer: cfg.GetFilePointer,
@@ -89,12 +88,12 @@ func NewIndexInputDefault(cfg *IndexInputDefaultConfig) *IndexInputDefault {
 
 func (i *IndexInputDefault) Clone(cfg *IndexInputDefaultConfig) *IndexInputDefault {
 	return &IndexInputDefault{
-		DataInputDefault: i.DataInputDefault.Clone(&cfg.DataInputDefaultConfig),
-		close:            cfg.Close,
-		getFilePointer:   cfg.GetFilePointer,
-		seek:             cfg.Seek,
-		slice:            cfg.Slice,
-		length:           cfg.Length,
+		ReaderX:        i.ReaderX.Clone(cfg.Reader),
+		close:          cfg.Close,
+		getFilePointer: cfg.GetFilePointer,
+		seek:           cfg.Seek,
+		slice:          cfg.Slice,
+		length:         cfg.Length,
 	}
 }
 

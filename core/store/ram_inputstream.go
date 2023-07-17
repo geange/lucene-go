@@ -44,10 +44,7 @@ func NewRAMInputStreamV2(name string, f *RAMFile, length int64) (*RAMInputStream
 	}
 
 	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		DataInputDefaultConfig: DataInputDefaultConfig{
-			ReadByte: input.ReadByte,
-			Read:     input.Read,
-		},
+		Reader:         input,
 		Close:          input.Close,
 		GetFilePointer: input.GetFilePointer,
 		Seek:           input.Seek,
@@ -129,7 +126,7 @@ func (r *RAMInputStream) Seek(pos int64, whence int) (int64, error) {
 	// This is not >= because seeking to exact end of file is OK: this is where
 	// you'd also be if you did a readBytes of all bytes in the file
 	if r.GetFilePointer() > r.Length() {
-		return 0, errors.New("seek beyond EOF")
+		return 0, errors.New("seek beyond isEof")
 	}
 
 	return 0, nil
@@ -154,7 +151,7 @@ func (r *RAMInputStream) Length() int64 {
 func (r *RAMInputStream) nextBuffer() error {
 	// This is >= because we are called when there is at least 1 more byte to read:
 	if r.GetFilePointer() >= r.Length() {
-		return errors.New("cannot read another byte at EOF")
+		return errors.New("cannot read another byte at isEof")
 	}
 
 	r.currentBufferIndex++

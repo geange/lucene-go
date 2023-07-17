@@ -123,10 +123,7 @@ func (r *PagedBytes) Freeze(trim bool) (*PagedBytesReader, error) {
 
 func (r *PagedBytes) GetDataInput() *PagedBytesDataInput {
 	input := NewPagedBytesDataInput(r)
-	input.DataInputDefault = store.NewDataInputDefault(&store.DataInputDefaultConfig{
-		ReadByte: input.ReadByte,
-		Read:     input.Read,
-	})
+	input.ReaderX = store.NewReaderX(input)
 	return input
 }
 
@@ -185,7 +182,7 @@ func (p *PagedBytesReader) FillSlice(b *bytes.Buffer, start, length int) {
 var _ store.DataInput = &PagedBytesDataInput{}
 
 type PagedBytesDataInput struct {
-	*store.DataInputDefault
+	*store.ReaderX
 	*PagedBytes
 
 	currentBlockIndex int
@@ -198,10 +195,7 @@ func NewPagedBytesDataInput(pageBytes *PagedBytes) *PagedBytesDataInput {
 		PagedBytes:   pageBytes,
 		currentBlock: pageBytes.blocks[0],
 	}
-	input.DataInputDefault = store.NewDataInputDefault(&store.DataInputDefaultConfig{
-		ReadByte: input.ReadByte,
-		Read:     input.Read,
-	})
+	input.ReaderX = store.NewReaderX(input)
 	return input
 }
 
@@ -248,16 +242,13 @@ func (r *PagedBytesDataInput) getPosition() int64 {
 var _ store.DataOutput = &PagedBytesDataOutput{}
 
 type PagedBytesDataOutput struct {
-	*store.DataOutputDefault
+	*store.WriterX
 	*PagedBytes
 }
 
 func (r *PagedBytes) GetDataOutput() *PagedBytesDataOutput {
 	output := &PagedBytesDataOutput{PagedBytes: r}
-	output.DataOutputDefault = store.NewDataOutputDefault(&store.DataOutputDefaultConfig{
-		WriteByte:  output.WriteByte,
-		WriteBytes: output.Write,
-	})
+	output.WriterX = store.NewWriterX(output)
 	return output
 }
 

@@ -80,10 +80,7 @@ func NewRAMOutputStreamV1(name string, f *RAMFile, checksum bool) *RAMOutputStre
 		currentBufferIndex: -1,
 	}
 
-	output.IndexOutputDefault = NewIndexOutputDefault(name, &DataOutputDefaultConfig{
-		WriteByte:  output.WriteByte,
-		WriteBytes: output.Write,
-	})
+	output.IndexOutputDefault = NewIndexOutputDefault(name, output)
 
 	if checksum {
 		output.crc = crc32.NewIEEE()

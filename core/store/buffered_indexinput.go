@@ -67,10 +67,7 @@ func NewBufferedIndexInputDefault(cfg *BufferedIndexInputDefaultConfig) *Buffere
 	}
 
 	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		DataInputDefaultConfig: DataInputDefaultConfig{
-			ReadByte: input.ReadByte,
-			Read:     input.Read,
-		},
+		Reader:         input,
 		Close:          cfg.Close,
 		GetFilePointer: cfg.GetFilePointer,
 		Seek:           cfg.Seek,

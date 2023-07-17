@@ -8,6 +8,10 @@ import (
 
 var _ CodecReader = &SegmentReader{}
 
+// SegmentReader
+// IndexReader implementation over a single segment.
+// Instances pointing to the same segment (but with different deletes, etc) may share the same core data.
+// lucene.experimental
 type SegmentReader struct {
 	*CodecReaderDefault
 
@@ -31,7 +35,8 @@ type SegmentReader struct {
 	core         *SegmentCoreReaders
 	segDocValues *SegmentDocValues
 
-	// True if we are holding RAM only liveDocs or DV updates, i.e. the SegmentCommitInfo delGen doesn't match our liveDocs.
+	// True if we are holding RAM only liveDocs or DV updates,
+	// i.e. the SegmentCommitInfo delGen doesn't match our liveDocs.
 	isNRT bool
 
 	docValuesProducer DocValuesProducer

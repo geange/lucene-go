@@ -23,7 +23,7 @@ type TermsEnum interface {
 	SeekExact(text []byte) (bool, error)
 
 	// SeekCeil eeks to the specified term, if it exists, or to the next (ceiling) term. Returns SeekStatus to
-	// indicate whether exact term was found, a different term was found, or EOF was hit. The target term may be
+	// indicate whether exact term was found, a different term was found, or isEof was hit. The target term may be
 	// before or after the current term. If this returns SeekStatus.END, the enum is unpositioned.
 	SeekCeil(text []byte) (SeekStatus, error)
 
