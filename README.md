@@ -1,5 +1,7 @@
 # lucene-go
 
+[English](README_en.md)
+
 ## 概要
 
 > 兼容 Apache Lucene 8.11.2 的 Go版Lucene
