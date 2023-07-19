@@ -11,7 +11,7 @@ var _ IndexOutput = &OutputStreamIndexOutput{}
 
 // OutputStreamIndexOutput Implementation class for buffered IndexOutput that writes to an OutputStream.
 type OutputStreamIndexOutput struct {
-	*IndexOutputDefault
+	*IndexOutputBase
 	out    *bufio.Writer
 	closer io.Closer
 
@@ -33,7 +33,7 @@ func NewOutputStreamIndexOutput(name string, out io.WriteCloser) *OutputStreamIn
 		closer: out,
 		crc:    crc32.NewIEEE(),
 	}
-	output.IndexOutputDefault = NewIndexOutputDefault(name, output)
+	output.IndexOutputBase = NewIndexOutputBase(name, output)
 	return output
 }
 

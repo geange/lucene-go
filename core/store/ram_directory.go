@@ -23,7 +23,7 @@ var _ BaseDirectory = &RAMDirectory{}
 // This class uses inefficient synchronization and is discouraged in favor of MMapDirectory. It will
 // be removed in future versions of Lucene.
 type RAMDirectory struct {
-	*BaseDirectoryImp
+	*BaseDirectoryBase
 
 	fileMap     map[string]*RAMFile
 	sizeInBytes int64

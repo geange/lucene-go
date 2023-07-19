@@ -7,16 +7,23 @@ import (
 
 var _ FSDirectory = &NIOFSDirectory{}
 
-// NIOFSDirectory An FSDirectory implementation that uses java.nio's FileChannel's positional read, which allows multiple threads to read from the same file without synchronizing.
+// NIOFSDirectory An FSDirectory implementation that uses java.nio's FileChannel's positional read,
+// which allows multiple threads to read from the same file without synchronizing.
 // This class only uses FileChannel when reading; writing is achieved with FSDirectory.FSIndexOutput.
-// NOTE: NIOFSDirectory is not recommended on Windows because of a bug in how FileChannel.read is implemented in Sun's JRE. Inside of the implementation the pos is apparently synchronized. See here  for details.
-// NOTE: Accessing this class either directly or indirectly from a thread while it's interrupted can close the underlying file descriptor immediately if at the same time the thread is blocked on IO. The file descriptor will remain closed and subsequent access to NIOFSDirectory will throw a ClosedChannelException. If your application uses either Thread.interrupt() or Future.cancel(boolean) you should use the legacy RAFDirectory from the Lucene misc module in favor of NIOFSDirectory.
+// NOTE: NIOFSDirectory is not recommended on Windows because of a bug in how FileChannel.read is
+// implemented in Sun's JRE. Inside of the implementation the pos is apparently synchronized.
+// See here  for details.
+// NOTE: Accessing this class either directly or indirectly from a thread while it's interrupted can
+// close the underlying file descriptor immediately if at the same time the thread is blocked on IO.
+// The file descriptor will remain closed and subsequent access to NIOFSDirectory will throw a ClosedChannelException.
+// If your application uses either Thread.interrupt() or Future.cancel(boolean) you should use the legacy
+// RAFDirectory from the Lucene misc module in favor of NIOFSDirectory.
 type NIOFSDirectory struct {
-	*FSDirectoryImp
+	*FSDirectoryBase
 }
 
 func NewNIOFSDirectory(path string) (*NIOFSDirectory, error) {
-	directory, err := NewFSDirectoryImp(path, NewSimpleFSLockFactory())
+	directory, err := NewFSDirectoryBase(path, NewSimpleFSLockFactory())
 	if err != nil {
 		return nil, err
 	}
@@ -43,10 +50,9 @@ func (n *NIOFSDirectory) OpenInput(name string, context *IOContext) (IndexInput,
 var _ IndexInput = &NIOFSIndexInput{}
 
 type NIOFSIndexInput struct {
-	*IndexInputDefault
+	*IndexInputBase
 
-	file *os.File
-
+	file    *os.File
 	off     int64
 	end     int64
 	pos     int64
@@ -81,15 +87,7 @@ func NewNIOFSIndexInput(file *os.File, ctx *IOContext) *NIOFSIndexInput {
 		end:  info.Size(),
 	}
 
-	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		Reader:         input,
-		Close:          input.Close,
-		GetFilePointer: input.GetFilePointer,
-		Seek:           input.Seek,
-		Slice:          input.Slice,
-		Length:         input.Length,
-	})
-
+	input.IndexInputBase = NewIndexInputBase(input)
 	return input
 }
 
@@ -102,14 +100,7 @@ func NewNIOFSIndexInputV1(file *os.File, off, length int64) *NIOFSIndexInput {
 		isClone: true,
 	}
 
-	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		Reader:         input,
-		Close:          input.Close,
-		GetFilePointer: input.GetFilePointer,
-		Seek:           input.Seek,
-		Slice:          input.Slice,
-		Length:         input.Length,
-	})
+	input.IndexInputBase = NewIndexInputBase(input)
 
 	return input
 }
@@ -123,52 +114,9 @@ func (n *NIOFSIndexInput) Clone() IndexInput {
 		end:     n.end,
 	}
 
-	//cfg := &BufferedIndexInputDefaultConfig{
-	//	IndexInputDefaultConfig: IndexInputDefaultConfig{
-	//		DataInputDefaultConfig: DataInputDefaultConfig{
-	//			ReadByte: input.ReadByte,
-	//			Read:     input.Read,
-	//		},
-	//		Close:          input.Close,
-	//		GetFilePointer: input.GetFilePointer,
-	//		Seek:           input.Seek,
-	//		Slice:          input.Slice,
-	//		Length:         input.Length,
-	//	},
-	//	ReadInternal: input.ReadInternal,
-	//	SeekInternal: input.SeekInternal,
-	//}
-	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		Reader:         input,
-		Close:          input.Close,
-		GetFilePointer: input.GetFilePointer,
-		Seek:           input.Seek,
-		Slice:          input.Slice,
-		Length:         input.Length,
-	})
+	input.IndexInputBase = NewIndexInputBase(input)
 	return input
 }
-
-//func (n *NIOFSIndexInput) ReadByte() (byte, error) {
-//	bs := [1]byte{}
-//	_, err := n.file.ReadAt(bs[:], n.pointer)
-//	if err != nil {
-//		return 0, err
-//	}
-//	n.pointer++
-//	return bs[0], nil
-//}
-//
-//func (n *NIOFSIndexInput) Read(b []byte) (int, error) {
-//	num, err := n.file.ReadAt(b, n.pointer)
-//	if err != nil {
-//		if err != io.isEof {
-//			return 0, err
-//		}
-//	}
-//	n.pointer += int64(num)
-//	return len(b), err
-//}
 
 func (n *NIOFSIndexInput) Close() error {
 	if n.isClone {

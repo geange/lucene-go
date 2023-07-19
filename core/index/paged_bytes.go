@@ -123,7 +123,7 @@ func (r *PagedBytes) Freeze(trim bool) (*PagedBytesReader, error) {
 
 func (r *PagedBytes) GetDataInput() *PagedBytesDataInput {
 	input := NewPagedBytesDataInput(r)
-	input.ReaderX = store.NewReaderX(input)
+	input.Reader = store.NewReader(input)
 	return input
 }
 
@@ -182,7 +182,7 @@ func (p *PagedBytesReader) FillSlice(b *bytes.Buffer, start, length int) {
 var _ store.DataInput = &PagedBytesDataInput{}
 
 type PagedBytesDataInput struct {
-	*store.ReaderX
+	*store.Reader
 	*PagedBytes
 
 	currentBlockIndex int
@@ -195,7 +195,7 @@ func NewPagedBytesDataInput(pageBytes *PagedBytes) *PagedBytesDataInput {
 		PagedBytes:   pageBytes,
 		currentBlock: pageBytes.blocks[0],
 	}
-	input.ReaderX = store.NewReaderX(input)
+	input.Reader = store.NewReader(input)
 	return input
 }
 
@@ -242,13 +242,13 @@ func (r *PagedBytesDataInput) getPosition() int64 {
 var _ store.DataOutput = &PagedBytesDataOutput{}
 
 type PagedBytesDataOutput struct {
-	*store.WriterX
+	*store.Writer
 	*PagedBytes
 }
 
 func (r *PagedBytes) GetDataOutput() *PagedBytesDataOutput {
 	output := &PagedBytesDataOutput{PagedBytes: r}
-	output.WriterX = store.NewWriterX(output)
+	output.Writer = store.NewWriter(output)
 	return output
 }
 

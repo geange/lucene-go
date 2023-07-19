@@ -12,7 +12,7 @@ var _ IndexOutput = &RAMOutputStream{}
 // It will be removed in future versions of Lucene.
 type RAMOutputStream struct {
 	//*IndexOutputImp
-	*IndexOutputDefault
+	*IndexOutputBase
 
 	bufferSize         int
 	file               *RAMFile
@@ -80,7 +80,7 @@ func NewRAMOutputStreamV1(name string, f *RAMFile, checksum bool) *RAMOutputStre
 		currentBufferIndex: -1,
 	}
 
-	output.IndexOutputDefault = NewIndexOutputDefault(name, output)
+	output.IndexOutputBase = NewIndexOutputBase(name, output)
 
 	if checksum {
 		output.crc = crc32.NewIEEE()

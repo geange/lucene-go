@@ -15,7 +15,7 @@ var _ store.DataInput = &ByteSliceReader{}
 // point we read the forwarding address of the next slice
 // and then jump to it.
 type ByteSliceReader struct {
-	store.ReaderX
+	store.Reader
 
 	pool         *util.ByteBlockPool
 	bufferUpto   int

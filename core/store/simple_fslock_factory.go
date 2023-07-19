@@ -17,12 +17,12 @@ var _ FSLockFactory = &SimpleFSLockFactory{}
 // This is a singleton, you have to use INSTANCE.
 // See Also: LockFactory
 type SimpleFSLockFactory struct {
-	*FSLockFactoryImp
+	*FSLockFactoryBase
 }
 
 func NewSimpleFSLockFactory() *SimpleFSLockFactory {
 	factory := &SimpleFSLockFactory{}
-	factory.FSLockFactoryImp = NewFSLockFactoryImp(factory)
+	factory.FSLockFactoryBase = NewFSLockFactoryImp(factory)
 	return factory
 }
 

@@ -11,6 +11,12 @@ type BufferedIndexInput interface {
 	IndexInput
 	//RandomAccessInput
 
+	BufferedIndexInputInner
+
+	SetBufferSize(newSize int)
+}
+
+type BufferedIndexInputInner interface {
 	// ReadInternal Expert: implements buffer refill. Reads bytes from the current pos in the input.
 	// Params: b – the buffer to read bytes into
 	ReadInternal(buf *bytes.Buffer, size int) error
@@ -19,8 +25,6 @@ type BufferedIndexInput interface {
 	// readInternal(ByteBuffer) will occur.
 	// See Also: readInternal(ByteBuffer)
 	SeekInternal(pos int) error
-
-	SetBufferSize(newSize int)
 }
 
 const (
@@ -40,44 +44,28 @@ const (
 	MERGE_BUFFER_SIZE = 4096
 )
 
-type BufferedIndexInputDefaultConfig struct {
-	IndexInputDefaultConfig
-
-	ReadInternal func(buf *bytes.Buffer, size int) error
-	SeekInternal func(pos int) error
-}
-
-type BufferedIndexInputDefault struct {
-	*IndexInputDefault
+type BufferedIndexInputBase struct {
+	*IndexInputBase
 
 	bufferSize     int
 	bufferStart    int // pos in file of buffer
 	bufferPosition int // pos in buffer
 	buffer         *bytes.Buffer
 
-	readInternal func(buf *bytes.Buffer, size int) error
-	seekInternal func(pos int) error
+	buffInner BufferedIndexInputInner
 }
 
-func NewBufferedIndexInputDefault(cfg *BufferedIndexInputDefaultConfig) *BufferedIndexInputDefault {
-	input := &BufferedIndexInputDefault{
-		bufferSize:   BUFFER_SIZE,
-		readInternal: cfg.ReadInternal,
-		seekInternal: cfg.SeekInternal,
+func NewBufferedIndexInputBase(bInput BufferedIndexInput) *BufferedIndexInputBase {
+	input := &BufferedIndexInputBase{
+		bufferSize: BUFFER_SIZE,
+		buffInner:  bInput,
 	}
 
-	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		Reader:         input,
-		Close:          cfg.Close,
-		GetFilePointer: cfg.GetFilePointer,
-		Seek:           cfg.Seek,
-		Slice:          cfg.Slice,
-		Length:         cfg.Length,
-	})
+	input.IndexInputBase = NewIndexInputBase(bInput)
 	return input
 }
 
-func (r *BufferedIndexInputDefault) Clone(cfg *BufferedIndexInputDefaultConfig) *BufferedIndexInputDefault {
+func (r *BufferedIndexInputBase) Clone(bInput BufferedIndexInput) *BufferedIndexInputBase {
 	var buffer *bytes.Buffer
 	if r.buffer != nil {
 		buffer = bytes.NewBuffer(r.buffer.Bytes())
@@ -85,18 +73,17 @@ func (r *BufferedIndexInputDefault) Clone(cfg *BufferedIndexInputDefaultConfig) 
 		buffer = new(bytes.Buffer)
 	}
 
-	return &BufferedIndexInputDefault{
-		IndexInputDefault: r.IndexInputDefault.Clone(&cfg.IndexInputDefaultConfig),
-		bufferSize:        r.bufferSize,
-		bufferStart:       r.bufferStart,
-		bufferPosition:    r.bufferPosition,
-		buffer:            buffer,
-		readInternal:      cfg.ReadInternal,
-		seekInternal:      cfg.SeekInternal,
+	return &BufferedIndexInputBase{
+		IndexInputBase: r.IndexInputBase.Clone(bInput),
+		bufferSize:     r.bufferSize,
+		bufferStart:    r.bufferStart,
+		bufferPosition: r.bufferPosition,
+		buffer:         buffer,
+		buffInner:      bInput,
 	}
 }
 
-func (r *BufferedIndexInputDefault) ReadByte() (byte, error) {
+func (r *BufferedIndexInputBase) ReadByte() (byte, error) {
 	if r.buffer == nil {
 		if err := r.refill(); err != nil {
 			return 0, err
@@ -117,7 +104,7 @@ func (r *BufferedIndexInputDefault) ReadByte() (byte, error) {
 	return b, nil
 }
 
-func (r *BufferedIndexInputDefault) Read(b []byte) (n int, err error) {
+func (r *BufferedIndexInputBase) Read(b []byte) (n int, err error) {
 	if r.buffer == nil {
 		if err := r.refill(); err != nil {
 			return 0, err
@@ -143,19 +130,19 @@ func (r *BufferedIndexInputDefault) Read(b []byte) (n int, err error) {
 	leftSize := len(b) - available
 	newBuffer := bytes.NewBuffer(b[available:])
 	newBuffer.Reset()
-	if err := r.readInternal(newBuffer, leftSize); err != nil {
+	if err := r.buffInner.ReadInternal(newBuffer, leftSize); err != nil {
 		return 0, err
 	}
 	r.bufferStart += newBuffer.Len()
 	return newBuffer.Len() + available, nil
 }
 
-func (r *BufferedIndexInputDefault) GetFilePointer() int64 {
+func (r *BufferedIndexInputBase) GetFilePointer() int64 {
 	return int64(r.bufferStart + r.bufferPosition)
 }
 
 // SetBufferSize Change the buffer size used by this IndexInput
-func (r *BufferedIndexInputDefault) SetBufferSize(newSize int) {
+func (r *BufferedIndexInputBase) SetBufferSize(newSize int) {
 	if newSize != r.bufferSize && newSize >= MIN_BUFFER_SIZE {
 		r.bufferSize = newSize
 		if r.buffer != nil {
@@ -171,18 +158,18 @@ func (r *BufferedIndexInputDefault) SetBufferSize(newSize int) {
 	}
 }
 
-func (r *BufferedIndexInputDefault) refill() error {
+func (r *BufferedIndexInputBase) refill() error {
 	start := r.bufferStart + r.bufferPosition
 	if r.buffer == nil {
 		r.buffer = bytes.NewBuffer(make([]byte, r.bufferSize))
-		if err := r.seekInternal(r.bufferStart); err != nil {
+		if err := r.buffInner.SeekInternal(r.bufferStart); err != nil {
 			return err
 		}
 	}
 	r.buffer.Reset()
 	r.bufferStart = start
 
-	return r.readInternal(r.buffer, r.bufferSize)
+	return r.buffInner.ReadInternal(r.buffer, r.bufferSize)
 }
 
 // Change the buffer size used by this IndexInput

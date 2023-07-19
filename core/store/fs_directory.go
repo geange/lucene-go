@@ -24,10 +24,10 @@ type FSDirectory interface {
 	GetDirectory() (string, error)
 }
 
-//var _ Directory = &FSDirectoryImp{}
+//var _ Directory = &FSDirectoryBase{}
 
-type FSDirectoryImp struct {
-	*BaseDirectoryImp
+type FSDirectoryBase struct {
+	*BaseDirectoryBase
 
 	// The underlying filesystem directory
 	directory string
@@ -41,14 +41,13 @@ type FSDirectoryImp struct {
 	nextTempFileCounter *atomic.Int64
 }
 
-func NewFSDirectoryImp(path string, factory LockFactory) (*FSDirectoryImp, error) {
+func NewFSDirectoryBase(path string, factory LockFactory) (*FSDirectoryBase, error) {
 	directory, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return &FSDirectoryImp{
-
+	return &FSDirectoryBase{
 		directory:           directory,
 		pendingDeletes:      map[string]struct{}{},
 		opsSinceLastDelete:  atomic.NewInt64(0),
@@ -56,7 +55,7 @@ func NewFSDirectoryImp(path string, factory LockFactory) (*FSDirectoryImp, error
 	}, nil
 }
 
-func (f *FSDirectoryImp) ListAll() ([]string, error) {
+func (f *FSDirectoryBase) ListAll() ([]string, error) {
 	stat, err := os.Stat(f.directory)
 	if err != nil {
 		return nil, err
@@ -75,7 +74,7 @@ func (f *FSDirectoryImp) ListAll() ([]string, error) {
 	return names, nil
 }
 
-func (f *FSDirectoryImp) DeleteFile(name string) error {
+func (f *FSDirectoryBase) DeleteFile(name string) error {
 	if _, ok := f.pendingDeletes[name]; ok {
 		return fmt.Errorf("file %s is pending delete", name)
 	}
@@ -86,7 +85,7 @@ func (f *FSDirectoryImp) DeleteFile(name string) error {
 	return f.maybeDeletePendingFiles()
 }
 
-func (f *FSDirectoryImp) FileLength(name string) (int64, error) {
+func (f *FSDirectoryBase) FileLength(name string) (int64, error) {
 	if _, ok := f.pendingDeletes[name]; ok {
 		return 0, fmt.Errorf("file %s is pending delete", name)
 	}
@@ -98,7 +97,7 @@ func (f *FSDirectoryImp) FileLength(name string) (int64, error) {
 	return fileInfo.Size(), nil
 }
 
-func (f *FSDirectoryImp) CreateOutput(name string, context *IOContext) (IndexOutput, error) {
+func (f *FSDirectoryBase) CreateOutput(name string, context *IOContext) (IndexOutput, error) {
 	if err := f.EnsureOpen(); err != nil {
 		return nil, err
 	}
@@ -117,7 +116,7 @@ func (f *FSDirectoryImp) CreateOutput(name string, context *IOContext) (IndexOut
 	return f.NewFSIndexOutput(name)
 }
 
-func (f *FSDirectoryImp) CreateTempOutput(prefix, suffix string, context *IOContext) (IndexOutput, error) {
+func (f *FSDirectoryBase) CreateTempOutput(prefix, suffix string, context *IOContext) (IndexOutput, error) {
 	if err := f.EnsureOpen(); err != nil {
 		return nil, err
 	}
@@ -135,7 +134,7 @@ func (f *FSDirectoryImp) CreateTempOutput(prefix, suffix string, context *IOCont
 	}
 }
 
-func (f *FSDirectoryImp) Sync(names []string) error {
+func (f *FSDirectoryBase) Sync(names []string) error {
 	if err := f.EnsureOpen(); err != nil {
 		return err
 	}
@@ -148,13 +147,13 @@ func (f *FSDirectoryImp) Sync(names []string) error {
 	return nil
 }
 
-func (f *FSDirectoryImp) fsync(name string) error {
+func (f *FSDirectoryBase) fsync(name string) error {
 	//  IOUtils.fsync(directory.resolve(name), false);
 	// TODO:
 	return nil
 }
 
-func (f *FSDirectoryImp) SyncMetaData() error {
+func (f *FSDirectoryBase) SyncMetaData() error {
 	// TODO: to improve listCommits(), IndexFileDeleter could call this after deleting segments_Ns
 	if err := f.EnsureOpen(); err != nil {
 		return err
@@ -163,7 +162,7 @@ func (f *FSDirectoryImp) SyncMetaData() error {
 	return f.maybeDeletePendingFiles()
 }
 
-func (f *FSDirectoryImp) Rename(source, dest string) error {
+func (f *FSDirectoryBase) Rename(source, dest string) error {
 	if err := f.EnsureOpen(); err != nil {
 		return err
 	}
@@ -182,21 +181,21 @@ func (f *FSDirectoryImp) Rename(source, dest string) error {
 	return os.Rename(f.resolveFilePath(source), f.resolveFilePath(dest))
 }
 
-//func (f *FSDirectoryImp) OpenInput(name string, context *IOContext) (IndexInput, error) {
+//func (f *FSDirectoryBase) OpenInput(name string, context *IOContext) (IndexInput, error) {
 //	//TODO implement me
 //	panic("implement me")
 //}
 
-func (f *FSDirectoryImp) Close() error {
+func (f *FSDirectoryBase) Close() error {
 	f.isOpen = false
 	return f.deletePendingFiles()
 }
 
-func (f *FSDirectoryImp) EnsureOpen() error {
+func (f *FSDirectoryBase) EnsureOpen() error {
 	return nil
 }
 
-func (f *FSDirectoryImp) GetPendingDeletions() (map[string]struct{}, error) {
+func (f *FSDirectoryBase) GetPendingDeletions() (map[string]struct{}, error) {
 	if err := f.deletePendingFiles(); err != nil {
 		return nil, err
 	}
@@ -204,11 +203,11 @@ func (f *FSDirectoryImp) GetPendingDeletions() (map[string]struct{}, error) {
 	return f.pendingDeletes, nil
 }
 
-func (f *FSDirectoryImp) resolveFilePath(name string) string {
+func (f *FSDirectoryBase) resolveFilePath(name string) string {
 	return filepath.Join(f.directory, name)
 }
 
-func (f *FSDirectoryImp) privateDeleteFile(name string, isPendingDelete bool) error {
+func (f *FSDirectoryBase) privateDeleteFile(name string, isPendingDelete bool) error {
 	delete(f.pendingDeletes, name)
 	err := os.Remove(f.resolveFilePath(name))
 	if err != nil {
@@ -223,7 +222,7 @@ func (f *FSDirectoryImp) privateDeleteFile(name string, isPendingDelete bool) er
 	return nil
 }
 
-func (f *FSDirectoryImp) maybeDeletePendingFiles() error {
+func (f *FSDirectoryBase) maybeDeletePendingFiles() error {
 	if len(f.pendingDeletes) > 0 {
 		count := int(f.opsSinceLastDelete.Add(1))
 		if count >= len(f.pendingDeletes) {
@@ -235,7 +234,7 @@ func (f *FSDirectoryImp) maybeDeletePendingFiles() error {
 
 // try to delete any pending files that we had previously tried to delete but failed because we are on
 // Windows and the files were still held open.
-func (f *FSDirectoryImp) deletePendingFiles() error {
+func (f *FSDirectoryBase) deletePendingFiles() error {
 
 	if len(f.pendingDeletes) == 0 {
 		return nil
@@ -255,7 +254,7 @@ type FSIndexOutput struct {
 	*OutputStreamIndexOutput
 }
 
-func (f *FSDirectoryImp) NewFSIndexOutput(name string) (*FSIndexOutput, error) {
+func (f *FSDirectoryBase) NewFSIndexOutput(name string) (*FSIndexOutput, error) {
 	file, err := os.OpenFile(f.resolveFilePath(name), os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, err
@@ -266,14 +265,14 @@ func (f *FSDirectoryImp) NewFSIndexOutput(name string) (*FSIndexOutput, error) {
 	}, nil
 }
 
-func (f *FSDirectoryImp) ensureCanRead(name string) error {
+func (f *FSDirectoryBase) ensureCanRead(name string) error {
 	if _, ok := f.pendingDeletes[name]; ok {
 		return fmt.Errorf("file \"%s\" is pending delete and cannot be opened for read", name)
 	}
 	return nil
 }
 
-func (f *FSDirectoryImp) GetDirectory() (string, error) {
+func (f *FSDirectoryBase) GetDirectory() (string, error) {
 	if err := f.EnsureOpen(); err != nil {
 		return "", err
 	}

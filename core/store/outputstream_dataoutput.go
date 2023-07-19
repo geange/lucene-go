@@ -8,14 +8,14 @@ var (
 )
 
 type OutputStreamDataOutput struct {
-	*WriterX
+	*Writer
 
 	os io.WriteCloser
 }
 
 func NewOutputStreamDataOutput(os io.WriteCloser) *OutputStreamDataOutput {
 	output := &OutputStreamDataOutput{os: os}
-	output.WriterX = NewWriterX(output)
+	output.Writer = NewWriter(output)
 	return output
 }
 

@@ -7,15 +7,15 @@ var NoLockFactoryInstance = NewNoLockFactory()
 // NoLockFactory Use this LockFactory to disable locking entirely. This is a singleton, you have to use INSTANCE.
 // See Also: LockFactory
 type NoLockFactory struct {
-	SINGLETON_LOCK *NoLock
+	singletonLock *NoLock
 }
 
 func NewNoLockFactory() *NoLockFactory {
-	return &NoLockFactory{SINGLETON_LOCK: &NoLock{}}
+	return &NoLockFactory{singletonLock: &NoLock{}}
 }
 
 func (n *NoLockFactory) ObtainLock(dir Directory, lockName string) (Lock, error) {
-	return n.SINGLETON_LOCK, nil
+	return n.singletonLock, nil
 }
 
 var _ Lock = &NoLock{}

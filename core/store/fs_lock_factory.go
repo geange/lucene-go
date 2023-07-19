@@ -7,29 +7,27 @@ import "errors"
 type FSLockFactory interface {
 	LockFactory
 
-	// ObtainFSLock Implement this method to obtain a lock for a FSDirectory instance.
+	// FSLockFactoryInner Implement this method to obtain a lock for a FSDirectory instance.
 	// Throws: IOException – if the lock could not be obtained.
+	FSLockFactoryInner
+}
+
+type FSLockFactoryInner interface {
 	ObtainFSLock(dir FSDirectory, lockName string) (Lock, error)
 }
 
-type FSLockFactoryNeed interface {
-	ObtainFSLock(dir FSDirectory, lockName string) (Lock, error)
+type FSLockFactoryBase struct {
+	locker FSLockFactoryInner
 }
 
-var _ FSLockFactory = &FSLockFactoryImp{}
-
-type FSLockFactoryImp struct {
-	FSLockFactoryNeed
+func NewFSLockFactoryImp(inner FSLockFactoryInner) *FSLockFactoryBase {
+	return &FSLockFactoryBase{locker: inner}
 }
 
-func NewFSLockFactoryImp(need FSLockFactoryNeed) *FSLockFactoryImp {
-	return &FSLockFactoryImp{FSLockFactoryNeed: need}
-}
-
-func (f *FSLockFactoryImp) ObtainLock(dir Directory, lockName string) (Lock, error) {
+func (f *FSLockFactoryBase) ObtainLock(dir Directory, lockName string) (Lock, error) {
 	fsDir, ok := dir.(FSDirectory)
 	if !ok {
 		return nil, errors.New("can only be used with FSDirectory subclasses")
 	}
-	return f.ObtainFSLock(fsDir, lockName)
+	return f.locker.ObtainFSLock(fsDir, lockName)
 }

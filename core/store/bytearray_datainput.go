@@ -6,7 +6,7 @@ var _ DataInput = &ByteArrayDataInput{}
 
 // ByteArrayDataInput DataInput backed by a byte array. WARNING: This class omits all low-level checks.
 type ByteArrayDataInput struct {
-	*ReaderX
+	*Reader
 
 	buf *bytes.Buffer
 }
@@ -16,7 +16,7 @@ func NewByteArrayDataInput(bs []byte) *ByteArrayDataInput {
 		buf: bytes.NewBuffer(bs),
 	}
 
-	input.ReaderX = NewReaderX(input)
+	input.Reader = NewReader(input)
 	return input
 }
 

@@ -347,14 +347,14 @@ func (s *SimpleTextSegmentInfoFormat) Write(dir store.Directory,
 var _ store.DataOutput = &BytesOutput{}
 
 type BytesOutput struct {
-	*store.WriterX
+	*store.Writer
 
 	bytes *bytes.Buffer
 }
 
 func NewBytesOutput() *BytesOutput {
 	output := &BytesOutput{bytes: new(bytes.Buffer)}
-	output.WriterX = store.NewWriterX(output)
+	output.Writer = store.NewWriter(output)
 	return output
 }
 

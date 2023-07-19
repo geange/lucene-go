@@ -12,7 +12,7 @@ import (
 // let you read while writing which Fst needs
 
 type ByteStore struct {
-	*store.WriterX
+	*store.Writer
 
 	blocks *arraylist.List[[]byte]
 
@@ -36,7 +36,7 @@ func NewByteStore(blockBits int) *ByteStore {
 		nextWrite: 0,
 	}
 	byteStore.blocks.Add(byteStore.current)
-	byteStore.WriterX = store.NewWriterX(byteStore)
+	byteStore.Writer = store.NewWriter(byteStore)
 	return byteStore
 }
 

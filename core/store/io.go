@@ -74,15 +74,15 @@ type DataInput interface {
 	SkipBytes(numBytes int) error
 }
 
-func NewReaderX(reader io.Reader) *ReaderX {
-	return &ReaderX{
+func NewReader(reader io.Reader) *Reader {
+	return &Reader{
 		reader: reader,
 		endian: binary.BigEndian,
 		buff:   make([]byte, 48),
 	}
 }
 
-type ReaderX struct {
+type Reader struct {
 	reader io.Reader
 	endian binary.ByteOrder
 	buff   []byte
@@ -97,14 +97,14 @@ type ReaderX struct {
 	skipBuffer []byte
 }
 
-func (d *ReaderX) Clone(reader io.Reader) *ReaderX {
+func (d *Reader) Clone(reader io.Reader) *Reader {
 	buff := make([]byte, len(d.buff))
 	copy(buff, d.buff)
 
 	skipBuffer := make([]byte, len(d.skipBuffer))
 	copy(skipBuffer, d.skipBuffer)
 
-	return &ReaderX{
+	return &Reader{
 		reader:     reader,
 		endian:     d.endian,
 		buff:       buff,
@@ -112,7 +112,7 @@ func (d *ReaderX) Clone(reader io.Reader) *ReaderX {
 	}
 }
 
-func (d *ReaderX) ReadByte() (byte, error) {
+func (d *Reader) ReadByte() (byte, error) {
 	_, err := d.reader.Read(d.buff[:1])
 	if err != nil {
 		return 0, err
@@ -120,7 +120,7 @@ func (d *ReaderX) ReadByte() (byte, error) {
 	return d.buff[0], nil
 }
 
-func (d *ReaderX) ReadUint16() (uint16, error) {
+func (d *Reader) ReadUint16() (uint16, error) {
 	_, err := d.reader.Read(d.buff[:2])
 	if err != nil {
 		return 0, err
@@ -128,7 +128,7 @@ func (d *ReaderX) ReadUint16() (uint16, error) {
 	return d.endian.Uint16(d.buff), nil
 }
 
-func (d *ReaderX) ReadUint32() (uint32, error) {
+func (d *Reader) ReadUint32() (uint32, error) {
 	_, err := d.reader.Read(d.buff[:4])
 	if err != nil {
 		return 0, err
@@ -136,7 +136,7 @@ func (d *ReaderX) ReadUint32() (uint32, error) {
 	return d.endian.Uint32(d.buff), nil
 }
 
-func (d *ReaderX) ReadUvarint() (uint64, error) {
+func (d *Reader) ReadUvarint() (uint64, error) {
 	num, err := binary.ReadUvarint(d)
 	if err != nil {
 		return 0, err
@@ -144,12 +144,12 @@ func (d *ReaderX) ReadUvarint() (uint64, error) {
 	return num, err
 }
 
-func (d *ReaderX) ReadZInt32() (int64, error) {
+func (d *Reader) ReadZInt32() (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ReaderX) ReadUint64() (uint64, error) {
+func (d *Reader) ReadUint64() (uint64, error) {
 	_, err := d.reader.Read(d.buff[:8])
 	if err != nil {
 		return 0, err
@@ -157,12 +157,12 @@ func (d *ReaderX) ReadUint64() (uint64, error) {
 	return d.endian.Uint64(d.buff), nil
 }
 
-func (d *ReaderX) ReadZInt64() (int64, error) {
+func (d *Reader) ReadZInt64() (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ReaderX) ReadString() (string, error) {
+func (d *Reader) ReadString() (string, error) {
 	num, err := d.ReadUvarint()
 	if err != nil {
 		return "", err
@@ -184,7 +184,7 @@ func (d *ReaderX) ReadString() (string, error) {
 	return string(d.buff[:length]), nil
 }
 
-func (d *ReaderX) ReadMapOfStrings() (map[string]string, error) {
+func (d *Reader) ReadMapOfStrings() (map[string]string, error) {
 	count, err := d.ReadUvarint()
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func (d *ReaderX) ReadMapOfStrings() (map[string]string, error) {
 	return values, nil
 }
 
-func (d *ReaderX) ReadSetOfStrings() (map[string]struct{}, error) {
+func (d *Reader) ReadSetOfStrings() (map[string]struct{}, error) {
 	count, err := d.ReadUvarint()
 	if err != nil {
 		return nil, err
@@ -235,7 +235,7 @@ func (d *ReaderX) ReadSetOfStrings() (map[string]struct{}, error) {
 // SkipBytes Closer Skip over numBytes bytes. The contract on this method is that it should have the
 // same behavior as reading the same number of bytes into a buffer and discarding its content.
 // Negative values of numBytes are not supported.
-func (d *ReaderX) SkipBytes(numBytes int) error {
+func (d *Reader) SkipBytes(numBytes int) error {
 	if numBytes < 0 {
 		return fmt.Errorf("numBytes must be >= 0, got %d", numBytes)
 	}
@@ -252,7 +252,7 @@ func (d *ReaderX) SkipBytes(numBytes int) error {
 	return nil
 }
 
-func (d *ReaderX) Close() error {
+func (d *Reader) Close() error {
 	return nil
 }
 
@@ -323,22 +323,22 @@ type DataOutput interface {
 	WriteSetOfStrings(values map[string]struct{}) error
 }
 
-type WriterX struct {
+type Writer struct {
 	writer     io.Writer
 	endian     binary.ByteOrder
 	buffer     []byte
 	copyBuffer []byte
 }
 
-func NewWriterX(writer io.Writer) *WriterX {
-	return &WriterX{
+func NewWriter(writer io.Writer) *Writer {
+	return &Writer{
 		writer: writer,
 		endian: binary.BigEndian,
 		buffer: make([]byte, 48),
 	}
 }
 
-func (d *WriterX) WriteByte(c byte) error {
+func (d *Writer) WriteByte(c byte) error {
 	//if w, ok := d.writer.(io.ByteWriter); ok {
 	//	return w.WriteByte(c)
 	//}
@@ -346,41 +346,41 @@ func (d *WriterX) WriteByte(c byte) error {
 	return err
 }
 
-func (d *WriterX) WriteUint32(i uint32) error {
+func (d *Writer) WriteUint32(i uint32) error {
 	d.endian.PutUint32(d.buffer, i)
 	_, err := d.writer.Write(d.buffer[:4])
 	return err
 }
 
-func (d *WriterX) WriteUint16(i uint16) error {
+func (d *Writer) WriteUint16(i uint16) error {
 	d.endian.PutUint16(d.buffer, i)
 	_, err := d.writer.Write(d.buffer[:2])
 	return err
 }
 
-func (d *WriterX) WriteUvarint(i uint64) error {
+func (d *Writer) WriteUvarint(i uint64) error {
 	num := binary.PutUvarint(d.buffer, i)
 	_, err := d.writer.Write(d.buffer[:num])
 	return err
 }
 
-func (d *WriterX) WriteZInt32(i int32) error {
+func (d *Writer) WriteZInt32(i int32) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *WriterX) WriteUint64(i uint64) error {
+func (d *Writer) WriteUint64(i uint64) error {
 	d.endian.PutUint64(d.buffer, i)
 	_, err := d.writer.Write(d.buffer[:8])
 	return err
 }
 
-func (d *WriterX) WriteZInt64(i int64) error {
+func (d *Writer) WriteZInt64(i int64) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *WriterX) WriteString(s string) error {
+func (d *Writer) WriteString(s string) error {
 	err := d.WriteUvarint(uint64(len([]rune(s))))
 	if err != nil {
 		return err
@@ -393,7 +393,7 @@ const (
 	COPY_BUFFER_SIZE = 16384
 )
 
-func (d *WriterX) CopyBytes(input DataInput, numBytes int) error {
+func (d *Writer) CopyBytes(input DataInput, numBytes int) error {
 	left := numBytes
 	if len(d.copyBuffer) == 0 {
 		d.copyBuffer = make([]byte, COPY_BUFFER_SIZE)
@@ -419,7 +419,7 @@ func (d *WriterX) CopyBytes(input DataInput, numBytes int) error {
 	return nil
 }
 
-func (d *WriterX) WriteMapOfStrings(values map[string]string) error {
+func (d *Writer) WriteMapOfStrings(values map[string]string) error {
 	if err := d.WriteUvarint(uint64(len(values))); err != nil {
 		return err
 	}
@@ -435,7 +435,7 @@ func (d *WriterX) WriteMapOfStrings(values map[string]string) error {
 	return nil
 }
 
-func (d *WriterX) WriteSetOfStrings(values map[string]struct{}) error {
+func (d *Writer) WriteSetOfStrings(values map[string]struct{}) error {
 	if err := d.WriteUvarint(uint64(len(values))); err != nil {
 		return err
 	}

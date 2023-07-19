@@ -7,7 +7,7 @@ import (
 var _ BytesReader = &BuilderBytesReader{}
 
 type BuilderBytesReader struct {
-	*store.ReaderX
+	*store.Reader
 	bs         *ByteStore
 	current    []byte
 	nextBuffer int
@@ -31,7 +31,7 @@ func NewBuilderBytesReader(bs *ByteStore) (*BuilderBytesReader, error) {
 		nextRead:   0,
 	}
 
-	reader.ReaderX = store.NewReaderX(reader)
+	reader.Reader = store.NewReader(reader)
 	return reader, nil
 }
 

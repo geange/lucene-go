@@ -7,28 +7,27 @@ type BaseDirectory interface {
 	Directory
 }
 
-type BaseDirectoryImp struct {
-	dir Directory
-
+type BaseDirectoryBase struct {
+	dir    Directory
 	isOpen bool
 
 	// Holds the LockFactory instance (implements locking for this Directory instance).
 	lockFactory LockFactory
 }
 
-func NewBaseDirectoryImp(dir Directory, lockFactory LockFactory) *BaseDirectoryImp {
-	return &BaseDirectoryImp{
+func NewBaseDirectoryBase(dir Directory, lockFactory LockFactory) *BaseDirectoryBase {
+	return &BaseDirectoryBase{
 		dir:         dir,
 		isOpen:      true,
 		lockFactory: lockFactory,
 	}
 }
 
-func (b *BaseDirectoryImp) ObtainLock(name string) (Lock, error) {
+func (b *BaseDirectoryBase) ObtainLock(name string) (Lock, error) {
 	return b.lockFactory.ObtainLock(b.dir, name)
 }
 
-func (b *BaseDirectoryImp) EnsureOpen() error {
+func (b *BaseDirectoryBase) EnsureOpen() error {
 	if !b.isOpen {
 		return errors.New("this Directory is closed")
 	}

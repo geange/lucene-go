@@ -14,7 +14,7 @@ var _ IndexInput = &RAMInputStream{}
 // It will be removed in future versions of Lucene.
 // lucene.internal
 type RAMInputStream struct {
-	*IndexInputDefault
+	*IndexInputBase
 
 	bufferSize         int
 	file               *RAMFile
@@ -43,14 +43,7 @@ func NewRAMInputStreamV2(name string, f *RAMFile, length int64) (*RAMInputStream
 		return nil, errors.New("RAMInputStream too large length")
 	}
 
-	input.IndexInputDefault = NewIndexInputDefault(&IndexInputDefaultConfig{
-		Reader:         input,
-		Close:          input.Close,
-		GetFilePointer: input.GetFilePointer,
-		Seek:           input.Seek,
-		Slice:          input.Slice,
-		Length:         input.Length,
-	})
+	input.IndexInputBase = NewIndexInputBase(input)
 
 	err := input.setCurrentBuffer()
 	if err != nil {

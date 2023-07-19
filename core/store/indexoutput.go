@@ -18,19 +18,19 @@ type IndexOutput interface {
 	GetChecksum() (uint32, error)
 }
 
-type IndexOutputDefault struct {
-	*WriterX
+type IndexOutputBase struct {
+	*Writer
 
 	name string
 }
 
-func NewIndexOutputDefault(name string, writer io.Writer) *IndexOutputDefault {
-	return &IndexOutputDefault{
-		WriterX: NewWriterX(writer),
-		name:    name,
+func NewIndexOutputBase(name string, writer io.Writer) *IndexOutputBase {
+	return &IndexOutputBase{
+		Writer: NewWriter(writer),
+		name:   name,
 	}
 }
 
-func (r *IndexOutputDefault) GetName() string {
+func (r *IndexOutputBase) GetName() string {
 	return r.name
 }

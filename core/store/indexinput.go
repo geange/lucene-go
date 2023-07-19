@@ -25,13 +25,18 @@ type IndexInput interface {
 	//Seek(pos int64, whence int) (int64, error)
 	io.Seeker
 
+	IndexInputInner
+
+	Clone() IndexInput
+}
+
+type IndexInputInner interface {
 	// GetFilePointer Returns the current pos in this file, where the next read will occur.
 	// See Also: seek(long)
 	GetFilePointer() int64
 
-	Clone() IndexInput
-
-	// Slice Creates a slice of this index input, with the given description, offset, and length. The slice is sought to the beginning.
+	// Slice Creates a slice of this index input, with the given description, offset, and length.
+	// The slice is sought to the beginning.
 	Slice(sliceDescription string, offset, length int64) (IndexInput, error)
 
 	// Length The number of bytes in the file.
@@ -43,18 +48,14 @@ type IndexInput interface {
 	RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error)
 }
 
-type IndexInputDefault struct {
-	*ReaderX
+type IndexInputBase struct {
+	*Reader
 
-	close          func() error
-	getFilePointer func() int64
-	seek           func(pos int64, whence int) (int64, error)
-	slice          func(sliceDescription string, offset, length int64) (IndexInput, error)
-	length         func() int64
+	inner IndexInputInner
 }
 
-func (i *IndexInputDefault) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
-	slice, err := i.slice("randomaccess", offset, length)
+func (i *IndexInputBase) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
+	slice, err := i.inner.Slice("randomaccess", offset, length)
 	if err != nil {
 		return nil, err
 	}
@@ -74,27 +75,44 @@ type IndexInputDefaultConfig struct {
 	Length         func() int64
 }
 
-func NewIndexInputDefault(cfg *IndexInputDefaultConfig) *IndexInputDefault {
-	return &IndexInputDefault{
-		ReaderX: NewReaderX(cfg.Reader),
-
-		close:          cfg.Close,
-		getFilePointer: cfg.GetFilePointer,
-		seek:           cfg.Seek,
-		slice:          cfg.Slice,
-		length:         cfg.Length,
+func NewIndexInputBase(input IndexInput) *IndexInputBase {
+	return &IndexInputBase{
+		Reader: NewReader(input),
+		inner:  input,
 	}
 }
 
-func (i *IndexInputDefault) Clone(cfg *IndexInputDefaultConfig) *IndexInputDefault {
-	return &IndexInputDefault{
-		ReaderX:        i.ReaderX.Clone(cfg.Reader),
-		close:          cfg.Close,
-		getFilePointer: cfg.GetFilePointer,
-		seek:           cfg.Seek,
-		slice:          cfg.Slice,
-		length:         cfg.Length,
+func (i *IndexInputBase) Clone(inner IndexInput) *IndexInputBase {
+	reader, ok := inner.(io.Reader)
+	if !ok {
+		return nil
 	}
+
+	return &IndexInputBase{
+		Reader: i.Reader.Clone(reader),
+		inner:  inner,
+	}
+}
+
+// RandomAccessInput Random Access Index API. Unlike IndexInput, this has no concept of file pos,
+// all reads are absolute. However, like IndexInput, it is only intended for use by a single thread.
+type RandomAccessInput interface {
+
+	// RUint8 Reads a byte at the given pos in the file
+	// See Also: DataInput.readByte
+	RUint8(pos int64) (byte, error)
+
+	// RUint16 Reads a short at the given pos in the file
+	// See Also: DataInput.readShort
+	RUint16(pos int64) (uint16, error)
+
+	// RUint32 Reads an integer at the given pos in the file
+	// See Also: DataInput.readInt
+	RUint32(pos int64) (uint32, error)
+
+	// RUint64 Reads a long at the given pos in the file
+	// See Also: DataInput.readLong
+	RUint64(pos int64) (uint64, error)
 }
 
 var _ RandomAccessInput = &randomAccessIndexInput{}

@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewReaderX(t *testing.T) {
+func TestIORWByte(t *testing.T) {
 	source := new(bytes.Buffer)
-	reader := NewReaderX(source)
-	writer := NewWriterX(source)
+	reader := NewReader(source)
+	writer := NewWriter(source)
 
 	err := writer.WriteByte('a')
 	assert.Nil(t, err)
