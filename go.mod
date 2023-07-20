@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/bits-and-blooms/bitset v1.2.2
-	github.com/geange/gods-generic v0.0.0-20230716134303-edc80ecd4c36
+	github.com/geange/gods-generic v0.0.0-20230716154039-aeb755137b82
 	github.com/google/uuid v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/spaolacci/murmur3 v1.1.0

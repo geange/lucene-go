@@ -5,6 +5,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/geange/gods-generic v0.0.0-20230716134303-edc80ecd4c36 h1:I5PNpE4mF1K89OYB4po9Rpk73IJGgtKnJxQrSHDESDo=
 github.com/geange/gods-generic v0.0.0-20230716134303-edc80ecd4c36/go.mod h1:/3tmNCGH6KyQVtclXBnH7cGzROO+C3MdwUr7lH8MNMQ=
+github.com/geange/gods-generic v0.0.0-20230716154039-aeb755137b82 h1:Akc7mlYJkbk0CH7Bx+W4M02QfSdyfsGEflAa+RJY/P4=
+github.com/geange/gods-generic v0.0.0-20230716154039-aeb755137b82/go.mod h1:/3tmNCGH6KyQVtclXBnH7cGzROO+C3MdwUr7lH8MNMQ=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
