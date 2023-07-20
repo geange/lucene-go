@@ -1,4 +1,4 @@
-package tokenattributes
+package tokenattr
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ type AttributeFactory interface {
 	// Throws:  UndeclaredThrowableException – A wrapper runtime exception thrown if the constructor of the
 	// 		    attribute class throws a checked exception. Note that attributes should not throw or declare checked
 	// 			exceptions; this may be verified and fail early in the future.
-	CreateAttributeInstance(class string) (AttributeImpl, error)
+	CreateAttributeInstance(class string) (Attribute, error)
 }
 
 var (
@@ -19,24 +19,24 @@ var (
 type DefaultAttributeFactory struct {
 }
 
-func (d DefaultAttributeFactory) CreateAttributeInstance(class string) (AttributeImpl, error) {
+func (d DefaultAttributeFactory) CreateAttributeInstance(class string) (Attribute, error) {
 	switch class {
 	case ClassBytesTerm:
-		return NewBytesTermAttributeImpl(), nil
+		return NewBytesTermAttrBase(), nil
 	case ClassCharTerm:
-		return NewPackedTokenAttributeImp(), nil
+		return NewPackedTokenAttr(), nil
 	case ClassOffset:
-		return NewPackedTokenAttributeImp(), nil
+		return NewPackedTokenAttr(), nil
 	case ClassPositionIncrement:
-		return NewPackedTokenAttributeImp(), nil
+		return NewPackedTokenAttr(), nil
 	case ClassPositionLength:
-		return NewPackedTokenAttributeImp(), nil
+		return NewPackedTokenAttr(), nil
 	case ClassTermFrequency:
-		return NewPackedTokenAttributeImp(), nil
+		return NewPackedTokenAttr(), nil
 	case ClassTermToBytesRef:
-		return NewPackedTokenAttributeImp(), nil
+		return NewPackedTokenAttr(), nil
 	case ClassPayload:
-		return NewPayloadAttributeImpl(), nil
+		return NewPayloadAttrBase(), nil
 	default:
 		return nil, errors.New("attribute not exist")
 	}

@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 )
 
 // A TokenStream enumerates the sequence of tokens, either from Fields of a Document or from query text.
@@ -30,7 +30,7 @@ import (
 // The TokenStream-API in Lucene is based on the decorator pattern. Therefore all non-abstract subclasses must
 // be final or have at least a final implementation of incrementToken! This is checked when Java assertions are enabled.
 type TokenStream interface {
-	AttributeSource() *tokenattributes.AttributeSource
+	AttributeSource() *tokenattr.AttributeSource
 
 	// IncrementToken Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
 	// Implementing classes must implement this method and update the appropriate AttributeImpls with the

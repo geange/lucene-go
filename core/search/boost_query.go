@@ -33,7 +33,7 @@ func (b *BoostQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 	return b.query.CreateWeight(searcher, scoreMode, b.boost*boost)
 }
 
-func (b *BoostQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (b *BoostQuery) Rewrite(reader index.Reader) (Query, error) {
 	rewritten, err := b.query.Rewrite(reader)
 	if err != nil {
 		return nil, err

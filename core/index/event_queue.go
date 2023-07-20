@@ -3,10 +3,10 @@ package index
 type EventQueue struct {
 	closed bool
 	queue  chan Event
-	writer *IndexWriter
+	writer *Writer
 }
 
-func NewEventQueue(writer *IndexWriter) *EventQueue {
+func NewEventQueue(writer *Writer) *EventQueue {
 	return &EventQueue{
 		closed: false,
 		queue:  make(chan Event, 10),
@@ -14,7 +14,7 @@ func NewEventQueue(writer *IndexWriter) *EventQueue {
 	}
 }
 
-type Event func(writer *IndexWriter) error
+type Event func(writer *Writer) error
 
 func (e *EventQueue) Add(event Event) bool {
 	select {

@@ -7,22 +7,32 @@ import (
 )
 
 func TestTokenizer_IncrementToken(t *testing.T) {
-	assert := assert.New(t)
+	as := assert.New(t)
 
 	text := "aaaa bbbb cccc dddd eeee ffff jjjjj"
 
 	tokenizer := NewTokenizer()
 
-	tokenizer.SetReader(bytes.NewReader([]byte(text)))
+	err := tokenizer.SetReader(bytes.NewReader([]byte(text)))
+	assert.Nil(t, err)
 
-	tokenizer.IncrementToken()
-	assert.Equal("aaaa", string(tokenizer.AttributeSource().CharTerm().Buffer()))
-	tokenizer.IncrementToken()
-	assert.Equal("bbbb", string(tokenizer.AttributeSource().CharTerm().Buffer()))
-	tokenizer.IncrementToken()
-	assert.Equal("cccc", string(tokenizer.AttributeSource().CharTerm().Buffer()))
-	tokenizer.IncrementToken()
-	assert.Equal("dddd", string(tokenizer.AttributeSource().CharTerm().Buffer()))
-	tokenizer.IncrementToken()
-	assert.Equal("eeee", string(tokenizer.AttributeSource().CharTerm().Buffer()))
+	_, err = tokenizer.IncrementToken()
+	assert.Nil(t, err)
+	as.Equal("aaaa", string(tokenizer.AttributeSource().CharTerm().Buffer()))
+
+	_, err = tokenizer.IncrementToken()
+	assert.Nil(t, err)
+	as.Equal("bbbb", string(tokenizer.AttributeSource().CharTerm().Buffer()))
+
+	_, err = tokenizer.IncrementToken()
+	assert.Nil(t, err)
+	as.Equal("cccc", string(tokenizer.AttributeSource().CharTerm().Buffer()))
+
+	_, err = tokenizer.IncrementToken()
+	assert.Nil(t, err)
+	as.Equal("dddd", string(tokenizer.AttributeSource().CharTerm().Buffer()))
+
+	_, err = tokenizer.IncrementToken()
+	assert.Nil(t, err)
+	as.Equal("eeee", string(tokenizer.AttributeSource().CharTerm().Buffer()))
 }

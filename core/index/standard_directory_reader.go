@@ -11,14 +11,14 @@ var _ DirectoryReader = &StandardDirectoryReader{}
 type StandardDirectoryReader struct {
 	*DirectoryReaderDefault
 
-	writer          *IndexWriter
+	writer          *Writer
 	segmentInfos    *SegmentInfos
 	applyAllDeletes bool
 	writeAllDeletes bool
 }
 
 // NewStandardDirectoryReader package private constructor, called only from static open() methods
-func NewStandardDirectoryReader(directory store.Directory, readers []IndexReader, writer *IndexWriter,
+func NewStandardDirectoryReader(directory store.Directory, readers []Reader, writer *Writer,
 	sis *SegmentInfos, leafSorter func(a, b LeafReader) int,
 	applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
 
@@ -39,7 +39,7 @@ func NewStandardDirectoryReader(directory store.Directory, readers []IndexReader
 // OpenDirectoryReader
 // called from DirectoryReader.open(...) methods
 func OpenDirectoryReader(directory store.Directory,
-	commit IndexCommit, leafSorter func(a, b IndexReader) int) (DirectoryReader, error) {
+	commit IndexCommit, leafSorter func(a, b Reader) int) (DirectoryReader, error) {
 
 	reader, err := NewFindSegmentsFile(directory).RunV1(commit)
 	if err != nil {
@@ -49,7 +49,7 @@ func OpenDirectoryReader(directory store.Directory,
 }
 
 // OpenStandardDirectoryReader Used by near real-time search
-func OpenStandardDirectoryReader(writer *IndexWriter,
+func OpenStandardDirectoryReader(writer *Writer,
 	readerFunction func(*SegmentCommitInfo) (*SegmentReader, error), infos *SegmentInfos,
 	applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
 
@@ -58,7 +58,7 @@ func OpenStandardDirectoryReader(writer *IndexWriter,
 	// no need to process segments in reverse order
 	numSegments := infos.Size()
 
-	readers := make([]IndexReader, 0)
+	readers := make([]Reader, 0)
 	dir := writer.GetDirectory()
 	segmentInfos := infos.Clone()
 	infosUpto := 0

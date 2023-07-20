@@ -94,7 +94,7 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 //
 //	idf(docFreq, docCount);
 //
-// Note that CollectionStatistics.docCount() is used instead of IndexReader#numDocs() because
+// Note that CollectionStatistics.docCount() is used instead of Reader#numDocs() because
 // also TermStatistics.docFreq() is used, and when the latter is inaccurate, so is
 // CollectionStatistics.docCount(), and in the same direction. In addition, CollectionStatistics.docCount()
 // does not skew when fields are sparse.

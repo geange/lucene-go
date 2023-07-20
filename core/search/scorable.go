@@ -30,18 +30,18 @@ type Scorable interface {
 	GetChildren() ([]ChildScorable, error)
 }
 
-type ScorableDefault struct {
+type ScorableBase struct {
 }
 
-func (*ScorableDefault) SmoothingScore(docId int) (float64, error) {
+func (*ScorableBase) SmoothingScore(docId int) (float64, error) {
 	return 0, nil
 }
 
-func (*ScorableDefault) SetMinCompetitiveScore(minScore float64) error {
+func (*ScorableBase) SetMinCompetitiveScore(minScore float64) error {
 	return nil
 }
 
-func (*ScorableDefault) GetChildren() ([]ChildScorable, error) {
+func (*ScorableBase) GetChildren() ([]ChildScorable, error) {
 	return []ChildScorable{}, nil
 }
 

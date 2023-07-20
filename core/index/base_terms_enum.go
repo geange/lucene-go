@@ -1,6 +1,6 @@
 package index
 
-import "github.com/geange/lucene-go/core/tokenattributes"
+import "github.com/geange/lucene-go/core/tokenattr"
 
 // BaseTermsEnum A base TermsEnum that adds default implementations for
 // * attributes()
@@ -10,7 +10,7 @@ import "github.com/geange/lucene-go/core/tokenattributes"
 // In some cases, the default implementation may be slow and consume huge memory, so subclass
 // SHOULD have its own implementation if possible.
 type BaseTermsEnum struct {
-	atts     *tokenattributes.AttributeSource
+	atts     *tokenattr.AttributeSource
 	seekCeil func(text []byte) (SeekStatus, error)
 }
 
@@ -20,7 +20,7 @@ type BaseTermsEnumConfig struct {
 
 func NewBaseTermsEnum(cfg *BaseTermsEnumConfig) *BaseTermsEnum {
 	return &BaseTermsEnum{
-		atts:     tokenattributes.NewAttributeSource(),
+		atts:     tokenattr.NewAttributeSource(),
 		seekCeil: cfg.SeekCeil,
 	}
 }
@@ -42,9 +42,9 @@ func (b *BaseTermsEnum) SeekExactExpert(term []byte, state TermState) error {
 	return err
 }
 
-func (b *BaseTermsEnum) Attributes() *tokenattributes.AttributeSource {
+func (b *BaseTermsEnum) Attributes() *tokenattr.AttributeSource {
 	if b.atts == nil {
-		b.atts = tokenattributes.NewAttributeSource()
+		b.atts = tokenattr.NewAttributeSource()
 	}
 	return b.atts
 }

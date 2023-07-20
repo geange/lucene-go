@@ -3,7 +3,7 @@ package search
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
@@ -50,7 +50,7 @@ func (r *AutomatonQuery) GetField() string {
 	return r.field
 }
 
-func (r *AutomatonQuery) GetTermsEnum(terms index.Terms, atts *tokenattributes.AttributeSource) (index.TermsEnum, error) {
+func (r *AutomatonQuery) GetTermsEnum(terms index.Terms, atts *tokenattr.AttributeSource) (index.TermsEnum, error) {
 	return GetTermsEnum(r.compiled, terms)
 }
 
@@ -93,7 +93,7 @@ func (r *AutomatonQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreM
 	panic("implement me")
 }
 
-func (r *AutomatonQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (r *AutomatonQuery) Rewrite(reader index.Reader) (Query, error) {
 	return r, nil
 }
 

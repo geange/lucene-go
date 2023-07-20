@@ -13,16 +13,16 @@ import (
 // -- they may change as documents are added to and deleted from an index. Clients should thus not
 // rely on a given document having the same number between sessions.
 //
-// NOTE: IndexReader instances are completely thread safe, meaning multiple threads can call any of
+// NOTE: Reader instances are completely thread safe, meaning multiple threads can call any of
 // its methods, concurrently. If your application requires external synchronization, you should not
-// synchronize on the IndexReader instance; use your own (non-Lucene) objects instead.
+// synchronize on the Reader instance; use your own (non-Lucene) objects instead.
 type DirectoryReader interface {
 	CompositeReader
 
 	Directory() store.Directory
 
 	// GetVersion
-	// Version number when this IndexReader was opened.
+	// Version number when this Reader was opened.
 	// This method returns the version recorded in the commit that the reader opened.
 	// This version is advanced every time a change is made with IndexWriter.
 	GetVersion() int64
@@ -52,7 +52,7 @@ type DirectoryReaderDefault struct {
 }
 
 func NewDirectoryReader(directory store.Directory,
-	segmentReaders []IndexReader, leafSorter func(a, b LeafReader) int) (*DirectoryReaderDefault, error) {
+	segmentReaders []Reader, leafSorter func(a, b LeafReader) int) (*DirectoryReaderDefault, error) {
 
 	reader, err := NewBaseCompositeReader(segmentReaders, leafSorter)
 	if err != nil {
@@ -64,11 +64,11 @@ func NewDirectoryReader(directory store.Directory,
 	}, nil
 }
 
-func DirectoryReaderOpen(writer *IndexWriter) (DirectoryReader, error) {
+func DirectoryReaderOpen(writer *Writer) (DirectoryReader, error) {
 	return DirectoryReaderOpenV1(writer, true, false)
 }
 
-func DirectoryReaderOpenV1(writer *IndexWriter, applyAllDeletes, writeAllDeletes bool) (DirectoryReader, error) {
+func DirectoryReaderOpenV1(writer *Writer, applyAllDeletes, writeAllDeletes bool) (DirectoryReader, error) {
 	return writer.GetReader(applyAllDeletes, writeAllDeletes)
 }
 

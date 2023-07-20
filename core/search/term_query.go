@@ -67,7 +67,7 @@ func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, 
 	return t.NewTermWeight(searcher, scoreMode, boost, termState)
 }
 
-func (t *TermQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (t *TermQuery) Rewrite(reader index.Reader) (Query, error) {
 	return t, nil
 }
 

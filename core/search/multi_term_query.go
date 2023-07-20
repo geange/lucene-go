@@ -2,7 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -35,7 +35,7 @@ type MultiTermQuery interface {
 	// The given AttributeSource is passed by the MultiTermQuery.RewriteMethod to
 	// share information between segments, for example TopTermsRewrite uses it to
 	// share maximum competitive boosts
-	GetTermsEnum(terms index.Terms, atts *tokenattributes.AttributeSource) (index.TermsEnum, error)
+	GetTermsEnum(terms index.Terms, atts *tokenattr.AttributeSource) (index.TermsEnum, error)
 
 	// GetRewriteMethod See Also: setRewriteMethod
 	GetRewriteMethod() RewriteMethod
@@ -50,11 +50,11 @@ type MultiTermQueryPlus interface {
 
 // RewriteMethod Abstract class that defines how the query is rewritten.
 type RewriteMethod interface {
-	Rewrite(reader index.IndexReader, query MultiTermQuery) (Query, error)
+	Rewrite(reader index.Reader, query MultiTermQuery) (Query, error)
 
 	// GetTermsEnum Returns the MultiTermQuerys TermsEnum
 	// See Also: getTermsEnum(Terms, AttributeSource)
-	GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *tokenattributes.AttributeSource) (index.TermsEnum, error)
+	GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *tokenattr.AttributeSource) (index.TermsEnum, error)
 }
 
 var _ RewriteMethod = &constantScoreRewrite{}
@@ -62,12 +62,12 @@ var _ RewriteMethod = &constantScoreRewrite{}
 type constantScoreRewrite struct {
 }
 
-func (c *constantScoreRewrite) Rewrite(reader index.IndexReader, query MultiTermQuery) (Query, error) {
+func (c *constantScoreRewrite) Rewrite(reader index.Reader, query MultiTermQuery) (Query, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *constantScoreRewrite) GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *tokenattributes.AttributeSource) (index.TermsEnum, error) {
+func (c *constantScoreRewrite) GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *tokenattr.AttributeSource) (index.TermsEnum, error) {
 	return query.GetTermsEnum(terms, atts)
 }
 
@@ -135,7 +135,7 @@ func (r *wrapperConstantScoreWeight) Matches(context *index.LeafReaderContext, d
 		return r.ConstantScoreWeight.Matches(context, doc)
 	}
 
-	termsEnum, err := r.p.query.GetTermsEnum(terms, tokenattributes.NewAttributeSource())
+	termsEnum, err := r.p.query.GetTermsEnum(terms, tokenattr.NewAttributeSource())
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func newTermAndState(term []byte, state index.TermState, docFreq int, totalTermF
 	return &termAndState{term: term, state: state, docFreq: docFreq, totalTermFreq: totalTermFreq}
 }
 
-func (m *MultiTermQueryConstantScoreWrapper) Rewrite(reader index.IndexReader) (Query, error) {
+func (m *MultiTermQueryConstantScoreWrapper) Rewrite(reader index.Reader) (Query, error) {
 	return m, nil
 }
 

@@ -25,7 +25,7 @@ type SorterDefault struct {
 	fnSwap     func(i, j int)
 }
 
-// DocMap A permutation of doc IDs. For every document ID between 0 and IndexReader.maxDoc(),
+// DocMap A permutation of doc IDs. For every document ID between 0 and Reader.maxDoc(),
 // oldToNew(newToOld(docID)) must return docID.
 type DocMap struct {
 	// Given a doc ID from the original index, return its ordinal in the sorted index.

@@ -25,7 +25,7 @@ func (m *MatchAllDocsQuery) CreateWeight(_ *IndexSearcher, scoreMode *ScoreMode,
 	return newConstantScoreWeight(boost, m, scoreMode), nil
 }
 
-func (m *MatchAllDocsQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (m *MatchAllDocsQuery) Rewrite(reader index.Reader) (Query, error) {
 	return m, nil
 }
 

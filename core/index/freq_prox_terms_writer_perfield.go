@@ -2,7 +2,7 @@ package index
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"sort"
@@ -21,9 +21,9 @@ type FreqProxTermsWriterPerField struct {
 	hasFreq          bool
 	hasProx          bool
 	hasOffsets       bool
-	payloadAttribute tokenattributes.PayloadAttribute
-	offsetAttribute  tokenattributes.OffsetAttribute
-	termFreqAtt      tokenattributes.TermFrequencyAttribute
+	payloadAttribute tokenattr.PayloadAttribute
+	offsetAttribute  tokenattr.OffsetAttribute
+	termFreqAtt      tokenattr.TermFrequencyAttribute
 
 	// Set to true if any token had a payload in the current segment.
 	sawPayloads bool

@@ -2,7 +2,7 @@ package index
 
 import "github.com/geange/lucene-go/core/store"
 
-// IndexCommit Expert: represents a single commit into an index as seen by the IndexDeletionPolicy or IndexReader.
+// IndexCommit Expert: represents a single commit into an index as seen by the IndexDeletionPolicy or Reader.
 // Changes to the content of an index are made visible only after the writer who made that change commits by
 // writing a new segments file (segments_N). This point in time, when the action of writing of a new segments
 // file to the directory is completed, is an index commit.

@@ -8,7 +8,7 @@ var (
 	EMPTY_TERMSTATE TermState
 )
 
-// TermStates Maintains a IndexReader TermState view over IndexReader instances containing a single term.
+// TermStates Maintains a Reader TermState view over Reader instances containing a single term.
 // The TermStates doesn't track if the given TermState objects are valid, neither if the TermState instances
 // refer to the same terms in the associated readers.
 type TermStates struct {
@@ -19,7 +19,7 @@ type TermStates struct {
 	totalTermFreq            int64
 }
 
-func NewTermStates(term *Term, context IndexReaderContext) *TermStates {
+func NewTermStates(term *Term, context ReaderContext) *TermStates {
 	size := 1
 	if leaves, err := context.Leaves(); err == nil {
 		if len(leaves) > 0 {
@@ -36,18 +36,18 @@ func NewTermStates(term *Term, context IndexReaderContext) *TermStates {
 	}
 }
 
-func (r *TermStates) WasBuiltFor(context IndexReaderContext) bool {
+func (r *TermStates) WasBuiltFor(context ReaderContext) bool {
 	return r.topReaderContextIdentity == context.Identity()
 }
 
-// BuildTermStates Creates a TermStates from a top-level IndexReaderContext and the given Term.
+// BuildTermStates Creates a TermStates from a top-level ReaderContext and the given Term.
 // This method will lookup the given term in all context's leaf readers and register each of the
 // readers containing the term in the returned TermStates using the leaf reader's ordinal.
 // Note: the given context must be a top-level context.
 // Params: 	needsStats – if true then all leaf contexts will be visited up-front to collect term statistics.
 //
 //	Otherwise, the TermState objects will be built only when requested
-func BuildTermStates(context IndexReaderContext, term *Term, needsStats bool) (*TermStates, error) {
+func BuildTermStates(context ReaderContext, term *Term, needsStats bool) (*TermStates, error) {
 	var perReaderTermState *TermStates
 	if needsStats {
 		perReaderTermState = NewTermStates(nil, context)
@@ -94,7 +94,7 @@ func (r *TermStates) Register(state TermState, ord, docFreq int, totalTermFreq i
 }
 
 // Register2 Expert: Registers and associates a TermState with an leaf ordinal. The leaf ordinal should be
-// derived from a IndexReaderContext's leaf ord. On the contrary to register(TermState, int, int, long)
+// derived from a ReaderContext's leaf ord. On the contrary to register(TermState, int, int, long)
 // this method does NOT update term statistics.
 func (r *TermStates) Register2(state TermState, ord int) {
 	r.states[ord] = state

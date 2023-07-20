@@ -2,7 +2,7 @@ package index
 
 import "errors"
 
-// LeafReaderContext IndexReaderContext for LeafReader instances.
+// LeafReaderContext ReaderContext for LeafReader instances.
 type LeafReaderContext struct {
 	*IndexReaderContextDefault
 
@@ -42,7 +42,7 @@ func (l *LeafReaderContext) LeafReader() LeafReader {
 	return l.reader
 }
 
-func (l *LeafReaderContext) Reader() IndexReader {
+func (l *LeafReaderContext) Reader() Reader {
 	return l.reader
 }
 
@@ -53,7 +53,7 @@ func (l *LeafReaderContext) Leaves() ([]*LeafReaderContext, error) {
 	return l.leaves, nil
 }
 
-func (l *LeafReaderContext) Children() []IndexReaderContext {
+func (l *LeafReaderContext) Children() []ReaderContext {
 	return nil
 }
 

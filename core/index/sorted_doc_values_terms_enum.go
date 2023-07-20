@@ -1,7 +1,7 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 )
 
 // SortedDocValuesTermsEnum Creates a new TermsEnum over the provided values
@@ -17,7 +17,7 @@ func (s *SortedDocValuesTermsEnum) Next() ([]byte, error) {
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) Attributes() *tokenattributes.AttributeSource {
+func (s *SortedDocValuesTermsEnum) Attributes() *tokenattr.AttributeSource {
 	//TODO implement me
 	panic("implement me")
 }

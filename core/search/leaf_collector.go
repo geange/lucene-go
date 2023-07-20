@@ -54,7 +54,7 @@ type LeafCollector interface {
 	// In this case, the last docs of the current org.apache.lucene.index.LeafReaderContext will be skipped
 	// and IndexSearcher will swallow the exception and continue collection with the next leaf.
 	// Note: This is called in an inner search loop. For good search performance, implementations of this
-	// method should not call IndexSearcher.doc(int) or org.apache.lucene.index.IndexReader.document(int) on
+	// method should not call IndexSearcher.doc(int) or org.apache.lucene.index.Reader.document(int) on
 	// every hit. Doing so can slow searches by an order of magnitude or more.
 	//
 	// 在这个方法中实现了对所有满足查询条件的文档进行

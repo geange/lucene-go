@@ -11,7 +11,7 @@ var (
 
 func init() {
 	XYDocValuesFieldType = NewFieldType()
-	XYDocValuesFieldType.SetDocValuesType(types.DOC_VALUES_TYPE_SORTED_NUMERIC)
+	_ = XYDocValuesFieldType.SetDocValuesType(types.DOC_VALUES_TYPE_SORTED_NUMERIC)
 	XYDocValuesFieldType.Freeze()
 }
 

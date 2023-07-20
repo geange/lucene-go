@@ -411,7 +411,7 @@ func (r *prQueryWeight) IsCacheable(ctx *index.LeafReaderContext) bool {
 	return true
 }
 
-func (p *PointRangeQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (p *PointRangeQuery) Rewrite(reader index.Reader) (Query, error) {
 	return p, nil
 }
 

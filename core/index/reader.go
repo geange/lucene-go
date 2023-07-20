@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-type IndexReader interface {
+type Reader interface {
 	io.Closer
 
 	// GetTermVectors Retrieve term vectors for this document, or null if term vectors were not indexed.
@@ -65,24 +65,24 @@ type IndexReader interface {
 	// DoClose Implements close.
 	DoClose() error
 
-	// GetContext Expert: Returns the root IndexReaderContext for this IndexReader's sub-reader tree.
+	// GetContext Expert: Returns the root ReaderContext for this Reader's sub-reader tree.
 	// If this reader is composed of sub readers, i.e. this reader being a composite reader, this method
 	// returns a CompositeReaderContext holding the reader's direct children as well as a view of the
-	// reader tree's atomic leaf contexts. All sub- IndexReaderContext instances referenced from this
+	// reader tree's atomic leaf contexts. All sub- ReaderContext instances referenced from this
 	// readers top-level context are private to this reader and are not shared with another context tree.
 	// For example, IndexSearcher uses this API to drive searching by one atomic leaf reader at a time.
 	// If this reader is not composed of child readers, this method returns an LeafReaderContext.
 	// Note: Any of the sub-CompositeReaderContext instances referenced from this top-level context do
 	// not support CompositeReaderContext.leaves(). Only the top-level context maintains the convenience
 	// leaf-view for performance reasons.
-	GetContext() (ctx IndexReaderContext, err error)
+	GetContext() (ctx ReaderContext, err error)
 
 	// Leaves Returns the reader's leaves, or itself if this reader is atomic. This is a convenience method
 	// calling this.getContext().leaves().
-	// See Also: IndexReaderContext.leaves()
+	// See Also: ReaderContext.leaves()
 	Leaves() ([]*LeafReaderContext, error)
 
-	// GetReaderCacheHelper Optional method: Return a IndexReader.CacheHelper that can be used to cache based
+	// GetReaderCacheHelper Optional method: Return a Reader.CacheHelper that can be used to cache based
 	// on the content of this reader. Two readers that have different data or different sets of deleted
 	// documents will be considered different.
 	// A return value of null indicates that this reader is not suited for caching, which is typically the
@@ -111,7 +111,7 @@ type IndexReader interface {
 	// just like other term measures, this measure does not take deleted documents into account.
 	// See Also: Terms.getSumTotalTermFreq()
 	GetSumTotalTermFreq(field string) (int64, error)
-	//RegisterParentReader(reader IndexReader)
+	//RegisterParentReader(reader Reader)
 
 	GetRefCount() int
 	IncRef() error
@@ -124,7 +124,7 @@ type IndexReaderDefaultSPI interface {
 	NumDocs() int
 	MaxDoc() int
 	DocumentV1(docID int, visitor document.StoredFieldVisitor) error
-	GetContext() (IndexReaderContext, error)
+	GetContext() (ReaderContext, error)
 	DoClose() error
 }
 
@@ -134,7 +134,7 @@ type IndexReaderDefault struct {
 	closed        bool
 	closedByChild bool
 	refCount      *atomic.Int64
-	parentReaders map[IndexReader]struct{}
+	parentReaders map[Reader]struct{}
 	sync.Mutex
 }
 
@@ -142,7 +142,7 @@ func NewIndexReaderDefault(spi IndexReaderDefaultSPI) *IndexReaderDefault {
 	return &IndexReaderDefault{
 		spi:           spi,
 		refCount:      atomic.NewInt64(0),
-		parentReaders: make(map[IndexReader]struct{}),
+		parentReaders: make(map[Reader]struct{}),
 	}
 }
 
@@ -163,7 +163,7 @@ func (r *IndexReaderDefault) DocumentV2(docID int, fieldsToLoad map[string]struc
 // (e.g. CompositeReader or FilterLeafReader) to register the parent at the child (this reader) on
 // construction of the parent. When this reader is closed, it will mark all registered parents as closed,
 // too. The references to parent readers are weak only, so they can be GCed once they are no longer in use.
-func (r *IndexReaderDefault) RegisterParentReader(reader IndexReader) {
+func (r *IndexReaderDefault) RegisterParentReader(reader Reader) {
 	r.parentReaders[reader] = struct{}{}
 }
 
@@ -207,7 +207,7 @@ func (r *IndexReaderDefault) DecRef() error {
 	// only check refcount here (don't call ensureOpen()), so we can
 	// still close the reader if it was made invalid by a child:
 	if r.refCount.Load() <= 0 {
-		return errors.New("this IndexReader is closed")
+		return errors.New("this Reader is closed")
 	}
 
 	rc := r.refCount.Dec()
@@ -224,13 +224,13 @@ func (r *IndexReaderDefault) DecRef() error {
 
 func (r *IndexReaderDefault) ensureOpen() error {
 	if r.refCount.Load() <= 0 {
-		return errors.New("this IndexReader is closed")
+		return errors.New("this Reader is closed")
 	}
 
 	// the happens before rule on reading the refCount, which must be after the fake write,
 	// ensures that we see the value:
 	if r.closedByChild {
-		return errors.New("this IndexReader cannot be used anymore as one of its child readers was closed")
+		return errors.New("this Reader cannot be used anymore as one of its child readers was closed")
 	}
 	return nil
 }
@@ -295,7 +295,7 @@ type CacheHelper interface {
 var _ sort.Interface = &IndexReaderSorter{}
 
 type IndexReaderSorter struct {
-	Readers   []IndexReader
+	Readers   []Reader
 	FnCompare func(a, b LeafReader) int
 }
 

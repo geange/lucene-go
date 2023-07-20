@@ -30,7 +30,7 @@ func (m *MatchNoDocsQuery) CreateWeight(searcher *IndexSearcher, scoreMode *Scor
 	panic("implement me")
 }
 
-func (m *MatchNoDocsQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (m *MatchNoDocsQuery) Rewrite(reader index.Reader) (Query, error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 )
 
 // A TokenFilter is a TokenStream whose input is another TokenStream.
@@ -12,7 +12,7 @@ type TokenFilter interface {
 }
 
 type TokenFilterImp struct {
-	source *tokenattributes.AttributeSource
+	source *tokenattr.AttributeSource
 
 	Input TokenStream
 }
@@ -24,7 +24,7 @@ func NewTokenFilterImp(input TokenStream) *TokenFilterImp {
 	}
 }
 
-func (t *TokenFilterImp) AttributeSource() *tokenattributes.AttributeSource {
+func (t *TokenFilterImp) AttributeSource() *tokenattr.AttributeSource {
 	return t.Input.AttributeSource()
 }
 

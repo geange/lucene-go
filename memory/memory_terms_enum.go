@@ -3,7 +3,7 @@ package memory
 import (
 	"bytes"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -13,7 +13,7 @@ type MemoryTermsEnum struct {
 	info     *Info
 	termUpto int
 	br       []byte
-	atts     *tokenattributes.AttributeSource
+	atts     *tokenattr.AttributeSource
 
 	*MemoryIndex
 }
@@ -24,7 +24,7 @@ func (m *MemoryIndex) NewMemoryTermsEnum(info *Info) *MemoryTermsEnum {
 		info:        info,
 		termUpto:    -1,
 		br:          nil,
-		atts:        tokenattributes.NewAttributeSource(),
+		atts:        tokenattr.NewAttributeSource(),
 		MemoryIndex: m,
 	}
 }
@@ -56,7 +56,7 @@ func (m *MemoryTermsEnum) Next() ([]byte, error) {
 	return m.br, nil
 }
 
-func (m *MemoryTermsEnum) Attributes() *tokenattributes.AttributeSource {
+func (m *MemoryTermsEnum) Attributes() *tokenattr.AttributeSource {
 	return m.atts
 }
 

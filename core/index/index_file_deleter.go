@@ -82,7 +82,7 @@ type IndexFileDeleter struct {
 
 	lastSegmentInfos *SegmentInfos
 
-	writer *IndexWriter
+	writer *Writer
 }
 
 // NewIndexFileDeleter Initialize the deleter: find all previous commits in the Directory,
@@ -90,7 +90,7 @@ type IndexFileDeleter struct {
 // any files not referenced by any of the commits.
 // Throws: IOException – if there is a low-level IO error
 func NewIndexFileDeleter(files []string, directoryOrig, directory store.Directory,
-	policy IndexDeletionPolicy, segmentInfos *SegmentInfos, writer *IndexWriter,
+	policy IndexDeletionPolicy, segmentInfos *SegmentInfos, writer *Writer,
 	initialIndexExists, isReaderInit bool) (*IndexFileDeleter, error) {
 
 	fd := &IndexFileDeleter{

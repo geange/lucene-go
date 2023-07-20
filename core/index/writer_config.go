@@ -14,7 +14,7 @@ type IndexWriterConfig struct {
 
 	// indicates whether this config instance is already attached to a writer.
 	// not final so that it can be cloned properly.
-	writer *IndexWriter
+	writer *Writer
 
 	flushPolicy FlushPolicy
 }
@@ -26,7 +26,7 @@ func NewIndexWriterConfig(codec Codec, similarity Similarity) *IndexWriterConfig
 	return cfg
 }
 
-func (c *IndexWriterConfig) setIndexWriter(writer *IndexWriter) {
+func (c *IndexWriterConfig) setIndexWriter(writer *Writer) {
 	c.writer = writer
 }
 

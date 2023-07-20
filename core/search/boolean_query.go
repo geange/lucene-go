@@ -70,7 +70,7 @@ func (b *BooleanQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMod
 	return NewBooleanWeight(query, searcher, scoreMode, boost)
 }
 
-func (b *BooleanQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (b *BooleanQuery) Rewrite(reader index.Reader) (Query, error) {
 	if b.clauses == nil || len(b.clauses) == 0 {
 		return nil, errors.New("empty BooleanQuery")
 	}

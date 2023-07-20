@@ -8,7 +8,7 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search"
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"go.uber.org/atomic"
@@ -392,7 +392,7 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 		}
 
 		if m.storePayloads {
-			payload := payloadAtt.(tokenattributes.PayloadAttribute).GetPayload()
+			payload := payloadAtt.(tokenattr.PayloadAttribute).GetPayload()
 			pIndex := 0
 			if payload == nil || len(payload) == 0 {
 				pIndex = -1

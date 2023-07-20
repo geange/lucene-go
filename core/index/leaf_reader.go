@@ -5,7 +5,7 @@ import (
 )
 
 type LeafReader interface {
-	IndexReader
+	Reader
 
 	// Terms Returns the Terms index for this field, or null if it has none.
 	Terms(field string) (Terms, error)
@@ -108,7 +108,7 @@ func (r *LeafReaderDefault) Postings(term *Term, flags int) (PostingsEnum, error
 	return nil, nil
 }
 
-func (r *LeafReaderDefault) GetContext() (IndexReaderContext, error) {
+func (r *LeafReaderDefault) GetContext() (ReaderContext, error) {
 	return r.readerContext, nil
 }
 

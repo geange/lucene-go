@@ -1,6 +1,6 @@
 package analysis
 
-import "github.com/geange/lucene-go/core/tokenattributes"
+import "github.com/geange/lucene-go/core/tokenattr"
 
 // FilteringTokenFilter Abstract base class for TokenFilters that may remove tokens. You have to implement
 // accept and return a boolean if the current token should be preserved. incrementToken uses this method to
@@ -8,32 +8,32 @@ import "github.com/geange/lucene-go/core/tokenattributes"
 type FilteringTokenFilter interface {
 	TokenFilter
 
-	FilteringTokenFilterPlg
+	FilteringTokenFilterInner
 }
 
-type FilteringTokenFilterPlg interface {
+type FilteringTokenFilterInner interface {
 	Accept() (bool, error)
 }
 
-type FilteringTokenFilterImp struct {
-	FilteringTokenFilterPlg
+type FilteringTokenFilterBase struct {
+	FilteringTokenFilterInner
 
 	*TokenFilterImp
 
-	posIncrAtt       tokenattributes.PositionIncrementAttribute
+	posIncrAtt       tokenattr.PositionIncrementAttribute
 	skippedPositions int
 }
 
-func NewFilteringTokenFilterImp(plg FilteringTokenFilterPlg, in TokenStream) *FilteringTokenFilterImp {
-	return &FilteringTokenFilterImp{
-		FilteringTokenFilterPlg: plg,
-		TokenFilterImp:          NewTokenFilterImp(in),
-		posIncrAtt:              in.AttributeSource().PositionIncrement(),
-		skippedPositions:        0,
+func NewFilteringTokenFilterImp(plg FilteringTokenFilterInner, in TokenStream) *FilteringTokenFilterBase {
+	return &FilteringTokenFilterBase{
+		FilteringTokenFilterInner: plg,
+		TokenFilterImp:            NewTokenFilterImp(in),
+		posIncrAtt:                in.AttributeSource().PositionIncrement(),
+		skippedPositions:          0,
 	}
 }
 
-func (r *FilteringTokenFilterImp) IncrementToken() (bool, error) {
+func (r *FilteringTokenFilterBase) IncrementToken() (bool, error) {
 
 	r.skippedPositions = 0
 	for {
@@ -64,7 +64,7 @@ func (r *FilteringTokenFilterImp) IncrementToken() (bool, error) {
 	return false, nil
 }
 
-func (r *FilteringTokenFilterImp) Reset() error {
+func (r *FilteringTokenFilterBase) Reset() error {
 	err := r.Input.Reset()
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (r *FilteringTokenFilterImp) Reset() error {
 	return nil
 }
 
-func (r *FilteringTokenFilterImp) End() error {
+func (r *FilteringTokenFilterBase) End() error {
 	err := r.Input.End()
 	if err != nil {
 		return err

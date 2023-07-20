@@ -2,11 +2,11 @@ package index
 
 import "github.com/google/uuid"
 
-// IndexReaderContext A struct like class that represents a hierarchical relationship between IndexReader instances.
-type IndexReaderContext interface {
+// ReaderContext A struct like class that represents a hierarchical relationship between Reader instances.
+type ReaderContext interface {
 
-	// Reader Returns the IndexReader, this context represents.
-	Reader() IndexReader
+	// Reader Returns the Reader, this context represents.
+	Reader() Reader
 
 	// Leaves Returns the context's leaves if this context is a top-level context. For convenience, if this is
 	// an LeafReaderContext this returns itself as the only leaf.
@@ -17,7 +17,7 @@ type IndexReaderContext interface {
 	Leaves() ([]*LeafReaderContext, error)
 
 	// Children Returns the context's children iff this context is a composite context otherwise null.
-	Children() []IndexReaderContext
+	Children() []ReaderContext
 
 	Identity() string
 }

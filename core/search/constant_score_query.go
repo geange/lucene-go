@@ -25,7 +25,7 @@ func (c *ConstantScoreQuery) CreateWeight(searcher *IndexSearcher, scoreMode *Sc
 	panic("implement me")
 }
 
-func (c *ConstantScoreQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (c *ConstantScoreQuery) Rewrite(reader index.Reader) (Query, error) {
 	//TODO implement me
 	panic("implement me")
 }

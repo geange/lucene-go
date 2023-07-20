@@ -11,13 +11,13 @@ const (
 	TOTAL_HITS_THRESHOLD = 1000
 )
 
-// IndexSearcher Implements search over a single IndexReader.
+// IndexSearcher Implements search over a single Reader.
 // Applications usually need only call the inherited search(Query, int) method. For performance reasons, if your
 // index is unchanging, you should share a single IndexSearcher instance across multiple searches instead of
 // creating a new one per-search. If your index has changed and you wish to see the changes reflected in searching,
 // you should use DirectoryReader.openIfChanged(DirectoryReader) to obtain a new reader and then create a new
 // IndexSearcher from that. Also, for low-latency turnaround it's best to use a near-real-time reader
-// (DirectoryReader.open(IndexWriter)). Once you have a new IndexReader, it's relatively cheap to create a
+// (DirectoryReader.open(IndexWriter)). Once you have a new Reader, it's relatively cheap to create a
 // new IndexSearcher from it.
 //
 // NOTE: The search and searchAfter methods are configured to only count top hits accurately up to 1,000 and may
@@ -32,11 +32,11 @@ const (
 // methods, concurrently. If your application requires external synchronization, you should not synchronize on
 // the IndexSearcher instance; use your own (non-Lucene) objects instead.
 type IndexSearcher struct {
-	reader index.IndexReader
+	reader index.Reader
 
 	// NOTE: these members might change in incompatible ways
 	// in the next release
-	readerContext index.IndexReaderContext
+	readerContext index.ReaderContext
 	leafContexts  []*index.LeafReaderContext
 
 	// used with executor - each slice holds a set of leafs executed within one thread
@@ -52,12 +52,12 @@ type IndexSearcher struct {
 	queryCachingPolicy QueryCachingPolicy
 }
 
-func NewIndexSearcher(r index.IndexReader) (*IndexSearcher, error) {
+func NewIndexSearcher(r index.Reader) (*IndexSearcher, error) {
 	context, _ := r.GetContext()
 	return newIndexSearcher(context)
 }
 
-func newIndexSearcher(context index.IndexReaderContext) (*IndexSearcher, error) {
+func newIndexSearcher(context index.ReaderContext) (*IndexSearcher, error) {
 	leaves, err := context.Leaves()
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func newIndexSearcher(context index.IndexReaderContext) (*IndexSearcher, error) 
 	}, nil
 }
 
-func (r *IndexSearcher) GetTopReaderContext() index.IndexReaderContext {
+func (r *IndexSearcher) GetTopReaderContext() index.ReaderContext {
 	return r.readerContext
 }
 

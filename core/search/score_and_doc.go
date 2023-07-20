@@ -3,14 +3,14 @@ package search
 var _ Scorable = &ScoreAndDoc{}
 
 type ScoreAndDoc struct {
-	*ScorableDefault
+	*ScorableBase
 
 	score float64
 	doc   int
 }
 
 func NewScoreAndDoc() *ScoreAndDoc {
-	return &ScoreAndDoc{ScorableDefault: &ScorableDefault{}}
+	return &ScoreAndDoc{ScorableBase: &ScorableBase{}}
 }
 
 func (s *ScoreAndDoc) Score() (float64, error) {

@@ -1,6 +1,6 @@
 package index
 
-import "github.com/geange/lucene-go/core/tokenattributes"
+import "github.com/geange/lucene-go/core/tokenattr"
 
 type FilteredTermsEnum interface {
 	TermsEnum
@@ -86,7 +86,7 @@ func (f *FilteredTermsEnumDefault) nextSeekTerm(currentTerm []byte) ([]byte, err
 }
 
 // Attributes Returns the related attributes, the returned AttributeSource is shared with the delegate TermsEnum.
-func (f *FilteredTermsEnumDefault) Attributes() *tokenattributes.AttributeSource {
+func (f *FilteredTermsEnumDefault) Attributes() *tokenattr.AttributeSource {
 	return f.tenum.Attributes()
 }
 

@@ -13,7 +13,7 @@ import (
 var _ index.LeafReader = &MemoryIndexReader{}
 
 // MemoryIndexReader Search support for Lucene framework integration; implements all methods required by the Lucene
-// IndexReader contracts.
+// Reader contracts.
 type MemoryIndexReader struct {
 	*index.LeafReaderDefault
 

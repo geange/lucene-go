@@ -1,16 +1,16 @@
-package tokenattributes
+package tokenattr
 
 type AttributeSource struct {
-	packed  *PackedTokenAttributeImp
-	bytes   *BytesTermAttributeImpl
-	payload *PayloadAttributeImpl
+	packed  *PackedTokenAttrBase
+	bytes   *BytesTermAttrBase
+	payload *PayloadAttrBase
 }
 
 func NewAttributeSource() *AttributeSource {
 	return &AttributeSource{
-		packed:  NewPackedTokenAttributeImp(),
-		bytes:   NewBytesTermAttributeImpl(),
-		payload: NewPayloadAttributeImpl(),
+		packed:  NewPackedTokenAttr(),
+		bytes:   NewBytesTermAttrBase(),
+		payload: NewPayloadAttrBase(),
 	}
 }
 

@@ -1,13 +1,13 @@
 package analysis
 
-import "github.com/geange/lucene-go/core/tokenattributes"
+import "github.com/geange/lucene-go/core/tokenattr"
 
 // StopFilter Removes stop words from a token stream.
 type StopFilter struct {
-	*FilteringTokenFilterImp
+	*FilteringTokenFilterBase
 
 	stopWords *CharArraySet
-	termAtt   tokenattributes.CharTermAttribute
+	termAtt   tokenattr.CharTermAttribute
 }
 
 func (r *StopFilter) Accept() (bool, error) {
@@ -18,13 +18,13 @@ func (r *StopFilter) Accept() (bool, error) {
 
 func NewStopFilter(in TokenStream, stopWords *CharArraySet) *StopFilter {
 	stopFilter := &StopFilter{
-		FilteringTokenFilterImp: nil,
-		stopWords:               stopWords,
-		termAtt:                 in.AttributeSource().CharTerm(),
+		FilteringTokenFilterBase: nil,
+		stopWords:                stopWords,
+		termAtt:                  in.AttributeSource().CharTerm(),
 	}
 
 	impl := NewFilteringTokenFilterImp(stopFilter, in)
-	stopFilter.FilteringTokenFilterImp = impl
+	stopFilter.FilteringTokenFilterBase = impl
 
 	return stopFilter
 }

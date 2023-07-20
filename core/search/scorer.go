@@ -49,7 +49,7 @@ type Scorer interface {
 }
 
 type ScorerDefault struct {
-	*ScorableDefault
+	*ScorableBase
 
 	weight Weight
 }

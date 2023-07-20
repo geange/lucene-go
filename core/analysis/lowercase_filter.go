@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 	"strings"
 )
 
@@ -9,7 +9,7 @@ import (
 type LowerCaseFilter struct {
 	*TokenFilterImp
 
-	termAtt tokenattributes.CharTermAttribute
+	termAtt tokenattr.CharTermAttribute
 }
 
 func NewLowerCaseFilter(in TokenStream) *LowerCaseFilter {

@@ -2,7 +2,7 @@ package index
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/tokenattributes"
+	"github.com/geange/lucene-go/core/tokenattr"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"sort"
@@ -23,9 +23,9 @@ type TermVectorsConsumerPerField struct {
 	doVectorPositions bool
 	doVectorOffsets   bool
 	doVectorPayloads  bool
-	offsetAttribute   tokenattributes.OffsetAttribute
-	payloadAttribute  tokenattributes.PayloadAttribute
-	termFreqAtt       tokenattributes.TermFrequencyAttribute
+	offsetAttribute   tokenattr.OffsetAttribute
+	payloadAttribute  tokenattr.PayloadAttribute
+	termFreqAtt       tokenattr.TermFrequencyAttribute
 	termBytePool      *util.ByteBlockPool
 	hasPayloads       bool // if enabled, and we actually saw any for this field
 }

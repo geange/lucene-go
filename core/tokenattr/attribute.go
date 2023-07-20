@@ -1,4 +1,4 @@
-package tokenattributes
+package tokenattr
 
 const (
 	ClassBytesTerm         = "BytesTerm"
@@ -10,6 +10,17 @@ const (
 	ClassTermFrequency     = "TermFrequency"
 	ClassTermToBytesRef    = "TermToBytesRef"
 )
+
+// Attribute Base class for Attributes that can be added to a AttributeSourceV2.
+// Attributes are used to add data in a dynamic, yet types-safe way to a source of usually streamed objects,
+// e. g. a org.apache.lucene.analysis.TokenStream.
+type Attribute interface {
+	Interfaces() []string
+	Clear() error
+	End() error
+	CopyTo(target Attribute) error
+	Clone() Attribute
+}
 
 // TypeAttribute A Token's lexical types. The Default value is "word".
 type TypeAttribute interface {
@@ -70,21 +81,21 @@ type CharTermAttribute interface {
 // This attribute can be used to customize the final byte[] encoding of terms.
 // Consumers of this attribute call getBytesRef() for each term. Example:
 //
-//     final TermToBytesRefAttribute termAtt = tokenStream.getAttribute(TermToBytesRefAttribute.class);
+//	final TermToBytesRefAttribute termAtt = tokenStream.getAttribute(TermToBytesRefAttribute.class);
 //
-//     while (tokenStream.incrementToken() {
-//       final BytesRef bytes = termAtt.getBytesRef();
+//	while (tokenStream.incrementToken() {
+//	  final BytesRef bytes = termAtt.getBytesRef();
 //
-//       if (isInteresting(bytes)) {
+//	  if (isInteresting(bytes)) {
 //
-//         // because the bytes are reused by the attribute (like CharTermAttribute's char[] buffer),
-//         // you should make a copy if you need persistent access to the bytes, otherwise they will
-//         // be rewritten across calls to incrementToken()
+//	    // because the bytes are reused by the attribute (like CharTermAttribute's char[] buffer),
+//	    // you should make a copy if you need persistent access to the bytes, otherwise they will
+//	    // be rewritten across calls to incrementToken()
 //
-//         doSomethingWith(BytesRef.deepCopyOf(bytes));
-//       }
-//     }
-//     ...
+//	    doSomethingWith(BytesRef.deepCopyOf(bytes));
+//	  }
+//	}
+//	...
 type TermToBytesRefAttribute interface {
 	GetBytesRef() []byte
 }
@@ -117,14 +128,15 @@ type PositionLengthAttribute interface {
 // TokenStream, used in phrase searching.
 // The default value is one.
 // Some common uses for this are:
-// * Set it to zero to put multiple terms in the same position. This is useful if, e.g., a word has multiple
-//   stems. Searches for phrases including either stem will match. In this case, all but the first stem's
-//   increment should be set to zero: the increment of the first instance should be one. Repeating a token
-//   with an increment of zero can also be used to boost the scores of matches on that token.
-// * Set it to values greater than one to inhibit exact phrase matches. If, for example, one does not want
-//   phrases to match across removed stop words, then one could build a stop word filter that removes stop
-//   words and also sets the increment to the number of stop words removed before each non-stop word.
-//   Then exact phrase queries will only match when the terms occur with no intervening stop words.
+//   - Set it to zero to put multiple terms in the same position. This is useful if, e.g., a word has multiple
+//     stems. Searches for phrases including either stem will match. In this case, all but the first stem's
+//     increment should be set to zero: the increment of the first instance should be one. Repeating a token
+//     with an increment of zero can also be used to boost the scores of matches on that token.
+//   - Set it to values greater than one to inhibit exact phrase matches. If, for example, one does not want
+//     phrases to match across removed stop words, then one could build a stop word filter that removes stop
+//     words and also sets the increment to the number of stop words removed before each non-stop word.
+//     Then exact phrase queries will only match when the terms occur with no intervening stop words.
+//
 // See Also: org.apache.lucene.index.PostingsEnum
 type PositionIncrementAttribute interface {
 

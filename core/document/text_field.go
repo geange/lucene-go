@@ -12,14 +12,14 @@ var (
 
 func init() {
 	TextFieldStored = NewFieldType()
-	TextFieldStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
-	TextFieldStored.SetTokenized(true)
-	TextFieldStored.SetStored(true)
+	_ = TextFieldStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	_ = TextFieldStored.SetTokenized(true)
+	_ = TextFieldStored.SetStored(true)
 	TextFieldStored.Freeze()
 
 	TextFieldNotStored = NewFieldType()
-	TextFieldNotStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
-	TextFieldNotStored.SetTokenized(true)
+	_ = TextFieldNotStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	_ = TextFieldNotStored.SetTokenized(true)
 	TextFieldNotStored.Freeze()
 }
 

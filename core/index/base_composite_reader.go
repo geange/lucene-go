@@ -13,15 +13,14 @@ var _ CompositeReader = &BaseCompositeReader{}
 type BaseCompositeReader struct {
 	*IndexReaderDefault
 
-	subReaders []IndexReader
-
+	subReaders       []Reader
 	subReadersSorter func(a, b LeafReader) int
 	starts           []int // 1st docno for each reader
 	maxDoc           int
 	numDocs          int // computed lazily
 
 	// List view solely for getSequentialSubReaders(), for effectiveness the array is used internally.
-	subReadersList []IndexReader
+	subReadersList []Reader
 
 	readerContext *CompositeReaderContext
 }
@@ -30,7 +29,7 @@ func (b *BaseCompositeReader) DoClose() error {
 	return nil
 }
 
-func (b *BaseCompositeReader) GetContext() (IndexReaderContext, error) {
+func (b *BaseCompositeReader) GetContext() (ReaderContext, error) {
 	if b.readerContext == nil {
 		var err error
 		b.readerContext, err = NewCompositeReaderContext(b)
@@ -51,11 +50,11 @@ func (b *BaseCompositeReader) GetReaderCacheHelper() CacheHelper {
 	panic("implement me")
 }
 
-func (b *BaseCompositeReader) GetSequentialSubReaders() []IndexReader {
+func (b *BaseCompositeReader) GetSequentialSubReaders() []Reader {
 	return b.subReadersList
 }
 
-func NewBaseCompositeReader(subReaders []IndexReader,
+func NewBaseCompositeReader(subReaders []Reader,
 	subReadersSorter func(a, b LeafReader) int) (*BaseCompositeReader, error) {
 
 	sort.Sort(&IndexReaderSorter{
