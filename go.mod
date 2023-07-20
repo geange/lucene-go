@@ -1,6 +1,6 @@
 module github.com/geange/lucene-go
 
-go 1.21rc2
+go 1.20
 
 require (
 	github.com/bits-and-blooms/bitset v1.2.2
@@ -18,7 +18,3 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-//replace (
-//	github.com/emirpasic/gods v1.18.1 => github.com/geange/gods latest
-//)

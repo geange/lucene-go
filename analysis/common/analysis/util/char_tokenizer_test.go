@@ -2,36 +2,38 @@ package util
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestCharTokenizerImpl_IncrementToken(t *testing.T) {
-	text := "a b ccc ddd"
+	text := "a b ccc dddd"
 
 	tokenizer := NewCharTokenizerImpl(&ext{}, bytes.NewReader([]byte(text)))
 
 	ok, err := tokenizer.IncrementToken()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ok, true)
-	fmt.Println(string(tokenizer.termAtt.Buffer()))
+	assert.Equal(t, []rune("a"), tokenizer.termAtt.Buffer())
+	tokenizer.termAtt.SetEmpty()
 
 	ok, err = tokenizer.IncrementToken()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ok, true)
-	fmt.Println(string(tokenizer.termAtt.Buffer()))
+	assert.Equal(t, []rune("b"), tokenizer.termAtt.Buffer())
+	tokenizer.termAtt.SetEmpty()
 
 	ok, err = tokenizer.IncrementToken()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ok, true)
-	fmt.Println(string(tokenizer.termAtt.Buffer()))
+	assert.Equal(t, []rune("ccc"), tokenizer.termAtt.Buffer())
+	tokenizer.termAtt.SetEmpty()
 
 	ok, err = tokenizer.IncrementToken()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ok, true)
-	fmt.Println(string(tokenizer.termAtt.Buffer()))
-
+	assert.Equal(t, []rune("dddd"), tokenizer.termAtt.Buffer())
+	tokenizer.termAtt.SetEmpty()
 }
 
 type ext struct {

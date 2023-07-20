@@ -12,38 +12,38 @@ import (
 // references. It is possible to create an instance which behaves exactly like LetterTokenizer:
 // Tokenizer tok = CharTokenizer.fromTokenCharPredicate(Character::isLetter);
 type CharTokenizer interface {
-	CharTokenizerExt
+	CharTokenizerInner
 
 	analysis.Tokenizer
 }
 
-type CharTokenizerExt interface {
+type CharTokenizerInner interface {
 	IsTokenChar(r rune) bool
 }
 
-func NewCharTokenizerImpl(ext CharTokenizerExt, input io.Reader) *CharTokenizerImpl {
-	tokenizer := analysis.NewTokenizerImpl()
+func NewCharTokenizerImpl(ext CharTokenizerInner, input io.Reader) *CharTokenizerBase {
+	tokenizer := analysis.NewTokenizer()
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 
 	attr := tokenattributes.NewPackedTokenAttributeImp()
 
-	return &CharTokenizerImpl{
-		ext:          ext,
-		TokenizerImp: tokenizer,
-		offset:       0,
-		finalOffset:  0,
-		maxTokenLen:  86400,
-		termAtt:      attr,
-		offsetAtt:    attr,
-		reader:       bufio.NewReader(input),
+	return &CharTokenizerBase{
+		inner:         ext,
+		TokenizerBase: tokenizer,
+		offset:        0,
+		finalOffset:   0,
+		maxTokenLen:   86400,
+		termAtt:       attr,
+		offsetAtt:     attr,
+		reader:        bufio.NewReader(input),
 	}
 }
 
-type CharTokenizerImpl struct {
-	ext CharTokenizerExt
+type CharTokenizerBase struct {
+	inner CharTokenizerInner
 
-	*analysis.TokenizerImp
+	*analysis.TokenizerBase
 
 	offset      int //
 	finalOffset int
@@ -53,15 +53,21 @@ type CharTokenizerImpl struct {
 	offsetAtt tokenattributes.OffsetAttribute
 
 	reader *bufio.Reader
+
+	isEOF bool
 }
 
-func (c *CharTokenizerImpl) IsTokenChar(r rune) bool {
-	return c.ext.IsTokenChar(r)
+func (c *CharTokenizerBase) IsTokenChar(r rune) bool {
+	return c.inner.IsTokenChar(r)
 }
 
 // IncrementToken
 // 每次读取 ioBuffer 的数据
-func (c *CharTokenizerImpl) IncrementToken() (bool, error) {
+func (c *CharTokenizerBase) IncrementToken() (bool, error) {
+	if c.isEOF {
+		return false, io.EOF
+	}
+
 	// clearAttributes();
 	start, end := -1, -1
 
@@ -69,13 +75,14 @@ func (c *CharTokenizerImpl) IncrementToken() (bool, error) {
 		r, size, err := c.reader.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return false, nil
+				c.isEOF = true
+				return true, nil
 			}
 			return false, err
 		}
 		c.offset += size
 
-		if c.ext.IsTokenChar(r) {
+		if c.inner.IsTokenChar(r) {
 			if start < 0 {
 				start = c.finalOffset
 			}
@@ -93,12 +100,12 @@ func (c *CharTokenizerImpl) IncrementToken() (bool, error) {
 	return true, nil
 }
 
-func (c *CharTokenizerImpl) End() error {
+func (c *CharTokenizerBase) End() error {
 	return c.offsetAtt.SetOffset(c.finalOffset, c.finalOffset)
 }
 
-func (c *CharTokenizerImpl) Reset() error {
-	err := c.TokenizerImp.Reset()
+func (c *CharTokenizerBase) Reset() error {
+	err := c.TokenizerBase.Reset()
 	if err != nil {
 		return err
 	}
@@ -109,12 +116,12 @@ func (c *CharTokenizerImpl) Reset() error {
 	return nil
 }
 
-func (c *CharTokenizerImpl) Close() error {
+func (c *CharTokenizerBase) Close() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *CharTokenizerImpl) SetReader(reader io.Reader) error {
+func (c *CharTokenizerBase) SetReader(reader io.Reader) error {
 	//TODO implement me
 	panic("implement me")
 }

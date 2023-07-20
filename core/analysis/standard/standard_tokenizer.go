@@ -6,7 +6,7 @@ import (
 )
 
 type StandardTokenizer struct {
-	*analysis.TokenizerImp
+	*analysis.TokenizerBase
 
 	scanner *StandardTokenizerImpl
 
@@ -16,7 +16,7 @@ type StandardTokenizer struct {
 
 func NewTokenizer() *StandardTokenizer {
 	tokenizer := &StandardTokenizer{
-		TokenizerImp:     analysis.NewTokenizerImpl(),
+		TokenizerBase:    analysis.NewTokenizer(),
 		scanner:          NewStandardTokenizerImpl(),
 		skippedPositions: 0,
 		maxTokenLength:   0,

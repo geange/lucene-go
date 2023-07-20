@@ -1,7 +1,7 @@
 package structure
 
 import (
-	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"testing"
 )
@@ -33,7 +33,26 @@ func TestIterator(t *testing.T) {
 		num: []int{1, 2, 3, 4, 5},
 	}
 
-	for it.HasNext() {
-		fmt.Println(it.Next())
-	}
+	v, err := it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, v)
+
+	v, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, 2, v)
+
+	v, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, 3, v)
+
+	v, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, 4, v)
+
+	v, err = it.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, 5, v)
+
+	_, err = it.Next()
+	assert.Error(t, err)
 }

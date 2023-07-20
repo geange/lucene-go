@@ -6,7 +6,7 @@ import (
 )
 
 type WhitespaceTokenizer struct {
-	util.CharTokenizerImpl
+	util.CharTokenizerBase
 }
 
 func (w *WhitespaceTokenizer) IsTokenChar(r rune) bool {

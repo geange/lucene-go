@@ -37,20 +37,7 @@ following major modules have been gradually completed:
 
 ## Try
 
-### Go 1.21+
-
-If you need to try Lucene go, you need to install go1.21 because the development phase uses the go1.21 version of
-the `cmp` package.
-
-> During the development phase, the use of new technologies will be more aggressive and frequent attempts will be made
-> to use the latest Go technologies/standards (such as the latest Go version, paradigm syntax, etc.).
-
-The way to install go1.21rc3 is as follows
-
-```go
-go install golang.org/dl/go1.21rc3@latest
-go1.21rc3 download
-```
+> go1.18+
 
 ### Example
 

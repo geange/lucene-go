@@ -13,15 +13,15 @@ type Tokenizer interface {
 	SetReader(reader io.Reader) error
 }
 
-func NewTokenizerImpl() *TokenizerImp {
-	return &TokenizerImp{
+func NewTokenizer() *TokenizerBase {
+	return &TokenizerBase{
 		source:       tokenattributes.NewAttributeSource(),
 		Input:        nil,
 		inputPending: nil,
 	}
 }
 
-type TokenizerImp struct {
+type TokenizerBase struct {
 	source *tokenattributes.AttributeSource
 
 	// The text source for this Tokenizer.
@@ -31,21 +31,21 @@ type TokenizerImp struct {
 	inputPending io.Reader
 }
 
-func (t *TokenizerImp) AttributeSource() *tokenattributes.AttributeSource {
+func (t *TokenizerBase) AttributeSource() *tokenattributes.AttributeSource {
 	return t.source
 }
 
-func (t *TokenizerImp) End() error {
+func (t *TokenizerBase) End() error {
 	return nil
 }
 
-func (t *TokenizerImp) Reset() error {
+func (t *TokenizerBase) Reset() error {
 	t.Input = t.inputPending
 	t.inputPending = nil
 	return nil
 }
 
-func (t *TokenizerImp) Close() error {
+func (t *TokenizerBase) Close() error {
 	//err := t.Input.Close()
 	//if err != nil {
 	//	return err
@@ -61,14 +61,14 @@ func (t *TokenizerImp) Close() error {
 // Params: currentOff – offset as seen in the output
 // Returns: corrected offset based on the input
 // See Also: CharFilter.correctOffset
-func (t *TokenizerImp) CorrectOffset(currentOff int) int {
+func (t *TokenizerBase) CorrectOffset(currentOff int) int {
 	if charFilter, ok := t.Input.(CharFilter); ok {
 		return charFilter.CorrectOffset(currentOff)
 	}
 	return currentOff
 }
 
-func (t *TokenizerImp) SetReader(reader io.Reader) error {
+func (t *TokenizerBase) SetReader(reader io.Reader) error {
 	t.inputPending = reader
 	return nil
 }
