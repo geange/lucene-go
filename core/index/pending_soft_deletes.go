@@ -2,8 +2,8 @@ package index
 
 import (
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -67,7 +67,7 @@ func (p *PendingSoftDeletes) IsFullyDeleted(readerIOSupplier func() CodecReader)
 	panic("implement me")
 }
 
-func (p *PendingSoftDeletes) OnDocValuesUpdate(info *types.FieldInfo, iterator DocValuesFieldUpdatesIterator) {
+func (p *PendingSoftDeletes) OnDocValuesUpdate(info *document.FieldInfo, iterator DocValuesFieldUpdatesIterator) {
 	//TODO implement me
 	panic("implement me")
 }

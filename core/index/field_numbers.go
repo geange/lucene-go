@@ -2,18 +2,19 @@ package index
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/types"
 	"sync"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 type FieldNumbers struct {
 	numberToName map[int]string
 	nameToNumber map[string]int
-	indexOptions map[string]types.IndexOptions
+	indexOptions map[string]document.IndexOptions
 	// We use this to enforce that a given field never
 	// changes DV type, even across segments / IndexWriter
 	// sessions:
-	docValuesType map[string]types.DocValuesType
+	docValuesType map[string]document.DocValuesType
 
 	dimensions map[string]*FieldDimensions
 
@@ -31,8 +32,8 @@ func NewFieldNumbers(softDeletesFieldName string) *FieldNumbers {
 	return &FieldNumbers{
 		numberToName:                map[int]string{},
 		nameToNumber:                map[string]int{},
-		indexOptions:                map[string]types.IndexOptions{},
-		docValuesType:               map[string]types.DocValuesType{},
+		indexOptions:                map[string]document.IndexOptions{},
+		docValuesType:               map[string]document.DocValuesType{},
 		dimensions:                  map[string]*FieldDimensions{},
 		lowestUnassignedFieldNumber: -1,
 		softDeletesFieldName:        softDeletesFieldName,
@@ -43,17 +44,17 @@ func NewFieldNumbers(softDeletesFieldName string) *FieldNumbers {
 // yet it tries to add it with the given preferred field number assigned if possible otherwise the
 // first unassigned field number is used as the field number.
 func (f *FieldNumbers) AddOrGet(fieldName string, preferredFieldNumber int,
-	indexOptions types.IndexOptions, dvType types.DocValuesType,
+	indexOptions document.IndexOptions, dvType document.DocValuesType,
 	dimensionCount, indexDimensionCount, dimensionNumBytes int, isSoftDeletesField bool) (int, error) {
 
 	f.Lock()
 	defer f.Unlock()
 
-	if indexOptions != types.INDEX_OPTIONS_NONE {
+	if indexOptions != document.INDEX_OPTIONS_NONE {
 		currentOpts, ok := f.indexOptions[fieldName]
 		if !ok {
 			f.indexOptions[fieldName] = indexOptions
-		} else if currentOpts != types.INDEX_OPTIONS_NONE && currentOpts != indexOptions {
+		} else if currentOpts != document.INDEX_OPTIONS_NONE && currentOpts != indexOptions {
 			return 0, fmt.Errorf(
 				`cannot change field %s from index options=%s to inconsistent index options=%s`,
 				fieldName, currentOpts, indexOptions,
@@ -61,11 +62,11 @@ func (f *FieldNumbers) AddOrGet(fieldName string, preferredFieldNumber int,
 		}
 	}
 
-	if dvType != types.DOC_VALUES_TYPE_NONE {
+	if dvType != document.DOC_VALUES_TYPE_NONE {
 		currentDVType, ok := f.docValuesType[fieldName]
 		if ok {
 			f.docValuesType[fieldName] = dvType
-		} else if currentDVType != types.DOC_VALUES_TYPE_NONE && currentDVType != dvType {
+		} else if currentDVType != document.DOC_VALUES_TYPE_NONE && currentDVType != dvType {
 			return 0, fmt.Errorf(
 				`cannot change DocValues type from %s to %s for field "%s"`,
 				currentDVType, dvType, fieldName,
@@ -145,7 +146,7 @@ func (f *FieldNumbers) AddOrGet(fieldName string, preferredFieldNumber int,
 	return fieldNumber, nil
 }
 
-func (f *FieldNumbers) verifyConsistentIndexOptions(number int, name string, indexOptions types.IndexOptions) error {
+func (f *FieldNumbers) verifyConsistentIndexOptions(number int, name string, indexOptions document.IndexOptions) error {
 	if f.numberToName[number] != name {
 		return fmt.Errorf(`field number %d is already mapped to field name "%s" not "%s"`,
 			number, f.numberToName[number], name)
@@ -157,7 +158,7 @@ func (f *FieldNumbers) verifyConsistentIndexOptions(number int, name string, ind
 	}
 
 	currentIndexOptions, ok := f.indexOptions[name]
-	if indexOptions != types.INDEX_OPTIONS_NONE && ok && currentIndexOptions != types.INDEX_OPTIONS_NONE && indexOptions != currentIndexOptions {
+	if indexOptions != document.INDEX_OPTIONS_NONE && ok && currentIndexOptions != document.INDEX_OPTIONS_NONE && indexOptions != currentIndexOptions {
 		return fmt.Errorf(`cannot change field "%s" from index options=%s  to inconsistent index options=%s`,
 			name, currentIndexOptions, indexOptions,
 		)
@@ -165,7 +166,7 @@ func (f *FieldNumbers) verifyConsistentIndexOptions(number int, name string, ind
 	return nil
 }
 
-func (f *FieldNumbers) verifyConsistentDocValuesType(number int, name string, dvType types.DocValuesType) error {
+func (f *FieldNumbers) verifyConsistentDocValuesType(number int, name string, dvType document.DocValuesType) error {
 	if f.numberToName[number] != name {
 		return fmt.Errorf(`field number %d is already mapped to field name "%s" not "%s"`,
 			number, f.numberToName[number], name)
@@ -177,7 +178,7 @@ func (f *FieldNumbers) verifyConsistentDocValuesType(number int, name string, dv
 	}
 
 	currentDVType, ok := f.docValuesType[name]
-	if dvType != types.DOC_VALUES_TYPE_NONE && ok && currentDVType != types.DOC_VALUES_TYPE_NONE && dvType != currentDVType {
+	if dvType != document.DOC_VALUES_TYPE_NONE && ok && currentDVType != document.DOC_VALUES_TYPE_NONE && dvType != currentDVType {
 		return fmt.Errorf(`cannot change DocValues type from %s to %d for field "%s"`,
 			currentDVType, dvType, name,
 		)
@@ -186,7 +187,7 @@ func (f *FieldNumbers) verifyConsistentDocValuesType(number int, name string, dv
 	return nil
 }
 
-func (f *FieldNumbers) setIndexOptions(number int, name string, indexOptions types.IndexOptions) error {
+func (f *FieldNumbers) setIndexOptions(number int, name string, indexOptions document.IndexOptions) error {
 	if err := f.verifyConsistentIndexOptions(number, name, indexOptions); err != nil {
 		return err
 	}
@@ -194,7 +195,7 @@ func (f *FieldNumbers) setIndexOptions(number int, name string, indexOptions typ
 	return nil
 }
 
-func (f *FieldNumbers) setDocValuesType(number int, name string, dvType types.DocValuesType) error {
+func (f *FieldNumbers) setDocValuesType(number int, name string, dvType document.DocValuesType) error {
 	if err := f.verifyConsistentDocValuesType(number, name, dvType); err != nil {
 		return err
 	}

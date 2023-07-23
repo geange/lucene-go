@@ -3,7 +3,6 @@ package document
 import (
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/types"
 )
 
 // FieldType Describes the properties of a field.
@@ -15,9 +14,9 @@ type FieldType struct {
 	storeTermVectorPositions bool
 	storeTermVectorPayloads  bool
 	omitNorms                bool
-	indexOptions             types.IndexOptions
+	indexOptions             IndexOptions
 	frozen                   bool
-	docValuesType            types.DocValuesType
+	docValuesType            DocValuesType
 	dimensionCount           int
 	indexDimensionCount      int
 	dimensionNumBytes        int
@@ -28,7 +27,7 @@ func NewFieldType() *FieldType {
 	return defaultFieldType()
 }
 
-func NewFieldTypeV1(ref types.IndexableFieldType) *FieldType {
+func NewFieldTypeV1(ref IndexableFieldType) *FieldType {
 	fieldType := defaultFieldType()
 	fieldType.stored = ref.Stored()
 	fieldType.tokenized = ref.Tokenized()
@@ -57,9 +56,9 @@ func defaultFieldType() *FieldType {
 		storeTermVectorPositions: false,
 		storeTermVectorPayloads:  false,
 		omitNorms:                false,
-		indexOptions:             types.INDEX_OPTIONS_NONE,
+		indexOptions:             INDEX_OPTIONS_NONE,
 		frozen:                   false,
-		docValuesType:            types.DOC_VALUES_TYPE_NONE,
+		docValuesType:            DOC_VALUES_TYPE_NONE,
 		dimensionCount:           0,
 		indexDimensionCount:      0,
 		dimensionNumBytes:        0,
@@ -149,11 +148,11 @@ func (f *FieldType) SetOmitNorms(value bool) error {
 	return nil
 }
 
-func (f *FieldType) IndexOptions() types.IndexOptions {
+func (f *FieldType) IndexOptions() IndexOptions {
 	return f.indexOptions
 }
 
-func (f *FieldType) SetIndexOptions(value types.IndexOptions) error {
+func (f *FieldType) SetIndexOptions(value IndexOptions) error {
 	err := f.checkIfFrozen()
 	if err != nil {
 		return err
@@ -163,11 +162,11 @@ func (f *FieldType) SetIndexOptions(value types.IndexOptions) error {
 	return nil
 }
 
-func (f *FieldType) DocValuesType() types.DocValuesType {
+func (f *FieldType) DocValuesType() DocValuesType {
 	return f.docValuesType
 }
 
-func (f *FieldType) SetDocValuesType(value types.DocValuesType) error {
+func (f *FieldType) SetDocValuesType(value DocValuesType) error {
 	err := f.checkIfFrozen()
 	if err != nil {
 		return err

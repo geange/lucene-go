@@ -1,8 +1,9 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 // NormsProducer Abstract API that produces field normalization values
@@ -11,7 +12,7 @@ type NormsProducer interface {
 
 	// GetNorms Returns NumericDocValues for this field. The returned instance need not be thread-safe:
 	// it will only be used by a single thread.
-	GetNorms(field *types.FieldInfo) (NumericDocValues, error)
+	GetNorms(field *document.FieldInfo) (NumericDocValues, error)
 
 	// CheckIntegrity Checks consistency of this producer
 	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum value

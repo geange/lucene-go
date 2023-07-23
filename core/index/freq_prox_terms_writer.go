@@ -1,7 +1,7 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -54,7 +54,7 @@ func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
 	return consumer.Write(fields, norms)
 }
 
-func (f *FreqProxTermsWriter) AddField(invertState *FieldInvertState, fieldInfo *types.FieldInfo) (TermsHashPerField, error) {
+func (f *FreqProxTermsWriter) AddField(invertState *FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error) {
 	addField, err := f.nextTermsHash.AddField(invertState, fieldInfo)
 	if err != nil {
 		return nil, err

@@ -1,8 +1,9 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 // DocValuesConsumer Abstract API that consumes numeric, binary and sorted docvalues.
@@ -24,31 +25,31 @@ type DocValuesConsumer interface {
 	// @param field field information
 	// @param valuesProducer Numeric values to write.
 	// @throws IOException if an I/O error occurred.
-	AddNumericField(field *types.FieldInfo, valuesProducer DocValuesProducer) error
+	AddNumericField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
 
 	// AddBinaryField Writes binary docvalues for a field.
 	// @param field field information
 	// @param valuesProducer Binary values to write.
 	// @throws IOException if an I/O error occurred.
-	AddBinaryField(field *types.FieldInfo, valuesProducer DocValuesProducer) error
+	AddBinaryField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
 
 	// AddSortedField Writes pre-sorted binary docvalues for a field.
 	// @param field field information
 	// @param valuesProducer produces the values and ordinals to write
 	// @throws IOException if an I/O error occurred.
-	AddSortedField(field *types.FieldInfo, valuesProducer DocValuesProducer) error
+	AddSortedField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
 
 	// AddSortedNumericField Writes pre-sorted numeric docvalues for a field
 	// @param field field information
 	// @param valuesProducer produces the values to write
 	// @throws IOException if an I/O error occurred.
-	AddSortedNumericField(field *types.FieldInfo, valuesProducer DocValuesProducer) error
+	AddSortedNumericField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
 
 	// AddSortedSetField Writes pre-sorted set docvalues for a field
 	// @param field field information
 	// @param valuesProducer produces the values to write
 	// @throws IOException if an I/O error occurred.
-	AddSortedSetField(field *types.FieldInfo, valuesProducer DocValuesProducer) error
+	AddSortedSetField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
 }
 
 // Merges in the fields from the readers in mergeState. The default implementation calls mergeNumericField,

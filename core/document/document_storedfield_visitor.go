@@ -1,9 +1,5 @@
 package document
 
-import (
-	"github.com/geange/lucene-go/core/types"
-)
-
 var _ StoredFieldVisitor = &DocumentStoredFieldVisitor{}
 
 type DocumentStoredFieldVisitor struct {
@@ -37,12 +33,12 @@ func (r *DocumentStoredFieldVisitor) GetDocument() *Document {
 	return r.doc
 }
 
-func (r *DocumentStoredFieldVisitor) BinaryField(fieldInfo *types.FieldInfo, value []byte) error {
+func (r *DocumentStoredFieldVisitor) BinaryField(fieldInfo *FieldInfo, value []byte) error {
 	r.doc.Add(NewStoredField(fieldInfo.Name(), value))
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) StringField(fieldInfo *types.FieldInfo, value []byte) error {
+func (r *DocumentStoredFieldVisitor) StringField(fieldInfo *FieldInfo, value []byte) error {
 	ft := NewFieldTypeV1(TextFieldStored)
 	err := ft.SetStoreTermVectors(fieldInfo.HasVectors())
 	if err != nil {
@@ -61,27 +57,27 @@ func (r *DocumentStoredFieldVisitor) StringField(fieldInfo *types.FieldInfo, val
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) Int32Field(fieldInfo *types.FieldInfo, value int32) error {
+func (r *DocumentStoredFieldVisitor) Int32Field(fieldInfo *FieldInfo, value int32) error {
 	r.doc.Add(NewStoredFieldWithType(fieldInfo.Name(), value, STORED_ONLY))
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) Int64Field(fieldInfo *types.FieldInfo, value int64) error {
+func (r *DocumentStoredFieldVisitor) Int64Field(fieldInfo *FieldInfo, value int64) error {
 	r.doc.Add(NewStoredFieldWithType(fieldInfo.Name(), value, STORED_ONLY))
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) Float32Field(fieldInfo *types.FieldInfo, value float32) error {
+func (r *DocumentStoredFieldVisitor) Float32Field(fieldInfo *FieldInfo, value float32) error {
 	r.doc.Add(NewStoredFieldWithType(fieldInfo.Name(), value, STORED_ONLY))
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) Float64Field(fieldInfo *types.FieldInfo, value float64) error {
+func (r *DocumentStoredFieldVisitor) Float64Field(fieldInfo *FieldInfo, value float64) error {
 	r.doc.Add(NewStoredFieldWithType(fieldInfo.Name(), value, STORED_ONLY))
 	return nil
 }
 
-func (r *DocumentStoredFieldVisitor) NeedsField(fieldInfo *types.FieldInfo) (STORED_FIELD_VISITOR_STATUS, error) {
+func (r *DocumentStoredFieldVisitor) NeedsField(fieldInfo *FieldInfo) (STORED_FIELD_VISITOR_STATUS, error) {
 	if r.fieldsToAdd == nil {
 		return STORED_FIELD_VISITOR_YES, nil
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search"
 	"github.com/geange/lucene-go/core/tokenattr"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"go.uber.org/atomic"
 	"reflect"
@@ -120,9 +119,9 @@ func NewMemoryIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Me
 		defaultFieldType: document.NewFieldType(),
 	}
 
-	options := types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+	options := document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 	if !storeOffsets {
-		options = types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+		options = document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 	}
 	if err = index.defaultFieldType.SetIndexOptions(options); err != nil {
 		return nil, err
@@ -170,7 +169,7 @@ func FromDocument(document *document.Document, analyzer analysis.Analyzer,
 // values based on IndexableFieldType.docValuesType() if set.
 // Params: field – the field to add
 // analyzer – the analyzer to use for term analysis
-func (m *MemoryIndex) AddField(field types.IndexableField, analyzer analysis.Analyzer) error {
+func (m *MemoryIndex) AddField(field document.IndexableField, analyzer analysis.Analyzer) error {
 	info, err := m.getInfo(field.Name(), field.FieldType())
 	if err != nil {
 		return err
@@ -204,14 +203,14 @@ func (m *MemoryIndex) AddField(field types.IndexableField, analyzer analysis.Ana
 	docValuesType := field.FieldType().DocValuesType()
 
 	switch docValuesType {
-	case types.DOC_VALUES_TYPE_NONE:
+	case document.DOC_VALUES_TYPE_NONE:
 		break
-	case types.DOC_VALUES_TYPE_BINARY, types.DOC_VALUES_TYPE_SORTED, types.DOC_VALUES_TYPE_SORTED_SET:
+	case document.DOC_VALUES_TYPE_BINARY, document.DOC_VALUES_TYPE_SORTED, document.DOC_VALUES_TYPE_SORTED_SET:
 		err := m.storeDocValues(info, docValuesType, field.Value())
 		if err != nil {
 			return err
 		}
-	case types.DOC_VALUES_TYPE_NUMERIC, types.DOC_VALUES_TYPE_SORTED_NUMERIC:
+	case document.DOC_VALUES_TYPE_NUMERIC, document.DOC_VALUES_TYPE_SORTED_NUMERIC:
 		err := m.storeDocValues(info, docValuesType, field.Value())
 		if err != nil {
 			return err
@@ -287,7 +286,7 @@ func (m *MemoryIndex) Search(query search.Query) float64 {
 	return score
 }
 
-func (m *MemoryIndex) getInfo(fieldName string, fieldType types.IndexableFieldType) (*Info, error) {
+func (m *MemoryIndex) getInfo(fieldName string, fieldType document.IndexableFieldType) (*Info, error) {
 	if m.frozen {
 		return nil, errors.New("cannot call addField() when MemoryIndex is frozen")
 	}
@@ -323,7 +322,7 @@ func (m *MemoryIndex) getInfo(fieldName string, fieldType types.IndexableFieldTy
 	}
 
 	if fieldType.DocValuesType() != info.fieldInfo.GetDocValuesType() {
-		if fieldType.DocValuesType() != types.DOC_VALUES_TYPE_NONE {
+		if fieldType.DocValuesType() != document.DOC_VALUES_TYPE_NONE {
 			err := info.fieldInfo.SetDocValuesType(fieldType.DocValuesType())
 			if err != nil {
 				return nil, err
@@ -417,11 +416,11 @@ func (m *MemoryIndex) storeTerms(info *Info, tokenStream analysis.TokenStream, p
 	return nil
 }
 
-func (m *MemoryIndex) storeDocValues(info *Info, docValuesType types.DocValuesType, docValuesValue interface{}) error {
+func (m *MemoryIndex) storeDocValues(info *Info, docValuesType document.DocValuesType, docValuesValue interface{}) error {
 	fieldName := info.fieldInfo.Name()
 	existingDocValuesType := info.fieldInfo.GetDocValuesType()
-	if existingDocValuesType == types.DOC_VALUES_TYPE_NONE {
-		info.fieldInfo = types.NewFieldInfo(info.fieldInfo.Name(), info.fieldInfo.Number(), info.fieldInfo.HasVectors(),
+	if existingDocValuesType == document.DOC_VALUES_TYPE_NONE {
+		info.fieldInfo = document.NewFieldInfo(info.fieldInfo.Name(), info.fieldInfo.Number(), info.fieldInfo.HasVectors(),
 			info.fieldInfo.HasPayloads(), info.fieldInfo.HasPayloads(), info.fieldInfo.GetIndexOptions(), docValuesType,
 			-1, info.fieldInfo.Attributes(), info.fieldInfo.GetPointDimensionCount(), info.fieldInfo.GetPointIndexDimensionCount(),
 			info.fieldInfo.GetPointNumBytes(), info.fieldInfo.IsSoftDeletesField())
@@ -434,13 +433,13 @@ func (m *MemoryIndex) storeDocValues(info *Info, docValuesType types.DocValuesTy
 	return nil
 }
 
-func (m *MemoryIndex) createFieldInfo(fieldName string, ord int, fieldType types.IndexableFieldType) *types.FieldInfo {
-	indexOptions := types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+func (m *MemoryIndex) createFieldInfo(fieldName string, ord int, fieldType document.IndexableFieldType) *document.FieldInfo {
+	indexOptions := document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 	if m.storeOffsets {
-		indexOptions = types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+		indexOptions = document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 	}
 
-	return types.NewFieldInfo(fieldName, ord, fieldType.StoreTermVectors(), fieldType.OmitNorms(), m.storePayloads,
+	return document.NewFieldInfo(fieldName, ord, fieldType.StoreTermVectors(), fieldType.OmitNorms(), m.storePayloads,
 		indexOptions, fieldType.DocValuesType(), -1, map[string]string{},
 		fieldType.PointDimensionCount(), fieldType.PointIndexDimensionCount(), fieldType.PointNumBytes(), false)
 }

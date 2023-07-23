@@ -8,7 +8,6 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"io"
 	"strconv"
 )
@@ -177,7 +176,7 @@ func (s *SimpleTextStoredFieldsReader) VisitDocument(docID int, visitor document
 }
 
 func (s *SimpleTextStoredFieldsReader) readField(
-	dataType []byte, fieldInfo *types.FieldInfo, visitor document.StoredFieldVisitor) error {
+	dataType []byte, fieldInfo *document.FieldInfo, visitor document.StoredFieldVisitor) error {
 
 	if err := s.readLine(); err != nil {
 		return err

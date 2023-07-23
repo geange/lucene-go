@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/fst"
 	"io"
 	"strconv"
@@ -19,7 +19,7 @@ type simpleTextTerms struct {
 	*index.TermsDefault
 
 	termsStart       int64
-	fieldInfo        *types.FieldInfo
+	fieldInfo        *document.FieldInfo
 	maxDoc           int
 	sumTotalTermFreq int64
 	sumDocFreq       int64
@@ -158,15 +158,15 @@ func (f *simpleTextTerms) GetDocCount() (int, error) {
 }
 
 func (f *simpleTextTerms) HasFreqs() bool {
-	return f.fieldInfo.GetIndexOptions() >= types.INDEX_OPTIONS_DOCS_AND_FREQS
+	return f.fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS
 }
 
 func (f *simpleTextTerms) HasOffsets() bool {
-	return f.fieldInfo.GetIndexOptions() >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+	return f.fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 }
 
 func (f *simpleTextTerms) HasPositions() bool {
-	return f.fieldInfo.GetIndexOptions() >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+	return f.fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 }
 
 func (f *simpleTextTerms) HasPayloads() bool {
@@ -184,7 +184,7 @@ type simpleTextTermsEnum struct {
 
 	*index.BaseTermsEnum
 
-	indexOptions  types.IndexOptions
+	indexOptions  document.IndexOptions
 	docFreq       int
 	totalTermFreq int64
 	docsStart     int64
@@ -194,7 +194,7 @@ type simpleTextTermsEnum struct {
 }
 
 func (s *SimpleTextFieldsReader) newSimpleTextTermsEnum(fstInstance *fst.Fst[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]],
-	indexOptions types.IndexOptions) *simpleTextTermsEnum {
+	indexOptions document.IndexOptions) *simpleTextTermsEnum {
 	enum := &simpleTextTermsEnum{
 		indexOptions: indexOptions,
 		fstEnum:      fst.NewBytesRefFSTEnum(fstInstance),
@@ -295,14 +295,14 @@ func (t *simpleTextTermsEnum) DocFreq() (int, error) {
 }
 
 func (t *simpleTextTermsEnum) TotalTermFreq() (int64, error) {
-	if t.indexOptions == types.INDEX_OPTIONS_DOCS {
+	if t.indexOptions == document.INDEX_OPTIONS_DOCS {
 		return int64(t.docFreq), nil
 	}
 	return t.totalTermFreq, nil
 }
 
 func (t *simpleTextTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
-	hasPositions := t.indexOptions >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+	hasPositions := t.indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 	if hasPositions && index.FeatureRequested(flags, index.POSTINGS_ENUM_POSITIONS) {
 		var docsAndPositionsEnum *simpleTextPostingsEnum
 
@@ -322,7 +322,7 @@ func (t *simpleTextTermsEnum) Postings(reuse index.PostingsEnum, flags int) (ind
 	} else {
 		docsEnum = t.r.newSimpleTextDocsEnum()
 	}
-	return docsEnum.Reset(t.docsStart, t.indexOptions == types.INDEX_OPTIONS_DOCS, t.docFreq, t.skipPointer)
+	return docsEnum.Reset(t.docsStart, t.indexOptions == document.INDEX_OPTIONS_DOCS, t.docFreq, t.skipPointer)
 }
 
 func (t *simpleTextTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
@@ -429,12 +429,12 @@ func (s *simpleTextPostingsEnum) GetImpacts() (index.Impacts, error) {
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions types.IndexOptions, docFreq int, skipPointer int64) index.PostingsEnum {
+func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions document.IndexOptions, docFreq int, skipPointer int64) index.PostingsEnum {
 
 	s.nextDocStart = fp
 	s.docID = -1
-	s.readPositions = indexOptions >= (types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
-	s.readOffsets = indexOptions >= (types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
+	s.readPositions = indexOptions >= (document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	s.readOffsets = indexOptions >= (document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
 	if !s.readOffsets {
 		s.startOffset = -1
 		s.endOffset = -1

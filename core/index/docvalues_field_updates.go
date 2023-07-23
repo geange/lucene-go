@@ -2,9 +2,10 @@ package index
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/packed"
 	"math"
+
+	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/util/packed"
 )
 
 const (
@@ -58,7 +59,7 @@ type DocValuesFieldUpdates interface {
 
 type DocValuesFieldUpdatesDefault struct {
 	field        string
-	_type        types.DocValuesType
+	_type        document.DocValuesType
 	delGen       int64
 	bitsPerValue int
 	finished     bool

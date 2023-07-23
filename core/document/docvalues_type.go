@@ -1,4 +1,4 @@
-package types
+package document
 
 type DocValuesType int
 

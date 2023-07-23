@@ -3,9 +3,9 @@ package simpletext
 import (
 	"errors"
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 )
 
 var _ index.TermVectorsWriter = &SimpleTextTermVectorsWriter{}
@@ -80,7 +80,7 @@ func (s *SimpleTextTermVectorsWriter) FinishDocument() error {
 	return nil
 }
 
-func (s *SimpleTextTermVectorsWriter) StartField(info *types.FieldInfo, numTerms int, positions, offsets, payloads bool) error {
+func (s *SimpleTextTermVectorsWriter) StartField(info *document.FieldInfo, numTerms int, positions, offsets, payloads bool) error {
 	if err := writeValue(s.out, VECTORS_FIELD, info.Number()); err != nil {
 		return err
 	}

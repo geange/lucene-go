@@ -2,9 +2,10 @@ package index
 
 import (
 	"bytes"
-	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/automaton"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 var _ Fields = &FreqProxFields{}
@@ -81,17 +82,17 @@ func (f *FreqProxTerms) GetDocCount() (int, error) {
 
 func (f *FreqProxTerms) HasFreqs() bool {
 	return f.terms.indexOptions >=
-		types.INDEX_OPTIONS_DOCS_AND_FREQS
+		document.INDEX_OPTIONS_DOCS_AND_FREQS
 }
 
 func (f *FreqProxTerms) HasOffsets() bool {
 	return f.terms.indexOptions >=
-		types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+		document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 }
 
 func (f *FreqProxTerms) HasPositions() bool {
 	return f.terms.indexOptions >=
-		types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+		document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 }
 
 func (f *FreqProxTerms) HasPayloads() bool {

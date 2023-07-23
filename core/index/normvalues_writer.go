@@ -2,7 +2,8 @@ package index
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/types"
+
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/util/packed"
 )
 
@@ -10,7 +11,7 @@ import (
 type NormValuesWriter struct {
 	docsWithField *DocsWithFieldSet
 	pending       *packed.PackedLongValuesBuilder
-	fieldInfo     *types.FieldInfo
+	fieldInfo     *document.FieldInfo
 	lastDocID     int
 }
 
@@ -32,7 +33,7 @@ func (n *NormValuesWriter) Flush(state *SegmentWriteState, sortMap *DocMap, norm
 	panic("")
 }
 
-func NewNormValuesWriter(fieldInfo *types.FieldInfo) *NormValuesWriter {
+func NewNormValuesWriter(fieldInfo *document.FieldInfo) *NormValuesWriter {
 	return &NormValuesWriter{
 		docsWithField: NewDocsWithFieldSet(),
 		pending:       packed.NewPackedLongValuesBuilder(make([]uint64, 0)),

@@ -2,18 +2,19 @@ package index
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/types"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 type FieldInfosBuilder struct {
-	byName             map[string]*types.FieldInfo
+	byName             map[string]*document.FieldInfo
 	globalFieldNumbers *FieldNumbers
 	finished           bool
 }
 
 func NewFieldInfosBuilder(globalFieldNumbers *FieldNumbers) *FieldInfosBuilder {
 	return &FieldInfosBuilder{
-		byName:             make(map[string]*types.FieldInfo),
+		byName:             make(map[string]*document.FieldInfo),
 		globalFieldNumbers: globalFieldNumbers,
 		finished:           false,
 	}
@@ -33,7 +34,7 @@ func (f *FieldInfosBuilder) Add(other *FieldInfos) error {
 }
 
 // GetOrAdd Create a new field, or return existing one.
-func (f *FieldInfosBuilder) GetOrAdd(name string) (*types.FieldInfo, error) {
+func (f *FieldInfosBuilder) GetOrAdd(name string) (*document.FieldInfo, error) {
 	fi, ok := f.byName[name]
 	if !ok {
 		if err := f.assertNotFinished(); err != nil {
@@ -46,18 +47,18 @@ func (f *FieldInfosBuilder) GetOrAdd(name string) (*types.FieldInfo, error) {
 		// else we'll allocate a new one:
 		isSoftDeletesField := name == f.globalFieldNumbers.softDeletesFieldName
 		fieldNumber, err := f.globalFieldNumbers.AddOrGet(name, -1,
-			types.INDEX_OPTIONS_NONE, types.DOC_VALUES_TYPE_NONE,
+			document.INDEX_OPTIONS_NONE, document.DOC_VALUES_TYPE_NONE,
 			0, 0, 0, isSoftDeletesField)
 		if err != nil {
 			return nil, err
 		}
-		fi = types.NewFieldInfo(name, fieldNumber, false, false, false,
-			types.INDEX_OPTIONS_NONE, types.DOC_VALUES_TYPE_NONE,
+		fi = document.NewFieldInfo(name, fieldNumber, false, false, false,
+			document.INDEX_OPTIONS_NONE, document.DOC_VALUES_TYPE_NONE,
 			-1, map[string]string{},
 			0, 0, 0, isSoftDeletesField)
 		//assert !byName.containsKey(fi.name);
 		if err := f.globalFieldNumbers.verifyConsistentDocValuesType(
-			fi.Number(), fi.Name(), types.DOC_VALUES_TYPE_NONE); err != nil {
+			fi.Number(), fi.Name(), document.DOC_VALUES_TYPE_NONE); err != nil {
 			return nil, err
 		}
 		f.byName[fi.Name()] = fi
@@ -66,11 +67,11 @@ func (f *FieldInfosBuilder) GetOrAdd(name string) (*types.FieldInfo, error) {
 	return fi, nil
 }
 
-func (f *FieldInfosBuilder) AddFieldInfo(fi *types.FieldInfo) (*types.FieldInfo, error) {
+func (f *FieldInfosBuilder) AddFieldInfo(fi *document.FieldInfo) (*document.FieldInfo, error) {
 	return f.AddFieldInfoV(fi, -1)
 }
 
-func (f *FieldInfosBuilder) AddFieldInfoV(fi *types.FieldInfo, dvGen int64) (*types.FieldInfo, error) {
+func (f *FieldInfosBuilder) AddFieldInfoV(fi *document.FieldInfo, dvGen int64) (*document.FieldInfo, error) {
 	// IMPORTANT - reuse the field number if possible for consistent field numbers across segments
 	return f.addOrUpdateInternal(fi.Name(), fi.Number(), fi.HasVectors(),
 		fi.OmitsNorms(), fi.HasPayloads(),
@@ -82,11 +83,11 @@ func (f *FieldInfosBuilder) AddFieldInfoV(fi *types.FieldInfo, dvGen int64) (*ty
 
 func (f *FieldInfosBuilder) addOrUpdateInternal(name string, preferredFieldNumber int,
 	storeTermVector, omitNorms, storePayloads bool,
-	indexOptions types.IndexOptions, docValues types.DocValuesType,
+	indexOptions document.IndexOptions, docValues document.DocValuesType,
 	dvGen int64, attributes map[string]string,
 	dataDimensionCount, indexDimensionCount, dimensionNumBytes int,
 	isSoftDeletesField bool,
-) (*types.FieldInfo, error) {
+) (*document.FieldInfo, error) {
 	if err := f.assertNotFinished(); err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func (f *FieldInfosBuilder) addOrUpdateInternal(name string, preferredFieldNumbe
 			return nil, err
 		}
 
-		fi = types.NewFieldInfo(name, fieldNumber, storeTermVector, omitNorms,
+		fi = document.NewFieldInfo(name, fieldNumber, storeTermVector, omitNorms,
 			storePayloads, indexOptions, docValues, dvGen, attributes, dataDimensionCount,
 			indexDimensionCount, dimensionNumBytes, isSoftDeletesField)
 		//assert !byName.containsKey(fi.name);
@@ -120,9 +121,9 @@ func (f *FieldInfosBuilder) addOrUpdateInternal(name string, preferredFieldNumbe
 			return nil, err
 		}
 
-		if docValues != types.DOC_VALUES_TYPE_NONE {
+		if docValues != document.DOC_VALUES_TYPE_NONE {
 			// Only pay the synchronization cost if fi does not already have a DVType
-			updateGlobal := fi.GetDocValuesType() == types.DOC_VALUES_TYPE_NONE
+			updateGlobal := fi.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE
 			if updateGlobal {
 				// Must also update docValuesType map so it's
 				// aware of this field's DocValuesType.  This will throw IllegalArgumentException if
@@ -143,7 +144,7 @@ func (f *FieldInfosBuilder) addOrUpdateInternal(name string, preferredFieldNumbe
 	return fi, nil
 }
 
-func (f *FieldInfosBuilder) fieldInfo(fieldName string) *types.FieldInfo {
+func (f *FieldInfosBuilder) fieldInfo(fieldName string) *document.FieldInfo {
 	return f.byName[fieldName]
 }
 
@@ -157,7 +158,7 @@ func (f *FieldInfosBuilder) assertNotFinished() error {
 func (f *FieldInfosBuilder) Finish() *FieldInfos {
 	f.finished = true
 
-	list := make([]*types.FieldInfo, 0)
+	list := make([]*document.FieldInfo, 0)
 	for _, v := range f.byName {
 		list = append(list, v)
 	}

@@ -1,8 +1,8 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 )
 
 var _ DocValuesProducer = &SegmentDocValuesProducer{}
@@ -24,7 +24,7 @@ func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
 
 	var baseProducer DocValuesProducer
 	for _, fi := range allInfos.values {
-		if fi.GetDocValuesType() == types.DOC_VALUES_TYPE_NONE {
+		if fi.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {
 			continue
 		}
 
@@ -43,7 +43,7 @@ func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
 		} else {
 			//assert !dvGens.contains(docValuesGen);
 			// otherwise, producer sees only the one fieldinfo it wrote
-			dvp, err := segDocValues.GetDocValuesProducer(docValuesGen, si, dir, NewFieldInfos([]*types.FieldInfo{fi}))
+			dvp, err := segDocValues.GetDocValuesProducer(docValuesGen, si, dir, NewFieldInfos([]*document.FieldInfo{fi}))
 			if err != nil {
 				return nil, err
 			}
@@ -60,27 +60,27 @@ func (s *SegmentDocValuesProducer) Close() error {
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetNumeric(field *types.FieldInfo) (NumericDocValues, error) {
+func (s *SegmentDocValuesProducer) GetNumeric(field *document.FieldInfo) (NumericDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetBinary(field *types.FieldInfo) (BinaryDocValues, error) {
+func (s *SegmentDocValuesProducer) GetBinary(field *document.FieldInfo) (BinaryDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSorted(field *types.FieldInfo) (SortedDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSorted(field *document.FieldInfo) (SortedDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSortedNumeric(field *types.FieldInfo) (SortedNumericDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSortedNumeric(field *document.FieldInfo) (SortedNumericDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSortedSet(field *types.FieldInfo) (SortedSetDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSortedSet(field *document.FieldInfo) (SortedSetDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }

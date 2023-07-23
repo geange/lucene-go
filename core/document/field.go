@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/tokenattr"
-	"github.com/geange/lucene-go/core/types"
 	"io"
 )
 
@@ -21,7 +20,7 @@ import (
 // * SortedNumericDocValuesField: SortedSet<long> indexed column-wise for sorting/faceting
 // * StoredField: Stored-only value for retrieving in summary results
 type Field struct {
-	_type      types.IndexableFieldType
+	_type      IndexableFieldType
 	name       string
 	fieldsData any
 
@@ -36,14 +35,14 @@ type Field struct {
 //	types – field types
 //
 // Throws: 	IllegalArgumentException – if either the name or types is null.
-func NewFieldV1(name string, _type types.IndexableFieldType) *Field {
+func NewFieldV1(name string, _type IndexableFieldType) *Field {
 	return &Field{
 		_type: _type,
 		name:  name,
 	}
 }
 
-func NewFieldWithAny(name string, _type types.IndexableFieldType, data any) *Field {
+func NewFieldWithAny(name string, _type IndexableFieldType, data any) *Field {
 	field := &Field{
 		_type:      _type,
 		name:       name,
@@ -61,7 +60,7 @@ func NewFieldWithAny(name string, _type types.IndexableFieldType, data any) *Fie
 // Throws: 	IllegalArgumentException – if either the name or types is null, or if the field's types is stored(), or if tokenized() is false.
 //
 //	NullPointerException – if the reader is null
-func NewFieldV2(name string, reader io.Reader, _type types.IndexableFieldType) *Field {
+func NewFieldV2(name string, reader io.Reader, _type IndexableFieldType) *Field {
 	return &Field{
 		_type:       _type,
 		name:        name,
@@ -70,7 +69,7 @@ func NewFieldV2(name string, reader io.Reader, _type types.IndexableFieldType) *
 	}
 }
 
-func NewFieldV3(name string, tokenStream analysis.TokenStream, _type types.IndexableFieldType) *Field {
+func NewFieldV3(name string, tokenStream analysis.TokenStream, _type IndexableFieldType) *Field {
 	return &Field{
 		_type:       _type,
 		name:        name,
@@ -89,7 +88,7 @@ func NewFieldV3(name string, tokenStream analysis.TokenStream, _type types.Index
 // Throws: 	IllegalArgumentException – if the field name, value or types is null, or the field's types is indexed().
 
 // NewField Create field with []byte or string
-func NewField[T Value](name string, value T, _type types.IndexableFieldType) *Field {
+func NewField[T Value](name string, value T, _type IndexableFieldType) *Field {
 	return &Field{
 		_type:       _type,
 		name:        name,
@@ -99,7 +98,7 @@ func NewField[T Value](name string, value T, _type types.IndexableFieldType) *Fi
 }
 
 func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStream) (analysis.TokenStream, error) {
-	if r.FieldType().IndexOptions() == types.INDEX_OPTIONS_NONE {
+	if r.FieldType().IndexOptions() == INDEX_OPTIONS_NONE {
 		return nil, nil
 	}
 
@@ -150,7 +149,7 @@ func (r *Field) Name() string {
 	return r.name
 }
 
-func (r *Field) FieldType() types.IndexableFieldType {
+func (r *Field) FieldType() IndexableFieldType {
 	return r._type
 }
 

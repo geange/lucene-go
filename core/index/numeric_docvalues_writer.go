@@ -2,10 +2,11 @@ package index
 
 import (
 	"errors"
-	"github.com/bits-and-blooms/bitset"
-	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/packed"
 	"io"
+
+	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/util/packed"
 )
 
 var _ DocValuesWriter = &NumericDocValuesWriter{}
@@ -14,11 +15,11 @@ type NumericDocValuesWriter struct {
 	pending       *packed.PackedLongValuesBuilder
 	finalValues   *packed.PackedLongValues
 	docsWithField *DocsWithFieldSet
-	fieldInfo     *types.FieldInfo
+	fieldInfo     *document.FieldInfo
 	lastDocID     int
 }
 
-func NewNumericDocValuesWriter(fieldInfo *types.FieldInfo) *NumericDocValuesWriter {
+func NewNumericDocValuesWriter(fieldInfo *document.FieldInfo) *NumericDocValuesWriter {
 	panic("")
 }
 
@@ -38,7 +39,7 @@ func (n *NumericDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap,
 	n.finalValues = n.pending.Build()
 
 	return consumer.AddNumericField(n.fieldInfo, &EmptyDocValuesProducer{
-		FnGetNumeric: func(field *types.FieldInfo) (NumericDocValues, error) {
+		FnGetNumeric: func(field *document.FieldInfo) (NumericDocValues, error) {
 			iterator, err := n.docsWithField.Iterator()
 			if err != nil {
 				return nil, err

@@ -3,9 +3,9 @@ package simpletext
 import (
 	"bytes"
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"strconv"
 )
 
@@ -70,7 +70,7 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 	if err != nil {
 		return nil, err
 	}
-	infos := make([]*types.FieldInfo, 0, size)
+	infos := make([]*document.FieldInfo, 0, size)
 
 	for i := 0; i < size; i++ {
 		value, err := r.ReadLabel(NAME)
@@ -89,7 +89,7 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 		if err != nil {
 			return nil, err
 		}
-		indexOptions := types.StringToIndexOptions(value)
+		indexOptions := document.StringToIndexOptions(value)
 
 		value, err = r.ReadLabel(STORETV)
 		if err != nil {
@@ -114,7 +114,7 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 		if err != nil {
 			return nil, err
 		}
-		docValuesType := types.StringToDocValuesType(value)
+		docValuesType := document.StringToDocValuesType(value)
 
 		value, err = r.ReadLabel(DOCVALUES_GEN)
 		if err != nil {
@@ -168,7 +168,7 @@ func (s *SimpleTextFieldInfosFormat) Read(directory store.Directory, segmentInfo
 		}
 		isSoftDeletesField, _ := strconv.ParseBool(value)
 
-		info := types.NewFieldInfo(name, fieldNumber, storeTermVector,
+		info := document.NewFieldInfo(name, fieldNumber, storeTermVector,
 			omitNorms, storePayloads, indexOptions, docValuesType, int64(dvGen), atts,
 			dimensionalCount, indexDimensionalCount, dimensionalNumBytes, isSoftDeletesField)
 		infos = append(infos, info)

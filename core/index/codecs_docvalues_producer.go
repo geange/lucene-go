@@ -1,8 +1,9 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 // DocValuesProducer Abstract API that produces numeric, binary, sorted, sortedset, and sortednumeric docvalues.
@@ -12,23 +13,23 @@ type DocValuesProducer interface {
 
 	// GetNumeric Returns NumericDocValues for this field. The returned instance need not be thread-safe:
 	// it will only be used by a single thread.
-	GetNumeric(field *types.FieldInfo) (NumericDocValues, error)
+	GetNumeric(field *document.FieldInfo) (NumericDocValues, error)
 
 	// GetBinary Returns BinaryDocValues for this field. The returned instance need not be thread-safe:
 	// it will only be used by a single thread.
-	GetBinary(field *types.FieldInfo) (BinaryDocValues, error)
+	GetBinary(field *document.FieldInfo) (BinaryDocValues, error)
 
 	// GetSorted Returns SortedDocValues for this field. The returned instance need not be
 	// thread-safe: it will only be used by a single thread.
-	GetSorted(field *types.FieldInfo) (SortedDocValues, error)
+	GetSorted(field *document.FieldInfo) (SortedDocValues, error)
 
 	// GetSortedNumeric Returns SortedNumericDocValues for this field. The returned instance
 	// need not be thread-safe: it will only be used by a single thread.
-	GetSortedNumeric(field *types.FieldInfo) (SortedNumericDocValues, error)
+	GetSortedNumeric(field *document.FieldInfo) (SortedNumericDocValues, error)
 
 	// GetSortedSet Returns SortedSetDocValues for this field. The returned instance need not
 	// be thread-safe: it will only be used by a single thread.
-	GetSortedSet(field *types.FieldInfo) (SortedSetDocValues, error)
+	GetSortedSet(field *document.FieldInfo) (SortedSetDocValues, error)
 
 	// CheckIntegrity Checks consistency of this producer
 	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum value

@@ -1,7 +1,6 @@
 package document
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"io"
 )
 
@@ -12,13 +11,13 @@ var (
 
 func init() {
 	TextFieldStored = NewFieldType()
-	_ = TextFieldStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	_ = TextFieldStored.SetIndexOptions(INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
 	_ = TextFieldStored.SetTokenized(true)
 	_ = TextFieldStored.SetStored(true)
 	TextFieldStored.Freeze()
 
 	TextFieldNotStored = NewFieldType()
-	_ = TextFieldNotStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	_ = TextFieldNotStored.SetIndexOptions(INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
 	_ = TextFieldNotStored.SetTokenized(true)
 	TextFieldNotStored.Freeze()
 }

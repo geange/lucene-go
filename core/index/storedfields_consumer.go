@@ -1,8 +1,8 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 )
 
 type StoredFieldsConsumer struct {
@@ -23,7 +23,7 @@ func NewStoredFieldsConsumer(codec Codec, directory store.Directory, info *Segme
 	}
 }
 
-func (s *StoredFieldsConsumer) writeField(info *types.FieldInfo, field types.IndexableField) error {
+func (s *StoredFieldsConsumer) writeField(info *document.FieldInfo, field document.IndexableField) error {
 	return s.writer.WriteField(info, field)
 }
 

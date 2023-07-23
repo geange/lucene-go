@@ -1,8 +1,8 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -84,7 +84,7 @@ func (t *TermVectorsConsumer) initTermVectorsWriter() error {
 }
 
 func (t *TermVectorsConsumer) AddField(invertState *FieldInvertState,
-	fieldInfo *types.FieldInfo) (TermsHashPerField, error) {
+	fieldInfo *document.FieldInfo) (TermsHashPerField, error) {
 
 	return NewTermVectorsConsumerPerField(invertState, t, fieldInfo), nil
 }

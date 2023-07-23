@@ -2,7 +2,8 @@ package index
 
 import (
 	"encoding/binary"
-	"github.com/geange/lucene-go/core/types"
+
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -20,7 +21,7 @@ const HASH_INIT_SIZE = 4
 // 完成后，首先在BytesRefHash中对术语（term）进行重复数据消除。内部数据结构指向可以写入的每个流的当前偏移量。
 type TermsHashPerField interface {
 	// Start adding a new field instance; first is true if this is the first time this field name was seen in the document.
-	Start(field types.IndexableField, first bool) bool
+	Start(field document.IndexableField, first bool) bool
 
 	Add(termBytes []byte, docID int) error
 
@@ -67,7 +68,7 @@ type TermsHashPerFieldDefault struct {
 
 	fieldName string
 
-	indexOptions types.IndexOptions
+	indexOptions document.IndexOptions
 
 	// This stores the actual term bytes for postings and offsets into the parent hash in the case that this
 	// TermsHashPerField is hashing term vectors.
@@ -88,7 +89,7 @@ type TermsHashPerFieldDefault struct {
 
 func NewTermsHashPerFieldDefault(streamCount int,
 	intPool *util.IntBlockPool, bytePool, termBytePool *util.ByteBlockPool,
-	nextPerField TermsHashPerField, fieldName string, indexOptions types.IndexOptions, perField TermsHashPerField) *TermsHashPerFieldDefault {
+	nextPerField TermsHashPerField, fieldName string, indexOptions document.IndexOptions, perField TermsHashPerField) *TermsHashPerFieldDefault {
 
 	res := &TermsHashPerFieldDefault{
 		nextPerField: nextPerField,
@@ -215,7 +216,7 @@ func (t *TermsHashPerFieldDefault) GetNextPerField() TermsHashPerField {
 
 // Start adding a new field instance; first is true if this is the first time this field
 // name was seen in the document.
-func (t *TermsHashPerFieldDefault) Start(field types.IndexableField, first bool) bool {
+func (t *TermsHashPerFieldDefault) Start(field document.IndexableField, first bool) bool {
 	if t.nextPerField != nil {
 		t.doNextCall = t.nextPerField.Start(field, first)
 	}

@@ -6,7 +6,6 @@ import (
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -26,7 +25,7 @@ type MemoryIndexReader struct {
 }
 
 func (m *MemoryIndex) NewMemoryIndexReader(fields *treemap.Map[string, *Info]) *MemoryIndexReader {
-	fieldInfosArr := make([]*types.FieldInfo, fields.Size())
+	fieldInfosArr := make([]*document.FieldInfo, fields.Size())
 	i := 0
 	it := fields.Iterator()
 
@@ -82,7 +81,7 @@ func (m *MemoryIndexReader) Terms(field string) (index.Terms, error) {
 }
 
 func (m *MemoryIndexReader) GetNumericDocValues(field string) (index.NumericDocValues, error) {
-	info := m.getInfoForExpectedDocValuesType(field, types.DOC_VALUES_TYPE_NUMERIC)
+	info := m.getInfoForExpectedDocValuesType(field, document.DOC_VALUES_TYPE_NUMERIC)
 	if info != nil {
 		return newInnerNumericDocValues(int64(info.numericProducer.dvLongValues[0])), nil
 	}
@@ -90,15 +89,15 @@ func (m *MemoryIndexReader) GetNumericDocValues(field string) (index.NumericDocV
 }
 
 func (m *MemoryIndexReader) GetBinaryDocValues(field string) (index.BinaryDocValues, error) {
-	return m.getSortedDocValues(field, types.DOC_VALUES_TYPE_SORTED), nil
+	return m.getSortedDocValues(field, document.DOC_VALUES_TYPE_SORTED), nil
 }
 
 func (m *MemoryIndexReader) GetSortedDocValues(field string) (index.SortedDocValues, error) {
-	return m.getSortedDocValues(field, types.DOC_VALUES_TYPE_SORTED), nil
+	return m.getSortedDocValues(field, document.DOC_VALUES_TYPE_SORTED), nil
 }
 
-func (m *MemoryIndexReader) getSortedDocValues(field string, docValuesType types.DocValuesType) index.SortedDocValues {
-	info := m.getInfoForExpectedDocValuesType(field, types.DOC_VALUES_TYPE_SORTED_SET)
+func (m *MemoryIndexReader) getSortedDocValues(field string, docValuesType document.DocValuesType) index.SortedDocValues {
+	info := m.getInfoForExpectedDocValuesType(field, document.DOC_VALUES_TYPE_SORTED_SET)
 	if info != nil {
 		value := info.binaryProducer.dvBytesValuesSet.Get(0)
 		return newInnerSortedDocValues(value)
@@ -107,7 +106,7 @@ func (m *MemoryIndexReader) getSortedDocValues(field string, docValuesType types
 }
 
 func (m *MemoryIndexReader) GetSortedNumericDocValues(field string) (index.SortedNumericDocValues, error) {
-	info := m.getInfoForExpectedDocValuesType(field, types.DOC_VALUES_TYPE_SORTED_NUMERIC)
+	info := m.getInfoForExpectedDocValuesType(field, document.DOC_VALUES_TYPE_SORTED_NUMERIC)
 	if info != nil {
 		return newInnerSortedNumericDocValues(info.numericProducer.dvLongValues, info.numericProducer.count), nil
 	}
@@ -128,15 +127,15 @@ func (m *MemoryIndexReader) GetNormValues(field string) (index.NumericDocValues,
 }
 
 func (m *MemoryIndexReader) GetSortedSetDocValues(field string) (index.SortedSetDocValues, error) {
-	info := m.getInfoForExpectedDocValuesType(field, types.DOC_VALUES_TYPE_SORTED_SET)
+	info := m.getInfoForExpectedDocValuesType(field, document.DOC_VALUES_TYPE_SORTED_SET)
 	if info != nil {
 		return sortedSetDocValues(info.terms, info.binaryProducer.bytesIds), nil
 	}
 	return nil, nil
 }
 
-func (m *MemoryIndexReader) getInfoForExpectedDocValuesType(fieldName string, expectedType types.DocValuesType) *Info {
-	if expectedType == types.DOC_VALUES_TYPE_NONE {
+func (m *MemoryIndexReader) getInfoForExpectedDocValuesType(fieldName string, expectedType document.DocValuesType) *Info {
+	if expectedType == document.DOC_VALUES_TYPE_NONE {
 		return nil
 	}
 

@@ -1,8 +1,9 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 // PointsWriter Abstract API to write points
@@ -11,21 +12,21 @@ type PointsWriter interface {
 	io.Closer
 
 	// WriteField Write all values contained in the provided reader
-	WriteField(fieldInfo *types.FieldInfo, values PointsReader) error
+	WriteField(fieldInfo *document.FieldInfo, values PointsReader) error
 
 	// Finish Called once at the end before close
 	Finish() error
 }
 
 type PointsWriterDefault struct {
-	WriteField func(fieldInfo *types.FieldInfo, values PointsReader) error
+	WriteField func(fieldInfo *document.FieldInfo, values PointsReader) error
 	Finish     func() error
 }
 
 // MergeOneField Default naive merge implementation for one field: it just re-indexes all
 // the values from the incoming segment. The default codec overrides this for 1D fields and
 // uses a faster but more complex implementation.
-func (p *PointsWriterDefault) MergeOneField(mergeState *MergeState, fieldInfo *types.FieldInfo) error {
+func (p *PointsWriterDefault) MergeOneField(mergeState *MergeState, fieldInfo *document.FieldInfo) error {
 	maxPointCount := int64(0)
 	docCount := 0
 

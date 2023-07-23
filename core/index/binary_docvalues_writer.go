@@ -3,8 +3,9 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/types"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 var _ DocValuesWriter = &BinaryDocValuesWriter{}
@@ -12,11 +13,11 @@ var _ DocValuesWriter = &BinaryDocValuesWriter{}
 type BinaryDocValuesWriter struct {
 	bytes         [][]byte
 	docsWithField *DocsWithFieldSet
-	fieldInfo     *types.FieldInfo
+	fieldInfo     *document.FieldInfo
 	lastDocID     int
 }
 
-func NewBinaryDocValuesWriter(fieldInfo *types.FieldInfo) *BinaryDocValuesWriter {
+func NewBinaryDocValuesWriter(fieldInfo *document.FieldInfo) *BinaryDocValuesWriter {
 	return &BinaryDocValuesWriter{
 		bytes:         make([][]byte, 0),
 		docsWithField: NewDocsWithFieldSet(),
@@ -37,7 +38,7 @@ func (b *BinaryDocValuesWriter) AddValue(docID int, value []byte) error {
 
 func (b *BinaryDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
 	return consumer.AddBinaryField(b.fieldInfo, &EmptyDocValuesProducer{
-		FnGetBinary: func(field *types.FieldInfo) (BinaryDocValues, error) {
+		FnGetBinary: func(field *document.FieldInfo) (BinaryDocValues, error) {
 			iterator, err := b.docsWithField.Iterator()
 			if err != nil {
 				return nil, err

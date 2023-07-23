@@ -5,9 +5,9 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/codecs/bkd"
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 )
 
 var _ index.PointsWriter = &SimpleTextPointsWriter{}
@@ -121,7 +121,7 @@ func (s *SimpleTextPointsWriter) Close() error {
 	return indexOut.Close()
 }
 
-func (s *SimpleTextPointsWriter) WriteField(fieldInfo *types.FieldInfo, reader index.PointsReader) error {
+func (s *SimpleTextPointsWriter) WriteField(fieldInfo *document.FieldInfo, reader index.PointsReader) error {
 	values, err := reader.GetValues(fieldInfo.Name())
 	if err != nil {
 		return err

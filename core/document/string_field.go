@@ -1,7 +1,5 @@
 package document
 
-import "github.com/geange/lucene-go/core/types"
-
 var (
 	StringFieldTypeNotStored *FieldType
 	StringFieldTypeStored    *FieldType
@@ -10,13 +8,13 @@ var (
 func init() {
 	StringFieldTypeNotStored = NewFieldType()
 	StringFieldTypeNotStored.SetOmitNorms(true)
-	StringFieldTypeNotStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS)
+	StringFieldTypeNotStored.SetIndexOptions(INDEX_OPTIONS_DOCS)
 	StringFieldTypeNotStored.SetTokenized(false)
 	StringFieldTypeNotStored.Freeze()
 
 	StringFieldTypeStored = NewFieldType()
 	StringFieldTypeStored.SetOmitNorms(true)
-	StringFieldTypeStored.SetIndexOptions(types.INDEX_OPTIONS_DOCS)
+	StringFieldTypeStored.SetIndexOptions(INDEX_OPTIONS_DOCS)
 	StringFieldTypeStored.SetStored(true)
 	StringFieldTypeStored.SetTokenized(false)
 	StringFieldTypeStored.Freeze()

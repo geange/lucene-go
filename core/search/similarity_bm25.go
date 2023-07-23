@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
@@ -79,7 +80,7 @@ func (b *BM25Similarity) GetDiscountOverlaps() bool {
 
 func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 	numTerms := 0
-	if state.GetIndexOptions() == types.INDEX_OPTIONS_DOCS && state.GetIndexCreatedVersionMajor() >= 8 {
+	if state.GetIndexOptions() == document.INDEX_OPTIONS_DOCS && state.GetIndexCreatedVersionMajor() >= 8 {
 		numTerms = state.GetUniqueTermCount()
 	} else if b.discountOverlaps {
 		numTerms = state.GetLength() - state.GetNumOverlap()

@@ -1,13 +1,14 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"sort"
 	"strings"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 type FieldData struct {
-	fieldInfo     *types.FieldInfo
+	fieldInfo     *document.FieldInfo
 	terms         []*TermData
 	omitTF        bool
 	storePayloads bool
@@ -25,12 +26,12 @@ func NewFieldData(name string, fieldInfos *FieldInfosBuilder, terms []*TermData,
 	}
 
 	if omitTF {
-		err := fieldInfo.SetIndexOptions(types.INDEX_OPTIONS_DOCS)
+		err := fieldInfo.SetIndexOptions(document.INDEX_OPTIONS_DOCS)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err := fieldInfo.SetIndexOptions(types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+		err := fieldInfo.SetIndexOptions(document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
 		if err != nil {
 			return nil, err
 		}

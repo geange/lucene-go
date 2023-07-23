@@ -2,11 +2,12 @@ package index
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/tokenattr"
-	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 	"sort"
 	"strings"
+
+	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util"
 )
 
 var _ TermsHashPerField = &FreqProxTermsWriterPerField{}
@@ -17,7 +18,7 @@ type FreqProxTermsWriterPerField struct {
 	freqProxPostingsArray *FreqProxPostingsArray
 
 	fieldState       *FieldInvertState
-	fieldInfo        *types.FieldInfo
+	fieldInfo        *document.FieldInfo
 	hasFreq          bool
 	hasProx          bool
 	hasOffsets       bool
@@ -30,10 +31,10 @@ type FreqProxTermsWriterPerField struct {
 }
 
 func NewFreqProxTermsWriterPerField(invertState *FieldInvertState, termsHash TermsHash,
-	fieldInfo *types.FieldInfo, nextPerField TermsHashPerField) *FreqProxTermsWriterPerField {
+	fieldInfo *document.FieldInfo, nextPerField TermsHashPerField) *FreqProxTermsWriterPerField {
 
 	streamCount := 1
-	if fieldInfo.GetIndexOptions() >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS {
+	if fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS {
 		streamCount = 2
 	}
 
@@ -45,9 +46,9 @@ func NewFreqProxTermsWriterPerField(invertState *FieldInvertState, termsHash Ter
 		freqProxPostingsArray:    nil,
 		fieldState:               invertState,
 		fieldInfo:                fieldInfo,
-		hasFreq:                  indexOptions >= types.INDEX_OPTIONS_DOCS_AND_FREQS,
-		hasProx:                  indexOptions >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS,
-		hasOffsets:               indexOptions >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS,
+		hasFreq:                  indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS,
+		hasProx:                  indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS,
+		hasOffsets:               indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS,
 		payloadAttribute:         nil,
 		offsetAttribute:          nil,
 		termFreqAtt:              nil,
@@ -75,7 +76,7 @@ func (f *FreqProxTermsWriterPerField) Finish() error {
 	return nil
 }
 
-func (f *FreqProxTermsWriterPerField) Start(field types.IndexableField, first bool) bool {
+func (f *FreqProxTermsWriterPerField) Start(field document.IndexableField, first bool) bool {
 	f.TermsHashPerFieldDefault.Start(field, first)
 	f.termFreqAtt = f.fieldState.termFreqAttribute
 	f.payloadAttribute = f.fieldState.payloadAttribute
@@ -213,9 +214,9 @@ func (f *FreqProxTermsWriterPerField) NewPostingsArray() {
 }
 
 func (f *FreqProxTermsWriterPerField) CreatePostingsArray(size int) ParallelPostingsArray {
-	hasFreq := f.indexOptions >= types.INDEX_OPTIONS_DOCS_AND_FREQS
-	hasProx := f.indexOptions >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
-	hasOffsets := f.indexOptions >= types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+	hasFreq := f.indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS
+	hasProx := f.indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+	hasOffsets := f.indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 	return NewFreqProxPostingsArray(hasFreq, hasProx, hasOffsets)
 }
 

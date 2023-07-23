@@ -2,8 +2,8 @@ package index
 
 import (
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -42,7 +42,7 @@ type PendingDeletes interface {
 	// OnDocValuesUpdate Called for every field update for the given field at flush time
 	// Params: 	info – the field info of the field that's updated
 	//			iterator – the values to apply
-	OnDocValuesUpdate(info *types.FieldInfo, iterator DocValuesFieldUpdatesIterator)
+	OnDocValuesUpdate(info *document.FieldInfo, iterator DocValuesFieldUpdatesIterator)
 
 	GetDelCount() int
 }
@@ -118,7 +118,7 @@ func (p *PendingDeletesDefault) IsFullyDeleted(readerIOSupplier func() CodecRead
 	panic("implement me")
 }
 
-func (p *PendingDeletesDefault) OnDocValuesUpdate(info *types.FieldInfo, iterator DocValuesFieldUpdatesIterator) {
+func (p *PendingDeletesDefault) OnDocValuesUpdate(info *document.FieldInfo, iterator DocValuesFieldUpdatesIterator) {
 	//TODO implement me
 	panic("implement me")
 }

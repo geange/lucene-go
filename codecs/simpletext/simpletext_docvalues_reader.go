@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"io"
 	"strconv"
 	"strings"
@@ -78,12 +78,12 @@ func NewSimpleTextDocValuesReader(state *index.SegmentReadState, ext string) (*S
 			return nil, err
 		}
 
-		dvType := types.StringToDocValuesType(value)
-		if dvType == types.DOC_VALUES_TYPE_NONE {
+		dvType := document.StringToDocValuesType(value)
+		if dvType == document.DOC_VALUES_TYPE_NONE {
 			return nil, errors.New("dvType is NONE")
 		}
 		switch dvType {
-		case types.DOC_VALUES_TYPE_NUMERIC:
+		case document.DOC_VALUES_TYPE_NUMERIC:
 			value, err := reader.ReadLabel(DOC_VALUES_MINVALUE)
 			if err != nil {
 				return nil, err
@@ -104,7 +104,7 @@ func NewSimpleTextDocValuesReader(state *index.SegmentReadState, ext string) (*S
 			if _, err = r.data.Seek(offset, io.SeekStart); err != nil {
 				return nil, err
 			}
-		case types.DOC_VALUES_TYPE_BINARY:
+		case document.DOC_VALUES_TYPE_BINARY:
 			value, err := reader.ReadLabel(DOC_VALUES_MAXLENGTH)
 			if err != nil {
 				return nil, err
@@ -128,7 +128,7 @@ func NewSimpleTextDocValuesReader(state *index.SegmentReadState, ext string) (*S
 				return nil, err
 			}
 
-		case types.DOC_VALUES_TYPE_SORTED, types.DOC_VALUES_TYPE_SORTED_SET:
+		case document.DOC_VALUES_TYPE_SORTED, document.DOC_VALUES_TYPE_SORTED_SET:
 			value, err := reader.ReadLabel(DOC_VALUES_NUMVALUES)
 			if err != nil {
 				return nil, err
@@ -181,7 +181,7 @@ func (s *SimpleTextDocValuesReader) Close() error {
 	panic("implement me")
 }
 
-func (s *SimpleTextDocValuesReader) GetNumeric(fieldInfo *types.FieldInfo) (index.NumericDocValues, error) {
+func (s *SimpleTextDocValuesReader) GetNumeric(fieldInfo *document.FieldInfo) (index.NumericDocValues, error) {
 	numFn, err := s.getNumericNonIterator(fieldInfo)
 	if err != nil {
 		return nil, err
@@ -221,7 +221,7 @@ func (s *SimpleTextDocValuesReader) GetNumeric(fieldInfo *types.FieldInfo) (inde
 	}, nil
 }
 
-func (s *SimpleTextDocValuesReader) getNumericNonIterator(fieldInfo *types.FieldInfo) (func(value int) (int64, error), error) {
+func (s *SimpleTextDocValuesReader) getNumericNonIterator(fieldInfo *document.FieldInfo) (func(value int) (int64, error), error) {
 
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
@@ -254,7 +254,7 @@ func (s *SimpleTextDocValuesReader) getNumericNonIterator(fieldInfo *types.Field
 	}, nil
 }
 
-func (s *SimpleTextDocValuesReader) getNumericDocsWithField(fieldInfo *types.FieldInfo) (DocValuesIterator, error) {
+func (s *SimpleTextDocValuesReader) getNumericDocsWithField(fieldInfo *document.FieldInfo) (DocValuesIterator, error) {
 	return &innerDocValuesIterator1{
 		field:  s.fields[fieldInfo.Name()],
 		in:     s.data.Clone(),
@@ -321,7 +321,7 @@ func (i *innerDocValuesIterator1) AdvanceExact(target int) (bool, error) {
 
 }
 
-func (s *SimpleTextDocValuesReader) GetBinary(fieldInfo *types.FieldInfo) (index.BinaryDocValues, error) {
+func (s *SimpleTextDocValuesReader) GetBinary(fieldInfo *document.FieldInfo) (index.BinaryDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
@@ -375,7 +375,7 @@ func (s *SimpleTextDocValuesReader) GetBinary(fieldInfo *types.FieldInfo) (index
 	}, nil
 }
 
-func (s *SimpleTextDocValuesReader) getBinaryDocsWithField(fieldInfo *types.FieldInfo) (DocValuesIterator, error) {
+func (s *SimpleTextDocValuesReader) getBinaryDocsWithField(fieldInfo *document.FieldInfo) (DocValuesIterator, error) {
 	field := s.fields[fieldInfo.Name()]
 
 	return &innerDocValuesIterator2{
@@ -466,7 +466,7 @@ func (i *innerDocValuesIterator2) AdvanceExact(target int) (bool, error) {
 	return i.scratch.Bytes()[0] == 'T', nil
 }
 
-func (s *SimpleTextDocValuesReader) GetSorted(fieldInfo *types.FieldInfo) (index.SortedDocValues, error) {
+func (s *SimpleTextDocValuesReader) GetSorted(fieldInfo *document.FieldInfo) (index.SortedDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
@@ -604,7 +604,7 @@ func (i *innerSortedDocValues) TermsEnum() (index.TermsEnum, error) {
 	return index.NewSortedDocValuesTermsEnum(i), nil
 }
 
-func (s *SimpleTextDocValuesReader) GetSortedNumeric(fieldInfo *types.FieldInfo) (index.SortedNumericDocValues, error) {
+func (s *SimpleTextDocValuesReader) GetSortedNumeric(fieldInfo *document.FieldInfo) (index.SortedNumericDocValues, error) {
 	binary, err := s.GetBinary(fieldInfo)
 	if err != nil {
 		return nil, err
@@ -716,7 +716,7 @@ func (i *innerSortedNumericDocValues) setCurrentDoc() error {
 	return nil
 }
 
-func (s *SimpleTextDocValuesReader) GetSortedSet(fieldInfo *types.FieldInfo) (index.SortedSetDocValues, error) {
+func (s *SimpleTextDocValuesReader) GetSortedSet(fieldInfo *document.FieldInfo) (index.SortedSetDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())

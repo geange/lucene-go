@@ -1,4 +1,4 @@
-package types
+package document
 
 import (
 	"github.com/geange/lucene-go/core/analysis"

@@ -3,8 +3,8 @@ package simpletext
 import (
 	"bytes"
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/fst"
 	"strconv"
 )
@@ -17,7 +17,7 @@ type textTerms struct {
 	reader *SimpleTextFieldsReader
 
 	termsStart       int64
-	fieldInfo        *types.FieldInfo
+	fieldInfo        *document.FieldInfo
 	maxDoc           int
 	sumTotalTermFreq int64
 	sumDocFreq       int64

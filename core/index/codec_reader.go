@@ -2,8 +2,8 @@ package index
 
 import (
 	"errors"
+
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/types"
 )
 
 type CodecReader interface {
@@ -89,13 +89,13 @@ func (c *CodecReaderDefault) Terms(field string) (Terms, error) {
 // returns the FieldInfo that corresponds to the given field and type, or
 // null if the field does not exist, or not indexed as the requested
 // DovDocValuesType.
-func (c *CodecReaderDefault) getDVField(field string, _type types.DocValuesType) *types.FieldInfo {
+func (c *CodecReaderDefault) getDVField(field string, _type document.DocValuesType) *document.FieldInfo {
 	fi := c.GetFieldInfos().FieldInfo(field)
 	if fi == nil {
 		// Field does not exist
 		return nil
 	}
-	if fi.GetDocValuesType() == types.DOC_VALUES_TYPE_NONE {
+	if fi.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {
 		// Field was not indexed with doc values
 		return nil
 	}
@@ -108,7 +108,7 @@ func (c *CodecReaderDefault) getDVField(field string, _type types.DocValuesType)
 
 func (c *CodecReaderDefault) GetNumericDocValues(field string) (NumericDocValues, error) {
 	//ensureOpen();
-	fi := c.getDVField(field, types.DOC_VALUES_TYPE_NUMERIC)
+	fi := c.getDVField(field, document.DOC_VALUES_TYPE_NUMERIC)
 	if fi == nil {
 		return nil, nil
 	}
@@ -117,7 +117,7 @@ func (c *CodecReaderDefault) GetNumericDocValues(field string) (NumericDocValues
 
 func (c *CodecReaderDefault) GetBinaryDocValues(field string) (BinaryDocValues, error) {
 	//ensureOpen();
-	fi := c.getDVField(field, types.DOC_VALUES_TYPE_BINARY)
+	fi := c.getDVField(field, document.DOC_VALUES_TYPE_BINARY)
 	if fi == nil {
 		return nil, nil
 	}
@@ -126,7 +126,7 @@ func (c *CodecReaderDefault) GetBinaryDocValues(field string) (BinaryDocValues, 
 
 func (c *CodecReaderDefault) GetSortedDocValues(field string) (SortedDocValues, error) {
 	//ensureOpen();
-	fi := c.getDVField(field, types.DOC_VALUES_TYPE_SORTED)
+	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED)
 	if fi == nil {
 		return nil, nil
 	}
@@ -135,7 +135,7 @@ func (c *CodecReaderDefault) GetSortedDocValues(field string) (SortedDocValues, 
 
 func (c *CodecReaderDefault) GetSortedNumericDocValues(field string) (SortedNumericDocValues, error) {
 	//ensureOpen();
-	fi := c.getDVField(field, types.DOC_VALUES_TYPE_SORTED_NUMERIC)
+	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED_NUMERIC)
 	if fi == nil {
 		return nil, nil
 	}
@@ -144,7 +144,7 @@ func (c *CodecReaderDefault) GetSortedNumericDocValues(field string) (SortedNume
 
 func (c *CodecReaderDefault) GetSortedSetDocValues(field string) (SortedSetDocValues, error) {
 	//ensureOpen();
-	fi := c.getDVField(field, types.DOC_VALUES_TYPE_SORTED_SET)
+	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED_SET)
 	if fi == nil {
 		return nil, nil
 	}

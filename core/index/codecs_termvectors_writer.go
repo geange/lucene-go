@@ -1,8 +1,9 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 // TermVectorsWriter Codec API for writing term vectors:
@@ -23,7 +24,7 @@ type TermVectorsWriter interface {
 	FinishDocument() error
 
 	// StartField Called before writing the terms of the field. startTerm(BytesRef, int) will be called numTerms times.
-	StartField(info *types.FieldInfo, numTerms int, positions, offsets, payloads bool) error
+	StartField(info *document.FieldInfo, numTerms int, positions, offsets, payloads bool) error
 
 	// FinishField Called after a field and all its terms have been added.
 	FinishField() error

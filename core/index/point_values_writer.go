@@ -3,13 +3,14 @@ package index
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 )
 
 // PointValuesWriter Buffers up pending byte[][] value(s) per doc, then flushes when segment flushes.
 type PointValuesWriter struct {
-	fieldInfo         *types.FieldInfo
+	fieldInfo         *document.FieldInfo
 	bytes             *PagedBytes
 	bytesOut          store.DataOutput
 	docIDs            []int
@@ -19,7 +20,7 @@ type PointValuesWriter struct {
 	packedBytesLength int
 }
 
-func NewPointValuesWriter(fieldInfo *types.FieldInfo) *PointValuesWriter {
+func NewPointValuesWriter(fieldInfo *document.FieldInfo) *PointValuesWriter {
 	bytes := NewPagedBytes(16)
 	return &PointValuesWriter{
 		fieldInfo:         fieldInfo,

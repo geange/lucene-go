@@ -1,7 +1,6 @@
 package document
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"math"
 )
 
@@ -11,7 +10,7 @@ var (
 
 func init() {
 	XYDocValuesFieldType = NewFieldType()
-	_ = XYDocValuesFieldType.SetDocValuesType(types.DOC_VALUES_TYPE_SORTED_NUMERIC)
+	_ = XYDocValuesFieldType.SetDocValuesType(DOC_VALUES_TYPE_SORTED_NUMERIC)
 	XYDocValuesFieldType.Freeze()
 }
 

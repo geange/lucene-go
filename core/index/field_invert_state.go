@@ -1,8 +1,8 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/tokenattr"
-	"github.com/geange/lucene-go/core/types"
 )
 
 // FieldInvertState This class tracks the number and position / offset parameters of terms being added to the index.
@@ -10,7 +10,7 @@ import (
 type FieldInvertState struct {
 	indexCreatedVersionMajor int
 	name                     string
-	indexOptions             types.IndexOptions
+	indexOptions             document.IndexOptions
 	position                 int
 	length                   int
 	numOverlap               int
@@ -30,7 +30,7 @@ type FieldInvertState struct {
 }
 
 // NewFieldInvertState Creates {code FieldInvertState} for the specified field name and values for all fields.
-func NewFieldInvertState(indexCreatedVersionMajor int, name string, indexOptions types.IndexOptions, position int, length int, numOverlap int, offset int, maxTermFrequency int, uniqueTermCount int) *FieldInvertState {
+func NewFieldInvertState(indexCreatedVersionMajor int, name string, indexOptions document.IndexOptions, position int, length int, numOverlap int, offset int, maxTermFrequency int, uniqueTermCount int) *FieldInvertState {
 	return &FieldInvertState{
 		indexCreatedVersionMajor: indexCreatedVersionMajor,
 		name:                     name,
@@ -44,7 +44,7 @@ func NewFieldInvertState(indexCreatedVersionMajor int, name string, indexOptions
 	}
 }
 
-func NewFieldInvertStateV1(indexCreatedVersionMajor int, name string, indexOptions types.IndexOptions) *FieldInvertState {
+func NewFieldInvertStateV1(indexCreatedVersionMajor int, name string, indexOptions document.IndexOptions) *FieldInvertState {
 	return &FieldInvertState{
 		indexCreatedVersionMajor: indexCreatedVersionMajor,
 		name:                     name,
@@ -135,6 +135,6 @@ func (f *FieldInvertState) GetIndexCreatedVersionMajor() int {
 }
 
 // GetIndexOptions Get the index options for this field
-func (f *FieldInvertState) GetIndexOptions() types.IndexOptions {
+func (f *FieldInvertState) GetIndexOptions() document.IndexOptions {
 	return f.indexOptions
 }

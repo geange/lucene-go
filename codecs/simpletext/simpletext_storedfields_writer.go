@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"strconv"
 )
 
@@ -72,7 +72,7 @@ func (s *SimpleTextStoredFieldsWriter) FinishDocument() error {
 	return nil
 }
 
-func (s *SimpleTextStoredFieldsWriter) WriteField(info *types.FieldInfo, field types.IndexableField) error {
+func (s *SimpleTextStoredFieldsWriter) WriteField(info *document.FieldInfo, field document.IndexableField) error {
 	if err := s.write(STORED_FIELD_FIELD); err != nil {
 		return err
 	}

@@ -1,9 +1,5 @@
 package document
 
-import (
-	"github.com/geange/lucene-go/core/types"
-)
-
 type StoredField struct {
 	*Field
 }
@@ -23,7 +19,7 @@ func NewStoredField[T Value](name string, value T) *StoredField {
 	}
 }
 
-func NewStoredFieldWithType[T Value](name string, value T, _type types.IndexableFieldType) *StoredField {
+func NewStoredFieldWithType[T Value](name string, value T, _type IndexableFieldType) *StoredField {
 	return &StoredField{
 		NewField(name, value, _type),
 	}

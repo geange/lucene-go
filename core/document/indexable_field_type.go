@@ -1,4 +1,4 @@
-package types
+package document
 
 // IndexableFieldType Describes the properties of a field.
 // 描述一个field的属性

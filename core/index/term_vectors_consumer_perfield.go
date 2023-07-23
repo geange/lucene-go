@@ -2,11 +2,12 @@ package index
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/tokenattr"
-	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 	"sort"
 	"strings"
+
+	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util"
 )
 
 var _ TermsHashPerField = &TermVectorsConsumerPerField{}
@@ -18,7 +19,7 @@ type TermVectorsConsumerPerField struct {
 
 	termsWriter       *TermVectorsConsumer
 	fieldState        *FieldInvertState
-	fieldInfo         *types.FieldInfo
+	fieldInfo         *document.FieldInfo
 	doVectors         bool
 	doVectorPositions bool
 	doVectorOffsets   bool
@@ -31,7 +32,7 @@ type TermVectorsConsumerPerField struct {
 }
 
 func NewTermVectorsConsumerPerField(invertState *FieldInvertState,
-	termsHash *TermVectorsConsumer, fieldInfo *types.FieldInfo) *TermVectorsConsumerPerField {
+	termsHash *TermVectorsConsumer, fieldInfo *document.FieldInfo) *TermVectorsConsumerPerField {
 
 	indexOptions := fieldInfo.GetIndexOptions()
 	termBytePool := termsHash.GetTermBytePool()
@@ -88,7 +89,7 @@ func (t *TermVectorsConsumerPerField) FinishDocument() error {
 	panic("")
 }
 
-func (t *TermVectorsConsumerPerField) Start(field types.IndexableField, first bool) bool {
+func (t *TermVectorsConsumerPerField) Start(field document.IndexableField, first bool) bool {
 	t.TermsHashPerFieldDefault.Start(field, first)
 	t.termFreqAtt = t.fieldState.termFreqAttribute
 

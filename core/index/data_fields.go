@@ -2,8 +2,9 @@ package index
 
 import (
 	"bytes"
-	"github.com/geange/lucene-go/core/types"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 var _ Fields = &DataFields{}
@@ -82,17 +83,17 @@ func (d *DataTerms) GetDocCount() (int, error) {
 
 func (d *DataTerms) HasFreqs() bool {
 	return d.fieldData.fieldInfo.GetIndexOptions() >=
-		types.INDEX_OPTIONS_DOCS_AND_FREQS
+		document.INDEX_OPTIONS_DOCS_AND_FREQS
 }
 
 func (d *DataTerms) HasOffsets() bool {
 	return d.fieldData.fieldInfo.GetIndexOptions() >=
-		types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+		document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
 }
 
 func (d *DataTerms) HasPositions() bool {
 	return d.fieldData.fieldInfo.GetIndexOptions() >=
-		types.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+		document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 }
 
 func (d *DataTerms) HasPayloads() bool {

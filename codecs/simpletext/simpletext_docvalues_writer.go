@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"io"
 	"math"
 	"strconv"
@@ -57,16 +57,16 @@ func NewSimpleTextDocValuesWriter(state *index.SegmentWriteState, ext string) (*
 	}, nil
 }
 
-func (s *SimpleTextDocValuesWriter) AddNumericField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *SimpleTextDocValuesWriter) AddNumericField(field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
 
-	if !(field.GetDocValuesType() == types.DOC_VALUES_TYPE_NUMERIC || field.HasNorms()) {
+	if !(field.GetDocValuesType() == document.DOC_VALUES_TYPE_NUMERIC || field.HasNorms()) {
 		return errors.New("")
 	}
 
-	if err := s.writeFieldEntry(field, types.DOC_VALUES_TYPE_NUMERIC); err != nil {
+	if err := s.writeFieldEntry(field, document.DOC_VALUES_TYPE_NUMERIC); err != nil {
 		return err
 	}
 
@@ -171,19 +171,19 @@ func (s *SimpleTextDocValuesWriter) AddNumericField(field *types.FieldInfo, valu
 	return nil
 }
 
-func (s *SimpleTextDocValuesWriter) AddBinaryField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *SimpleTextDocValuesWriter) AddBinaryField(field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
 
-	if field.GetDocValuesType() == types.DOC_VALUES_TYPE_BINARY {
+	if field.GetDocValuesType() == document.DOC_VALUES_TYPE_BINARY {
 		return errors.New("")
 	}
 
 	return s.doAddBinaryField(field, valuesProducer)
 }
 
-func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	maxLength := 0
 	values, err := valuesProducer.GetBinary(field)
 	if err != nil {
@@ -209,7 +209,7 @@ func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *types.FieldInfo, val
 
 		maxLength = max(maxLength, len(binaryValue))
 	}
-	s.writeFieldEntry(field, types.DOC_VALUES_TYPE_BINARY)
+	s.writeFieldEntry(field, document.DOC_VALUES_TYPE_BINARY)
 
 	// write maxLength
 	writeValue(s.data, DOC_VALUES_MAXLENGTH, maxLength)
@@ -276,16 +276,16 @@ func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *types.FieldInfo, val
 	return nil
 }
 
-func (s *SimpleTextDocValuesWriter) AddSortedField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *SimpleTextDocValuesWriter) AddSortedField(field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
 
-	if field.GetDocValuesType() != types.DOC_VALUES_TYPE_SORTED {
+	if field.GetDocValuesType() != document.DOC_VALUES_TYPE_SORTED {
 		panic("")
 	}
 
-	s.writeFieldEntry(field, types.DOC_VALUES_TYPE_SORTED)
+	s.writeFieldEntry(field, document.DOC_VALUES_TYPE_SORTED)
 
 	valueCount, maxLength := 0, -1
 
@@ -395,17 +395,17 @@ func (s *SimpleTextDocValuesWriter) AddSortedField(field *types.FieldInfo, value
 	return nil
 }
 
-func (s *SimpleTextDocValuesWriter) AddSortedNumericField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *SimpleTextDocValuesWriter) AddSortedNumericField(field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
 
-	if field.GetDocValuesType() == types.DOC_VALUES_TYPE_SORTED_NUMERIC {
+	if field.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED_NUMERIC {
 		return errors.New("")
 	}
 
 	return s.doAddBinaryField(field, &index.EmptyDocValuesProducer{
-		FnGetBinary: func(field *types.FieldInfo) (index.BinaryDocValues, error) {
+		FnGetBinary: func(field *document.FieldInfo) (index.BinaryDocValues, error) {
 			values, err := valuesProducer.GetSortedNumeric(field)
 			if err != nil {
 				return nil, err
@@ -502,7 +502,7 @@ func (i *innerBinaryDocValues) setCurrentDoc() error {
 	return nil
 }
 
-func (s *SimpleTextDocValuesWriter) AddSortedSetField(field *types.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *SimpleTextDocValuesWriter) AddSortedSetField(field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -516,7 +516,7 @@ func (s *SimpleTextDocValuesWriter) fieldSeen(field string) error {
 	return nil
 }
 
-func (s *SimpleTextDocValuesWriter) writeFieldEntry(field *types.FieldInfo, _type types.DocValuesType) error {
+func (s *SimpleTextDocValuesWriter) writeFieldEntry(field *document.FieldInfo, _type document.DocValuesType) error {
 	utils.WriteBytes(s.data, DOC_VALUES_FIELD)
 	utils.WriteString(s.data, field.Name())
 	utils.NewLine(s.data)

@@ -28,8 +28,9 @@ func Subtract(bytesPerDim, dim int, a, b, result []byte) error {
 // LongToSortableBytes
 // Encodes an long value such that unsigned byte order comparison is consistent with Long.compare(long, long)
 // See Also: sortableBytesToLong(byte[], int)
-func LongToSortableBytes(value int64, result []byte) {
+func LongToSortableBytes(num int64, result []byte) {
 	// Flip the sign bit so negative longs sort before positive longs:
+	value := uint64(num)
 	value ^= 0x8000000000000000
 	result[0] = (byte)(value >> 56)
 	result[1] = (byte)(value >> 48)
@@ -45,15 +46,15 @@ func LongToSortableBytes(value int64, result []byte) {
 // Decodes a long value previously written with longToSortableBytes
 // See Also: longToSortableBytes(long, byte[], int)
 func SortableBytesToLong(encoded []byte) int64 {
-	v := (int64(encoded[0]&0xFF) << 56) |
-		(int64(encoded[1]&0xFF) << 48) |
-		(int64(encoded[2]&0xFF) << 40) |
-		(int64(encoded[3]&0xFF) << 32) |
-		(int64(encoded[4]&0xFF) << 24) |
-		(int64(encoded[5]&0xFF) << 16) |
-		(int64(encoded[6]&0xFF) << 8) |
-		int64(encoded[7]&0xFF)
+	v := (uint64(encoded[0]&0xFF) << 56) |
+		(uint64(encoded[1]&0xFF) << 48) |
+		(uint64(encoded[2]&0xFF) << 40) |
+		(uint64(encoded[3]&0xFF) << 32) |
+		(uint64(encoded[4]&0xFF) << 24) |
+		(uint64(encoded[5]&0xFF) << 16) |
+		(uint64(encoded[6]&0xFF) << 8) |
+		uint64(encoded[7]&0xFF)
 	// Flip the sign bit back
 	v ^= 0x8000000000000000
-	return v
+	return int64(v)
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 )
@@ -97,7 +96,7 @@ func (i *innerLeafReader) GetNumericDocValues(field string) (NumericDocValues, e
 	if pf == nil {
 		return nil, nil
 	}
-	if pf.fieldInfo.GetDocValuesType() == types.DOC_VALUES_TYPE_NUMERIC {
+	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_NUMERIC {
 		return pf.docValuesWriter.GetDocValues().(NumericDocValues), nil
 	}
 	return nil, nil
@@ -108,7 +107,7 @@ func (i *innerLeafReader) GetBinaryDocValues(field string) (BinaryDocValues, err
 	if pf == nil {
 		return nil, nil
 	}
-	if pf.fieldInfo.GetDocValuesType() == types.DOC_VALUES_TYPE_BINARY {
+	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_BINARY {
 		return pf.docValuesWriter.GetDocValues().(BinaryDocValues), nil
 	}
 	return nil, nil
@@ -119,7 +118,7 @@ func (i *innerLeafReader) GetSortedDocValues(field string) (SortedDocValues, err
 	if pf == nil {
 		return nil, nil
 	}
-	if pf.fieldInfo.GetDocValuesType() == types.DOC_VALUES_TYPE_SORTED {
+	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED {
 		return pf.docValuesWriter.GetDocValues().(SortedDocValues), nil
 	}
 	return nil, nil
@@ -130,7 +129,7 @@ func (i *innerLeafReader) GetSortedNumericDocValues(field string) (SortedNumeric
 	if pf == nil {
 		return nil, nil
 	}
-	if pf.fieldInfo.GetDocValuesType() == types.DOC_VALUES_TYPE_SORTED_NUMERIC {
+	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED_NUMERIC {
 		return pf.docValuesWriter.GetDocValues().(SortedNumericDocValues), nil
 	}
 	return nil, nil
@@ -141,7 +140,7 @@ func (i *innerLeafReader) GetSortedSetDocValues(field string) (SortedSetDocValue
 	if pf == nil {
 		return nil, nil
 	}
-	if pf.fieldInfo.GetDocValuesType() == types.DOC_VALUES_TYPE_SORTED_SET {
+	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED_SET {
 		return pf.docValuesWriter.GetDocValues().(SortedSetDocValues), nil
 	}
 	return nil, nil
@@ -282,7 +281,7 @@ func (d *DefaultIndexingChain) writeDocValues(state *SegmentWriteState, sortMap 
 	var err error
 	for _, perField := range d.fieldHash {
 		if perField.docValuesWriter != nil {
-			if perField.fieldInfo.GetDocValuesType() == types.DOC_VALUES_TYPE_NONE {
+			if perField.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {
 				panic("BUG")
 				// BUG
 				//throw new AssertionError("segment=" + state.segmentInfo + ": field=\"" + perField.fieldInfo.name + "\" has no docValues but wrote them");
@@ -299,7 +298,7 @@ func (d *DefaultIndexingChain) writeDocValues(state *SegmentWriteState, sortMap 
 				return err
 			}
 			perField.docValuesWriter = nil
-		} else if perField.fieldInfo.GetDocValuesType() != types.DOC_VALUES_TYPE_NONE {
+		} else if perField.fieldInfo.GetDocValuesType() != document.DOC_VALUES_TYPE_NONE {
 			panic("BUG")
 		}
 	}
@@ -325,7 +324,7 @@ func (d *DefaultIndexingChain) writeNorms(state *SegmentWriteState, sortMap *Doc
 
 			// we must check the final value of omitNorms for the fieldinfo: it could have
 			// Changed for this field since the first time we added it.
-			if fi.OmitsNorms() == false && fi.GetIndexOptions() != types.INDEX_OPTIONS_NONE {
+			if fi.OmitsNorms() == false && fi.GetIndexOptions() != document.INDEX_OPTIONS_NONE {
 				maxDoc, err := state.SegmentInfo.MaxDoc()
 				if err != nil {
 					return err
@@ -392,7 +391,7 @@ func (d *DefaultIndexingChain) ProcessDocument(docID int, doc *document.Document
 }
 
 func (d *DefaultIndexingChain) processField(docID int,
-	field types.IndexableField, fieldGen int64, fieldCount int) (int, error) {
+	field document.IndexableField, fieldGen int64, fieldCount int) (int, error) {
 
 	fieldName := field.Name()
 	fieldType := field.FieldType()
@@ -406,7 +405,7 @@ func (d *DefaultIndexingChain) processField(docID int,
 	var err error
 
 	// Invert indexed fields:
-	if fieldType.IndexOptions() != types.INDEX_OPTIONS_NONE {
+	if fieldType.IndexOptions() != document.INDEX_OPTIONS_NONE {
 		fp, err = d.getOrAddField(fieldName, fieldType, true)
 		if err != nil {
 			return 0, err
@@ -453,7 +452,7 @@ func (d *DefaultIndexingChain) processField(docID int,
 		return 0, errors.New("docValuesType must not be null")
 	}
 
-	if dvType != types.DOC_VALUES_TYPE_NONE {
+	if dvType != document.DOC_VALUES_TYPE_NONE {
 		if fp == nil {
 			fp, err = d.getOrAddField(fieldName, fieldType, false)
 			if err != nil {
@@ -479,13 +478,13 @@ func (d *DefaultIndexingChain) processField(docID int,
 	return fieldCount, nil
 }
 
-func verifyUnIndexedFieldType(name string, ft types.IndexableFieldType) error {
+func verifyUnIndexedFieldType(name string, ft document.IndexableFieldType) error {
 	// TODO
 	return nil
 }
 
 // Called from processDocument to index one field's point
-func (d *DefaultIndexingChain) indexPoint(docID int, fp *PerField, field types.IndexableField) error {
+func (d *DefaultIndexingChain) indexPoint(docID int, fp *PerField, field document.IndexableField) error {
 	pointDimensionCount := field.FieldType().PointDimensionCount()
 	pointIndexDimensionCount := field.FieldType().PointIndexDimensionCount()
 	dimensionNumBytes := field.FieldType().PointNumBytes()
@@ -509,7 +508,7 @@ func (d *DefaultIndexingChain) indexPoint(docID int, fp *PerField, field types.I
 	return fp.pointValuesWriter.AddPackedValue(docID, bs)
 }
 
-func (d *DefaultIndexingChain) validateIndexSortDVType(indexSort *Sort, fieldToValidate string, dvType types.DocValuesType) error {
+func (d *DefaultIndexingChain) validateIndexSortDVType(indexSort *Sort, fieldToValidate string, dvType document.DocValuesType) error {
 	// TODO: fix it
 
 	return nil
@@ -517,9 +516,9 @@ func (d *DefaultIndexingChain) validateIndexSortDVType(indexSort *Sort, fieldToV
 
 // Called from processDocument to index one field's doc value
 func (d *DefaultIndexingChain) indexDocValue(docID int,
-	fp *PerField, dvType types.DocValuesType, field types.IndexableField) error {
+	fp *PerField, dvType document.DocValuesType, field document.IndexableField) error {
 
-	if fp.fieldInfo.GetDocValuesType() == types.DOC_VALUES_TYPE_NONE {
+	if fp.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {
 		// This is the first time we are seeing this field indexed with doc values, so we
 		// now record the DV type so that any future attempt to (illegally) change
 		// the DV type of this field, will throw an IllegalArgExc:
@@ -542,7 +541,7 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 	}
 
 	switch dvType {
-	case types.DOC_VALUES_TYPE_NUMERIC:
+	case document.DOC_VALUES_TYPE_NUMERIC:
 		if fp.docValuesWriter == nil {
 			fp.docValuesWriter = NewNumericDocValuesWriter(fp.fieldInfo)
 		}
@@ -557,7 +556,7 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 			return err
 		}
 
-	case types.DOC_VALUES_TYPE_BINARY:
+	case document.DOC_VALUES_TYPE_BINARY:
 		if fp.docValuesWriter != nil {
 			fp.docValuesWriter = NewBinaryDocValuesWriter(fp.fieldInfo)
 		}
@@ -571,11 +570,11 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 			return err
 		}
 
-	case types.DOC_VALUES_TYPE_SORTED:
+	case document.DOC_VALUES_TYPE_SORTED:
 		return errors.New("unsupported DocValues.Type")
-	case types.DOC_VALUES_TYPE_SORTED_NUMERIC:
+	case document.DOC_VALUES_TYPE_SORTED_NUMERIC:
 		return errors.New("unsupported DocValues.Type")
-	case types.DOC_VALUES_TYPE_SORTED_SET:
+	case document.DOC_VALUES_TYPE_SORTED_SET:
 		return errors.New("unsupported DocValues.Type")
 	default:
 		return errors.New("unsupported DocValues.Type")
@@ -585,7 +584,7 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 
 // Returns a previously created DefaultIndexingChain.PerField, absorbing the type information from FieldType,
 // and creates a new DefaultIndexingChain.PerField if this field name wasn't seen yet.
-func (d *DefaultIndexingChain) getOrAddField(name string, fieldType types.IndexableFieldType, invert bool) (*PerField, error) {
+func (d *DefaultIndexingChain) getOrAddField(name string, fieldType document.IndexableFieldType, invert bool) (*PerField, error) {
 	// Make sure we have a PerField allocated
 	fp, ok := d.fieldHash[name]
 	if !ok {
@@ -628,7 +627,7 @@ func (d *DefaultIndexingChain) getPerField(name string) *PerField {
 	return d.fieldHash[name]
 }
 
-func (d *DefaultIndexingChain) initIndexOptions(info *types.FieldInfo, indexOptions types.IndexOptions) error {
+func (d *DefaultIndexingChain) initIndexOptions(info *document.FieldInfo, indexOptions document.IndexOptions) error {
 	// Messy: must set this here because e.g. FreqProxTermsWriterPerField looks at the initial
 	// IndexOptions to decide what arrays it must create).
 
@@ -651,7 +650,7 @@ func (d *DefaultIndexingChain) Abort() error {
 func (d *DefaultIndexingChain) GetHasDocValues(field string) DocIdSetIterator {
 	perField := d.getPerField(field)
 	if perField != nil {
-		if perField.fieldInfo.GetDocValuesType() == types.DOC_VALUES_TYPE_NONE {
+		if perField.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {
 			return nil
 		}
 		return perField.docValuesWriter.GetDocValues()
@@ -671,7 +670,7 @@ type PerField struct {
 	chain *DefaultIndexingChain
 
 	indexCreatedVersionMajor int
-	fieldInfo                *types.FieldInfo
+	fieldInfo                *document.FieldInfo
 	similarity               Similarity
 	invertState              *FieldInvertState
 	termsHashPerField        TermsHashPerField
@@ -693,7 +692,7 @@ type PerField struct {
 	analyzer analysis.Analyzer
 }
 
-func (d *DefaultIndexingChain) NewPerField(indexCreatedVersionMajor int, fieldInfo *types.FieldInfo,
+func (d *DefaultIndexingChain) NewPerField(indexCreatedVersionMajor int, fieldInfo *document.FieldInfo,
 	invert bool, similarity Similarity, analyzer analysis.Analyzer) (*PerField, error) {
 
 	perField := &PerField{
@@ -728,7 +727,7 @@ func (p *PerField) setInvertState() error {
 	return nil
 }
 
-func (p *PerField) invert(docID int, field types.IndexableField, first bool) error {
+func (p *PerField) invert(docID int, field document.IndexableField, first bool) error {
 	if first {
 		p.invertState.Reset()
 	}

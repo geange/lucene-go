@@ -1,7 +1,7 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -13,7 +13,7 @@ type TermsHash interface {
 	Flush(fieldsToFlush map[string]TermsHashPerField, state *SegmentWriteState,
 		sortMap *DocMap, norms NormsProducer) error
 
-	AddField(fieldInvertState *FieldInvertState, fieldInfo *types.FieldInfo) (TermsHashPerField, error)
+	AddField(fieldInvertState *FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error)
 
 	SetTermBytePool(termBytePool *util.ByteBlockPool)
 

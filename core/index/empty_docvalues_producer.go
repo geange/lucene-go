@@ -1,15 +1,17 @@
 package index
 
-import "github.com/geange/lucene-go/core/types"
+import (
+	"github.com/geange/lucene-go/core/document"
+)
 
 var _ DocValuesProducer = &EmptyDocValuesProducer{}
 
 type EmptyDocValuesProducer struct {
-	FnGetNumeric       func(field *types.FieldInfo) (NumericDocValues, error)
-	FnGetBinary        func(field *types.FieldInfo) (BinaryDocValues, error)
-	FnGetSorted        func(field *types.FieldInfo) (SortedDocValues, error)
-	FnGetSortedNumeric func(field *types.FieldInfo) (SortedNumericDocValues, error)
-	FnGetSortedSet     func(field *types.FieldInfo) (SortedSetDocValues, error)
+	FnGetNumeric       func(field *document.FieldInfo) (NumericDocValues, error)
+	FnGetBinary        func(field *document.FieldInfo) (BinaryDocValues, error)
+	FnGetSorted        func(field *document.FieldInfo) (SortedDocValues, error)
+	FnGetSortedNumeric func(field *document.FieldInfo) (SortedNumericDocValues, error)
+	FnGetSortedSet     func(field *document.FieldInfo) (SortedSetDocValues, error)
 	FnCheckIntegrity   func() error
 }
 
@@ -18,27 +20,27 @@ func (e *EmptyDocValuesProducer) Close() error {
 	panic("implement me")
 }
 
-func (e *EmptyDocValuesProducer) GetNumeric(field *types.FieldInfo) (NumericDocValues, error) {
+func (e *EmptyDocValuesProducer) GetNumeric(field *document.FieldInfo) (NumericDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (e *EmptyDocValuesProducer) GetBinary(field *types.FieldInfo) (BinaryDocValues, error) {
+func (e *EmptyDocValuesProducer) GetBinary(field *document.FieldInfo) (BinaryDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (e *EmptyDocValuesProducer) GetSorted(field *types.FieldInfo) (SortedDocValues, error) {
+func (e *EmptyDocValuesProducer) GetSorted(field *document.FieldInfo) (SortedDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (e *EmptyDocValuesProducer) GetSortedNumeric(field *types.FieldInfo) (SortedNumericDocValues, error) {
+func (e *EmptyDocValuesProducer) GetSortedNumeric(field *document.FieldInfo) (SortedNumericDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (e *EmptyDocValuesProducer) GetSortedSet(field *types.FieldInfo) (SortedSetDocValues, error) {
+func (e *EmptyDocValuesProducer) GetSortedSet(field *document.FieldInfo) (SortedSetDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }

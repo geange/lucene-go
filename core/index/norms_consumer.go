@@ -2,8 +2,9 @@ package index
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/types"
 	"io"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 // NormsConsumer Abstract API that consumes normalization values. Concrete implementations of this actually do "something" with the norms (write it into the index in a specific format).
@@ -18,7 +19,7 @@ type NormsConsumer interface {
 	//Params: field – field information
 	//		  normsProducer – NormsProducer of the numeric norm values
 	//Throws: IOException – if an I/O error occurred.
-	AddNormsField(field *types.FieldInfo, normsProducer NormsProducer) error
+	AddNormsField(field *document.FieldInfo, normsProducer NormsProducer) error
 
 	// Merge Merges in the fields from the readers in mergeState.
 	// The default implementation calls mergeNormsField for each field,
@@ -30,11 +31,11 @@ type NormsConsumer interface {
 	// MergeNormsField Merges the norms from toMerge.
 	// The default implementation calls FnAddNormsField, passing an Iterable
 	// that merges and filters deleted documents on the fly.
-	MergeNormsField(mergeFieldInfo *types.FieldInfo, mergeState *MergeState) error
+	MergeNormsField(mergeFieldInfo *document.FieldInfo, mergeState *MergeState) error
 }
 
 type NormsConsumerDefault struct {
-	FnAddNormsField func(field *types.FieldInfo, normsProducer NormsProducer) error
+	FnAddNormsField func(field *document.FieldInfo, normsProducer NormsProducer) error
 }
 
 func (n *NormsConsumerDefault) Merge(mergeState *MergeState) error {
@@ -55,7 +56,7 @@ func (n *NormsConsumerDefault) Merge(mergeState *MergeState) error {
 	return nil
 }
 
-func (n *NormsConsumerDefault) MergeNormsField(mergeFieldInfo *types.FieldInfo, mergeState *MergeState) error {
+func (n *NormsConsumerDefault) MergeNormsField(mergeFieldInfo *document.FieldInfo, mergeState *MergeState) error {
 	// TODO: try to share code with default merge of DVConsumer by passing MatchAllBits ?
 	return n.FnAddNormsField(mergeFieldInfo, &innerNormsProducer{
 		mergeFieldInfo: mergeFieldInfo,
@@ -66,7 +67,7 @@ func (n *NormsConsumerDefault) MergeNormsField(mergeFieldInfo *types.FieldInfo, 
 var _ NormsProducer = &innerNormsProducer{}
 
 type innerNormsProducer struct {
-	mergeFieldInfo *types.FieldInfo
+	mergeFieldInfo *document.FieldInfo
 	mergeState     *MergeState
 }
 
@@ -74,7 +75,7 @@ func (i *innerNormsProducer) Close() error {
 	return nil
 }
 
-func (i *innerNormsProducer) GetNorms(fieldInfo *types.FieldInfo) (NumericDocValues, error) {
+func (i *innerNormsProducer) GetNorms(fieldInfo *document.FieldInfo) (NumericDocValues, error) {
 	if fieldInfo != i.mergeFieldInfo {
 		return nil, errors.New("wrong fieldInfo")
 	}
