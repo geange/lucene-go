@@ -1,15 +1,16 @@
 package fst
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 func assert(op bool, msg ...string) error {
 	if op {
 		return nil
 	}
-	return fmt.Errorf("assert error")
-
-	//if len(msg) == 0 {
-	//	return errors.New("assert error")
-	//}
-	//return errors.New(msg[0])
+	if len(msg) == 0 {
+		return errors.New("assert error")
+	}
+	return fmt.Errorf("%+v", msg)
 }

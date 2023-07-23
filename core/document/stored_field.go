@@ -17,38 +17,14 @@ func newStoreFieldType() *FieldType {
 	return fieldType
 }
 
-func NewStoredFieldV3(name string, value []byte) *StoredField {
+func NewStoredField[T Value](name string, value T) *StoredField {
 	return &StoredField{
-		NewFieldV4(name, value, STORED_ONLY),
+		NewField(name, value, STORED_ONLY),
 	}
 }
 
-func NewStoredFieldV4(name string, value string) *StoredField {
+func NewStoredFieldWithType[T Value](name string, value T, _type types.IndexableFieldType) *StoredField {
 	return &StoredField{
-		NewFieldV5(name, value, STORED_ONLY),
-	}
-}
-
-func NewStoredFieldV5(name string, value string, _type types.IndexableFieldType) *StoredField {
-	return &StoredField{
-		NewFieldV5(name, value, _type),
-	}
-}
-
-func NewStoredFieldWithInt(name string, value int, _type types.IndexableFieldType) *StoredField {
-	return &StoredField{
-		NewFieldWithAny(name, _type, value),
-	}
-}
-
-func NewStoredFieldWithFloat(name string, value float64, _type types.IndexableFieldType) *StoredField {
-	return &StoredField{
-		NewFieldWithAny(name, _type, value),
-	}
-}
-
-func NewStoredFieldAny(name string, value any, _type types.IndexableFieldType) *StoredField {
-	return &StoredField{
-		NewFieldWithAny(name, _type, value),
+		NewField(name, value, _type),
 	}
 }

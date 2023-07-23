@@ -26,7 +26,7 @@ type IndexableField interface {
 	TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStream) (analysis.TokenStream, error)
 
 	// Value 内容信息
-	Value() interface{}
+	Value() any
 }
 
 type IndexableFieldIterator interface {

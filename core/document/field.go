@@ -8,6 +8,18 @@ import (
 	"io"
 )
 
+// Field
+// * TextField: Reader or String indexed for full-text search
+// * StringField: String indexed verbatim as a single token
+// * IntPoint: int indexed for exact/range queries.
+// * LongPoint: long indexed for exact/range queries.
+// * FloatPoint: float indexed for exact/range queries.
+// * DoublePoint: double indexed for exact/range queries.
+// * SortedDocValuesField: byte[] indexed column-wise for sorting/faceting
+// * SortedSetDocValuesField: SortedSet<byte[]> indexed column-wise for sorting/faceting
+// * NumericDocValuesField: long indexed column-wise for sorting/faceting
+// * SortedNumericDocValuesField: SortedSet<long> indexed column-wise for sorting/faceting
+// * StoredField: Stored-only value for retrieving in summary results
 type Field struct {
 	_type      types.IndexableFieldType
 	name       string
@@ -75,16 +87,9 @@ func NewFieldV3(name string, tokenStream analysis.TokenStream, _type types.Index
 //	types – field types
 //
 // Throws: 	IllegalArgumentException – if the field name, value or types is null, or the field's types is indexed().
-func NewFieldV4(name string, value []byte, _type types.IndexableFieldType) *Field {
-	return &Field{
-		_type:       _type,
-		name:        name,
-		fieldsData:  value,
-		tokenStream: nil,
-	}
-}
 
-func NewFieldV5(name string, value string, _type types.IndexableFieldType) *Field {
+// NewField Create field with []byte or string
+func NewField[T Value](name string, value T, _type types.IndexableFieldType) *Field {
 	return &Field{
 		_type:       _type,
 		name:        name,

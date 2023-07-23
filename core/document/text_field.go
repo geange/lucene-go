@@ -31,18 +31,10 @@ func NewTextFieldByReader(name string, reader io.Reader) *TextField {
 	return &TextField{NewFieldV2(name, reader, TextFieldNotStored)}
 }
 
-func NewTextFieldByString(name string, value string, stored bool) *TextField {
+func NewTextField[T Value](name string, value T, stored bool) *TextField {
 	_type := TextFieldStored
 	if !stored {
 		_type = TextFieldNotStored
 	}
-	return &TextField{NewFieldV5(name, value, _type)}
-}
-
-func NewTextFieldByBytes(name string, value []byte, stored bool) *TextField {
-	_type := TextFieldStored
-	if !stored {
-		_type = TextFieldNotStored
-	}
-	return &TextField{NewFieldV4(name, value, _type)}
+	return &TextField{NewField(name, value, _type)}
 }
