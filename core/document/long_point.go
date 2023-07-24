@@ -44,9 +44,9 @@ func (r *LongPoint) SetLongValue(value int64) error {
 // SetLongValues
 // Change the values of this field
 func (r *LongPoint) SetLongValues(points ...int64) error {
-	if r._type.PointIndexDimensionCount() != len(points) {
+	if r.iType.PointIndexDimensionCount() != len(points) {
 		format := "this field(%s) uses %d dimensions; cannot change to (incoming) %d dimensions"
-		return fmt.Errorf(format, r.name, r._type.PointIndexDimensionCount(), len(points))
+		return fmt.Errorf(format, r.name, r.iType.PointIndexDimensionCount(), len(points))
 	}
 
 	packed, err := packLongs(points...)

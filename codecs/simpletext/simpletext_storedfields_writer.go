@@ -95,27 +95,27 @@ func (s *SimpleTextStoredFieldsWriter) WriteField(info *document.FieldInfo, fiel
 	if err := s.write(STORED_FIELD_TYPE); err != nil {
 		return err
 	}
-	n := field.Value()
+	//n := field.Value()
 
-	if n != nil {
-		switch n.(type) {
-		case byte, int16, int32, int:
-			return s.writeValue(STORED_FIELD_TYPE_INT, fmt.Sprintf("%v", n))
-		case int64:
-			return s.writeValue(STORED_FIELD_TYPE_LONG, fmt.Sprintf("%v", n))
-		case float32:
-			return s.writeValue(STORED_FIELD_TYPE_FLOAT, fmt.Sprintf("%v", n))
-		case float64:
-			return s.writeValue(STORED_FIELD_TYPE_DOUBLE, fmt.Sprintf("%v", n))
-		case []byte:
-			return s.writeValue(STORED_FIELD_TYPE_BINARY, string(n.([]byte)))
-		case string:
-			return s.writeValue(STORED_FIELD_TYPE_STRING, n.(string))
-		default:
-			return errors.New("cannot store numeric type")
-		}
+	switch field.ValueType() {
+	case document.FieldValueI32:
+		n, _ := field.I32Value()
+		return s.writeValue(STORED_FIELD_TYPE_INT, fmt.Sprintf("%v", n))
+	case document.FieldValueI64:
+		n, _ := field.I64Value()
+		return s.writeValue(STORED_FIELD_TYPE_LONG, fmt.Sprintf("%v", n))
+	case document.FieldValueF32:
+		n, _ := field.F32Value()
+		return s.writeValue(STORED_FIELD_TYPE_FLOAT, fmt.Sprintf("%v", n))
+	case document.FieldValueF64:
+		n, _ := field.F64Value()
+		return s.writeValue(STORED_FIELD_TYPE_DOUBLE, fmt.Sprintf("%v", n))
+	case document.FieldValueString, document.FieldValueBytes:
+		n, _ := field.StringValue()
+		return s.writeValue(STORED_FIELD_TYPE_STRING, n)
+	default:
+		return errors.New("cannot store numeric type")
 	}
-	return errors.New("cannot store type")
 }
 
 func (s *SimpleTextStoredFieldsWriter) Finish(fis *index.FieldInfos, numDocs int) error {

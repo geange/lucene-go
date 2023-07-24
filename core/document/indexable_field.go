@@ -2,6 +2,7 @@ package document
 
 import (
 	"github.com/geange/lucene-go/core/analysis"
+	"io"
 )
 
 // IndexableField Represents a single field for indexing. IndexWriter consumes
@@ -27,6 +28,22 @@ type IndexableField interface {
 
 	// Value 内容信息
 	Value() any
+
+	I32Value() (int32, error)
+
+	I64Value() (int64, error)
+
+	F32Value() (float32, error)
+
+	F64Value() (float64, error)
+
+	StringValue() (string, error)
+
+	BytesValue() ([]byte, error)
+
+	ReaderValue() (io.Reader, error)
+
+	ValueType() FieldValueType
 }
 
 type IndexableFieldIterator interface {

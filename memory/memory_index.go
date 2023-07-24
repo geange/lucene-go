@@ -206,12 +206,12 @@ func (m *MemoryIndex) AddField(field document.IndexableField, analyzer analysis.
 	case document.DOC_VALUES_TYPE_NONE:
 		break
 	case document.DOC_VALUES_TYPE_BINARY, document.DOC_VALUES_TYPE_SORTED, document.DOC_VALUES_TYPE_SORTED_SET:
-		err := m.storeDocValues(info, docValuesType, field.Value())
+		err := m.storeDocValues(info, docValuesType, nil)
 		if err != nil {
 			return err
 		}
 	case document.DOC_VALUES_TYPE_NUMERIC, document.DOC_VALUES_TYPE_SORTED_NUMERIC:
-		err := m.storeDocValues(info, docValuesType, field.Value())
+		err := m.storeDocValues(info, docValuesType, nil)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,12 @@ func (m *MemoryIndex) AddField(field document.IndexableField, analyzer analysis.
 	}
 
 	if field.FieldType().PointIndexDimensionCount() > 0 {
-		err := m.storePointValues(info, field.Value().([]byte))
+		bytes, err := field.BytesValue()
+		if err != nil {
+			return err
+		}
+
+		err = m.storePointValues(info, bytes)
 		if err != nil {
 			return err
 		}

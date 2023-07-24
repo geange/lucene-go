@@ -20,7 +20,8 @@ import (
 // * SortedNumericDocValuesField: SortedSet<long> indexed column-wise for sorting/faceting
 // * StoredField: Stored-only value for retrieving in summary results
 type Field struct {
-	_type      IndexableFieldType
+	iType      IndexableFieldType
+	vType      FieldValueType
 	name       string
 	fieldsData any
 
@@ -29,40 +30,31 @@ type Field struct {
 	tokenStream analysis.TokenStream
 }
 
-// NewFieldV1 Expert: creates a field with no initial value. Intended only for custom Field subclasses.
-// Params: 	name – field name
-//
-//	types – field types
-//
+// NewFieldV1
+// Expert: creates a field with no initial value. Intended only for custom Field subclasses.
+// name: field name
+// types: field types
 // Throws: 	IllegalArgumentException – if either the name or types is null.
 func NewFieldV1(name string, _type IndexableFieldType) *Field {
 	return &Field{
-		_type: _type,
+		iType: _type,
 		name:  name,
 	}
 }
 
-func NewFieldWithAny(name string, _type IndexableFieldType, data any) *Field {
-	field := &Field{
-		_type:      _type,
-		name:       name,
-		fieldsData: data,
-	}
-	return field
-}
-
-// NewFieldV2 Create field with Reader value.
-// Params: 	name – field name
+// NewFieldV2
+// Create field with Reader value.
+// name: field name
+// reader: reader value
+// types: field types
 //
-//	reader – reader value
-//	types – field types
+// Throws: 	IllegalArgumentException – if either the name or types is null,
+// or if the field's types is stored(), or if tokenized() is false.
 //
-// Throws: 	IllegalArgumentException – if either the name or types is null, or if the field's types is stored(), or if tokenized() is false.
-//
-//	NullPointerException – if the reader is null
+// NullPointerException – if the reader is null
 func NewFieldV2(name string, reader io.Reader, _type IndexableFieldType) *Field {
 	return &Field{
-		_type:       _type,
+		iType:       _type,
 		name:        name,
 		fieldsData:  reader,
 		tokenStream: nil,
@@ -71,7 +63,7 @@ func NewFieldV2(name string, reader io.Reader, _type IndexableFieldType) *Field 
 
 func NewFieldV3(name string, tokenStream analysis.TokenStream, _type IndexableFieldType) *Field {
 	return &Field{
-		_type:       _type,
+		iType:       _type,
 		name:        name,
 		fieldsData:  nil,
 		tokenStream: tokenStream,
@@ -90,7 +82,7 @@ func NewFieldV3(name string, tokenStream analysis.TokenStream, _type IndexableFi
 // NewField Create field with []byte or string
 func NewField[T Value](name string, value T, _type IndexableFieldType) *Field {
 	return &Field{
-		_type:       _type,
+		iType:       _type,
 		name:        name,
 		fieldsData:  value,
 		tokenStream: nil,
@@ -150,7 +142,96 @@ func (r *Field) Name() string {
 }
 
 func (r *Field) FieldType() IndexableFieldType {
-	return r._type
+	return r.iType
+}
+
+func (r *Field) I32Value() (int32, error) {
+	switch r.fieldsData.(type) {
+	case int32:
+		return r.fieldsData.(int32), nil
+	case int64:
+		return int32(r.fieldsData.(int64)), nil
+	default:
+		return -1, errors.New("fieldsData is not int32")
+	}
+}
+
+func (r *Field) I64Value() (int64, error) {
+	switch r.fieldsData.(type) {
+	case int32:
+		return int64(r.fieldsData.(int32)), nil
+	default:
+		return -1, errors.New("fieldsData is not int32")
+	}
+}
+
+func (r *Field) F32Value() (float32, error) {
+	switch r.fieldsData.(type) {
+	case float32:
+		return r.fieldsData.(float32), nil
+	default:
+		return -1, errors.New("fieldsData is not float32")
+	}
+}
+
+func (r *Field) F64Value() (float64, error) {
+	switch r.fieldsData.(type) {
+	case float64:
+		return r.fieldsData.(float64), nil
+	default:
+		return -1, errors.New("fieldsData is not float64")
+	}
+}
+
+func (r *Field) StringValue() (string, error) {
+	switch r.fieldsData.(type) {
+	case string:
+		return r.fieldsData.(string), nil
+	case []byte:
+		return string(r.fieldsData.([]byte)), nil
+	default:
+		return "", errors.New("fieldsData is not string")
+	}
+}
+
+func (r *Field) BytesValue() ([]byte, error) {
+	switch r.fieldsData.(type) {
+	case string:
+		return []byte(r.fieldsData.(string)), nil
+	case []byte:
+		return r.fieldsData.([]byte), nil
+	default:
+		return nil, errors.New("fieldsData is not []byte")
+	}
+}
+
+func (r *Field) ReaderValue() (io.Reader, error) {
+	reader, ok := r.fieldsData.(io.Reader)
+	if !ok {
+		return nil, errors.New("fieldsData is not io.Reader")
+	}
+	return reader, nil
+}
+
+func (r *Field) ValueType() FieldValueType {
+	switch r.fieldsData.(type) {
+	case int32:
+		return FieldValueI32
+	case int64:
+		return FieldValueI64
+	case float32:
+		return FieldValueF32
+	case float64:
+		return FieldValueF64
+	case string:
+		return FieldValueString
+	case []byte:
+		return FieldValueBytes
+	case io.Reader:
+		return FieldValueReader
+	default:
+		return FieldValueOther
+	}
 }
 
 func (r *Field) Value() any {

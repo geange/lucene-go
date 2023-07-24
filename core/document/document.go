@@ -74,8 +74,9 @@ func (d *Document) GetBinaryValues(name string) [][]byte {
 	ret := make([][]byte, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
-			data, ok := field.Value().([]byte)
-			if ok {
+			switch field.ValueType() {
+			case FieldValueBytes, FieldValueString:
+				data, _ := field.BytesValue()
 				ret = append(ret, data)
 			}
 		}
@@ -91,8 +92,9 @@ func (d *Document) GetBinaryValues(name string) [][]byte {
 func (d *Document) GetBinaryValue(name string) ([]byte, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			data, ok := field.Value().([]byte)
-			if ok {
+			switch field.ValueType() {
+			case FieldValueBytes, FieldValueString:
+				data, _ := field.BytesValue()
 				return data, nil
 			}
 		}
@@ -119,10 +121,11 @@ func (d *Document) GetFields(name string) []IndexableField {
 	ret := make([]IndexableField, 0)
 	for i, field := range d.fields {
 		if field.Name() == name {
-			_, ok := field.Value().(string)
-			if ok {
-				ret = append(ret, d.fields[i])
+			_, err := field.StringValue()
+			if err != nil {
+				continue
 			}
+			ret = append(ret, d.fields[i])
 		}
 	}
 	return ret
@@ -137,10 +140,12 @@ func (d *Document) GetValues(name string) []string {
 	ret := make([]string, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
-			value, ok := field.Value().(string)
-			if ok {
+			switch field.ValueType() {
+			case FieldValueBytes, FieldValueString:
+				value, _ := field.StringValue()
 				ret = append(ret, value)
 			}
+
 		}
 	}
 	return ret
@@ -153,8 +158,8 @@ func (d *Document) GetValues(name string) []string {
 func (d *Document) Get(name string) (string, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			value, ok := field.Value().(string)
-			if ok {
+			value, err := field.StringValue()
+			if err == nil {
 				return value, nil
 			}
 		}

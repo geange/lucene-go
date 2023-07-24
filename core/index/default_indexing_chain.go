@@ -436,9 +436,11 @@ func (d *DefaultIndexingChain) processField(docID int,
 		}
 
 		if fieldType.Stored() {
-			value := field.Value()
-			if str, ok := value.(string); ok && len(str) > MAX_STORED_STRING_LENGTH {
-				return 0, errors.New("stored field too large")
+			str, err := field.StringValue()
+			if err == nil {
+				if len(str) > MAX_STORED_STRING_LENGTH {
+					return 0, errors.New("stored field too large")
+				}
 			}
 
 			if err := d.storedFieldsConsumer.writeField(fp.fieldInfo, field); err != nil {
@@ -501,9 +503,9 @@ func (d *DefaultIndexingChain) indexPoint(docID int, fp *PerField, field documen
 	if fp.pointValuesWriter == nil {
 		fp.pointValuesWriter = NewPointValuesWriter(fp.fieldInfo)
 	}
-	bs, ok := field.Value().([]byte)
-	if !ok {
-		return fmt.Errorf("value is not []byte")
+	bs, err := field.BytesValue()
+	if err != nil {
+		return err
 	}
 	return fp.pointValuesWriter.AddPackedValue(docID, bs)
 }
@@ -546,12 +548,15 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 			fp.docValuesWriter = NewNumericDocValuesWriter(fp.fieldInfo)
 		}
 
-		num, ok := field.Value().(int64)
-		if !ok {
-			return fmt.Errorf("field=%s : null value not allowed", field.Name())
+		num, err := field.I64Value()
+		if err != nil {
+			return err
 		}
+		//if !ok {
+		//	return fmt.Errorf("field=%s : null value not allowed", field.Name())
+		//}
 
-		err := fp.docValuesWriter.(*NumericDocValuesWriter).AddValue(docID, num)
+		err = fp.docValuesWriter.(*NumericDocValuesWriter).AddValue(docID, num)
 		if err != nil {
 			return err
 		}
@@ -561,11 +566,12 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 			fp.docValuesWriter = NewBinaryDocValuesWriter(fp.fieldInfo)
 		}
 
-		bs, ok := field.Value().([]byte)
-		if !ok {
-			return fmt.Errorf("field=%s : value not allow", field.Name())
+		bs, err := field.BytesValue()
+		if err != nil {
+			//return fmt.Errorf("field=%s : value not allow", field.Name())
+			return err
 		}
-		err := fp.docValuesWriter.(*BinaryDocValuesWriter).AddValue(docID, bs)
+		err = fp.docValuesWriter.(*BinaryDocValuesWriter).AddValue(docID, bs)
 		if err != nil {
 			return err
 		}
