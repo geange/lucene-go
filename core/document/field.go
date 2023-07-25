@@ -95,8 +95,9 @@ func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 	}
 
 	if !r.FieldType().Tokenized() {
-		switch r.Value().(type) {
-		case string:
+		switch r.ValueType() {
+		case FieldValueString:
+			stringValue, _ := r.StringValue()
 			stream, ok := reuse.(*StringTokenStream)
 			if !ok {
 				var err error
@@ -105,9 +106,10 @@ func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 					return nil, err
 				}
 			}
-			stream.SetValue(r.Value().(string))
+			stream.SetValue(stringValue)
 			return stream, nil
-		case []byte:
+		case FieldValueBytes:
+			bytesValue, _ := r.BytesValue()
 			stream, ok := reuse.(*BinaryTokenStream)
 			if !ok {
 				var err error
@@ -116,7 +118,7 @@ func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 					return nil, err
 				}
 			}
-			stream.SetValue(r.Value().([]byte))
+			stream.SetValue(bytesValue)
 			return stream, nil
 		default:
 			return nil, errors.New("Non-Tokenized Fields must have a String value")
@@ -127,11 +129,13 @@ func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 		return r.tokenStream, nil
 	}
 
-	switch r.Value().(type) {
-	case string:
-		return analyzer.TokenStreamByString(r.name, r.Value().(string))
-	case io.Reader:
-		return analyzer.TokenStreamByReader(r.name, r.Value().(io.Reader))
+	switch r.ValueType() {
+	case FieldValueString:
+		value, _ := r.StringValue()
+		return analyzer.TokenStreamByString(r.name, value)
+	case FieldValueReader:
+		reader, _ := r.ReaderValue()
+		return analyzer.TokenStreamByReader(r.name, reader)
 	default:
 		return nil, errors.New("field must have either TokenStream, String, Reader or Number value")
 	}
