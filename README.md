@@ -1,43 +1,51 @@
 # lucene-go
 
-[English](README_en.md)
+**[中文](README-zh_CN.md)**
 
-## 概要
+## About
 
-> 兼容 Apache Lucene 8.11.2 的 Go版Lucene
+> A Go port of Apache Lucene
 
-开始这个项目的初衷是因为`Elasticsearch`的菜谱故事过于科幻。在了解了搜索相关的基础知识后，草率开始了项目的开发。
+The original intention of starting this project was because the recipe story of 'Elasticsearch' was too sci-fi. After
+understanding the basic knowledge related to search, I hastily started the development of the project.
 
-原本我希望实现一个Go版的ES，不过现在距离这个目标还有一点点遥远。
-更重要的是需要尽快完善lucene-go项目，使其早日达到一个完全可用的状态。这个可用的状态包含但不限于以下几点：
+I originally hoped to achieve a Go version of ES, but now I am still a bit far from this goal.
+More importantly, it is necessary to improve the Lucene go project as soon as possible to achieve a fully usable state.
+This available state includes but is not limited to the following:
 
-* 完善代码，原本的代码是将Java翻译成Go，存在很多的不足，下一阶段的目标是让代码更加像gopher写的🐶
-* 完善单元测试，单测是保证代码质量的最理想方案～
-* 完善用例，现在用例的质量还比较低，仅仅是我个人用于本地测试的一些简单的案例
-* 完善文档，这个会在完善代码的过程中一并进行，让使用者可以更容易获取自己想要的内容（毕竟Lucene库的代码量非常大～）
+* Improve the code. The original code was to translate Java into Go, but there are many shortcomings. The next goal is
+  to make the code more like what Gopher wrote 🐶
+* Improving unit testing and single testing is the most ideal solution to ensure code quality
+* Improve use cases. The quality of use cases is still relatively low, just some simple cases that I personally used for
+  local testing
+* Improve the documentation, which will be carried out together with the process of improving the code, making it easier
+  for users to obtain the content they want (after all, the Lucene library has a very large amount of code)
 
-项目的目标在开发的过程中几经波折，遇到的困难远超预期，语言的差异以及原理性知识的缺乏，经过一年的开发逐步完成下面几大模块的开发：
+The goal of the project has undergone several twists and turns during the development process, encountering far greater
+difficulties than expected, language differences, and a lack of theoretical knowledge. After a year of development, the
+following major modules have been gradually completed:
 
-* core/store: lucene的存储模块，主要负责数据的序列化处理
-* core/document: 定义lucene的一些搜索相关的数据结构
-* core/index: lucene索引的实现，也是对外暴露主要的包
-* core/search: 主要包含query的实现（用于在索引中进行数据检索）
-* memory: 实现了一个内存实现的搜索引擎，一个简化版的Lucene
-* util/fst: FST的实现（Lucene的重要的数据结构）
-* util/automaton: 自动机的实现
-* codes: 序列化相关，当前仅支持simpleText（使用纯文本信息记录索引数据）的格式
+* core/store: Lucene's storage module is mainly responsible for data serialization processing
+* core/document: Define some search related data structures for Lucene
+* core/index: The implementation of Lucene index is also the main package exposed to the public
+* core/search: Mainly including the implementation of query (used for data retrieval in indexes)
+* memory: Implemented a memory based search engine, a simplified version of Lucene
+* util/fst: Implementation of FST (Lucene's important data structure)
+* util/automaton: Implementation of Automata
+* codes: serialization, currently only supports the format of simpleText (using plain text information to record index
+  data)
 
-> 需要注意的是，当前项目并不完善！请勿用于任意项目～
+> It should be noted that the current project is not perfect! Do not use for any project~
 
-## 尝试
+## Try
 
 > go1.18+
 
-### 案例
+### Example
 
-[更多案例](https://github.com/geange/lucene-go-example)
+[More Example](https://github.com/geange/lucene-go-example)
 
-如何使用`IndexWriter`写入数据
+Using `IndexWriter`
 
 ```go
 package main
