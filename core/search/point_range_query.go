@@ -22,7 +22,7 @@ type PointRangeQuery struct {
 	fn          func(dimension int, value []byte) string
 }
 
-func NewPointRangeQuery(field string, numDims int, lowerPoint []byte, upperPoint []byte,
+func NewPointRangeQuery(field string, lowerPoint []byte, upperPoint []byte, numDims int,
 	fn func(dimension int, value []byte) string) (*PointRangeQuery, error) {
 
 	if numDims <= 0 {

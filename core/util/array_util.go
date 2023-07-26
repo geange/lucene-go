@@ -26,3 +26,17 @@ func GrowExact[T any](array []T, size int) []T {
 	copy(newArray, array)
 	return newArray
 }
+
+func Mismatch(a, b []byte) int {
+	aLen, bLen := len(a), len(b)
+	size := min(aLen, bLen)
+	for i := 0; i < size; i++ {
+		if a[i] != b[i] {
+			return i
+		}
+	}
+	if aLen == bLen {
+		return -1
+	}
+	return size
+}

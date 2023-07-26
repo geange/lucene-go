@@ -6,7 +6,7 @@ var (
 
 func init() {
 	BinaryDocValuesFieldType = NewFieldType()
-	BinaryDocValuesFieldType.SetDocValuesType(DOC_VALUES_TYPE_BINARY)
+	_ = BinaryDocValuesFieldType.SetDocValuesType(DOC_VALUES_TYPE_BINARY)
 	BinaryDocValuesFieldType.Freeze()
 }
 
