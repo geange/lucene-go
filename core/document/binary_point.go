@@ -1,5 +1,10 @@
 package document
 
+import (
+	"bytes"
+	"errors"
+)
+
 // BinaryPoint
 // An indexed binary field for fast range filters. If you also need to store the value,
 // you should add a separate StoredField instance.
@@ -29,13 +34,33 @@ func NewBinaryPoint(name string, point ...[]byte) (*BinaryPoint, error) {
 }
 
 func NewBinaryPointWithType(name string, packedPoint []byte, iType IndexableFieldType) (*BinaryPoint, error) {
-	panic("")
+	return &BinaryPoint{NewField(name, packedPoint, iType)}, nil
 }
 
 func BinaryPointGetType(point ...[]byte) (*FieldType, error) {
-	panic("")
+	bytesPerDim := -1
+
+	for i := 0; i < len(point); i++ {
+		oneDim := point[i]
+		if bytesPerDim == -1 {
+			bytesPerDim = len(oneDim)
+		} else if bytesPerDim != len(oneDim) {
+			return nil, errors.New("all dimensions must have same bytes length")
+		}
+	}
+	return binaryPointGetTypeV1(len(point), bytesPerDim)
+}
+
+func binaryPointGetTypeV1(numDims, bytesPerDim int) (*FieldType, error) {
+	fType := NewFieldType()
+	fType.SetDimensions(numDims, bytesPerDim)
+	fType.Freeze()
+	return fType, nil
 }
 
 func BinaryPointPack(point ...[]byte) ([]byte, error) {
-	panic("")
+	if len(point) == 1 {
+		return point[0], nil
+	}
+	return bytes.Join(point, []byte{}), nil
 }

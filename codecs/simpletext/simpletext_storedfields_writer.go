@@ -110,9 +110,12 @@ func (s *SimpleTextStoredFieldsWriter) WriteField(info *document.FieldInfo, fiel
 	case document.FieldValueF64:
 		n, _ := field.F64Value()
 		return s.writeValue(STORED_FIELD_TYPE_DOUBLE, fmt.Sprintf("%v", n))
-	case document.FieldValueString, document.FieldValueBytes:
+	case document.FieldValueString:
 		n, _ := field.StringValue()
 		return s.writeValue(STORED_FIELD_TYPE_STRING, n)
+	case document.FieldValueBytes:
+		n, _ := field.BytesValue()
+		return s.writeValueBytes(STORED_FIELD_TYPE_BINARY, n)
 	default:
 		return errors.New("cannot store numeric type")
 	}
@@ -143,6 +146,23 @@ func (s *SimpleTextStoredFieldsWriter) writeValue(valueType []byte, value string
 	}
 
 	if err := utils.WriteString(s.out, value); err != nil {
+		return err
+	}
+	return utils.NewLine(s.out)
+}
+
+func (s *SimpleTextStoredFieldsWriter) writeValueBytes(valueType []byte, value []byte) error {
+	if err := utils.WriteBytes(s.out, valueType); err != nil {
+		return err
+	}
+	if err := utils.NewLine(s.out); err != nil {
+		return err
+	}
+	if err := utils.WriteBytes(s.out, STORED_FIELD_VALUE); err != nil {
+		return err
+	}
+
+	if err := utils.WriteBytes(s.out, value); err != nil {
 		return err
 	}
 	return utils.NewLine(s.out)
