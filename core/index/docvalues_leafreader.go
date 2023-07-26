@@ -8,13 +8,13 @@ import (
 var _ LeafReader = &DocValuesLeafReader{}
 
 type DocValuesLeafReader struct {
-	*LeafReaderDefault
+	*LeafReaderBase
 }
 
 func NewDocValuesLeafReader() *DocValuesLeafReader {
 	reader := &DocValuesLeafReader{}
 
-	reader.LeafReaderDefault = NewLeafReaderDefault(reader)
+	reader.LeafReaderBase = NewLeafReaderDefault(reader)
 	return reader
 }
 

@@ -100,7 +100,7 @@ type Writer struct {
 	softDeletesEnabled    bool
 }
 
-func NewIndexWriter(d store.Directory, conf *IndexWriterConfig) (*Writer, error) {
+func NewWriter(d store.Directory, conf *IndexWriterConfig) (*Writer, error) {
 	writer := &Writer{
 		changeCount:    atomic.NewInt64(0),
 		pendingNumDocs: atomic.NewInt64(0),
@@ -659,10 +659,10 @@ func GetActualMaxDocs() int {
 	return actualMaxDocs
 }
 
-// IndexReaderWarmer If DirectoryReader.open(IndexWriter) has been called (ie, this writer is in near real-time mode), then after a merge completes, this class can be invoked to warm the reader on the newly merged segment, before the merge commits. This is not required for near real-time search, but will reduce search latency on opening a new near real-time reader after a merge completes.
+// ReaderWarmer If DirectoryReader.open(IndexWriter) has been called (ie, this writer is in near real-time mode), then after a merge completes, this class can be invoked to warm the reader on the newly merged segment, before the merge commits. This is not required for near real-time search, but will reduce search latency on opening a new near real-time reader after a merge completes.
 // lucene.experimental
 //
 // NOTE: warm(LeafReader) is called before any deletes have been carried over to the merged segment.
-type IndexReaderWarmer interface {
+type ReaderWarmer interface {
 	Warm(reader LeafReader) error
 }

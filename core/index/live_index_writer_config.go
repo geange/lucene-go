@@ -22,12 +22,12 @@ type LiveIndexWriterConfig interface {
 	// the previous MergePolicy are not affected.
 	SetMergePolicy(mergePolicy MergePolicy)
 
-	// SetMergedSegmentWarmer Set the merged segment warmer. See IndexWriter.IndexReaderWarmer.
+	// SetMergedSegmentWarmer Set the merged segment warmer. See IndexWriter.ReaderWarmer.
 	//Takes effect on the next merge.
-	SetMergedSegmentWarmer(mergeSegmentWarmer IndexReaderWarmer)
+	SetMergedSegmentWarmer(mergeSegmentWarmer ReaderWarmer)
 
-	// GetMergedSegmentWarmer Returns the current merged segment warmer. See IndexWriter.IndexReaderWarmer.
-	GetMergedSegmentWarmer() IndexReaderWarmer
+	// GetMergedSegmentWarmer Returns the current merged segment warmer. See IndexWriter.ReaderWarmer.
+	GetMergedSegmentWarmer() ReaderWarmer
 
 	// GetIndexCreatedVersionMajor Return the compatibility version to use for this index.
 	// See Also: IndexWriterConfig.setIndexCreatedVersionMajor
@@ -125,7 +125,7 @@ type liveIndexWriterConfig struct {
 	maxBufferedDocs int
 	ramBufferSizeMB int
 
-	mergedSegmentWarmer IndexReaderWarmer
+	mergedSegmentWarmer ReaderWarmer
 
 	// modified by IndexWriterConfig
 	// IndexDeletionPolicy controlling when commit points are deleted.
@@ -270,11 +270,11 @@ func (r *liveIndexWriterConfig) SetMergePolicy(mergePolicy MergePolicy) {
 	r.mergePolicy = mergePolicy
 }
 
-func (r *liveIndexWriterConfig) SetMergedSegmentWarmer(mergeSegmentWarmer IndexReaderWarmer) {
+func (r *liveIndexWriterConfig) SetMergedSegmentWarmer(mergeSegmentWarmer ReaderWarmer) {
 	r.mergedSegmentWarmer = mergeSegmentWarmer
 }
 
-func (r *liveIndexWriterConfig) GetMergedSegmentWarmer() IndexReaderWarmer {
+func (r *liveIndexWriterConfig) GetMergedSegmentWarmer() ReaderWarmer {
 	return r.mergedSegmentWarmer
 }
 

@@ -119,7 +119,7 @@ type Reader interface {
 	GetMetaData() *LeafMetaData
 }
 
-type IndexReaderDefaultSPI interface {
+type ReaderInner interface {
 	GetTermVectors(docID int) (Fields, error)
 	NumDocs() int
 	MaxDoc() int
@@ -128,8 +128,8 @@ type IndexReaderDefaultSPI interface {
 	DoClose() error
 }
 
-type IndexReaderDefault struct {
-	spi IndexReaderDefaultSPI
+type ReaderBase struct {
+	spi ReaderInner
 
 	closed        bool
 	closedByChild bool
@@ -138,20 +138,20 @@ type IndexReaderDefault struct {
 	sync.Mutex
 }
 
-func NewIndexReaderDefault(spi IndexReaderDefaultSPI) *IndexReaderDefault {
-	return &IndexReaderDefault{
+func NewIndexReaderDefault(spi ReaderInner) *ReaderBase {
+	return &ReaderBase{
 		spi:           spi,
 		refCount:      atomic.NewInt64(0),
 		parentReaders: make(map[Reader]struct{}),
 	}
 }
 
-func (r *IndexReaderDefault) Close() error {
+func (r *ReaderBase) Close() error {
 	r.closed = true
 	return r.spi.DoClose()
 }
 
-func (r *IndexReaderDefault) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
+func (r *ReaderBase) DocumentV2(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitorV1(fieldsToLoad)
 	if err := r.spi.DocumentV1(docID, visitor); err != nil {
 		return nil, err
@@ -163,18 +163,18 @@ func (r *IndexReaderDefault) DocumentV2(docID int, fieldsToLoad map[string]struc
 // (e.g. CompositeReader or FilterLeafReader) to register the parent at the child (this reader) on
 // construction of the parent. When this reader is closed, it will mark all registered parents as closed,
 // too. The references to parent readers are weak only, so they can be GCed once they are no longer in use.
-func (r *IndexReaderDefault) RegisterParentReader(reader Reader) {
+func (r *ReaderBase) RegisterParentReader(reader Reader) {
 	r.parentReaders[reader] = struct{}{}
 }
 
 // NotifyReaderClosedListeners overridden by StandardDirectoryReader and SegmentReader
-func (r *IndexReaderDefault) NotifyReaderClosedListeners() error {
+func (r *ReaderBase) NotifyReaderClosedListeners() error {
 	return nil
 }
 
-func (r *IndexReaderDefault) reportCloseToParentReaders() error {
+func (r *ReaderBase) reportCloseToParentReaders() error {
 	//for parent, _ := range r.parentReaders {
-	//	if p, ok := parent.(*IndexReaderDefault); ok {
+	//	if p, ok := parent.(*ReaderBase); ok {
 	//		p.closedByChild = true
 	//		//p.refCount.Add(0)
 	//		err := p.reportCloseToParentReaders()
@@ -187,13 +187,13 @@ func (r *IndexReaderDefault) reportCloseToParentReaders() error {
 	panic("")
 }
 
-func (r *IndexReaderDefault) GetRefCount() int {
+func (r *ReaderBase) GetRefCount() int {
 	// NOTE: don't ensureOpen, so that callers can see
 	// refCount is 0 (reader is closed)
 	return int(r.refCount.Load())
 }
 
-func (r *IndexReaderDefault) IncRef() error {
+func (r *ReaderBase) IncRef() error {
 	if !r.TryIncRef() {
 		err := r.ensureOpen()
 		if err != nil {
@@ -203,7 +203,7 @@ func (r *IndexReaderDefault) IncRef() error {
 	return nil
 }
 
-func (r *IndexReaderDefault) DecRef() error {
+func (r *ReaderBase) DecRef() error {
 	// only check refcount here (don't call ensureOpen()), so we can
 	// still close the reader if it was made invalid by a child:
 	if r.refCount.Load() <= 0 {
@@ -222,7 +222,7 @@ func (r *IndexReaderDefault) DecRef() error {
 	return nil
 }
 
-func (r *IndexReaderDefault) ensureOpen() error {
+func (r *ReaderBase) ensureOpen() error {
 	if r.refCount.Load() <= 0 {
 		return errors.New("this Reader is closed")
 	}
@@ -235,7 +235,7 @@ func (r *IndexReaderDefault) ensureOpen() error {
 	return nil
 }
 
-func (r *IndexReaderDefault) TryIncRef() bool {
+func (r *ReaderBase) TryIncRef() bool {
 	count := int64(0)
 	for {
 		count = r.refCount.Load()
@@ -250,7 +250,7 @@ func (r *IndexReaderDefault) TryIncRef() bool {
 	return false
 }
 
-func (r *IndexReaderDefault) GetTermVector(docID int, field string) (Terms, error) {
+func (r *ReaderBase) GetTermVector(docID int, field string) (Terms, error) {
 	vectors, err := r.spi.GetTermVectors(docID)
 	if err != nil {
 		return nil, err
@@ -258,11 +258,11 @@ func (r *IndexReaderDefault) GetTermVector(docID int, field string) (Terms, erro
 	return vectors.Terms(field)
 }
 
-func (r *IndexReaderDefault) NumDeletedDocs() int {
+func (r *ReaderBase) NumDeletedDocs() int {
 	return r.spi.MaxDoc() - r.spi.NumDocs()
 }
 
-func (r *IndexReaderDefault) Document(docID int) (*document.Document, error) {
+func (r *ReaderBase) Document(docID int) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitor()
 	if err := r.spi.DocumentV1(docID, visitor); err != nil {
 		return nil, err
@@ -270,11 +270,11 @@ func (r *IndexReaderDefault) Document(docID int) (*document.Document, error) {
 	return visitor.GetDocument(), nil
 }
 
-func (r *IndexReaderDefault) HasDeletions() bool {
+func (r *ReaderBase) HasDeletions() bool {
 	return r.NumDeletedDocs() > 0
 }
 
-func (r *IndexReaderDefault) Leaves() ([]*LeafReaderContext, error) {
+func (r *ReaderBase) Leaves() ([]*LeafReaderContext, error) {
 	context, err := r.spi.GetContext()
 	if err != nil {
 		return nil, err

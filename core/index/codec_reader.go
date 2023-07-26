@@ -46,7 +46,7 @@ type CodecReaderDefaultSPI interface {
 }
 
 type CodecReaderDefault struct {
-	*LeafReaderDefault
+	*LeafReaderBase
 
 	CodecReaderDefaultSPI
 }
@@ -56,7 +56,7 @@ func NewCodecReaderDefault(reader CodecReader) *CodecReaderDefault {
 		CodecReaderDefaultSPI: reader,
 	}
 
-	codec.LeafReaderDefault = NewLeafReaderDefault(reader)
+	codec.LeafReaderBase = NewLeafReaderDefault(reader)
 	return codec
 }
 

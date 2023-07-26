@@ -11,7 +11,7 @@ import (
 var _ CompositeReader = &BaseCompositeReader{}
 
 type BaseCompositeReader struct {
-	*IndexReaderDefault
+	*ReaderBase
 
 	subReaders       []Reader
 	subReadersSorter func(a, b LeafReader) int
@@ -71,7 +71,7 @@ func NewBaseCompositeReader(subReaders []Reader,
 		subReadersList:   subReaders,
 	}
 
-	reader.IndexReaderDefault = NewIndexReaderDefault(reader)
+	reader.ReaderBase = NewIndexReaderDefault(reader)
 
 	maxDoc := 0
 	for i := 0; i < len(subReaders); i++ {
