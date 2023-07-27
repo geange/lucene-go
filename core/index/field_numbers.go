@@ -208,6 +208,13 @@ func (f *FieldNumbers) SetDimensions(number int, name string, dimensionCount, in
 	f.dimensions[name] = NewFieldDimensions(dimensionCount, indexDimensionCount, dimensionNumBytes)
 }
 
+func (f *FieldNumbers) contains(fieldName string, dvType document.DocValuesType) bool {
+	if _, ok := f.nameToNumber[fieldName]; !ok {
+		return false
+	}
+	return dvType == f.docValuesType[fieldName]
+}
+
 type FieldDimensions struct {
 	DimensionCount      int
 	IndexDimensionCount int

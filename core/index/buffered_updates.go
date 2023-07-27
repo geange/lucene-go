@@ -60,3 +60,11 @@ func (b *BufferedUpdates) AddTerm(term *Term, docIDUpto int) {
 	// is done to respect IndexWriterConfig.setMaxBufferedDeleteTerms.
 	b.numTermDeletes.Inc()
 }
+
+func (b *BufferedUpdates) AddNumericUpdate(update *NumericDocValuesUpdate, docIDUpto int) error {
+	panic("")
+}
+
+func (b *BufferedUpdates) AddBinaryUpdate(update *BinaryDocValuesUpdate, docIDUpto int) error {
+	panic("")
+}

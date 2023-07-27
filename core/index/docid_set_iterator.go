@@ -8,7 +8,7 @@ import (
 // DocIdSetIterator This abstract class defines methods to iterate over a set of non-decreasing doc ids.
 // Note that this class assumes it iterates on doc Ids, and therefore NO_MORE_DOCS is set to 2147483647
 // in order to be used as a sentinel object. Implementations of this class are expected to consider
-// Integer.MAX_VALUE as an invalid value.
+// Integer.MAX_VALUE as an invalid item.
 type DocIdSetIterator interface {
 	// DocID Returns the following:
 	// * -1 if nextDoc() or advance(int) were not called yet.
@@ -38,7 +38,7 @@ type DocIdSetIterator interface {
 	//
 	// Some implementations are considerably more efficient than that.
 	// NOTE: this method may be called with NO_MORE_DOCS for efficiency by some Scorers. If your implementation
-	// cannot efficiently determine that it should exhaust, it is recommended that you check for that value in
+	// cannot efficiently determine that it should exhaust, it is recommended that you check for that item in
 	// each call to this method.
 	// Since: 2.9
 	Advance(target int) (int, error)
@@ -48,7 +48,7 @@ type DocIdSetIterator interface {
 
 	// Cost Returns the estimated cost of this DocIdSetIterator.
 	// This is generally an upper bound of the number of documents this iterator might match, but may be a
-	// rough heuristic, hardcoded value, or otherwise completely inaccurate.
+	// rough heuristic, hardcoded item, or otherwise completely inaccurate.
 	Cost() int64
 }
 

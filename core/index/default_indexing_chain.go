@@ -322,7 +322,7 @@ func (d *DefaultIndexingChain) writeNorms(state *SegmentWriteState, sortMap *Doc
 		for _, fi := range state.FieldInfos.List() {
 			perField := d.getPerField(fi.Name())
 
-			// we must check the final value of omitNorms for the fieldinfo: it could have
+			// we must check the final item of omitNorms for the fieldinfo: it could have
 			// Changed for this field since the first time we added it.
 			if fi.OmitsNorms() == false && fi.GetIndexOptions() != document.INDEX_OPTIONS_NONE {
 				maxDoc, err := state.SegmentInfo.MaxDoc()
@@ -516,7 +516,7 @@ func (d *DefaultIndexingChain) validateIndexSortDVType(indexSort *Sort, fieldToV
 	return nil
 }
 
-// Called from processDocument to index one field's doc value
+// Called from processDocument to index one field's doc item
 func (d *DefaultIndexingChain) indexDocValue(docID int,
 	fp *PerField, dvType document.DocValuesType, field document.IndexableField) error {
 
@@ -553,7 +553,7 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 			return err
 		}
 		//if !ok {
-		//	return fmt.Errorf("field=%s : null value not allowed", field.Name())
+		//	return fmt.Errorf("field=%s : null item not allowed", field.Name())
 		//}
 
 		err = fp.docValuesWriter.(*NumericDocValuesWriter).AddValue(docID, num)
@@ -568,7 +568,7 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 
 		bs, err := field.BytesValue()
 		if err != nil {
-			//return fmt.Errorf("field=%s : value not allow", field.Name())
+			//return fmt.Errorf("field=%s : item not allow", field.Name())
 			return err
 		}
 		err = fp.docValuesWriter.(*BinaryDocValuesWriter).AddValue(docID, bs)
@@ -850,7 +850,7 @@ func (p *PerField) Finish(docID int) error {
 	if p.fieldInfo.OmitsNorms() == false {
 
 		// the field exists in this document, but it did not have
-		// any indexed tokens, so we assign a default value of zero
+		// any indexed tokens, so we assign a default item of zero
 		// to the norm
 		normValue := int64(0)
 		if p.invertState.length != 0 {

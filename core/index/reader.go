@@ -85,7 +85,7 @@ type Reader interface {
 	// GetReaderCacheHelper Optional method: Return a Reader.CacheHelper that can be used to cache based
 	// on the content of this reader. Two readers that have different data or different sets of deleted
 	// documents will be considered different.
-	// A return value of null indicates that this reader is not suited for caching, which is typically the
+	// A return item of null indicates that this reader is not suited for caching, which is typically the
 	// case for short-lived wrappers that alter the content of the wrapped reader.
 	GetReaderCacheHelper() CacheHelper
 
@@ -228,7 +228,7 @@ func (r *ReaderBase) ensureOpen() error {
 	}
 
 	// the happens before rule on reading the refCount, which must be after the fake write,
-	// ensures that we see the value:
+	// ensures that we see the item:
 	if r.closedByChild {
 		return errors.New("this Reader cannot be used anymore as one of its child readers was closed")
 	}

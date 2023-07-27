@@ -18,7 +18,7 @@ var _ MergeScheduler = &ConcurrentMergeScheduler{}
 //
 // This class attempts to detect whether the index is on rotational storage (traditional hard drive)
 // or not (e.g. solid-state disk) and changes the default max merge and thread count accordingly.
-// This detection is currently Linux-only, and relies on the OS to put the right value into
+// This detection is currently Linux-only, and relies on the OS to put the right item into
 // /sys/block/<dev>/block/rotational. For all other operating systems it currently assumes a
 // rotational disk for backwards compatibility. To enable default settings for spinning or
 // solid state disks for such operating systems, use setDefaultMaxMergesAndThreads(boolean).

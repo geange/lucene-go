@@ -5,7 +5,8 @@ import (
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
-// AutomatonTermsEnum A FilteredTermsEnum that enumerates terms based upon what is accepted by a DFA.
+// AutomatonTermsEnum
+// A FilteredTermsEnum that enumerates terms based upon what is accepted by a DFA.
 // The algorithm is such:
 // As long as matches are successful, keep reading sequentially.
 // When a match fails, skip to the next string in lexicographic order that does not enter a reject state.
@@ -13,7 +14,7 @@ import (
 // This is not possible when the language accepted by the FSM is not finite (i.e. * operator).
 // lucene.internal
 type AutomatonTermsEnum struct {
-	*FilteredTermsEnumDefault
+	*FilteredTermsEnumBase
 
 	// a tableized array-based form of the DFA
 	runAutomaton *automaton.ByteRunAutomaton

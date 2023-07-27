@@ -9,14 +9,14 @@ var _ FilteredTermsEnum = &SingleTermsEnum{}
 // but want to preserve MultiTermQuery semantics such as MultiTermQuery.getRewriteMethod.
 type SingleTermsEnum struct {
 	singleRef []byte
-	*FilteredTermsEnumDefault
+	*FilteredTermsEnumBase
 }
 
 func NewSingleTermsEnum(tenum TermsEnum, termText []byte) *SingleTermsEnum {
 	enum := &SingleTermsEnum{
 		singleRef: termText,
 	}
-	enum.FilteredTermsEnumDefault = NewFilteredTermsEnumDefault(&FilteredTermsEnumDefaultConfig{
+	enum.FilteredTermsEnumBase = NewFilteredTermsEnumDefault(&FilteredTermsEnumDefaultConfig{
 		Accept:        enum.Accept,
 		NextSeekTerm:  nil,
 		Tenum:         tenum,

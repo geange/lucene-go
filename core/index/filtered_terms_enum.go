@@ -9,7 +9,7 @@ type FilteredTermsEnum interface {
 	Accept(term []byte) (AcceptStatus, error)
 }
 
-// AcceptStatus Return value, if term should be accepted or the iteration should END.
+// AcceptStatus Return item, if term should be accepted or the iteration should END.
 // The *_SEEK values denote, that after handling the current term the enum should
 // call nextSeekTerm and step forward.
 // See Also: accept(BytesRef)
@@ -39,7 +39,7 @@ type FilteredTermsEnumDefaultConfig struct {
 	StartWithSeek bool
 }
 
-type FilteredTermsEnumDefault struct {
+type FilteredTermsEnumBase struct {
 	initialSeekTerm []byte
 	doSeek          bool
 	actualTerm      []byte    // Which term the enum is currently positioned to.
@@ -49,8 +49,8 @@ type FilteredTermsEnumDefault struct {
 	NextSeekTerm func(currentTerm []byte) ([]byte, error)
 }
 
-func NewFilteredTermsEnumDefault(cfg *FilteredTermsEnumDefaultConfig) *FilteredTermsEnumDefault {
-	return &FilteredTermsEnumDefault{
+func NewFilteredTermsEnumDefault(cfg *FilteredTermsEnumDefaultConfig) *FilteredTermsEnumBase {
+	return &FilteredTermsEnumBase{
 		initialSeekTerm: nil,
 		doSeek:          cfg.StartWithSeek,
 		actualTerm:      nil,
@@ -63,7 +63,7 @@ func NewFilteredTermsEnumDefault(cfg *FilteredTermsEnumDefaultConfig) *FilteredT
 // This is a convenience method for subclasses that do not override nextSeekTerm.
 // If the initial seek term is null (default), the enum is empty.
 // You can only use this method, if you keep the default implementation of nextSeekTerm.
-func (f *FilteredTermsEnumDefault) setInitialSeekTerm(term []byte) {
+func (f *FilteredTermsEnumBase) setInitialSeekTerm(term []byte) {
 	f.initialSeekTerm = term
 }
 
@@ -76,7 +76,7 @@ func (f *FilteredTermsEnumDefault) setInitialSeekTerm(term []byte) {
 // during enumeration. If this method always returns null the enum is empty.
 // Please note: This method should always provide a greater term than the last enumerated term,
 // else the behaviour of this enum violates the contract for TermsEnums.
-func (f *FilteredTermsEnumDefault) nextSeekTerm(currentTerm []byte) ([]byte, error) {
+func (f *FilteredTermsEnumBase) nextSeekTerm(currentTerm []byte) ([]byte, error) {
 	if f.NextSeekTerm != nil {
 		return f.NextSeekTerm(currentTerm)
 	}
@@ -86,58 +86,58 @@ func (f *FilteredTermsEnumDefault) nextSeekTerm(currentTerm []byte) ([]byte, err
 }
 
 // Attributes Returns the related attributes, the returned AttributeSource is shared with the delegate TermsEnum.
-func (f *FilteredTermsEnumDefault) Attributes() *tokenattr.AttributeSource {
+func (f *FilteredTermsEnumBase) Attributes() *tokenattr.AttributeSource {
 	return f.tenum.Attributes()
 }
 
-func (f *FilteredTermsEnumDefault) Term() ([]byte, error) {
+func (f *FilteredTermsEnumBase) Term() ([]byte, error) {
 	return f.tenum.Term()
 }
 
-func (f *FilteredTermsEnumDefault) DocFreq() (int, error) {
+func (f *FilteredTermsEnumBase) DocFreq() (int, error) {
 	return f.tenum.DocFreq()
 }
 
-func (f *FilteredTermsEnumDefault) TotalTermFreq() (int64, error) {
+func (f *FilteredTermsEnumBase) TotalTermFreq() (int64, error) {
 	return f.tenum.TotalTermFreq()
 }
 
-func (f *FilteredTermsEnumDefault) SeekExact(text []byte) (bool, error) {
+func (f *FilteredTermsEnumBase) SeekExact(text []byte) (bool, error) {
 	return f.tenum.SeekExact(text)
 }
 
-func (f *FilteredTermsEnumDefault) SeekCeil(text []byte) (SeekStatus, error) {
+func (f *FilteredTermsEnumBase) SeekCeil(text []byte) (SeekStatus, error) {
 	return f.tenum.SeekCeil(text)
 }
 
-func (f *FilteredTermsEnumDefault) SeekExactByOrd(ord int64) error {
+func (f *FilteredTermsEnumBase) SeekExactByOrd(ord int64) error {
 	return f.tenum.SeekExactByOrd(ord)
 }
 
-func (f *FilteredTermsEnumDefault) Ord() (int64, error) {
+func (f *FilteredTermsEnumBase) Ord() (int64, error) {
 	return f.tenum.Ord()
 }
 
-func (f *FilteredTermsEnumDefault) Postings(reuse PostingsEnum, flags int) (PostingsEnum, error) {
+func (f *FilteredTermsEnumBase) Postings(reuse PostingsEnum, flags int) (PostingsEnum, error) {
 	return f.tenum.Postings(reuse, flags)
 }
 
-func (f *FilteredTermsEnumDefault) Impacts(flags int) (ImpactsEnum, error) {
+func (f *FilteredTermsEnumBase) Impacts(flags int) (ImpactsEnum, error) {
 	return f.tenum.Impacts(flags)
 }
 
 // SeekExactExpert This enum does not support seeking!
 // Throws: ErrUnsupportedOperation – In general, subclasses do not support seeking.
-func (f *FilteredTermsEnumDefault) SeekExactExpert(term []byte, state TermState) error {
+func (f *FilteredTermsEnumBase) SeekExactExpert(term []byte, state TermState) error {
 	return f.tenum.SeekExactExpert(term, state)
 }
 
 // TermState Returns the filtered enums term state
-func (f *FilteredTermsEnumDefault) TermState() (TermState, error) {
+func (f *FilteredTermsEnumBase) TermState() (TermState, error) {
 	return f.tenum.TermState()
 }
 
-func (f *FilteredTermsEnumDefault) Next() ([]byte, error) {
+func (f *FilteredTermsEnumBase) Next() ([]byte, error) {
 	// System.out.println("FTE.next doSeek=" + doSeek);
 	// new Throwable().printStackTrace(System.out);
 	var err error

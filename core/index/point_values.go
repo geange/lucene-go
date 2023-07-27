@@ -72,10 +72,10 @@ type PointValues interface {
 	// See Also: DocIdSetIterator.cost
 	EstimateDocCount(visitor IntersectVisitor) int64
 
-	// GetMinPackedValue Returns minimum value for each dimension, packed, or null if size is 0
+	// GetMinPackedValue Returns minimum item for each dimension, packed, or null if size is 0
 	GetMinPackedValue() ([]byte, error)
 
-	// GetMaxPackedValue Returns maximum value for each dimension, packed, or null if size is 0
+	// GetMaxPackedValue Returns maximum item for each dimension, packed, or null if size is 0
 	GetMaxPackedValue() ([]byte, error)
 
 	// GetNumDimensions Returns how many dimensions are represented in the values

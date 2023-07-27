@@ -8,7 +8,7 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-// PointValuesWriter Buffers up pending byte[][] value(s) per doc, then flushes when segment flushes.
+// PointValuesWriter Buffers up pending byte[][] item(s) per doc, then flushes when segment flushes.
 type PointValuesWriter struct {
 	fieldInfo         *document.FieldInfo
 	bytes             *PagedBytes
@@ -32,10 +32,10 @@ func NewPointValuesWriter(fieldInfo *document.FieldInfo) *PointValuesWriter {
 }
 
 // AddPackedValue
-// TODO: if exactly the same value is added to exactly the same doc, should we dedup?
+// TODO: if exactly the same item is added to exactly the same doc, should we dedup?
 func (p *PointValuesWriter) AddPackedValue(docID int, value []byte) error {
 	if len(value) != p.packedBytesLength {
-		return fmt.Errorf("this field's value has length=%d", len(value))
+		return fmt.Errorf("this field's item has length=%d", len(value))
 	}
 
 	if _, err := p.bytesOut.Write(value); err != nil {

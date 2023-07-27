@@ -24,7 +24,7 @@ const (
 	// If you try to add more than this you'll hit IllegalArgumentException
 	MAX_DOCS = math.MaxInt32 - 128
 
-	// MAX_POSITION Maximum value of the token position in an indexed field.
+	// MAX_POSITION Maximum item of the token position in an indexed field.
 	MAX_POSITION = math.MaxInt32 - 128
 
 	UNBOUNDED_MAX_MERGE_SEGMENTS = -1
@@ -113,7 +113,7 @@ func NewWriter(d store.Directory, conf *IndexWriterConfig) (*Writer, error) {
 	writer.directory = d
 	writer.mergeScheduler = writer.config.GetMergeScheduler()
 	writer.mergeScheduler.Initialize(writer.directoryOrig)
-	mode := writer.config.GetOpenMode()
+	mode := conf.GetOpenMode()
 
 	var err error
 	var indexExists, create bool
@@ -374,11 +374,75 @@ func (w *Writer) AddDocument(doc *document.Document) (int64, error) {
 //
 //	IOException – if there is a low-level IO error
 func (w *Writer) UpdateDocument(term *Term, doc *document.Document) (int64, error) {
-	var node *Node
+	var delNode *Node
 	if term != nil {
-		node = &Node{item: term}
+		delNode = deleteQueueNewNode(term)
 	}
-	return w.updateDocuments(node, []*document.Document{doc})
+	return w.updateDocuments(delNode, []*document.Document{doc})
+}
+
+// SoftUpdateDocument
+// Expert: Updates a document by first updating the document(s) containing term with the given doc-values
+// fields and then adding the new document. The doc-values update and then add are atomic as seen by a
+// reader on the same index (flush may happen only after the add). One use of this API is to retain older
+// versions of documents instead of replacing them. The existing documents can be updated to reflect they
+// are no longer current while atomically adding new documents at the same time. In contrast to
+// updateDocument(Term, Iterable) this method will not delete documents in the index matching the given term
+// but instead update them with the given doc-values fields which can be used as a soft-delete mechanism.
+// See addDocuments(Iterable) and updateDocuments(Term, Iterable).
+//
+// Returns: The sequence number for this operation
+// Throws: CorruptIndexException: if the index is corrupt
+// IOException: if there is a low-level IO error
+func (w *Writer) SoftUpdateDocument(term *Term, doc *document.Document, softDeletes ...*document.Field) (int64, error) {
+	updates, err := w.buildDocValuesUpdate(term, softDeletes)
+	if err != nil {
+		return 0, err
+	}
+	var delNode *Node
+	if term != nil {
+		delNode = deleteQueueNewNodeDocValuesUpdates(updates)
+	}
+	return w.updateDocuments(delNode, []*document.Document{doc})
+}
+
+func (w *Writer) buildDocValuesUpdate(term *Term, updates []*document.Field) ([]DocValuesUpdate, error) {
+	dvUpdates := make([]DocValuesUpdate, 0, len(updates))
+
+	for _, f := range updates {
+		dvType := f.FieldType().DocValuesType()
+
+		if w.globalFieldNumberMap.contains(f.Name(), dvType) == false {
+			// if this field doesn't exists we try to add it. if it exists and the DV type doesn't match we
+			// get a consistent error message as if you try to do that during an indexing operation.
+			_, err := w.globalFieldNumberMap.AddOrGet(f.Name(), -1, document.INDEX_OPTIONS_NONE, dvType, 0, 0, 0, f.Name() == w.config.softDeletesField)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if _, ok := w.config.GetIndexSortFields()[f.Name()]; ok {
+			return nil, errors.New("cannot update docvalues field involved in the index sort")
+		}
+
+		switch dvType {
+		case document.DOC_VALUES_TYPE_NUMERIC:
+			value, err := f.I64Value()
+			if err != nil {
+				return nil, err
+			}
+			dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, f.Name(), value))
+		case document.DOC_VALUES_TYPE_BINARY:
+			value, err := f.BytesValue()
+			if err != nil {
+				return nil, err
+			}
+			dvUpdates = append(dvUpdates, NewBinaryDocValuesUpdate(term, f.Name(), value))
+		default:
+			return nil, errors.New("can only update NUMERIC or BINARY fields")
+		}
+	}
+	return dvUpdates, nil
 }
 
 func (w *Writer) Commit(ctx context.Context) error {

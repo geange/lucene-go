@@ -3,7 +3,7 @@ package index
 type Impacts interface {
 
 	// NumLevels Return the number of levels on which we have impacts.
-	// The returned value is always greater than 0 and may not always be the same,
+	// The returned item is always greater than 0 and may not always be the same,
 	// even on a single postings list, depending on the current doc ID.
 	NumLevels() int
 

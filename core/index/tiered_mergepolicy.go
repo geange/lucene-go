@@ -10,10 +10,10 @@ const (
 var _ MergePolicy = &TieredMergePolicy{}
 
 type TieredMergePolicy struct {
-	*MergePolicyDefault
+	*MergePolicyBase
 
 	// User-specified maxMergeAtOnce. In practice we always take the min of its
-	// value and segsPerTier to avoid suboptimal merging.
+	// item and segsPerTier to avoid suboptimal merging.
 	maxMergeAtOnce              int
 	maxMergedSegmentBytes       int64
 	maxMergeAtOnceExplicit      int

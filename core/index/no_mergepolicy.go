@@ -5,12 +5,12 @@ import "math"
 var _ MergePolicy = &NoMergePolicy{}
 
 type NoMergePolicy struct {
-	*MergePolicyDefault
+	*MergePolicyBase
 }
 
 func NewNoMergePolicy() *NoMergePolicy {
 	policy := &NoMergePolicy{}
-	policy.MergePolicyDefault = NewMergePolicy(policy)
+	policy.MergePolicyBase = NewMergePolicy(policy)
 	return policy
 }
 
@@ -39,5 +39,5 @@ func (n *NoMergePolicy) Size(info *SegmentCommitInfo, mergeContext MergeContext)
 }
 
 func (n *NoMergePolicy) GetNoCFSRatio() float64 {
-	return n.MergePolicyDefault.getNoCFSRatio()
+	return n.MergePolicyBase.getNoCFSRatio()
 }

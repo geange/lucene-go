@@ -23,9 +23,9 @@ type DocValuesFieldUpdates interface {
 	AddBytes(doc int, value []byte) error
 
 	// AddIterator
-	// Adds the value for the given docID. This method prevents conditional calls to
+	// Adds the item for the given docID. This method prevents conditional calls to
 	// DocValuesFieldUpdates.Iterator.longValue() or DocValuesFieldUpdates.Iterator.binaryValue()
-	// since the implementation knows if it's a long value iterator or binary value
+	// since the implementation knows if it's a long item iterator or binary item
 	AddIterator(doc int, value DocValuesFieldUpdatesIterator) error
 
 	// Iterator
@@ -43,7 +43,7 @@ type DocValuesFieldUpdates interface {
 	Size() int
 
 	// Reset
-	// Adds an update that resets the documents value.
+	// Adds an update that resets the documents item.
 	// Params: doc – the doc to update
 	Reset(doc int) error
 
@@ -142,7 +142,7 @@ func (b *BinaryDocValuesFieldUpdates) addInternal(doc int, hasValueMask int64) (
 
 	// TODO: if the Sorter interface changes to take long indexes, we can remove that limitation
 	if b.size == math.MaxInt32 {
-		return 0, errors.New("cannot support more than Integer.MAX_VALUE doc/value entries")
+		return 0, errors.New("cannot support more than Integer.MAX_VALUE doc/item entries")
 	}
 
 	// grow the structures to have room for more elements
@@ -164,16 +164,16 @@ func (b *BinaryDocValuesFieldUpdates) addInternal(doc int, hasValueMask int64) (
 type DocValuesFieldUpdatesIterator interface {
 	DocValuesIterator
 
-	// LongValue Returns a long value for the current document if this iterator is a long iterator.
+	// LongValue Returns a long item for the current document if this iterator is a long iterator.
 	LongValue() (int64, error)
 
-	// BinaryValue Returns a binary value for the current document if this iterator is a binary value iterator.
+	// BinaryValue Returns a binary item for the current document if this iterator is a binary item iterator.
 	BinaryValue() ([]byte, error)
 
 	// DelGen Returns delGen for this packet.
 	DelGen() int64
 
-	// HasValue Returns true if this doc has a value
+	// HasValue Returns true if this doc has a item
 	HasValue() bool
 }
 

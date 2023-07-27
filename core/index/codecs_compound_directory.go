@@ -13,7 +13,7 @@ type CompoundDirectory interface {
 
 	// CheckIntegrity Checks consistency of this directory.
 	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum
-	// value against large data files.
+	// item against large data files.
 	CheckIntegrity() error
 }
 

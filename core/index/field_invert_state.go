@@ -86,7 +86,7 @@ func (f *FieldInvertState) GetLength() int {
 	return f.length
 }
 
-// SetLength Set length value.
+// SetLength Set length item.
 func (f *FieldInvertState) SetLength(length int) {
 	f.length = length
 }
@@ -109,7 +109,7 @@ func (f *FieldInvertState) GetOffset() int {
 }
 
 // GetMaxTermFrequency Get the maximum term-frequency encountered for any term in the field. A field
-// containing "the quick brown fox jumps over the lazy dog" would have a value of 2, because "the" appears twice.
+// containing "the quick brown fox jumps over the lazy dog" would have a item of 2, because "the" appears twice.
 func (f *FieldInvertState) GetMaxTermFrequency() int {
 	return f.maxTermFrequency
 }

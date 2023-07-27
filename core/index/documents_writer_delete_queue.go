@@ -58,7 +58,7 @@ func NewDocumentsWriterDeleteQueue() *DocumentsWriterDeleteQueue {
 func newDocumentsWriterDeleteQueue(generation, startSeqNo int64,
 	previousMaxSeqId func() int64) *DocumentsWriterDeleteQueue {
 
-	tail := NewNode(nil)
+	tail := NewNode(nil, nil)
 
 	return &DocumentsWriterDeleteQueue{
 		tail:                  tail,
@@ -182,25 +182,12 @@ func (d *DeleteSlice) Reset() {
 	d.sliceHead = d.sliceTail
 }
 
-type Node struct {
-	next *Node
-	item any
+func deleteQueueNewNode(term *Term) *Node {
+	node := NewTermNode(term)
+	return NewNode(term, node)
 }
 
-func NewNode(v any) *Node {
-	return &Node{
-		next: nil,
-		item: v,
-	}
-}
-
-func (n *Node) Apply(bufferedDeletes *BufferedUpdates, docIDUpto int) {
-	switch n.item.(type) {
-	case *Term:
-		bufferedDeletes.AddTerm(n.item.(*Term), docIDUpto)
-	case []*Term:
-		for _, term := range n.item.([]*Term) {
-			bufferedDeletes.AddTerm(term, docIDUpto)
-		}
-	}
+func deleteQueueNewNodeDocValuesUpdates(updates []DocValuesUpdate) *Node {
+	node := NewDocValuesUpdatesNode(updates)
+	return NewNode(updates, node)
 }

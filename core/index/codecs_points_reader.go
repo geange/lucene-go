@@ -11,7 +11,7 @@ type PointsReader interface {
 
 	// CheckIntegrity Checks consistency of this reader.
 	// Note that this may be costly in terms of I/O,
-	// e.g. may involve computing a checksum value against large data files.
+	// e.g. may involve computing a checksum item against large data files.
 	// lucene.internal
 	CheckIntegrity() error
 

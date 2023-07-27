@@ -1,12 +1,12 @@
 package index
 
-// NumericDocValues A per-document numeric value.
+// NumericDocValues A per-document numeric item.
 type NumericDocValues interface {
 	DocValuesIterator
 
-	// LongValue Returns the numeric value for the current document ID. It is illegal to call this method
+	// LongValue Returns the numeric item for the current document ID. It is illegal to call this method
 	// after advanceExact(int) returned false.
-	// Returns: numeric value
+	// Returns: numeric item
 	LongValue() (int64, error)
 }
 

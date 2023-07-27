@@ -10,7 +10,7 @@ import (
 // between segments. Implementers must provide the following methods:
 // getDocComparator(LeafReader, int) - an object that determines how documents within a segment
 // are to be sorted getComparableProviders(List) - an array of objects that return a sortable
-// long value per document and segment getProviderName() - the SPI-registered name of a
+// long item per document and segment getProviderName() - the SPI-registered name of a
 // SortFieldProvider to serialize the sort The companion SortFieldProvider should be
 // registered with SPI via META-INF/services
 type IndexSorter interface {
@@ -47,7 +47,7 @@ type ComparableProvider interface {
 // DocComparator A comparator of doc IDs, used for sorting documents within a segment
 // 用于段内文档的排序
 type DocComparator interface {
-	// Compare docID1 against docID2. The contract for the return value is
+	// Compare docID1 against docID2. The contract for the return item is
 	// the same as cmp.Compare(Object, Object).
 	Compare(docID1, docID2 int) int
 }

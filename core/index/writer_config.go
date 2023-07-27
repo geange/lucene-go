@@ -87,7 +87,7 @@ const (
 	// DEFAULT_MAX_BUFFERED_DOCS Disabled by default (because IndexWriter flushes by RAM usage by default).
 	DEFAULT_MAX_BUFFERED_DOCS = DISABLE_AUTO_FLUSH
 
-	// DEFAULT_RAM_BUFFER_SIZE_MB Default value is 16 MB (which means Flush when buffered docs consume
+	// DEFAULT_RAM_BUFFER_SIZE_MB Default item is 16 MB (which means Flush when buffered docs consume
 	// approximately 16 MB RAM).
 	DEFAULT_RAM_BUFFER_SIZE_MB = 16.0
 
@@ -98,17 +98,17 @@ const (
 	// be forced to aggressively move all state to disk.
 	DEFAULT_READER_POOLING = true
 
-	// DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB Default value is 1945. Change using setRAMPerThreadHardLimitMB(int)
+	// DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB Default item is 1945. Change using setRAMPerThreadHardLimitMB(int)
 	DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB = 1945
 
-	// DEFAULT_USE_COMPOUND_FILE_SYSTEM Default value for compound file system for newly
+	// DEFAULT_USE_COMPOUND_FILE_SYSTEM Default item for compound file system for newly
 	// written segments (set to true). For batch indexing with very large ram buffers use false
 	DEFAULT_USE_COMPOUND_FILE_SYSTEM = true
 
-	// DEFAULT_COMMIT_ON_CLOSE Default value for whether calls to IndexWriter.close() include a commit.
+	// DEFAULT_COMMIT_ON_CLOSE Default item for whether calls to IndexWriter.close() include a commit.
 	DEFAULT_COMMIT_ON_CLOSE = true
 
-	// DEFAULT_MAX_FULL_FLUSH_MERGE_WAIT_MILLIS Default value for time to wait for merges
+	// DEFAULT_MAX_FULL_FLUSH_MERGE_WAIT_MILLIS Default item for time to wait for merges
 	// on commit or getReader (when using a MergePolicy that implements MergePolicy.findFullFlushMerges).
 	DEFAULT_MAX_FULL_FLUSH_MERGE_WAIT_MILLIS = 0
 )

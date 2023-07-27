@@ -14,7 +14,7 @@ import (
 // Similarity determines how Lucene weights terms, and Lucene interacts with this class at both index-time
 // and query-time.
 // Indexing Time At indexing time, the indexer calls computeNorm(FieldInvertState), allowing the Similarity
-// implementation to set a per-document value for the field that will be later accessible via
+// implementation to set a per-document item for the field that will be later accessible via
 // org.apache.lucene.index.LeafReader.getNormValues(String). Lucene makes no assumption about what is in this
 // norm, but it is most useful for encoding length normalization information.
 // Implementations should carefully consider how the normalization is encoded: while Lucene's BM25Similarity
@@ -43,7 +43,7 @@ import (
 // org.apache.lucene.index.IndexWriterConfig.setSimilarity(Similarity), IndexSearcher.setSimilarity(Similarity)
 type Similarity interface {
 
-	// ComputeNorm Computes the normalization value for a field, given the accumulated state of term processing
+	// ComputeNorm Computes the normalization item for a field, given the accumulated state of term processing
 	// for this field (see FieldInvertState).
 	// Matches in longer fields are less precise, so implementations of this method usually set smaller values
 	// when state.getLength() is large, and larger values when state.getLength() is small.
@@ -52,7 +52,7 @@ type Similarity interface {
 	// SimScorer.Score(freq, n1) <= SimScorer.Score(freq, n2) for any legal freq.
 	// 0 is not a legal norm, so 1 is the norm that produces the highest scores.
 	// Params: state – current processing state for this field
-	// Returns: computed norm value
+	// Returns: computed norm item
 	ComputeNorm(state *FieldInvertState) int64
 
 	// Scorer Compute any collection-level weight (e.g. IDF, average document length, etc) needed for scoring a query.
@@ -71,7 +71,7 @@ type SimScorer interface {
 	// norm is the encoded normalization factor as computed by computeNorm(FieldInvertState) at index time,
 	// or 1 if norms are disabled. norm is never 0.
 	// Score must not decrease when freq increases, ie. if freq1 > freq2,
-	// then Score(freq1, norm) >= Score(freq2, norm) for any value of norm that may be produced by
+	// then Score(freq1, norm) >= Score(freq2, norm) for any item of norm that may be produced by
 	// computeNorm(FieldInvertState).
 	// Score must not increase when the unsigned norm increases, ie. if Long.compareUnsigned(norm1, norm2) > 0
 	// then Score(freq, norm1) <= Score(freq, norm2) for any legal freq.

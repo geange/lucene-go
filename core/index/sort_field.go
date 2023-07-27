@@ -21,11 +21,11 @@ const (
 // Since: lucene 1.4
 // See Also: Sort
 type SortField interface {
-	// GetMissingValue Return the value to use for documents that don't have a value.
-	// A value of null indicates that default should be used.
+	// GetMissingValue Return the item to use for documents that don't have a item.
+	// A item of null indicates that default should be used.
 	GetMissingValue() any
 
-	// SetMissingValue Set the value to use for documents that don't have a value.
+	// SetMissingValue Set the item to use for documents that don't have a item.
 	SetMissingValue(missingValue any) error
 
 	// GetField Returns the name of the field. Could return null if the sort is by SCORE or DOC.
@@ -225,12 +225,12 @@ func (s *SortFieldDefault) NeedsScores() bool {
 	return s._type == SCORE
 }
 
-// GetMissingValue Return the value to use for documents that don't have a value. A value of null indicates that default should be used.
+// GetMissingValue Return the item to use for documents that don't have a item. A item of null indicates that default should be used.
 func (s *SortFieldDefault) GetMissingValue() any {
 	return s.missingValue
 }
 
-// SetMissingValue Set the value to use for documents that don't have a value.
+// SetMissingValue Set the item to use for documents that don't have a item.
 func (s *SortFieldDefault) SetMissingValue(missingValue any) error {
 	s.missingValue = missingValue
 	return nil
@@ -298,7 +298,7 @@ func (s *SortFieldDefault) Serialize(out store.DataOutput) error {
 		case STRING_LAST:
 			out.WriteUint32(0)
 		default:
-			return fmt.Errorf("cannot serialize missing value of %v for type STRING", s.missingValue)
+			return fmt.Errorf("cannot serialize missing item of %v for type STRING", s.missingValue)
 		}
 
 		return nil
@@ -393,7 +393,7 @@ const (
 	CUSTOM
 
 	// STRING_VAL Sort using term values as Strings,
-	// but comparing by value (using String.compareTo) for all comparisons.
+	// but comparing by item (using String.compareTo) for all comparisons.
 	// This is typically slower than STRING, which uses ordinals to do the sorting.
 	STRING_VAL
 

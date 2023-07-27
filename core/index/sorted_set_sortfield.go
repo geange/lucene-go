@@ -9,9 +9,9 @@ var _ SortField = &SortedSetSortField{}
 
 // SortedSetSortField
 // SortField for SortedSetDocValues.
-// A SortedSetDocValues contains multiple values for a field, so sorting with this technique "selects" a value
-// as the representative sort value for the document.
-// By default, the minimum value in the set is selected as the sort value, but this can be customized. Selectors
+// A SortedSetDocValues contains multiple values for a field, so sorting with this technique "selects" a item
+// as the representative sort item for the document.
+// By default, the minimum item in the set is selected as the sort item, but this can be customized. Selectors
 // other than the default do have some limitations to ensure that all selections happen in constant-time for performance.
 // Like sorting by string, this also supports sorting missing values as first or last, via setMissingValue(Object).
 // See Also: SortedSetSelector

@@ -2,9 +2,9 @@ package index
 
 // LeafFieldComparator Expert: comparator that gets instantiated on each leaf from a top-level FieldComparator instance.
 // A leaf comparator must define these functions:
-// setBottom This method is called by FieldValueHitQueue to notify the FieldComparator of the current weakest ("bottom") slot. Note that this slot may not hold the weakest value according to your comparator, in cases where your comparator is not the primary one (ie, is only used to break ties from the comparators before it).
+// setBottom This method is called by FieldValueHitQueue to notify the FieldComparator of the current weakest ("bottom") slot. Note that this slot may not hold the weakest item according to your comparator, in cases where your comparator is not the primary one (ie, is only used to break ties from the comparators before it).
 // compareBottom Compare a new hit (docID) against the "weakest" (bottom) entry in the queue.
-// compareTop Compare a new hit (docID) against the top value previously set by a call to FieldComparator.setTopValue.
+// compareTop Compare a new hit (docID) against the top item previously set by a call to FieldComparator.setTopValue.
 // copy Installs a new hit into the priority queue. The FieldValueHitQueue calls this method when a new hit is competitive.
 // See Also: FieldComparator
 // lucene.experimental
@@ -18,16 +18,16 @@ type LeafFieldComparator interface {
 	// slot1 and the new document were slot 2.
 	// For a search that hits many results, this method will be the hotspot (invoked by far the most frequently).
 	// Params: doc – that was hit
-	// Returns: any N < 0 if the doc's value is sorted after the bottom entry (not competitive), any N > 0 if
-	// the doc's value is sorted before the bottom entry and 0 if they are equal.
+	// Returns: any N < 0 if the doc's item is sorted after the bottom entry (not competitive), any N > 0 if
+	// the doc's item is sorted before the bottom entry and 0 if they are equal.
 	CompareBottom(doc int) (int, error)
 
-	// CompareTop compare the top value with this doc. This will only invoked after setTopValue has been called.
+	// CompareTop compare the top item with this doc. This will only invoked after setTopValue has been called.
 	// This should return the same result as FieldComparator.compare(int, int)} as if topValue were slot1 and
 	// the new document were slot 2. This is only called for searches that use searchAfter (deep paging).
 	// Params: doc – that was hit
-	// Returns: any N < 0 if the doc's value is sorted after the top entry (not competitive), any N > 0 if the
-	// doc's value is sorted before the top entry and 0 if they are equal.
+	// Returns: any N < 0 if the doc's item is sorted after the top entry (not competitive), any N > 0 if the
+	// doc's item is sorted before the top entry and 0 if they are equal.
 	CompareTop(doc int) (int, error)
 
 	// Copy This method is called when a new hit is competitive.

@@ -10,7 +10,8 @@ const (
 	DEFAULT_MAX_CFS_SEGMENT_SIZE = math.MaxInt64
 )
 
-// MergePolicy Expert: a MergePolicy determines the sequence of primitive merge operations.
+// MergePolicy
+// Expert: a MergePolicy determines the sequence of primitive merge operations.
 // Whenever the segments in an index have been altered by IndexWriter, either the addition of a newly
 // flushed segment, addition of many segments from addIndexes* calls, or a previous merge that may now
 // need to cascade, IndexWriter invokes findMerges to give the MergePolicy a chance to pick merges that
@@ -32,12 +33,11 @@ type MergePolicy interface {
 	// Determine what set of merge operations are now necessary on the index.
 	// IndexWriter calls this whenever there is a change to the segments.
 	// This call is always synchronized on the IndexWriter instance so only one thread at a time will call this method.
-	//
-	// Params:
-	//			mergeTrigger – the event that triggered the merge
-	//			segmentInfos – the total set of segments in the index
-	//			mergeContext – the IndexWriter to find the merges on
-	FindMerges(mergeTrigger MergeTrigger, segmentInfos *SegmentInfos, mergeContext MergeContext) (*MergeSpecification, error)
+	// mergeTrigger: the event that triggered the merge
+	// segmentInfos: the total set of segments in the index
+	// mergeContext: the IndexWriter to find the merges on
+	FindMerges(mergeTrigger MergeTrigger, segmentInfos *SegmentInfos,
+		mergeContext MergeContext) (*MergeSpecification, error)
 
 	// FindForcedMerges Determine what set of merge operations is necessary in order to
 	// merge to <= the specified segment count.
@@ -53,7 +53,7 @@ type MergePolicy interface {
 	//			segmentInfos – the total set of segments in the index
 	//	 		maxSegmentCount – requested maximum number of segments in the index (currently this is always 1)
 	//	 		segmentsToMerge – contains the specific SegmentInfo instances that must be merged away.
-	//	 			This may be a subset of all SegmentInfos. If the value is True for a given SegmentInfo,
+	//	 			This may be a subset of all SegmentInfos. If the item is True for a given SegmentInfo,
 	//	 			that means this segment was an original segment present in the to-be-merged index;
 	//	 			else, it was a segment produced by a cascaded merge.
 	//	 		mergeContext – the MergeContext to find the merges on
@@ -120,35 +120,35 @@ type MergePolicy interface {
 
 	KeepFullyDeletedSegment(func() CodecReader) bool
 
-	MergePolicySPI
+	MergePolicyInner
 }
 
-type MergePolicySPI interface {
+type MergePolicyInner interface {
 	Size(info *SegmentCommitInfo, mergeContext MergeContext) (int64, error)
 	GetNoCFSRatio() float64
 }
 
-func NewMergePolicy(spi MergePolicySPI) *MergePolicyDefault {
-	return &MergePolicyDefault{
-		MergePolicySPI:    spi,
+func NewMergePolicy(inner MergePolicyInner) *MergePolicyBase {
+	return &MergePolicyBase{
+		MergePolicyInner:  inner,
 		noCFSRatio:        DEFAULT_NO_CFS_RATIO,
 		maxCFSSegmentSize: DEFAULT_MAX_CFS_SEGMENT_SIZE,
 	}
 }
 
-type MergePolicyDefault struct {
-	MergePolicySPI
+type MergePolicyBase struct {
+	MergePolicyInner
 
 	noCFSRatio        float64
 	maxCFSSegmentSize int64
 }
 
-func (m *MergePolicyDefault) FindFullFlushMerges(mergeTrigger MergeTrigger,
+func (m *MergePolicyBase) FindFullFlushMerges(mergeTrigger MergeTrigger,
 	segmentInfos *SegmentInfos, mergeContext MergeContext) (*MergeSpecification, error) {
 	return nil, nil
 }
 
-func (m *MergePolicyDefault) UseCompoundFile(infos *SegmentInfos,
+func (m *MergePolicyBase) UseCompoundFile(infos *SegmentInfos,
 	mergedInfo *SegmentCommitInfo, mergeContext MergeContext) (bool, error) {
 
 	if m.GetNoCFSRatio() == 0.0 {
@@ -172,7 +172,7 @@ func (m *MergePolicyDefault) UseCompoundFile(infos *SegmentInfos,
 	return float64(mergedInfoSize) <= m.GetNoCFSRatio()*float64(totalSize), nil
 }
 
-func (m *MergePolicyDefault) size(info *SegmentCommitInfo, mergeContext MergeContext) (int64, error) {
+func (m *MergePolicyBase) size(info *SegmentCommitInfo, mergeContext MergeContext) (int64, error) {
 	byteSize, err := info.SizeInBytes()
 	if err != nil {
 		return 0, err
@@ -198,11 +198,11 @@ func (m *MergePolicyDefault) size(info *SegmentCommitInfo, mergeContext MergeCon
 	return int64(float64(byteSize) * (1.0 - delRatio)), nil
 }
 
-func (m *MergePolicyDefault) getNoCFSRatio() float64 {
+func (m *MergePolicyBase) getNoCFSRatio() float64 {
 	return m.noCFSRatio
 }
 
-func (m *MergePolicyDefault) KeepFullyDeletedSegment(func() CodecReader) bool {
+func (m *MergePolicyBase) KeepFullyDeletedSegment(func() CodecReader) bool {
 	return false
 }
 

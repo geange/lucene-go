@@ -4,7 +4,7 @@ package index
 type SortedNumericDocValues interface {
 	DocValuesIterator
 
-	// NextValue Iterates to the next value in the current document. Do not call this more than
+	// NextValue Iterates to the next item in the current document. Do not call this more than
 	// docValueCount times for the document.
 	NextValue() (int64, error)
 

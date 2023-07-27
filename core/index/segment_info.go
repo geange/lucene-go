@@ -148,10 +148,10 @@ func (s *SegmentInfo) GetDiagnostics() map[string]string {
 	return s.diagnostics
 }
 
-// PutAttribute Puts a codec attribute value.
-// This is a key-value mapping for the field that the codec can use to store additional metadata,
+// PutAttribute Puts a codec attribute item.
+// This is a key-item mapping for the field that the codec can use to store additional metadata,
 // and will be available to the codec when reading the segment via getAttribute(String)
-// If a value already exists for the field, it will be replaced with the new value. This method
+// If a item already exists for the field, it will be replaced with the new item. This method
 // make a copy on write for every attribute change.
 func (s *SegmentInfo) PutAttribute(key, value string) string {
 	s.Lock()
