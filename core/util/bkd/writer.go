@@ -32,7 +32,7 @@ const (
 //     per leaf, and you can reduce that by putting more points per leaf
 //   - we could use threads while building; the higher nodes are very parallelizable
 
-// BKDWriter Recursively builds a block KD-tree to assign all incoming points in N-dim space to smaller
+// Writer Recursively builds a block KD-tree to assign all incoming points in N-dim space to smaller
 // and smaller N-dim rectangles (cells) until the number of points in a given rectangle
 // is <= config.maxPointsInLeafNode. The tree is partially balanced, which means the leaf nodes will
 // have the requested config.maxPointsInLeafNode except one that might have less. Leaf nodes may
@@ -43,8 +43,8 @@ const (
 // and then uses up to the specified maxMBSortInHeap heap space for writing.
 // NOTE: This can write at most Integer.MAX_VALUE * config.maxPointsInLeafNode / config.bytesPerDim total points.
 // lucene.experimental
-type BKDWriter struct {
-	config              *BKDConfig
+type Writer struct {
+	config              *Config
 	tempDir             *store.TrackingDirectoryWrapper
 	tempFileNamePrefix  string
 	maxMBSortInHeap     float64

@@ -2,19 +2,19 @@ package index
 
 import (
 	"bytes"
-	"github.com/geange/lucene-go/codecs/bkd"
 	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/bkd"
 	"github.com/geange/lucene-go/core/util/packed"
 	"sort"
 )
 
 // SortByDim Sort points on the given dimension.
-func SortByDim(config *bkd.BKDConfig, sortedDim int, commonPrefixLengths []int,
+func SortByDim(config *bkd.Config, sortedDim int, commonPrefixLengths []int,
 	reader MutablePointValues, from, to int,
 	scratch1, scratch2 *bytes.Buffer) {
 
-	start := sortedDim*config.BytesPerDim + commonPrefixLengths[sortedDim]
-	dimEnd := sortedDim*config.BytesPerDim + config.BytesPerDim
+	start := sortedDim*config.BytesPerDoc() + commonPrefixLengths[sortedDim]
+	dimEnd := sortedDim*config.BytesPerDoc() + config.BytesPerDoc()
 	// No need for a fancy radix sort here, this is called on the leaves only so
 	// there are not many values to sort
 	sorter := &innerSortByDim{
@@ -40,7 +40,7 @@ type innerSortByDim struct {
 	reader MutablePointValues
 	buf1   *bytes.Buffer
 	buf2   *bytes.Buffer
-	config *bkd.BKDConfig
+	config *bkd.Config
 }
 
 func (r *innerSortByDim) Len() int {
@@ -60,7 +60,7 @@ func (r *innerSortByDim) Less(i, j int) bool {
 	from, to := r.start, r.dimEnd
 	cmp := bytes.Compare(bs1[from:to], bs2[from:to])
 	if cmp == 0 {
-		from, to = r.config.PackedIndexBytesLength, r.config.PackedBytesLength
+		from, to = r.config.PackedIndexBytesLength(), r.config.PackedBytesLength()
 		cmp = bytes.Compare(bs1[from:to], bs2[from:to])
 		if cmp == 0 {
 			cmp = r.reader.GetDocID(i) - r.reader.GetDocID(j)
@@ -77,13 +77,13 @@ func (r *innerSortByDim) Swap(i, j int) {
 }
 
 // Partition points around mid. All values on the left must be less than or equal to it and all values on the right must be greater than or equal to it.
-func Partition(config *bkd.BKDConfig, maxDoc, splitDim, commonPrefixLen int,
+func Partition(config *bkd.Config, maxDoc, splitDim, commonPrefixLen int,
 	reader MutablePointValues, from, to, mid int,
 	scratch1, scratch2 *bytes.Buffer) {
 
-	dimOffset := splitDim*config.BytesPerDim + commonPrefixLen
-	dimCmpBytes := config.BytesPerDim - commonPrefixLen
-	dataCmpBytes := (config.NumDims-config.NumIndexDims)*config.BytesPerDim + dimCmpBytes
+	dimOffset := splitDim*config.BytesPerDoc() + commonPrefixLen
+	dimCmpBytes := config.BytesPerDoc() - commonPrefixLen
+	dataCmpBytes := (config.NumDims()-config.NumIndexDims())*config.BytesPerDoc() + dimCmpBytes
 	bitsPerDocId := packed.PackedIntsBitsRequired(uint64(maxDoc - 1))
 
 	radix := util.NewRadixSelector(&util.RadixSelectorConfig{
@@ -92,7 +92,7 @@ func Partition(config *bkd.BKDConfig, maxDoc, splitDim, commonPrefixLen int,
 			if k < dimCmpBytes {
 				return int(reader.GetByteAt(i, dimOffset+k))
 			} else if k < dataCmpBytes {
-				return int(reader.GetByteAt(i, config.PackedIndexBytesLength+k-dimCmpBytes))
+				return int(reader.GetByteAt(i, config.PackedIndexBytesLength()+k-dimCmpBytes))
 			} else {
 				shift := bitsPerDocId - ((k - dataCmpBytes + 1) << 3)
 				return (reader.GetDocID(i) >> max(0, shift)) & 0xff

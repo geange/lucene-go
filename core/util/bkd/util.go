@@ -54,7 +54,7 @@ type heapRadixSort struct {
 	dimOffset   int
 	dimCmpBytes int
 	dataOffset  int
-	selector    *BKDRadixSelector
+	selector    *RadixSelector
 	points      *HeapPointWriter
 }
 
@@ -66,8 +66,8 @@ func (h *heapRadixSort) Less(i, j int) bool {
 	i += h.from
 	j += h.from
 
-	aFromIndex := i*h.selector.config.BytesPerDoc + h.dimOffset
-	bFromIndex := i*h.selector.config.BytesPerDoc + h.dimOffset
+	aFromIndex := i*h.selector.config.BytesPerDoc() + h.dimOffset
+	bFromIndex := i*h.selector.config.BytesPerDoc() + h.dimOffset
 
 	cmp := bytes.Compare(
 		h.points.block[aFromIndex:aFromIndex+h.dimCmpBytes],
@@ -75,8 +75,8 @@ func (h *heapRadixSort) Less(i, j int) bool {
 	)
 	if cmp == 0 {
 		// 比较数据，data bytes
-		aFromIndex = i*h.selector.config.BytesPerDoc + h.dataOffset
-		bFromIndex = i*h.selector.config.BytesPerDoc + h.dataOffset
+		aFromIndex = i*h.selector.config.BytesPerDoc() + h.dataOffset
+		bFromIndex = i*h.selector.config.BytesPerDoc() + h.dataOffset
 
 		cmp = bytes.Compare(
 			h.points.block[aFromIndex:aFromIndex+h.dimCmpBytes],

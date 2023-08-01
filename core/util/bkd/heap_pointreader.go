@@ -12,12 +12,12 @@ var _ PointReader = &HeapPointReader{}
 type HeapPointReader struct {
 	curRead    int
 	block      []byte
-	config     *BKDConfig
+	config     *Config
 	end        int
 	pointValue *HeapPointValue
 }
 
-func NewHeapPointReader(config *BKDConfig, block []byte, start, end int) *HeapPointReader {
+func NewHeapPointReader(config *Config, block []byte, start, end int) *HeapPointReader {
 	reader := &HeapPointReader{
 		curRead: start - 1,
 		block:   block,
@@ -41,7 +41,7 @@ func (h *HeapPointReader) Next() (bool, error) {
 }
 
 func (h *HeapPointReader) PointValue() PointValue {
-	h.pointValue.SetOffset(h.curRead * h.config.BytesPerDoc)
+	h.pointValue.SetOffset(h.curRead * h.config.BytesPerDoc())
 	return h.pointValue
 }
 
@@ -54,11 +54,11 @@ type HeapPointValue struct {
 	packedValueLength int
 }
 
-func NewHeapPointValue(config *BKDConfig, value []byte) *HeapPointValue {
+func NewHeapPointValue(config *Config, value []byte) *HeapPointValue {
 	return &HeapPointValue{
-		packedValue:       util.NewBytesRef(value, 0, config.PackedBytesLength),
-		packedValueDocID:  util.NewBytesRef(value, 0, config.BytesPerDoc),
-		packedValueLength: config.PackedBytesLength,
+		packedValue:       util.NewBytesRef(value, 0, config.PackedBytesLength()),
+		packedValueDocID:  util.NewBytesRef(value, 0, config.BytesPerDoc()),
+		packedValueLength: config.PackedBytesLength(),
 	}
 }
 

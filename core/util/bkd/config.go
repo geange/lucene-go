@@ -2,47 +2,80 @@ package bkd
 
 import "fmt"
 
-// BKDConfig Basic parameters for indexing points on the BKD tree.
-type BKDConfig struct {
+// Config Basic parameters for indexing points on the BKD tree.
+type Config struct {
 	// How many dimensions we are storing at the leaf (data) nodes
 	// 我们在叶（数据）节点上存储了多少维度
-	NumDims int
+	numDims int
 
 	// How many dimensions we are indexing in the internal nodes
-	NumIndexDims int
+	// 当前在节点上存储的纬度数量
+	numIndexDims int
 
 	// How many bytes each value in each dimension takes.
-	BytesPerDim int
+	// 每个纬度占用的字节数量
+	bytesPerDim int
 
 	// max points allowed on a Leaf block
-	MaxPointsInLeafNode int
+	// 叶子块支持的最大的点的数量
+	maxPointsInLeafNode int
 
 	// numDataDims * bytesPerDim
-	PackedBytesLength int
+	packedBytesLength int
 
 	// numIndexDims * bytesPerDim
-	PackedIndexBytesLength int
+	packedIndexBytesLength int
 
 	//packedBytesLength plus docID size
-	BytesPerDoc int
+	bytesPerDoc int
 }
 
-func NewBKDConfig(numDims, numIndexDims, bytesPerDim, maxPointsInLeafNode int) (*BKDConfig, error) {
+func NewConfig(numDims, numIndexDims, bytesPerDim, maxPointsInLeafNode int) (*Config, error) {
 	err := verifyParams(numDims, numIndexDims, bytesPerDim, maxPointsInLeafNode)
 	if err != nil {
 		return nil, err
 	}
 
-	config := &BKDConfig{}
-	config.NumDims = numDims
-	config.NumIndexDims = numIndexDims
-	config.BytesPerDim = bytesPerDim
-	config.MaxPointsInLeafNode = maxPointsInLeafNode
-	config.PackedIndexBytesLength = numIndexDims * bytesPerDim
-	config.PackedBytesLength = numDims * bytesPerDim
+	config := &Config{}
+	config.numDims = numDims
+	config.numIndexDims = numIndexDims
+	config.bytesPerDim = bytesPerDim
+	config.maxPointsInLeafNode = maxPointsInLeafNode
+	config.packedIndexBytesLength = numIndexDims * bytesPerDim
+
+	packedBytesLength := numDims * bytesPerDim
+	config.packedBytesLength = packedBytesLength
 	// dimensional values (numDims * bytesPerDim) + docID (int)
-	config.BytesPerDoc = config.PackedBytesLength + 4
+	config.bytesPerDoc = packedBytesLength + 4
 	return config, nil
+}
+
+func (c *Config) NumDims() int {
+	return c.numDims
+}
+
+func (c *Config) NumIndexDims() int {
+	return c.numIndexDims
+}
+
+func (c *Config) BytesPerDim() int {
+	return c.bytesPerDim
+}
+
+func (c *Config) MaxPointsInLeafNode() int {
+	return c.maxPointsInLeafNode
+}
+
+func (c *Config) PackedIndexBytesLength() int {
+	return c.packedIndexBytesLength
+}
+
+func (c *Config) PackedBytesLength() int {
+	return c.packedBytesLength
+}
+
+func (c *Config) BytesPerDoc() int {
+	return c.bytesPerDoc
 }
 
 func verifyParams(numDims, numIndexDims, bytesPerDim, maxPointsInLeafNode int) error {

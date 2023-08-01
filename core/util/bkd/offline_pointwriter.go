@@ -13,13 +13,13 @@ type OfflinePointWriter struct {
 	tempDir       store.Directory
 	out           store.IndexOutput
 	name          string
-	config        *BKDConfig
+	config        *Config
 	count         int64
 	closed        bool
 	expectedCount int64
 }
 
-func NewOfflinePointWriter(config *BKDConfig, tempDir store.Directory,
+func NewOfflinePointWriter(config *Config, tempDir store.Directory,
 	tempFileNamePrefix, desc string, expectedCount int64) *OfflinePointWriter {
 	out, err := tempDir.CreateTempOutput(tempFileNamePrefix, "bkd_"+desc, nil)
 	if err != nil {
@@ -67,7 +67,7 @@ func (w *OfflinePointWriter) Append(packedValue []byte, docID int) error {
 func (w *OfflinePointWriter) AppendValue(pointValue PointValue) error {
 	//assert closed == false : "Point writer is already closed";
 	packedValueDocID := pointValue.PackedValueDocIDBytes()
-	//assert packedValueDocID.length == config.bytesPerDoc : "[packedValue and docID] must have length [" + (config.bytesPerDoc) + "] but was [" + packedValueDocID.length + "]";
+	//assert packedValueDocID.length == config.BytesPerDoc : "[packedValue and docID] must have length [" + (config.BytesPerDoc) + "] but was [" + packedValueDocID.length + "]";
 	if _, err := w.out.Write(packedValueDocID); err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (w *OfflinePointWriter) AppendValue(pointValue PointValue) error {
 }
 
 func (w *OfflinePointWriter) GetReader(start, length int64) (PointReader, error) {
-	buffer := make([]byte, w.config.BytesPerDoc)
+	buffer := make([]byte, w.config.BytesPerDoc())
 	return w.getReader(start, length, buffer)
 }
 

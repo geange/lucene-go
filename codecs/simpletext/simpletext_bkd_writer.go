@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bits-and-blooms/bitset"
-	"github.com/geange/lucene-go/codecs/bkd"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
+	bkd2 "github.com/geange/lucene-go/core/util/bkd"
 	"github.com/geange/lucene-go/core/util/numeric"
 	"math"
 	"sort"
@@ -27,7 +27,7 @@ const (
 
 type SimpleTextBKDWriter struct {
 	// How many dimensions we are storing at the leaf (data) nodes
-	config              *bkd.BKDConfig
+	config              *bkd2.Config
 	scratch             *bytes.Buffer
 	tempDir             *store.TrackingDirectoryWrapper
 	tempFileNamePrefix  string
@@ -39,7 +39,7 @@ type SimpleTextBKDWriter struct {
 	scratchBytesRef2    *bytes.Buffer
 	commonPrefixLengths []int
 	docsSeen            *bitset.BitSet
-	pointWriter         bkd.PointWriter
+	pointWriter         bkd2.PointWriter
 	finished            bool
 	tempInput           store.IndexOutput
 	maxPointsSortInHeap int
@@ -62,26 +62,26 @@ type SimpleTextBKDWriter struct {
 }
 
 func NewSimpleTextBKDWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string,
-	config *bkd.BKDConfig, maxMBSortInHeap float64, totalPointCount int64) *SimpleTextBKDWriter {
+	config *bkd2.Config, maxMBSortInHeap float64, totalPointCount int64) *SimpleTextBKDWriter {
 	return &SimpleTextBKDWriter{
 		config:              config,
 		scratch:             new(bytes.Buffer),
 		tempDir:             store.NewTrackingDirectoryWrapper(tempDir),
 		tempFileNamePrefix:  tempFileNamePrefix,
 		maxMBSortInHeap:     maxMBSortInHeap,
-		scratchDiff:         make([]byte, config.BytesPerDim),
-		scratch1:            make([]byte, config.PackedBytesLength),
-		scratch2:            make([]byte, config.PackedBytesLength),
+		scratchDiff:         make([]byte, config.BytesPerDim()),
+		scratch1:            make([]byte, config.PackedBytesLength()),
+		scratch2:            make([]byte, config.PackedBytesLength()),
 		scratchBytesRef1:    new(bytes.Buffer),
 		scratchBytesRef2:    new(bytes.Buffer),
-		commonPrefixLengths: make([]int, config.NumDims),
+		commonPrefixLengths: make([]int, config.NumDims()),
 		docsSeen:            bitset.New(uint(maxDoc)),
 		pointWriter:         nil,
 		finished:            false,
 		tempInput:           nil,
-		maxPointsSortInHeap: int(maxMBSortInHeap*1024*1024) / (config.BytesPerDoc * config.NumDims),
-		minPackedValue:      make([]byte, config.PackedIndexBytesLength),
-		maxPackedValue:      make([]byte, config.PackedIndexBytesLength),
+		maxPointsSortInHeap: int(maxMBSortInHeap*1024*1024) / (config.BytesPerDoc() * config.NumDims()),
+		minPackedValue:      make([]byte, config.PackedIndexBytesLength()),
+		maxPackedValue:      make([]byte, config.PackedIndexBytesLength()),
 		pointCount:          0,
 		totalPointCount:     totalPointCount,
 		maxDoc:              maxDoc,
@@ -89,9 +89,9 @@ func NewSimpleTextBKDWriter(maxDoc int, tempDir store.Directory, tempFileNamePre
 }
 
 func (s *SimpleTextBKDWriter) Add(packedValue []byte, docID int) error {
-	if len(packedValue) != s.config.PackedBytesLength {
+	if len(packedValue) != s.config.PackedBytesLength() {
 		return fmt.Errorf("packedValue should be length=%d (got: %d)",
-			s.config.PackedBytesLength, len(packedValue))
+			s.config.PackedBytesLength(), len(packedValue))
 	}
 
 	if s.pointCount >= s.totalPointCount {
@@ -107,20 +107,20 @@ func (s *SimpleTextBKDWriter) Add(packedValue []byte, docID int) error {
 
 		//total point count is an estimation but the final point count must be equal or lower to that number.
 		if int(s.totalPointCount) > s.maxPointsSortInHeap {
-			pointWriter := bkd.NewOfflinePointWriter(s.config, s.tempDir, s.tempFileNamePrefix, "spill", 0)
+			pointWriter := bkd2.NewOfflinePointWriter(s.config, s.tempDir, s.tempFileNamePrefix, "spill", 0)
 
 			s.pointWriter = pointWriter
 			s.tempInput = pointWriter.GetIndexOutput()
 		} else {
-			s.pointWriter = bkd.NewHeapPointWriter(s.config, int(s.totalPointCount))
+			s.pointWriter = bkd2.NewHeapPointWriter(s.config, int(s.totalPointCount))
 		}
 
-		copy(s.minPackedValue, packedValue[:s.config.PackedIndexBytesLength])
-		copy(s.maxPackedValue, packedValue[:s.config.PackedIndexBytesLength])
+		copy(s.minPackedValue, packedValue[:s.config.PackedIndexBytesLength()])
+		copy(s.maxPackedValue, packedValue[:s.config.PackedIndexBytesLength()])
 	} else {
-		for dim := 0; dim < s.config.NumIndexDims; dim++ {
-			fromIndex := dim * s.config.BytesPerDim
-			toIndex := fromIndex + s.config.BytesPerDim
+		for dim := 0; dim < s.config.NumIndexDims(); dim++ {
+			fromIndex := dim * s.config.BytesPerDim()
+			toIndex := fromIndex + s.config.BytesPerDim()
 
 			if bytes.Compare(packedValue[fromIndex:toIndex], s.minPackedValue[fromIndex:toIndex]) < 0 {
 				copy(s.minPackedValue[fromIndex:toIndex], packedValue[fromIndex:toIndex])
@@ -149,7 +149,7 @@ func (s *SimpleTextBKDWriter) GetPointCount() int64 {
 // writes with add since there is opportunity for reordering points before writing them to disk.
 // This method does not use transient disk in order to reorder points.
 func (s *SimpleTextBKDWriter) WriteField(out store.IndexOutput, fieldName string, reader index.MutablePointValues) (int64, error) {
-	if s.config.NumIndexDims == 1 {
+	if s.config.NumIndexDims() == 1 {
 		return s.writeField1Dim(out, fieldName, reader)
 	} else {
 		return s.writeFieldNDims(out, fieldName, reader)
@@ -176,7 +176,7 @@ func (s *SimpleTextBKDWriter) Finish(out store.IndexOutput) (int64, error) {
 	if err := s.pointWriter.Close(); err != nil {
 		return 0, err
 	}
-	points := bkd.NewPathSlice(s.pointWriter, 0, s.pointCount)
+	points := bkd2.NewPathSlice(s.pointWriter, 0, s.pointCount)
 	//clean up pointers
 	s.tempInput = nil
 	s.pointWriter = nil
@@ -185,7 +185,7 @@ func (s *SimpleTextBKDWriter) Finish(out store.IndexOutput) (int64, error) {
 	countPerLeaf := s.pointCount
 	innerNodeCount := 1
 
-	for countPerLeaf > int64(s.config.MaxPointsInLeafNode) {
+	for countPerLeaf > int64(s.config.MaxPointsInLeafNode()) {
 		countPerLeaf = (countPerLeaf + 1) / 2
 		innerNodeCount *= 2
 	}
@@ -202,18 +202,18 @@ func (s *SimpleTextBKDWriter) Finish(out store.IndexOutput) (int64, error) {
 	// Indexed by nodeID, but first (root) nodeID is 1.
 	// We do 1+ because the lead byte at each recursion says which dim we split on.
 	// 使用 nodeID 进行索引。第一个节点的从index=1开始。index=0的数据用于说明我们使用哪个维度进行拆分
-	// 1+s.config.BytesPerDim 表示 第一个字节用于存储维度信息，剩余字节用于存储维度的值
-	splitPackedValues := make([]byte, numLeaves*(1+s.config.BytesPerDim))
+	// 1+s.config.BytesPerDim() 表示 第一个字节用于存储维度信息，剩余字节用于存储维度的值
+	splitPackedValues := make([]byte, numLeaves*(1+s.config.BytesPerDim()))
 
 	// +1 because leaf count is power of 2 (e.g. 8), and innerNodeCount is power of 2 minus 1 (e.g. 7)
 	leafBlockFPs := make([]int64, numLeaves)
 
 	//We re-use the selector so we do not need to create an object every time.
-	radixSelector := bkd.NewBKDRadixSelector(s.config, s.maxPointsSortInHeap, s.tempDir, s.tempFileNamePrefix)
+	radixSelector := bkd2.NewRadixSelector(s.config, s.maxPointsSortInHeap, s.tempDir, s.tempFileNamePrefix)
 
 	err := s.buildV2(1, numLeaves, points, out,
 		radixSelector, s.minPackedValue, s.maxPackedValue,
-		splitPackedValues, leafBlockFPs, make([]int, s.config.MaxPointsInLeafNode))
+		splitPackedValues, leafBlockFPs, make([]int, s.config.MaxPointsInLeafNode()))
 	if err != nil {
 		return 0, err
 	}
@@ -244,7 +244,7 @@ func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName s
 	s.pointCount = countPerLeaf
 	innerNodeCount := int64(1)
 
-	for countPerLeaf > int64(s.config.MaxPointsInLeafNode) {
+	for countPerLeaf > int64(s.config.MaxPointsInLeafNode()) {
 		countPerLeaf = (countPerLeaf + 1) / 2
 		innerNodeCount *= 2
 	}
@@ -255,7 +255,7 @@ func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName s
 		return 0, err
 	}
 
-	splitPackedValues := make([]byte, numLeaves*(s.config.BytesPerDim+1))
+	splitPackedValues := make([]byte, numLeaves*(s.config.BytesPerDim()+1))
 	leafBlockFPs := make([]int64, numLeaves)
 
 	// compute the min/max for this slice
@@ -269,29 +269,29 @@ func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName s
 	for i := 0; i < int(s.pointCount); i++ {
 		values.GetValue(i, s.scratchBytesRef1)
 
-		for dim := 0; dim < s.config.NumIndexDims; dim++ {
-			offset := dim * s.config.BytesPerDim
+		for dim := 0; dim < s.config.NumIndexDims(); dim++ {
+			offset := dim * s.config.BytesPerDim()
 			bs := s.scratchBytesRef1.Bytes()
 
 			if bytes.Compare(
-				bs[offset:offset+s.config.BytesPerDim],
-				s.minPackedValue[offset:offset+s.config.BytesPerDim]) < 0 {
+				bs[offset:offset+s.config.BytesPerDim()],
+				s.minPackedValue[offset:offset+s.config.BytesPerDim()]) < 0 {
 
-				copy(s.minPackedValue[offset:offset+s.config.BytesPerDim], bs[offset:])
+				copy(s.minPackedValue[offset:offset+s.config.BytesPerDim()], bs[offset:])
 			}
 
 			if bytes.Compare(
-				bs[offset:offset+s.config.BytesPerDim],
-				s.maxPackedValue[offset:offset+s.config.BytesPerDim]) > 0 {
+				bs[offset:offset+s.config.BytesPerDim()],
+				s.maxPackedValue[offset:offset+s.config.BytesPerDim()]) > 0 {
 
-				copy(s.maxPackedValue[offset:offset+s.config.BytesPerDim], bs[offset:])
+				copy(s.maxPackedValue[offset:offset+s.config.BytesPerDim()], bs[offset:])
 			}
 		}
 
 		s.docsSeen.Set(uint(values.GetDocCount()))
 	}
 
-	spareDocIds := make([]int, s.config.MaxPointsInLeafNode)
+	spareDocIds := make([]int, s.config.MaxPointsInLeafNode())
 	s.buildV1(1, numLeaves, values, 0, int(s.pointCount), out,
 		s.minPackedValue, s.maxPackedValue, splitPackedValues, leafBlockFPs, spareDocIds)
 
@@ -306,19 +306,19 @@ func (s *SimpleTextBKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []i
 	w := utils.NewTextWriter(out)
 
 	w.Bytes(NUM_DATA_DIMS)
-	w.Int(s.config.NumDims)
+	w.Int(s.config.NumDims())
 	w.NewLine()
 
 	w.Bytes(NUM_INDEX_DIMS)
-	w.Int(s.config.NumIndexDims)
+	w.Int(s.config.NumIndexDims())
 	w.NewLine()
 
 	w.Bytes(BYTES_PER_DIM)
-	w.Int(s.config.BytesPerDim)
+	w.Int(s.config.BytesPerDim())
 	w.NewLine()
 
 	w.Bytes(MAX_LEAF_POINTS)
-	w.Int(s.config.MaxPointsInLeafNode)
+	w.Int(s.config.MaxPointsInLeafNode())
 	w.NewLine()
 
 	w.Bytes(INDEX_COUNT)
@@ -348,7 +348,7 @@ func (s *SimpleTextBKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []i
 	}
 
 	// assert (splitPackedValues.length % (1 + config.bytesPerDim)) == 0;
-	count := len(splitPackedValues) / (1 + s.config.BytesPerDim)
+	count := len(splitPackedValues) / (1 + s.config.BytesPerDim())
 	// assert count == leafBlockFPs.length;
 
 	w.Bytes(SPLIT_COUNT)
@@ -357,12 +357,12 @@ func (s *SimpleTextBKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []i
 
 	for i := 0; i < count; i++ {
 		w.Bytes(SPLIT_DIM)
-		w.Int(int(splitPackedValues[i*(1+s.config.BytesPerDim)] & 0xff))
+		w.Int(int(splitPackedValues[i*(1+s.config.BytesPerDim())] & 0xff))
 		w.NewLine()
 		w.Bytes(SPLIT_VALUE)
 
-		offset := 1 + (i * (1 + s.config.BytesPerDim))
-		endOffset := offset + s.config.BytesPerDim
+		offset := 1 + (i * (1 + s.config.BytesPerDim()))
+		endOffset := offset + s.config.BytesPerDim()
 		values := splitPackedValues[offset:endOffset]
 		w.String(util.BytesToString(values))
 		w.NewLine()
@@ -371,9 +371,9 @@ func (s *SimpleTextBKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []i
 }
 
 func (s *SimpleTextBKDWriter) checkMaxLeafNodeCount(numLeaves int) error {
-	if (1+s.config.BytesPerDim)*numLeaves > math.MaxInt32 {
+	if (1+s.config.BytesPerDim())*numLeaves > math.MaxInt32 {
 		return fmt.Errorf("too many nodes; increase config.maxPointsInLeafNode (currently %d) and reindex",
-			s.config.MaxPointsInLeafNode)
+			s.config.MaxPointsInLeafNode())
 	}
 	return nil
 }
@@ -387,13 +387,13 @@ func (s *SimpleTextBKDWriter) buildV1(nodeID, leafNodeOffset int, reader index.M
 		count := to - from
 		// assert count <= config.maxPointsInLeafNode;
 		for i := range s.commonPrefixLengths {
-			s.commonPrefixLengths[i] = s.config.BytesPerDim
+			s.commonPrefixLengths[i] = s.config.BytesPerDim()
 		}
 		reader.GetValue(from, s.scratchBytesRef1)
 		for i := from + 1; i < to; i++ {
 			reader.GetValue(i, s.scratchBytesRef2)
-			for dim := 0; dim < s.config.NumDims; dim++ {
-				offset := dim * s.config.BytesPerDim
+			for dim := 0; dim < s.config.NumDims(); dim++ {
+				offset := dim * s.config.BytesPerDim()
 				for j := 0; j < s.commonPrefixLengths[dim]; j++ {
 					if s.scratchBytesRef1.Bytes()[offset+j] != s.scratchBytesRef2.Bytes()[offset+j] {
 						s.commonPrefixLengths[dim] = j
@@ -404,17 +404,17 @@ func (s *SimpleTextBKDWriter) buildV1(nodeID, leafNodeOffset int, reader index.M
 		}
 
 		// Find the dimension that has the least number of unique bytes at commonPrefixLengths[dim]
-		usedBytes := make([]*bitset.BitSet, s.config.NumDims)
-		for dim := 0; dim < s.config.NumDims; dim++ {
-			if s.commonPrefixLengths[dim] < s.config.BytesPerDim {
+		usedBytes := make([]*bitset.BitSet, s.config.NumDims())
+		for dim := 0; dim < s.config.NumDims(); dim++ {
+			if s.commonPrefixLengths[dim] < s.config.BytesPerDim() {
 				usedBytes[dim] = bitset.New(256)
 			}
 		}
 
 		for i := from + 1; i < to; i++ {
-			for dim := 0; dim < s.config.NumDims; dim++ {
+			for dim := 0; dim < s.config.NumDims(); dim++ {
 				if usedBytes[dim] != nil {
-					b := reader.GetByteAt(i, dim*s.config.BytesPerDim+s.commonPrefixLengths[dim])
+					b := reader.GetByteAt(i, dim*s.config.BytesPerDim()+s.commonPrefixLengths[dim])
 					usedBytes[dim].Set(uint(b))
 				}
 			}
@@ -422,7 +422,7 @@ func (s *SimpleTextBKDWriter) buildV1(nodeID, leafNodeOffset int, reader index.M
 
 		sortedDim := 0
 		sortedDimCardinality := math.MaxInt32
-		for dim := 0; dim < s.config.NumDims; dim++ {
+		for dim := 0; dim < s.config.NumDims(); dim++ {
 			if usedBytes[dim] != nil {
 				cardinality := int(usedBytes[dim].Len())
 				if cardinality < sortedDimCardinality {
@@ -450,7 +450,7 @@ func (s *SimpleTextBKDWriter) buildV1(nodeID, leafNodeOffset int, reader index.M
 
 		// Write the common prefixes:
 		reader.GetValue(from, s.scratchBytesRef1)
-		copy(s.scratch1, s.scratchBytesRef1.Bytes()[:s.config.PackedBytesLength])
+		copy(s.scratch1, s.scratchBytesRef1.Bytes()[:s.config.PackedBytesLength()])
 
 		// Write the full values:
 		packedValues := func(i int) []byte {
@@ -464,9 +464,9 @@ func (s *SimpleTextBKDWriter) buildV1(nodeID, leafNodeOffset int, reader index.M
 		// compute the split dimension and partition around it
 		splitDim := s.split(minPackedValue, maxPackedValue)
 		mid := (from + to + 1) >> 1
-		commonPrefixLen := s.config.BytesPerDim
-		for i := 0; i < s.config.BytesPerDim; i++ {
-			if minPackedValue[splitDim*s.config.BytesPerDim+i] != maxPackedValue[splitDim*s.config.BytesPerDim+i] {
+		commonPrefixLen := s.config.BytesPerDim()
+		for i := 0; i < s.config.BytesPerDim(); i++ {
+			if minPackedValue[splitDim*s.config.BytesPerDim()+i] != maxPackedValue[splitDim*s.config.BytesPerDim()+i] {
 				commonPrefixLen = i
 				break
 			}
@@ -475,20 +475,20 @@ func (s *SimpleTextBKDWriter) buildV1(nodeID, leafNodeOffset int, reader index.M
 		index.Partition(s.config, s.maxDoc, splitDim, commonPrefixLen,
 			reader, from, to, mid, s.scratchBytesRef1, s.scratchBytesRef2)
 
-		address := nodeID * (1 + s.config.BytesPerDim)
+		address := nodeID * (1 + s.config.BytesPerDim())
 		splitPackedValues[address] = byte(splitDim)
 		reader.GetValue(mid, s.scratchBytesRef1)
-		offset := splitDim * s.config.BytesPerDim
-		copy(splitPackedValues[address+1:], s.scratchBytesRef1.Bytes()[offset:offset+s.config.BytesPerDim])
+		offset := splitDim * s.config.BytesPerDim()
+		copy(splitPackedValues[address+1:], s.scratchBytesRef1.Bytes()[offset:offset+s.config.BytesPerDim()])
 
-		minSplitPackedValue := make([]byte, s.config.PackedIndexBytesLength)
+		minSplitPackedValue := make([]byte, s.config.PackedIndexBytesLength())
 		copy(minSplitPackedValue, minPackedValue)
-		maxSplitPackedValue := make([]byte, s.config.PackedIndexBytesLength)
+		maxSplitPackedValue := make([]byte, s.config.PackedIndexBytesLength())
 		copy(maxSplitPackedValue, maxPackedValue)
 
-		srcPos := splitDim * s.config.BytesPerDim
-		srcEndPos := srcPos + s.config.BytesPerDim
-		destPos := splitDim * s.config.BytesPerDim
+		srcPos := splitDim * s.config.BytesPerDim()
+		srcEndPos := srcPos + s.config.BytesPerDim()
+		destPos := splitDim * s.config.BytesPerDim()
 		copy(minSplitPackedValue[destPos:], s.scratchBytesRef1.Bytes()[srcPos:srcEndPos])
 		copy(maxSplitPackedValue[destPos:], s.scratchBytesRef1.Bytes()[srcPos:srcEndPos])
 
@@ -526,11 +526,11 @@ func (s *SimpleTextBKDWriter) writeLeafBlockPackedValues(out store.IndexOutput, 
 func (s *SimpleTextBKDWriter) split(minPackedValue, maxPackedValue []byte) int {
 	// Find which dim has the largest span so we can split on it:
 	splitDim := -1
-	for dim := 0; dim < s.config.NumIndexDims; dim++ {
-		_ = numeric.Subtract(s.config.BytesPerDim, dim, maxPackedValue, minPackedValue, s.scratchDiff)
+	for dim := 0; dim < s.config.NumIndexDims(); dim++ {
+		_ = numeric.Subtract(s.config.BytesPerDim(), dim, maxPackedValue, minPackedValue, s.scratchDiff)
 		if splitDim == -1 ||
-			bytes.Compare(s.scratchDiff[:s.config.BytesPerDim], s.scratch1[:s.config.BytesPerDim]) > 0 {
-			copy(s.scratch1, s.scratchDiff[:s.config.BytesPerDim])
+			bytes.Compare(s.scratchDiff[:s.config.BytesPerDim()], s.scratch1[:s.config.BytesPerDim()]) > 0 {
+			copy(s.scratch1, s.scratchDiff[:s.config.BytesPerDim()])
 			splitDim = dim
 		}
 	}
@@ -563,8 +563,8 @@ func (s *SimpleTextBKDWriter) writeLeafBlockDocs(out store.IndexOutput, docIDs [
 	return nil
 }
 
-func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.PathSlice,
-	out store.IndexOutput, radixSelector *bkd.BKDRadixSelector,
+func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd2.PathSlice,
+	out store.IndexOutput, radixSelector *bkd2.RadixSelector,
 	minPackedValue, maxPackedValue, splitPackedValues []byte,
 	leafBlockFPs []int64, spareDocIds []int) error {
 
@@ -572,9 +572,9 @@ func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.Pa
 		// Leaf node: write block
 		// We can write the block in any order so by default we write it sorted by the dimension that has the
 		// least number of unique bytes at commonPrefixLengths[dim], which makes compression more efficient
-		var heapSource *bkd.HeapPointWriter
+		var heapSource *bkd2.HeapPointWriter
 
-		if writer, ok := points.PointWriter().(*bkd.HeapPointWriter); ok {
+		if writer, ok := points.PointWriter().(*bkd2.HeapPointWriter); ok {
 			heapSource = writer
 		} else {
 			var err error
@@ -591,11 +591,11 @@ func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.Pa
 
 		sortedDim := 0
 		sortedDimCardinality := math.MaxInt32
-		//usedBytes := bitset.New(uint(s.config.NumDims))
+		//usedBytes := bitset.New(uint(s.config.numDims))
 		usedBytes := make([]*bitset.BitSet, 0)
 
-		for dim := 0; dim < s.config.NumDims; dim++ {
-			if s.commonPrefixLengths[dim] < s.config.BytesPerDim {
+		for dim := 0; dim < s.config.NumDims(); dim++ {
+			if s.commonPrefixLengths[dim] < s.config.BytesPerDim() {
 				usedBytes = append(usedBytes, bitset.New(256))
 			} else {
 				usedBytes = append(usedBytes, bitset.New(0))
@@ -604,10 +604,10 @@ func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.Pa
 
 		//Find the dimension to compress
 		// 计算使用哪个维度进行索引
-		for dim := 0; dim < s.config.NumDims; dim++ {
+		for dim := 0; dim < s.config.NumDims(); dim++ {
 			prefix := s.commonPrefixLengths[dim]
-			if prefix < s.config.BytesPerDim {
-				offset := dim * s.config.BytesPerDim
+			if prefix < s.config.BytesPerDim() {
+				offset := dim * s.config.BytesPerDim()
 				count := int(heapSource.Count())
 				for i := 0; i < count; i++ {
 					value := heapSource.GetPackedValueSlice(i)
@@ -653,7 +653,7 @@ func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.Pa
 	}
 
 	splitDim := 0
-	if s.config.NumIndexDims > 1 {
+	if s.config.NumIndexDims() > 1 {
 		splitDim = s.split(minPackedValue, maxPackedValue)
 	} else {
 		splitDim = 0
@@ -666,14 +666,14 @@ func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.Pa
 	leftCount := points.Count() - rightCount
 
 	// 计算最大和最小的值的前缀
-	fromIndex := splitDim * s.config.BytesPerDim
-	toIndex := splitDim*s.config.BytesPerDim + s.config.BytesPerDim
-	commonPrefixLen := bkd.Mismatch(minPackedValue[fromIndex:toIndex], maxPackedValue[fromIndex:toIndex])
+	fromIndex := splitDim * s.config.BytesPerDim()
+	toIndex := splitDim*s.config.BytesPerDim() + s.config.BytesPerDim()
+	commonPrefixLen := bkd2.Mismatch(minPackedValue[fromIndex:toIndex], maxPackedValue[fromIndex:toIndex])
 	if commonPrefixLen == -1 {
-		commonPrefixLen = s.config.BytesPerDim
+		commonPrefixLen = s.config.BytesPerDim()
 	}
 
-	pathSlices := make([]*bkd.PathSlice, 2)
+	pathSlices := make([]*bkd2.PathSlice, 2)
 
 	splitValue, err := radixSelector.Select(points, pathSlices,
 		points.Start(), points.Start()+points.Count(), points.Start()+leftCount,
@@ -682,22 +682,22 @@ func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.Pa
 		return err
 	}
 
-	address := nodeID * (1 + s.config.BytesPerDim)
+	address := nodeID * (1 + s.config.BytesPerDim())
 	splitPackedValues[address] = byte(splitDim)
 
 	destPos := address + 1
-	destEnd := destPos + s.config.BytesPerDim
+	destEnd := destPos + s.config.BytesPerDim()
 	copy(splitPackedValues[destPos:destEnd], splitValue)
 
-	minSplitPackedValue := make([]byte, s.config.PackedIndexBytesLength)
-	copy(minSplitPackedValue, minPackedValue[:s.config.PackedIndexBytesLength])
+	minSplitPackedValue := make([]byte, s.config.PackedIndexBytesLength())
+	copy(minSplitPackedValue, minPackedValue[:s.config.PackedIndexBytesLength()])
 
-	maxSplitPackedValue := make([]byte, s.config.PackedIndexBytesLength)
-	copy(maxSplitPackedValue, maxPackedValue[:s.config.PackedIndexBytesLength])
+	maxSplitPackedValue := make([]byte, s.config.PackedIndexBytesLength())
+	copy(maxSplitPackedValue, maxPackedValue[:s.config.PackedIndexBytesLength()])
 
-	destPos = splitDim * s.config.BytesPerDim
-	copy(minSplitPackedValue[destPos:], splitValue[:s.config.BytesPerDim])
-	copy(maxSplitPackedValue[destPos:], splitValue[:s.config.BytesPerDim])
+	destPos = splitDim * s.config.BytesPerDim()
+	copy(minSplitPackedValue[destPos:], splitValue[:s.config.BytesPerDim()])
+	copy(maxSplitPackedValue[destPos:], splitValue[:s.config.BytesPerDim()])
 
 	// Recurse on left tree:
 	err = s.buildV2(2*nodeID, leafNodeOffset, pathSlices[0], out, radixSelector,
@@ -713,15 +713,15 @@ func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.Pa
 
 }
 
-func (s *SimpleTextBKDWriter) computeCommonPrefixLength(heapPointWriter *bkd.HeapPointWriter, commonPrefix []byte) {
+func (s *SimpleTextBKDWriter) computeCommonPrefixLength(heapPointWriter *bkd2.HeapPointWriter, commonPrefix []byte) {
 	for i := range s.commonPrefixLengths {
-		s.commonPrefixLengths[i] = s.config.BytesPerDim
+		s.commonPrefixLengths[i] = s.config.BytesPerDim()
 	}
 	value := heapPointWriter.GetPackedValueSlice(0)
 	packedValue := value.PackedValue()
-	for dim := 0; dim < s.config.NumDims; dim++ {
-		start := +dim * s.config.BytesPerDim
-		end := start + s.config.BytesPerDim
+	for dim := 0; dim < s.config.NumDims(); dim++ {
+		start := +dim * s.config.BytesPerDim()
+		end := start + s.config.BytesPerDim()
 		copy(commonPrefix[start:], packedValue[start:end])
 	}
 
@@ -729,11 +729,11 @@ func (s *SimpleTextBKDWriter) computeCommonPrefixLength(heapPointWriter *bkd.Hea
 	for i := 1; i < count; i++ {
 		value = heapPointWriter.GetPackedValueSlice(i)
 		packedValue = value.PackedValue()
-		for dim := 0; dim < s.config.NumDims; dim++ {
+		for dim := 0; dim < s.config.NumDims(); dim++ {
 			if s.commonPrefixLengths[dim] != 0 {
-				fromIndex := dim * s.config.BytesPerDim
-				toIndex := dim*s.config.BytesPerDim + s.commonPrefixLengths[dim]
-				j := bkd.Mismatch(commonPrefix[fromIndex:toIndex], packedValue[fromIndex:toIndex])
+				fromIndex := dim * s.config.BytesPerDim()
+				toIndex := dim*s.config.BytesPerDim() + s.commonPrefixLengths[dim]
+				j := bkd2.Mismatch(commonPrefix[fromIndex:toIndex], packedValue[fromIndex:toIndex])
 				if j != -1 {
 					s.commonPrefixLengths[dim] = j
 				}
@@ -747,7 +747,7 @@ func (s *SimpleTextBKDWriter) computeCommonPrefixLength(heapPointWriter *bkd.Hea
 //}
 
 // Pull a partition back into heap once the point count is low enough while recursing.
-func (s *SimpleTextBKDWriter) switchToHeap(source bkd.PointWriter) (*bkd.HeapPointWriter, error) {
+func (s *SimpleTextBKDWriter) switchToHeap(source bkd2.PointWriter) (*bkd2.HeapPointWriter, error) {
 	count := source.Count()
 
 	reader, err := source.GetReader(0, count)
@@ -755,7 +755,7 @@ func (s *SimpleTextBKDWriter) switchToHeap(source bkd.PointWriter) (*bkd.HeapPoi
 		return nil, err
 	}
 
-	writer := bkd.NewHeapPointWriter(s.config, int(count))
+	writer := bkd2.NewHeapPointWriter(s.config, int(count))
 
 	for i := 0; i < int(count); i++ {
 		if _, err := reader.Next(); err != nil {

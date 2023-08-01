@@ -3,11 +3,11 @@ package simpletext
 import (
 	"bytes"
 	"errors"
-	"github.com/geange/lucene-go/codecs/bkd"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/bkd"
 )
 
 var _ index.PointsWriter = &SimpleTextPointsWriter{}
@@ -127,7 +127,7 @@ func (s *SimpleTextPointsWriter) WriteField(fieldInfo *document.FieldInfo, reade
 		return err
 	}
 
-	config, err := bkd.NewBKDConfig(
+	config, err := bkd.NewConfig(
 		fieldInfo.GetPointDimensionCount(),
 		fieldInfo.GetPointIndexDimensionCount(),
 		fieldInfo.GetPointNumBytes(),

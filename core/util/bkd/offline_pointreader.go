@@ -16,14 +16,14 @@ type OfflinePointReader struct {
 	onHeapBuffer   []byte
 	offset         int
 	checked        bool
-	config         *BKDConfig
+	config         *Config
 	pointsInBuffer int
 	maxPointOnHeap int
 	name           string // File name we are reading
 	pointValue     *OfflinePointValue
 }
 
-func NewOfflinePointReader(config *BKDConfig, tempDir store.Directory,
+func NewOfflinePointReader(config *Config, tempDir store.Directory,
 	tempFileName string, start, length int64, reusableBuffer []byte) (*OfflinePointReader, error) {
 
 	reader := &OfflinePointReader{
@@ -34,20 +34,20 @@ func NewOfflinePointReader(config *BKDConfig, tempDir store.Directory,
 		checked:        false,
 		config:         config,
 		pointsInBuffer: 0,
-		maxPointOnHeap: len(reusableBuffer) / config.BytesPerDoc,
+		maxPointOnHeap: len(reusableBuffer) / config.BytesPerDoc(),
 		name:           "",
 		pointValue:     nil,
 	}
 
 	// TODO: need impl it ?
-	//     if ((start + length) * config.bytesPerDoc + CodecUtil.footerLength() > tempDir.fileLength(tempFileName)) {
-	//      throw new IllegalArgumentException("requested slice is beyond the length of this file: start=" + start + " length=" + length + " bytesPerDoc=" + config.bytesPerDoc + " fileLength=" + tempDir.fileLength(tempFileName) + " tempFileName=" + tempFileName);
+	//     if ((start + length) * config.BytesPerDoc() + CodecUtil.footerLength() > tempDir.fileLength(tempFileName)) {
+	//      throw new IllegalArgumentException("requested slice is beyond the length of this file: start=" + start + " length=" + length + " BytesPerDoc=" + config.BytesPerDoc() + " fileLength=" + tempDir.fileLength(tempFileName) + " tempFileName=" + tempFileName);
 	//    }
 	//    if (reusableBuffer == null) {
 	//      throw new IllegalArgumentException("[reusableBuffer] cannot be null");
 	//    }
-	//    if (reusableBuffer.length < config.bytesPerDoc) {
-	//      throw new IllegalArgumentException("Len of [reusableBuffer] must be bigger than " + config.bytesPerDoc);
+	//    if (reusableBuffer.length < config.BytesPerDoc()) {
+	//      throw new IllegalArgumentException("Len of [reusableBuffer] must be bigger than " + config.BytesPerDoc());
 	//    }
 	// Best-effort checksumming:
 	fileLength, err := tempDir.FileLength(tempFileName)
@@ -55,7 +55,7 @@ func NewOfflinePointReader(config *BKDConfig, tempDir store.Directory,
 		return nil, err
 	}
 
-	if start == 0 && length*int64(config.BytesPerDoc) == (fileLength)-int64(utils.FooterLength()) {
+	if start == 0 && length*int64(config.BytesPerDoc()) == (fileLength)-int64(utils.FooterLength()) {
 
 		// If we are going to read the entire file, e.g. because BKDWriter is now
 		// partitioning it, we open with checksums:
@@ -75,7 +75,7 @@ func NewOfflinePointReader(config *BKDConfig, tempDir store.Directory,
 	}
 
 	reader.name = tempFileName
-	seekFP := start * int64(config.BytesPerDoc)
+	seekFP := start * int64(config.BytesPerDoc())
 	if _, err = reader.in.Seek(seekFP, io.SeekStart); err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (r *OfflinePointReader) Next() (bool, error) {
 		}
 
 		if int(r.countLeft) > r.maxPointOnHeap {
-			size := r.maxPointOnHeap * r.config.BytesPerDoc
+			size := r.maxPointOnHeap * r.config.BytesPerDoc()
 			_, err := r.in.Read(r.onHeapBuffer[0:size])
 			if err != nil {
 				return false, err
@@ -112,7 +112,7 @@ func (r *OfflinePointReader) Next() (bool, error) {
 			r.pointsInBuffer = r.maxPointOnHeap - 1
 			r.countLeft -= int64(r.maxPointOnHeap)
 		} else {
-			size := int(r.countLeft) * r.config.BytesPerDoc
+			size := int(r.countLeft) * r.config.BytesPerDoc()
 			_, err := r.in.Read(r.onHeapBuffer[0:size])
 			if err != nil {
 				return false, err
@@ -123,7 +123,7 @@ func (r *OfflinePointReader) Next() (bool, error) {
 		r.offset = 0
 	} else {
 		r.pointsInBuffer--
-		r.offset += r.config.BytesPerDoc
+		r.offset += r.config.BytesPerDoc()
 	}
 	return true, nil
 }
@@ -142,11 +142,11 @@ type OfflinePointValue struct {
 	packedValueLength int
 }
 
-func NewOfflinePointValue(config *BKDConfig, value []byte) *OfflinePointValue {
+func NewOfflinePointValue(config *Config, value []byte) *OfflinePointValue {
 	return &OfflinePointValue{
-		packedValue:       util.NewBytesRef(value, 0, config.PackedBytesLength),
-		packedValueDocID:  util.NewBytesRef(value, 0, config.BytesPerDoc),
-		packedValueLength: config.PackedBytesLength,
+		packedValue:       util.NewBytesRef(value, 0, config.PackedBytesLength()),
+		packedValueDocID:  util.NewBytesRef(value, 0, config.BytesPerDoc()),
+		packedValueLength: config.PackedBytesLength(),
 	}
 }
 

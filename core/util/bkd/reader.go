@@ -2,11 +2,11 @@ package bkd
 
 import "github.com/geange/lucene-go/core/store"
 
-type BKDReader struct {
+type Reader struct {
 
 	// Packed array of byte[] holding all split values in the full binary tree:
 	leafNodeOffset int
-	config         *BKDConfig
+	config         *Config
 	numLeaves      int
 	in             store.IndexInput
 	minPackedValue []byte

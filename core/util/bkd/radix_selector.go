@@ -11,9 +11,9 @@ const (
 
 )
 
-// BKDRadixSelector Offline Radix selector for BKD tree.
+// RadixSelector Offline Radix selector for BKD tree.
 // lucene.internal
-type BKDRadixSelector struct {
+type RadixSelector struct {
 	histogram           []int64         // histogram array
 	bytesSorted         int             // number of bytes to be sorted: config.bytesPerDim + Integer.BYTES
 	maxPointsSortInHeap int             // flag to when we are moving to sort on heap
@@ -22,23 +22,23 @@ type BKDRadixSelector struct {
 	scratch             []byte          // scratch array to hold temporary data
 	tempDir             store.Directory // Directory to create new Offline writer
 	tempFileNamePrefix  string          // prefix for temp files
-	config              *BKDConfig      // BKD tree configuration
+	config              *Config         // BKD tree configuration
 }
 
-func NewBKDRadixSelector(config *BKDConfig, maxPointsSortInHeap int,
-	tempDir store.Directory, tempFileNamePrefix string) *BKDRadixSelector {
+func NewRadixSelector(config *Config, maxPointsSortInHeap int,
+	tempDir store.Directory, tempFileNamePrefix string) *RadixSelector {
 
 	INTEGER_BYTES := 4
 
-	numberOfPointsOffline := MAX_SIZE_OFFLINE_BUFFER / config.BytesPerDoc
+	numberOfPointsOffline := MAX_SIZE_OFFLINE_BUFFER / config.BytesPerDoc()
 
-	bytesSorted := config.BytesPerDim + (config.NumDims-config.NumIndexDims)*config.BytesPerDim + INTEGER_BYTES
+	bytesSorted := config.BytesPerDim() + (config.NumDims()-config.NumIndexDims())*config.BytesPerDim() + INTEGER_BYTES
 
-	return &BKDRadixSelector{
+	return &RadixSelector{
 		histogram:           make([]int64, HISTOGRAM_SIZE),
 		bytesSorted:         bytesSorted,
 		maxPointsSortInHeap: maxPointsSortInHeap,
-		offlineBuffer:       make([]byte, numberOfPointsOffline*config.BytesPerDoc),
+		offlineBuffer:       make([]byte, numberOfPointsOffline*config.BytesPerDoc()),
 		partitionBucket:     make([]int, bytesSorted),
 		scratch:             make([]byte, bytesSorted),
 		tempDir:             tempDir,
@@ -54,7 +54,7 @@ func NewBKDRadixSelector(config *BKDConfig, maxPointsSortInHeap int,
 // for the length of the common prefix length for the dim where are partitioning the points.
 // It return the value of the dim at the sortPartition point. If the provided points is wrapping
 // an OfflinePointWriter, the writer is destroyed in the process to save disk space.
-func (b *BKDRadixSelector) Select(points *PathSlice, partitionSlices []*PathSlice,
+func (b *RadixSelector) Select(points *PathSlice, partitionSlices []*PathSlice,
 	from, to, partitionPoint int64, dim, dimCommonPrefix int) ([]byte, error) {
 
 	b.checkArgs(from, to, partitionPoint)
@@ -80,7 +80,7 @@ func (b *BKDRadixSelector) Select(points *PathSlice, partitionSlices []*PathSlic
 	//return sortPartition, nil
 }
 
-func (b *BKDRadixSelector) getPointWriter(count int64, desc string) PointWriter {
+func (b *RadixSelector) getPointWriter(count int64, desc string) PointWriter {
 	// As we recurse, we hold two on-heap point writers at any point. Therefore the
 	// max size for these objects is half of the total points we can have on-heap.
 	if int(count) <= b.maxPointsSortInHeap/2 {
@@ -89,7 +89,7 @@ func (b *BKDRadixSelector) getPointWriter(count int64, desc string) PointWriter 
 	return NewOfflinePointWriter(b.config, b.tempDir, b.tempFileNamePrefix, desc, count)
 }
 
-func (b *BKDRadixSelector) checkArgs(from, to, partitionPoint int64) {
+func (b *RadixSelector) checkArgs(from, to, partitionPoint int64) {
 	if partitionPoint < from {
 		panic("partitionPoint must be >= from")
 	}
@@ -98,21 +98,21 @@ func (b *BKDRadixSelector) checkArgs(from, to, partitionPoint int64) {
 	}
 }
 
-func (b *BKDRadixSelector) findCommonPrefixAndHistogram(points *OfflinePointWriter, from, to int64, dim, dimCommonPrefix int) int {
+func (b *RadixSelector) findCommonPrefixAndHistogram(points *OfflinePointWriter, from, to int64, dim, dimCommonPrefix int) int {
 	panic("")
 }
 
-func (b *BKDRadixSelector) buildHistogramAndPartition(points *OfflinePointWriter, left, right PointWriter,
+func (b *RadixSelector) buildHistogramAndPartition(points *OfflinePointWriter, left, right PointWriter,
 	from, to, partitionPoint int64, iteration, baseCommonPrefix, dim int) []byte {
 	panic("")
 }
 
-func (b *BKDRadixSelector) heapRadixSelect(points *HeapPointWriter,
+func (b *RadixSelector) heapRadixSelect(points *HeapPointWriter,
 	dim, from, to, partitionPoint, commonPrefixLength int) []byte {
 
-	dimOffset := dim*b.config.BytesPerDim + commonPrefixLength
-	dimCmpBytes := b.config.BytesPerDim - commonPrefixLength
-	dataOffset := b.config.PackedIndexBytesLength - dimCmpBytes
+	dimOffset := dim*b.config.BytesPerDim() + commonPrefixLength
+	dimCmpBytes := b.config.BytesPerDim() - commonPrefixLength
+	dataOffset := b.config.packedIndexBytesLength - dimCmpBytes
 
 	sorter := &heapRadixSort{
 		from:        from,
@@ -125,23 +125,23 @@ func (b *BKDRadixSelector) heapRadixSelect(points *HeapPointWriter,
 	}
 	SortK(sorter, partitionPoint)
 
-	partition := make([]byte, b.config.BytesPerDim)
+	partition := make([]byte, b.config.BytesPerDim())
 	pointValue := points.GetPackedValueSlice(partitionPoint)
 	packedValue := pointValue.PackedValue()
 	copy(partition, b.getDimValues(packedValue, dim))
 	return partition
 }
 
-func (b *BKDRadixSelector) getDimValues(bs []byte, dim int) []byte {
-	from := dim * b.config.BytesPerDim
-	to := from + b.config.BytesPerDim
+func (b *RadixSelector) getDimValues(bs []byte, dim int) []byte {
+	from := dim * b.config.BytesPerDim()
+	to := from + b.config.BytesPerDim()
 	return bs[from:to]
 }
 
-func (b *BKDRadixSelector) HeapRadixSort(points *HeapPointWriter, from, to, dim, commonPrefixLength int) {
-	dimOffset := dim*b.config.BytesPerDim + commonPrefixLength
-	dimCmpBytes := b.config.BytesPerDim - commonPrefixLength
-	dataOffset := b.config.PackedIndexBytesLength - dimCmpBytes
+func (b *RadixSelector) HeapRadixSort(points *HeapPointWriter, from, to, dim, commonPrefixLength int) {
+	dimOffset := dim*b.config.BytesPerDim() + commonPrefixLength
+	dimCmpBytes := b.config.BytesPerDim() - commonPrefixLength
+	dataOffset := b.config.packedIndexBytesLength - dimCmpBytes
 
 	sorter := &heapRadixSort{
 		from:        from,
