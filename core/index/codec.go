@@ -1,53 +1,58 @@
 package index
 
-// Codec Encodes/decodes an inverted index segment.
-// Note, when extending this class, the name (getName) is written into the index. In order for the segment to be read, the name must resolve to your implementation via forName(String). This method uses Java's Service SortFieldProvider Interface (SPI) to resolve codec names.
-// If you implement your own codec, make sure that it has a no-arg constructor so SPI can load it.
-// See Also: ServiceLoader
-type Codec interface {
-	NamedSPI
+import (
+	"context"
+	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/store"
+)
 
-	// PostingsFormat Encodes/decodes postings
-	PostingsFormat() PostingsFormat
-
-	// DocValuesFormat Encodes/decodes docvalues
-	DocValuesFormat() DocValuesFormat
-
-	// StoredFieldsFormat Encodes/decodes stored fields
-	StoredFieldsFormat() StoredFieldsFormat
-
-	// TermVectorsFormat Encodes/decodes term vectors
-	TermVectorsFormat() TermVectorsFormat
-
-	// FieldInfosFormat Encodes/decodes field infos file
-	FieldInfosFormat() FieldInfosFormat
-
-	// SegmentInfoFormat Encodes/decodes segment info file
-	SegmentInfoFormat() SegmentInfoFormat
-
-	// NormsFormat Encodes/decodes document normalization values
-	NormsFormat() NormsFormat
-
-	// LiveDocsFormat Encodes/decodes live docs
-	LiveDocsFormat() LiveDocsFormat
-
-	// CompoundFormat Encodes/decodes compound files
-	CompoundFormat() CompoundFormat
-
-	// PointsFormat Encodes/decodes points index
-	PointsFormat() PointsFormat
-}
-
-type NamedSPI interface {
+type Named interface {
 	GetName() string
 }
 
-var codesPool = make(map[string]Codec)
+var codesPool = make(map[string]index.Codec)
 
-func RegisterCodec(codec Codec) {
+func RegisterCodec(codec index.Codec) {
 	codesPool[codec.GetName()] = codec
 }
 
-func ForName(name string) Codec {
-	return codesPool[name]
+func GetCodecByName(name string) (index.Codec, bool) {
+	codec, exist := codesPool[name]
+	return codec, exist
+}
+
+type BaseCompoundDirectory struct {
+}
+
+var (
+	ErrUnsupportedOperation = errors.New("unsupported operation exception")
+)
+
+func (*BaseCompoundDirectory) DeleteFile(ctx context.Context, name string) error {
+	return ErrUnsupportedOperation
+}
+
+func (*BaseCompoundDirectory) Rename(ctx context.Context, source, dest string) error {
+	return ErrUnsupportedOperation
+}
+
+func (*BaseCompoundDirectory) SyncMetaData(ctx context.Context) error {
+	return nil
+}
+
+func (*BaseCompoundDirectory) CreateOutput(ctx context.Context, name string) (store.IndexOutput, error) {
+	return nil, ErrUnsupportedOperation
+}
+
+func (*BaseCompoundDirectory) CreateTempOutput(ctx context.Context, prefix, suffix string) (store.IndexOutput, error) {
+	return nil, ErrUnsupportedOperation
+}
+
+func (*BaseCompoundDirectory) Sync(names map[string]struct{}) error {
+	return ErrUnsupportedOperation
+}
+
+func (*BaseCompoundDirectory) ObtainLock(name string) (store.Lock, error) {
+	return nil, ErrUnsupportedOperation
 }

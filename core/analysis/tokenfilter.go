@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 // A TokenFilter is a TokenStream whose input is another TokenStream.
@@ -9,37 +9,36 @@ import (
 // See Also: TokenStream
 type TokenFilter interface {
 	TokenStream
+
+	End() error
+	Reset() error
+	Close() error
 }
 
-type TokenFilterImp struct {
-	source *tokenattr.AttributeSource
-
-	Input TokenStream
+type BaseTokenFilter struct {
+	source *attribute.Source
+	input  TokenStream
 }
 
-func NewTokenFilterImp(input TokenStream) *TokenFilterImp {
-	return &TokenFilterImp{
+func NewBaseTokenFilter(input TokenStream) *BaseTokenFilter {
+	return &BaseTokenFilter{
 		source: input.AttributeSource(),
-		Input:  input,
+		input:  input,
 	}
 }
 
-func (t *TokenFilterImp) AttributeSource() *tokenattr.AttributeSource {
-	return t.Input.AttributeSource()
+func (t *BaseTokenFilter) AttributeSource() *attribute.Source {
+	return t.input.AttributeSource()
 }
 
-//func (t *TokenFilterImp) IncrementToken() (bool, error) {
-//	return t.input.IncrementToken()
-//}
-
-func (t *TokenFilterImp) End() error {
-	return t.Input.End()
+func (t *BaseTokenFilter) End() error {
+	return t.input.End()
 }
 
-func (t *TokenFilterImp) Reset() error {
-	return t.Input.Reset()
+func (t *BaseTokenFilter) Reset() error {
+	return t.input.Reset()
 }
 
-func (t *TokenFilterImp) Close() error {
-	return t.Input.Close()
+func (t *BaseTokenFilter) Close() error {
+	return t.input.Close()
 }

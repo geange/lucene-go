@@ -5,7 +5,8 @@ import (
 	"fmt"
 )
 
-// FieldType Describes the properties of a field.
+// FieldType
+// Describes the properties of a field.
 type FieldType struct {
 	stored                   bool
 	tokenized                bool
@@ -14,8 +15,8 @@ type FieldType struct {
 	storeTermVectorPositions bool
 	storeTermVectorPayloads  bool
 	omitNorms                bool
-	indexOptions             IndexOptions
 	frozen                   bool
+	indexOptions             IndexOptions
 	docValuesType            DocValuesType
 	dimensionCount           int
 	indexDimensionCount      int
@@ -24,30 +25,30 @@ type FieldType struct {
 }
 
 func NewFieldType() *FieldType {
-	return defaultFieldType()
+	return newFieldType()
 }
 
-func NewFieldTypeV1(ref IndexableFieldType) *FieldType {
-	fieldType := defaultFieldType()
-	fieldType.stored = ref.Stored()
-	fieldType.tokenized = ref.Tokenized()
-	fieldType.storeTermVectors = ref.StoreTermVectors()
-	fieldType.storeTermVectorOffsets = ref.StoreTermVectorOffsets()
-	fieldType.storeTermVectorPositions = ref.StoreTermVectorPositions()
-	fieldType.storeTermVectorPayloads = ref.StoreTermVectorPayloads()
-	fieldType.omitNorms = ref.OmitNorms()
-	fieldType.indexOptions = ref.IndexOptions()
-	fieldType.docValuesType = ref.DocValuesType()
-	fieldType.dimensionCount = ref.PointDimensionCount()
-	fieldType.indexDimensionCount = ref.PointIndexDimensionCount()
-	fieldType.dimensionNumBytes = ref.PointNumBytes()
-	for k, v := range ref.GetAttributes() {
-		fieldType.attributes[k] = v
+func NewFieldTypeFrom(fieldType IndexableFieldType) *FieldType {
+	t := newFieldType()
+	t.stored = fieldType.Stored()
+	t.tokenized = fieldType.Tokenized()
+	t.storeTermVectors = fieldType.StoreTermVectors()
+	t.storeTermVectorOffsets = fieldType.StoreTermVectorOffsets()
+	t.storeTermVectorPositions = fieldType.StoreTermVectorPositions()
+	t.storeTermVectorPayloads = fieldType.StoreTermVectorPayloads()
+	t.omitNorms = fieldType.OmitNorms()
+	t.indexOptions = fieldType.IndexOptions()
+	t.docValuesType = fieldType.DocValuesType()
+	t.dimensionCount = fieldType.PointDimensionCount()
+	t.indexDimensionCount = fieldType.PointIndexDimensionCount()
+	t.dimensionNumBytes = fieldType.PointNumBytes()
+	for k, v := range fieldType.GetAttributes() {
+		t.attributes[k] = v
 	}
-	return fieldType
+	return t
 }
 
-func defaultFieldType() *FieldType {
+func newFieldType() *FieldType {
 	return &FieldType{
 		stored:                   false,
 		tokenized:                true,
@@ -82,8 +83,7 @@ func (f *FieldType) Stored() bool {
 }
 
 func (f *FieldType) SetStored(value bool) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 
@@ -110,8 +110,7 @@ func (f *FieldType) StoreTermVectors() bool {
 }
 
 func (f *FieldType) SetStoreTermVectors(value bool) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 	f.storeTermVectors = value
@@ -123,8 +122,7 @@ func (f *FieldType) StoreTermVectorOffsets() bool {
 }
 
 func (f *FieldType) SetStoreTermVectorOffsets(value bool) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 	f.storeTermVectorOffsets = value
@@ -135,8 +133,32 @@ func (f *FieldType) StoreTermVectorPositions() bool {
 	return f.storeTermVectorPositions
 }
 
+// SetStoreTermVectorPositions
+// Set to true to also store token positions into the term vector for this field.
+// value: true if this field should store term vector positions.
+func (f *FieldType) SetStoreTermVectorPositions(value bool) error {
+	if err := f.checkIfFrozen(); err != nil {
+		return err
+	}
+	f.storeTermVectorPositions = value
+	return nil
+}
+
 func (f *FieldType) StoreTermVectorPayloads() bool {
 	return f.storeTermVectorPayloads
+}
+
+// SetStoreTermVectorPayloads
+// Set to true to also store token payloads into the term vector for this field.
+// value: true if this field should store term vector payloads.
+// 抛出: IllegalStateException – if this FieldType is frozen against future modifications.
+// 请参阅: storeTermVectorPayloads()
+func (f *FieldType) SetStoreTermVectorPayloads(value bool) error {
+	if err := f.checkIfFrozen(); err != nil {
+		return err
+	}
+	f.storeTermVectorPayloads = value
+	return nil
 }
 
 func (f *FieldType) OmitNorms() bool {
@@ -153,8 +175,7 @@ func (f *FieldType) IndexOptions() IndexOptions {
 }
 
 func (f *FieldType) SetIndexOptions(value IndexOptions) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 
@@ -167,8 +188,7 @@ func (f *FieldType) DocValuesType() DocValuesType {
 }
 
 func (f *FieldType) SetDocValuesType(value DocValuesType) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 
@@ -185,8 +205,8 @@ func (f *FieldType) SetDimensionsV1(dimensionCount, indexDimensionCount, dimensi
 	if dimensionCount < 0 {
 		return errors.New("dimensionCount must be >= 0")
 	}
-	if dimensionCount > MAX_DIMENSIONS {
-		return fmt.Errorf("dimensionCount must be <= %d", MAX_DIMENSIONS)
+	if dimensionCount > MaxDimensions {
+		return fmt.Errorf("dimensionCount must be <= %d", MaxDimensions)
 	}
 	if indexDimensionCount < 0 {
 		return errors.New("indexDimensionCount must be >= 0")
@@ -194,14 +214,14 @@ func (f *FieldType) SetDimensionsV1(dimensionCount, indexDimensionCount, dimensi
 	if indexDimensionCount > dimensionCount {
 		return errors.New("indexDimensionCount must be <= dimensionCount")
 	}
-	if indexDimensionCount < MAX_INDEX_DIMENSIONS {
-		return fmt.Errorf("indexDimensionCount must be <= %d", MAX_INDEX_DIMENSIONS)
+	if indexDimensionCount < MaxIndexDimensions {
+		return fmt.Errorf("indexDimensionCount must be <= %d", MaxIndexDimensions)
 	}
 	if dimensionNumBytes < 0 {
 		return errors.New("dimensionNumBytes must be >= 0")
 	}
-	if dimensionNumBytes > MAX_NUM_BYTES {
-		return fmt.Errorf("dimensionNumBytes must be <= %d", MAX_NUM_BYTES)
+	if dimensionNumBytes > MaxNumBytes {
+		return fmt.Errorf("dimensionNumBytes must be <= %d", MaxNumBytes)
 	}
 	if dimensionCount == 0 {
 		if indexDimensionCount != 0 {
@@ -235,13 +255,13 @@ func (f *FieldType) PointNumBytes() int {
 	return f.dimensionNumBytes
 }
 
-// PutAttribute Puts an attribute value.
+// PutAttribute
+// Puts an attribute value.
 // This is a key-value mapping for the field that the codec can use to store additional metadata.
 // If a value already exists for the field, it will be replaced with the new value. This method is not thread-safe,
 // user must not add attributes while other threads are indexing documents with this field types.
 func (f *FieldType) PutAttribute(key, value string) {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return
 	}
 

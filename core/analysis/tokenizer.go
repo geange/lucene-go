@@ -1,8 +1,9 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattr"
 	"io"
+
+	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 type Tokenizer interface {
@@ -13,45 +14,36 @@ type Tokenizer interface {
 	SetReader(reader io.Reader) error
 }
 
-func NewTokenizer() *TokenizerBase {
-	return &TokenizerBase{
-		source:       tokenattr.NewAttributeSource(),
-		Input:        nil,
+func NewBaseTokenizer() *BaseTokenizer {
+	return &BaseTokenizer{
+		source:       attribute.NewSource(),
+		input:        nil,
 		inputPending: nil,
 	}
 }
 
-type TokenizerBase struct {
-	source *tokenattr.AttributeSource
-
-	// The text source for this Tokenizer.
-	Input io.Reader
-
-	// Pending reader: not actually assigned to input until reset()
-	inputPending io.Reader
+type BaseTokenizer struct {
+	source       *attribute.Source
+	input        io.Reader // The text source for this Tokenizer.
+	inputPending io.Reader // Pending reader: not actually assigned to input until reset()
 }
 
-func (t *TokenizerBase) AttributeSource() *tokenattr.AttributeSource {
+func (t *BaseTokenizer) AttributeSource() *attribute.Source {
 	return t.source
 }
 
-func (t *TokenizerBase) End() error {
+func (t *BaseTokenizer) End() error {
 	return nil
 }
 
-func (t *TokenizerBase) Reset() error {
-	t.Input = t.inputPending
+func (t *BaseTokenizer) Reset() error {
+	t.input = t.inputPending
 	t.inputPending = nil
 	return nil
 }
 
-func (t *TokenizerBase) Close() error {
-	//err := t.Input.Close()
-	//if err != nil {
-	//	return err
-	//}
-
-	t.Input = nil
+func (t *BaseTokenizer) Close() error {
+	t.input = nil
 	t.inputPending = nil
 	return nil
 }
@@ -61,14 +53,14 @@ func (t *TokenizerBase) Close() error {
 // Params: currentOff – offset as seen in the output
 // Returns: corrected offset based on the input
 // See Also: CharFilter.correctOffset
-func (t *TokenizerBase) CorrectOffset(currentOff int) int {
-	if charFilter, ok := t.Input.(CharFilter); ok {
+func (t *BaseTokenizer) CorrectOffset(currentOff int) int {
+	if charFilter, ok := t.input.(CharFilter); ok {
 		return charFilter.CorrectOffset(currentOff)
 	}
 	return currentOff
 }
 
-func (t *TokenizerBase) SetReader(reader io.Reader) error {
+func (t *BaseTokenizer) SetReader(reader io.Reader) error {
 	t.inputPending = reader
 	return nil
 }

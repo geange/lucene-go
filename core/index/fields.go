@@ -1,22 +1,30 @@
 package index
 
-// Fields Provides a Terms index for fields that have it, and lists which fields do. This is primarily an
-// internal/experimental API (see FieldsProducer), although it is also used to expose the set of term
-// vectors per document.
-type Fields interface {
+import (
+	"context"
+	"github.com/geange/lucene-go/core/interface/index"
+)
 
-	// DVFUIterator Returns an iterator that will step through all fields names. This will not return null.
-	//DVFUIterator() func() string
+type BaseFieldsConsumer struct {
 
-	Names() []string
+	// Merges in the fields from the readers in mergeState.
+	// The default implementation skips and maps around deleted documents,
+	// and calls write(Fields, NormsProducer). Implementations can override
+	// this method for more sophisticated merging (bulk-byte copying, etc).
+	// Write func(ctx context.Context, fields Fields, norms NormsProducer) error
 
-	// Terms Get the Terms for this field. This will return null if the field does not exist.
-	Terms(field string) (Terms, error)
+	// NOTE: strange but necessary so javadocs linting is happy:
+	// Closer func() error
+}
 
-	// Size Returns the number of fields or -1 if the number of distinct field names is unknown. If >= 0,
-	// iterator will return as many field names.
-	Size() int
+func (f *BaseFieldsConsumer) Merge(ctx context.Context, mergeState *MergeState, norms index.NormsProducer) error {
+	return nil
+}
 
-	// Zero-length Fields array.
-
+// MergeFromReaders
+// Merges in the fields from the readers in mergeState. The default implementation skips and
+// maps around deleted documents, and calls write(Fields, NormsProducer). Implementations can override
+// this method for more sophisticated merging (bulk-byte copying, etc).
+func MergeFromReaders(ctx context.Context, consumer index.FieldsConsumer, mergeState *MergeState, norms index.NormsProducer) error {
+	return nil
 }

@@ -27,8 +27,30 @@ func NewTextReader(in store.IndexInput, buf *bytes.Buffer) *TextReader {
 	}
 }
 
+type Buffer struct {
+	*bytes.Buffer
+}
+
 func (t *TextReader) ReadLine() error {
 	return ReadLine(t.in, t.buf)
+}
+
+func (t *TextReader) ParseString(label []byte) (string, error) {
+	return t.ReadLabel(label)
+}
+
+func (t *TextReader) ParseBytes(label []byte) ([]byte, error) {
+	t.buf.Reset()
+	if err := ReadLine(t.in, t.buf); err != nil {
+		return nil, err
+	}
+
+	if !bytes.HasPrefix(t.buf.Bytes(), label) {
+		return nil, fmt.Errorf("label not found:%s", string(label))
+	}
+
+	t.buf.Next(len(label))
+	return t.buf.Bytes(), nil
 }
 
 func (t *TextReader) ReadLabel(label []byte) (string, error) {
@@ -59,6 +81,14 @@ func (t *TextReader) ParseInt(prefix []byte) (int, error) {
 		return 0, err
 	}
 	return strconv.Atoi(v)
+}
+
+func (t *TextReader) ParseBoolPrefix(prefix []byte) (bool, error) {
+	v, err := t.ReadLabel(prefix)
+	if err != nil {
+		return false, err
+	}
+	return strconv.ParseBool(v)
 }
 
 func (t *TextReader) ParseInt64(prefix []byte) (int64, error) {
@@ -176,8 +206,6 @@ func ReadValue(out store.IndexInput, label []byte, buf *bytes.Buffer) (string, e
 		return "", fmt.Errorf("label not found:%s", string(label))
 	}
 	buf.Next(len(label))
-	//
-	//buf.Truncate(len(label))
 
 	return buf.String(), nil
 }
@@ -190,9 +218,6 @@ func WriteBytes(out store.DataOutput, bs []byte) error {
 	for i := range bs {
 		if bs[i] == NEWLINE || bs[i] == ESCAPE {
 			if err := out.WriteByte(ESCAPE); err != nil {
-				return err
-			}
-			if err := out.WriteByte(bs[i]); err != nil {
 				return err
 			}
 		}
@@ -239,9 +264,6 @@ func WriteChecksum(out store.IndexOutput) error {
 	}
 
 	if err := WriteBytes(out, CHECKSUM); err != nil {
-		return err
-	}
-	if err != nil {
 		return err
 	}
 	if err := WriteString(out, fmt.Sprintf("%020d", checksum)); err != nil {

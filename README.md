@@ -1,25 +1,35 @@
 # lucene-go
 
+[![GoDoc](https://godoc.org/github.com/geange/lucene-go?status.svg)](https://godoc.org/github.com/geange/lucene-go)
+[![Go](https://github.com/geange/lucene-go/actions/workflows/go.yml/badge.svg)](https://github.com/geange/lucene-go/actions/workflows/go.yml)
+[![CodeQL](https://github.com/geange/lucene-go/actions/workflows/codeql.yml/badge.svg)](https://github.com/geange/lucene-go/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/geange/lucene-go/graph/badge.svg?token=52HZJSPPS6)](https://codecov.io/gh/geange/lucene-go)
+
 **[中文](README-zh_CN.md)**
 
 ## About
 
-> A Go port of Apache Lucene
+Lucene is a search engine library. `lucene-go` is its Golang version implementation.
 
-The original intention of starting this project was because the recipe story of 'Elasticsearch' was too sci-fi. After
-understanding the basic knowledge related to search, I hastily started the development of the project.
+### Current Version
 
-I originally hoped to achieve a Go version of ES, but now I am still a bit far from this goal.
-More importantly, it is necessary to improve the Lucene go project as soon as possible to achieve a fully usable state.
-This available state includes but is not limited to the following:
+* Only support Go1.21+
+* Developed based on Lucene 8.11.2
+* Some libraries are basically available, and unit testing is being completed
 
-* Improve the code. The original code was to translate Java into Go, but there are many shortcomings. The next goal is
-  to make the code more like what Gopher wrote 🐶
-* Improving unit testing and single testing is the most ideal solution to ensure code quality
-* Improve use cases. The quality of use cases is still relatively low, just some simple cases that I personally used for
-  local testing
-* Improve the documentation, which will be carried out together with the process of improving the code, making it easier
-  for users to obtain the content they want (after all, the Lucene library has a very large amount of code)
+### Our Goals
+
+* API interface compatible with Java version Lucene
+* Maintain a high-quality Go version search engine library
+* Provides stronger performance than the Java version of Lucene
+
+### Current Tasks
+
+* Improve the unit testing of the basic library
+* Improve development and design documents
+* Add Code Use Cases
+
+### Project Overview
 
 The goal of the project has undergone several twists and turns during the development process, encountering far greater
 difficulties than expected, language differences, and a lack of theoretical knowledge. After a year of development, the
@@ -39,7 +49,7 @@ following major modules have been gradually completed:
 
 ## Try
 
-> go1.18+
+> go1.21+
 
 ### Example
 
@@ -51,74 +61,74 @@ Using `IndexWriter`
 package main
 
 import (
-	"context"
-	"fmt"
-	
-	"github.com/geange/lucene-go/codecs/simpletext"
-	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/search"
-	"github.com/geange/lucene-go/core/store"
+  "context"
+  "fmt"
+
+  "github.com/geange/lucene-go/codecs/simpletext"
+  "github.com/geange/lucene-go/core/document"
+  "github.com/geange/lucene-go/core/index"
+  "github.com/geange/lucene-go/core/search"
+  "github.com/geange/lucene-go/core/store"
 )
 
 func main() {
-	dir, err := store.NewNIOFSDirectory("data")
-	if err != nil {
-		panic(err)
-	}
+  dir, err := store.NewNIOFSDirectory("data")
+  if err != nil {
+    panic(err)
+  }
 
-	codec := simpletext.NewSimpleTextCodec()
-	similarity := search.NewCastBM25Similarity()
+  codec := simpletext.NewCodec()
+  similarity, err := search.NewCastBM25Similarity()
 
-	config := index.NewIndexWriterConfig(codec, similarity)
+  config := index.NewIndexWriterConfig(codec, similarity)
 
-	writer, err := index.NewIndexWriter(dir, config)
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		err := writer.Commit(context.Background())
-		if err != nil {
-			fmt.Println(err)
-		}
-	}()
+  writer, err := index.NewIndexWriter(context.Background(), dir, config)
+  if err != nil {
+    panic(err)
+  }
+  defer func() {
+    err := writer.Commit(context.Background())
+    if err != nil {
+      fmt.Println(err)
+    }
+  }()
 
-	{
-		doc := document.NewDocument()
-		doc.Add(document.NewStoredFieldAny("a", 74, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a1", 86, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a2", 1237, document.STORED_ONLY))
-		docID, err := writer.AddDocument(doc)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(docID)
-	}
+  {
+    doc := document.NewDocument()
+    doc.Add(document.NewStoredField[int32]("a", 74))
+    doc.Add(document.NewStoredField[int32]("a1", 86))
+    doc.Add(document.NewStoredField[int32]("a2", 1237))
+    docID, err := writer.AddDocument(context.Background(), doc)
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(docID)
+  }
 
-	{
-		doc := document.NewDocument()
-		doc.Add(document.NewStoredFieldAny("a", 123, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a1", 123, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a2", 789, document.STORED_ONLY))
+  {
+    doc := document.NewDocument()
+    doc.Add(document.NewStoredField[int32]("a", 123))
+    doc.Add(document.NewStoredField[int32]("a1", 123))
+    doc.Add(document.NewStoredField[int32]("a2", 789))
 
-		docID, err := writer.AddDocument(doc)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(docID)
-	}
+    docID, err := writer.AddDocument(context.Background(), doc)
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(docID)
+  }
 
-	{
-		doc := document.NewDocument()
-		doc.Add(document.NewStoredFieldAny("a", 741, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a1", 861, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a2", 12137, document.STORED_ONLY))
-		docID, err := writer.AddDocument(doc)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(docID)
-	}
+  {
+    doc := document.NewDocument()
+    doc.Add(document.NewStoredField[int32]("a", 741))
+    doc.Add(document.NewStoredField[int32]("a1", 861))
+    doc.Add(document.NewStoredField[int32]("a2", 12137))
+    docID, err := writer.AddDocument(context.Background(), doc)
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(docID)
+  }
 }
 
 ```

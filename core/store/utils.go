@@ -2,7 +2,8 @@ package store
 
 import "bytes"
 
-// SegmentFileName Returns a file name that includes the given segment name, your own custom name
+// SegmentFileName
+// Returns a file name that includes the given segment name, your own custom name
 // and extension. The format of the filename is: <segmentName>(_<name>)(.<ext>).
 // NOTE: .<ext> is added to the result file name only if ext is not empty.
 // NOTE: _<segmentSuffix> is added to the result file name only if it's not the empty string

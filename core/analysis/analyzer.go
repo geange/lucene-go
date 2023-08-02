@@ -2,8 +2,9 @@ package analysis
 
 import (
 	"bytes"
-	"github.com/geange/lucene-go/core/util"
 	"io"
+
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 // An Analyzer builds TokenStreams, which analyze text. It thus represents a policy for
@@ -22,152 +23,130 @@ import (
 type Analyzer interface {
 	io.Closer
 
-	TokenStreamByReader(fieldName string, reader io.Reader) (TokenStream, error)
-	TokenStreamByString(fieldName string, text string) (TokenStream, error)
+	// GetTokenStreamFromReader
+	// 传入io.Reader，生成新的tokenStream对象
+	GetTokenStreamFromReader(fieldName string, reader io.Reader) (TokenStream, error)
 
-	// GetPositionIncrementGap Invoked before indexing a IndexableField instance if terms have already been
+	// GetTokenStreamFromText
+	// 传入string类型，内部缓存buffer复用
+	GetTokenStreamFromText(fieldName string, text string) (TokenStream, error)
+
+	// GetPositionIncrementGap
+	// Invoked before indexing a IndexableField instance if terms have already been
 	// added to that field. This allows custom analyzers to place an automatic position increment gap between
 	// IndexbleField instances using the same field name. The default value position increment gap is 0.
 	// With a 0 position increment gap and the typical default token position increment of 1, all terms in a field,
 	// including across IndexableField instances, are in successive positions, allowing exact PhraseQuery matches,
 	// for instance, across IndexableField instance boundaries.
 	//
-	// Params: fieldName – IndexableField name being indexed.
-	// Returns: position increment gap, added to the next token emitted from tokenStream(String, Reader).
-	//			This value must be >= 0.
+	// fieldName: IndexableField name being indexed.
+	// position: increment gap, added to the next token emitted from tokenStream(String, Reader). This value must be >= 0.
 	GetPositionIncrementGap(fieldName string) int
 
-	// GetOffsetGap Just like getPositionIncrementGap, except for Token offsets instead. By default this returns 1.
+	// GetOffsetGap
+	// Just like getPositionIncrementGap, except for Token offsets instead. By default this returns 1.
 	// This method is only called if the field produced at least one token for indexing.
 	// Params: fieldName – the field just indexed
 	// Returns: offset gap, added to the next token emitted from tokenStream(String, Reader). This value must be >= 0.
 	GetOffsetGap(fieldName string) int
 
-	// GetReuseStrategy Returns the used Analyzer.ReuseStrategy.
+	// GetReuseStrategy
+	// Returns the used Analyzer.ReuseStrategy.
 	GetReuseStrategy() ReuseStrategy
 
-	// SetVersion Set the version of Lucene this analyzer should mimic the behavior for analysis.
-	SetVersion(v *util.Version)
+	// SetVersion
+	// Set the version of Lucene this analyzer should mimic the behavior for analysis.
+	SetVersion(v *version.Version)
 
-	// GetVersion Return the version of Lucene this analyzer will mimic the behavior of for analysis.
-	GetVersion() *util.Version
+	// GetVersion
+	// Return the version of Lucene this analyzer will mimic the behavior of for analysis.
+	GetVersion() *version.Version
 }
 
-type AnalyzerDefault struct {
-	reuseStrategy ReuseStrategy
-	version       *util.Version
-}
-
-func NewAnalyzerDefault() *AnalyzerDefault {
-	return &AnalyzerDefault{
-		version: util.VersionLast,
-	}
-}
-
-func (*AnalyzerDefault) GetPositionIncrementGap(fieldName string) int {
-	return 0
-}
-
-func (*AnalyzerDefault) GetOffsetGap(fieldName string) int {
-	return 1
-}
-
-func (r *AnalyzerDefault) SetVersion(v *util.Version) {
-	r.version = v
-}
-
-func (r *AnalyzerDefault) GetVersion() *util.Version {
-	return r.version
-}
-
-type AnalyzerPLG interface {
+type ComponentsBuilder interface {
 	CreateComponents(fieldName string) *TokenStreamComponents
 }
 
-type AnalyzerExtra interface {
-	CreateComponents(fieldName string) *TokenStreamComponents
-}
-
-type AnalyzerImp struct {
-	AnalyzerExtra
-
+type BaseAnalyzer struct {
+	builder       ComponentsBuilder
 	reuseStrategy ReuseStrategy
-	version       *util.Version
-
-	storedValue interface{}
+	version       *version.Version
+	storedValue   any
 }
 
-func NewAnalyzerImp(plg AnalyzerExtra) *AnalyzerImp {
-	return &AnalyzerImp{
-		AnalyzerExtra: plg,
+func NewBaseAnalyzer(builder ComponentsBuilder) *BaseAnalyzer {
+	return &BaseAnalyzer{
+		builder:       builder,
 		reuseStrategy: &GlobalReuseStrategy{},
-		version:       util.VersionLast,
+		version:       version.Last,
 	}
 }
 
-func (r *AnalyzerImp) Close() error {
+func (r *BaseAnalyzer) Close() error {
 	return nil
 }
 
-func (r *AnalyzerImp) TokenStreamByString(fieldName string, text string) (TokenStream, error) {
+func (r *BaseAnalyzer) GetTokenStreamFromText(fieldName string, text string) (TokenStream, error) {
 	components := r.reuseStrategy.GetReusableComponents(r, fieldName)
 
 	if components == nil {
-		components = r.CreateComponents(fieldName)
+		components = r.builder.CreateComponents(fieldName)
 		r.reuseStrategy.SetReusableComponents(r, fieldName, components)
 	}
 
-	if components.reusableStringReader == nil {
-		components.reusableStringReader = bytes.NewBufferString(text)
+	if components.reusableBuffer == nil {
+		components.reusableBuffer = new(bytes.Buffer)
 	}
+	components.reusableBuffer.Reset()
+	components.reusableBuffer.WriteString(text)
 
-	strReader := components.reusableStringReader
+	strReader := components.reusableBuffer
 
 	components.setReader(strReader)
 	return components.GetTokenStream(), nil
 }
 
-func (r *AnalyzerImp) initReader(fieldName string, reader io.Reader) io.Reader {
+func (r *BaseAnalyzer) initReader(fieldName string, reader io.Reader) io.Reader {
 	return reader
 }
 
-func (r *AnalyzerImp) TokenStreamByReader(fieldName string, reader io.Reader) (TokenStream, error) {
+func (r *BaseAnalyzer) GetTokenStreamFromReader(fieldName string, reader io.Reader) (TokenStream, error) {
 	components := r.reuseStrategy.GetReusableComponents(r, fieldName)
 	if components == nil {
-		components = r.CreateComponents(fieldName)
+		components = r.builder.CreateComponents(fieldName)
 		r.reuseStrategy.SetReusableComponents(r, fieldName, components)
 	}
 	components.setReader(reader)
 	return components.GetTokenStream(), nil
 }
 
-func (r *AnalyzerImp) GetPositionIncrementGap(fieldName string) int {
+func (r *BaseAnalyzer) GetPositionIncrementGap(fieldName string) int {
 	return 0
 }
 
-func (r *AnalyzerImp) GetOffsetGap(fieldName string) int {
+func (r *BaseAnalyzer) GetOffsetGap(fieldName string) int {
 	return 1
 }
 
-func (r *AnalyzerImp) GetReuseStrategy() ReuseStrategy {
+func (r *BaseAnalyzer) GetReuseStrategy() ReuseStrategy {
 	return r.reuseStrategy
 }
 
-func (r *AnalyzerImp) SetVersion(v *util.Version) {
+func (r *BaseAnalyzer) SetVersion(v *version.Version) {
 	r.version = v
 }
 
-func (r *AnalyzerImp) GetVersion() *util.Version {
+func (r *BaseAnalyzer) GetVersion() *version.Version {
 	return r.version
 }
 
 type ReuseStrategy interface {
 	// GetReusableComponents Gets the reusable TokenStreamComponents for the field with the given name.
-	// Params: 	analyzer – Analyzer from which to get the reused components. Use getStoredValue(Analyzer)
-	//			and setStoredValue(Analyzer, Object) to access the data on the Analyzer.
-	//			fieldName – Name of the field whose reusable TokenStreamComponents are to be retrieved
 	// Returns: Reusable TokenStreamComponents for the field, or null if there was no previous components
-	//			for the field
+	// for the field
+	// analyzer: 	Analyzer from which to get the reused components.
+	//				Use getStoredValue(Analyzer) and setStoredValue(Analyzer, Object) to access the data on the Analyzer.
+	// fieldName: Name of the field whose reusable TokenStreamComponents are to be retrieved
 	GetReusableComponents(analyzer Analyzer, fieldName string) *TokenStreamComponents
 
 	SetReusableComponents(analyzer Analyzer, fieldName string, components *TokenStreamComponents)
@@ -178,8 +157,8 @@ type GlobalReuseStrategy struct {
 
 func (g *GlobalReuseStrategy) GetReusableComponents(analyzer Analyzer, fieldName string) *TokenStreamComponents {
 	switch analyzer.(type) {
-	case *AnalyzerImp:
-		if components, ok := analyzer.(*AnalyzerImp).storedValue.(*TokenStreamComponents); ok {
+	case *BaseAnalyzer:
+		if components, ok := analyzer.(*BaseAnalyzer).storedValue.(*TokenStreamComponents); ok {
 			return components
 		}
 	}
@@ -188,15 +167,15 @@ func (g *GlobalReuseStrategy) GetReusableComponents(analyzer Analyzer, fieldName
 
 func (g *GlobalReuseStrategy) SetReusableComponents(analyzer Analyzer, fieldName string, components *TokenStreamComponents) {
 	switch analyzer.(type) {
-	case *AnalyzerImp:
-		analyzer.(*AnalyzerImp).storedValue = components
+	case *BaseAnalyzer:
+		analyzer.(*BaseAnalyzer).storedValue = components
 	}
 }
 
 type TokenStreamComponents struct {
-	source               func(reader io.Reader)
-	sink                 TokenStream
-	reusableStringReader *bytes.Buffer
+	source         func(reader io.Reader)
+	sink           TokenStream
+	reusableBuffer *bytes.Buffer
 }
 
 func NewTokenStreamComponents(source func(reader io.Reader), result TokenStream) *TokenStreamComponents {

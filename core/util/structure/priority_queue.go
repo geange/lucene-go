@@ -1,6 +1,7 @@
 package structure
 
 import (
+	"context"
 	"io"
 	"reflect"
 )
@@ -205,7 +206,7 @@ func (p *PriorityQueueIterator[T]) HasNext() bool {
 	return p.i <= p.size
 }
 
-func (p *PriorityQueueIterator[T]) Next() (T, error) {
+func (p *PriorityQueueIterator[T]) Next(context.Context) (T, error) {
 	if !p.HasNext() {
 		return p.none, io.EOF
 	}
