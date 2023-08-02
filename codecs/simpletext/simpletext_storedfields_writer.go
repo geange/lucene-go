@@ -100,16 +100,18 @@ func (s *SimpleTextStoredFieldsWriter) WriteField(info *document.FieldInfo, fiel
 	switch field.ValueType() {
 	case document.FieldValueI32:
 		n, _ := field.I32Value()
-		return s.writeValue(STORED_FIELD_TYPE_INT, fmt.Sprintf("%v", n))
+		return s.writeValue(STORED_FIELD_TYPE_INT, fmt.Sprintf("%d", n))
 	case document.FieldValueI64:
 		n, _ := field.I64Value()
-		return s.writeValue(STORED_FIELD_TYPE_LONG, fmt.Sprintf("%v", n))
+		return s.writeValue(STORED_FIELD_TYPE_LONG, fmt.Sprintf("%d", n))
 	case document.FieldValueF32:
 		n, _ := field.F32Value()
-		return s.writeValue(STORED_FIELD_TYPE_FLOAT, fmt.Sprintf("%v", n))
+		value := strconv.FormatFloat(float64(n), 'f', -1, 32)
+		return s.writeValue(STORED_FIELD_TYPE_FLOAT, value)
 	case document.FieldValueF64:
 		n, _ := field.F64Value()
-		return s.writeValue(STORED_FIELD_TYPE_DOUBLE, fmt.Sprintf("%v", n))
+		value := strconv.FormatFloat(n, 'f', -1, 64)
+		return s.writeValue(STORED_FIELD_TYPE_DOUBLE, value)
 	case document.FieldValueString:
 		n, _ := field.StringValue()
 		return s.writeValue(STORED_FIELD_TYPE_STRING, n)
