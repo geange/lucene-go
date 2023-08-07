@@ -3,6 +3,7 @@ package store
 import (
 	"hash"
 	"hash/crc32"
+	"io"
 )
 
 // ChecksumIndexInput Extension of IndexInput, computing checksum as it goes. Callers can retrieve the checksum via getChecksum().
@@ -46,7 +47,7 @@ func (b *BufferedChecksumIndexInput) GetFilePointer() int64 {
 }
 
 func (b *BufferedChecksumIndexInput) Seek(pos int64, whence int) (int64, error) {
-	return b.main.Seek(pos, 0)
+	return b.main.Seek(pos, io.SeekStart)
 }
 
 func (b *BufferedChecksumIndexInput) Length() int64 {

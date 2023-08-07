@@ -1,5 +1,7 @@
 package index
 
+import "github.com/geange/lucene-go/core/types"
+
 // LeafFieldComparator Expert: comparator that gets instantiated on each leaf from a top-level FieldComparator instance.
 // A leaf comparator must define these functions:
 // setBottom This method is called by FieldValueHitQueue to notify the FieldComparator of the current weakest ("bottom") slot. Note that this slot may not hold the weakest item according to your comparator, in cases where your comparator is not the primary one (ie, is only used to break ties from the comparators before it).
@@ -44,7 +46,7 @@ type LeafFieldComparator interface {
 	// CompetitiveIterator Returns a competitive iterator
 	// Returns: an iterator over competitive docs that are stronger than already collected docs or
 	// null if such an iterator is not available for the current comparator or segment.
-	CompetitiveIterator() (DocIdSetIterator, error)
+	CompetitiveIterator() (types.DocIdSetIterator, error)
 
 	// SetHitsThresholdReached Informs this leaf comparator that hits threshold is reached.
 	// This method is called from a collector when hits threshold is reached.

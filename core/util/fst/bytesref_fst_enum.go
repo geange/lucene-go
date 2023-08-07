@@ -96,16 +96,16 @@ func (b *BytesRefFSTEnum[T]) getTargetLabel() (int, error) {
 	if b.upto-1 == len(b.target) {
 		return END_LABEL, nil
 	} else {
-		return int(b.target[b.upto-1] & 0xFF), nil
+		return int(b.target[b.upto-1]), nil
 	}
 }
 
 func (b *BytesRefFSTEnum[T]) getCurrentLabel() (int, error) {
-	// return current.bytes[upto] & 0xFF;
+	// return current.bytes[upto] ;
 
 	upto := len(b.arcs) - 1
 	// current.offset fixed at 1
-	return int(b.current[upto] & 0xFF), nil
+	return int(b.current[upto]), nil
 }
 
 func (b *BytesRefFSTEnum[T]) setCurrentLabel(label int) error {

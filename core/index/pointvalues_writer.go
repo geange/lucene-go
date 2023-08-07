@@ -6,6 +6,7 @@ import (
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 )
 
 // PointValuesWriter Buffers up pending byte[][] item(s) per doc, then flushes when segment flushes.
@@ -21,11 +22,11 @@ type PointValuesWriter struct {
 }
 
 func NewPointValuesWriter(fieldInfo *document.FieldInfo) *PointValuesWriter {
-	bytes := NewPagedBytes(16)
+	pages := NewPagedBytes(16)
 	return &PointValuesWriter{
 		fieldInfo:         fieldInfo,
-		bytes:             bytes,
-		bytesOut:          bytes.GetDataOutput(),
+		bytes:             pages,
+		bytesOut:          pages.GetDataOutput(),
 		docIDs:            make([]int, 0, 16),
 		packedBytesLength: fieldInfo.GetPointDimensionCount() * fieldInfo.GetPointNumBytes(),
 	}
@@ -75,7 +76,7 @@ func (p *PointValuesWriter) Flush(state *SegmentWriteState, docMap *DocMap, writ
 var _ PointsReader = &innerReader{}
 
 type innerReader struct {
-	values PointValues
+	values types.PointValues
 }
 
 func (i *innerReader) Close() error {
@@ -87,11 +88,11 @@ func (i *innerReader) CheckIntegrity() error {
 	panic("implement me")
 }
 
-func (i *innerReader) GetValues(field string) (PointValues, error) {
+func (i *innerReader) GetValues(field string) (types.PointValues, error) {
 	return i.values, nil
 }
 
-var _ MutablePointValues = &innerMutablePointValues{}
+var _ types.MutablePointValues = &innerMutablePointValues{}
 
 type innerMutablePointValues struct {
 	bytesReader *PagedBytesReader
@@ -102,7 +103,7 @@ type innerMutablePointValues struct {
 	temp        []int
 }
 
-func (r *innerMutablePointValues) Intersect(visitor IntersectVisitor) error {
+func (r *innerMutablePointValues) Intersect(visitor types.IntersectVisitor) error {
 	scratch := new(bytes.Buffer)
 	packedValue := make([]byte, r.pw.packedBytesLength)
 
@@ -116,13 +117,13 @@ func (r *innerMutablePointValues) Intersect(visitor IntersectVisitor) error {
 	return nil
 }
 
-func (r *innerMutablePointValues) EstimatePointCount(visitor IntersectVisitor) int64 {
+func (r *innerMutablePointValues) EstimatePointCount(visitor types.IntersectVisitor) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *innerMutablePointValues) EstimateDocCount(visitor IntersectVisitor) int64 {
-	return EstimateDocCount(r, visitor)
+func (r *innerMutablePointValues) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(r, visitor)
 }
 
 func (r *innerMutablePointValues) GetMinPackedValue() ([]byte, error) {
@@ -150,8 +151,8 @@ func (r *innerMutablePointValues) GetBytesPerDimension() (int, error) {
 	panic("implement me")
 }
 
-func (r *innerMutablePointValues) Size() int64 {
-	return int64(r.numPoints)
+func (r *innerMutablePointValues) Size() int {
+	return r.numPoints
 }
 
 func (r *innerMutablePointValues) GetDocCount() int {

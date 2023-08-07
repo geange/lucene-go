@@ -48,6 +48,7 @@ func NewFSDirectoryBase(path string, factory LockFactory) (*FSDirectoryBase, err
 	}
 
 	return &FSDirectoryBase{
+		BaseDirectoryBase:   &BaseDirectoryBase{},
 		directory:           directory,
 		pendingDeletes:      map[string]struct{}{},
 		opsSinceLastDelete:  atomic.NewInt64(0),

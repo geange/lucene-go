@@ -2,10 +2,11 @@ package index
 
 import (
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 )
 
-var _ DocIdSetIterator = &BitSetIterator{}
+var _ types.DocIdSetIterator = &BitSetIterator{}
 
 type BitSetIterator struct {
 	bits *bitset.BitSet
@@ -46,7 +47,7 @@ func (b *BitSetIterator) Advance(target int) (int, error) {
 }
 
 func (b *BitSetIterator) SlowAdvance(target int) (int, error) {
-	return SlowAdvance(b, target)
+	return types.SlowAdvance(b, target)
 }
 
 func (b *BitSetIterator) Cost() int64 {

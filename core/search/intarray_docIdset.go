@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 )
@@ -12,7 +12,7 @@ type IntArrayDocIdSet struct {
 	docs []int
 }
 
-func (r *IntArrayDocIdSet) Iterator() index.DocIdSetIterator {
+func (r *IntArrayDocIdSet) Iterator() types.DocIdSetIterator {
 	//TODO implement me
 	panic("implement me")
 }
@@ -26,7 +26,7 @@ func NewIntArrayDocIdSet(docs []int) *IntArrayDocIdSet {
 	return &IntArrayDocIdSet{docs: docs}
 }
 
-var _ index.DocIdSetIterator = &IntArrayDocIdSetIterator{}
+var _ types.DocIdSetIterator = &IntArrayDocIdSetIterator{}
 
 type IntArrayDocIdSetIterator struct {
 	docs []int
@@ -60,7 +60,7 @@ func (r *IntArrayDocIdSetIterator) Advance(target int) (int, error) {
 }
 
 func (r *IntArrayDocIdSetIterator) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(r, target)
+	return types.SlowAdvance(r, target)
 }
 
 func (r *IntArrayDocIdSetIterator) Cost() int64 {

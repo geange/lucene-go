@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ Scorer = &TermScorer{}
@@ -13,7 +14,7 @@ type TermScorer struct {
 	//weight       Weight
 	postingsEnum index.PostingsEnum
 	impactsEnum  index.ImpactsEnum
-	iterator     index.DocIdSetIterator
+	iterator     types.DocIdSetIterator
 	docScorer    *LeafSimScorer
 	impactsDISI  *ImpactsDISI
 }
@@ -85,7 +86,7 @@ func (t *TermScorer) GetWeight() Weight {
 	return t.weight
 }
 
-func (t *TermScorer) Iterator() index.DocIdSetIterator {
+func (t *TermScorer) Iterator() types.DocIdSetIterator {
 	return t.iterator
 }
 

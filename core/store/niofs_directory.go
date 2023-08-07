@@ -23,11 +23,13 @@ type NIOFSDirectory struct {
 }
 
 func NewNIOFSDirectory(path string) (*NIOFSDirectory, error) {
-	directory, err := NewFSDirectoryBase(path, NewSimpleFSLockFactory())
+	base, err := NewFSDirectoryBase(path, NewSimpleFSLockFactory())
 	if err != nil {
 		return nil, err
 	}
-	return &NIOFSDirectory{directory}, nil
+	dir := &NIOFSDirectory{base}
+	base.BaseDirectoryBase = &BaseDirectoryBase{dir: dir}
+	return dir, nil
 }
 
 func (n *NIOFSDirectory) OpenInput(name string, context *IOContext) (IndexInput, error) {
@@ -39,7 +41,7 @@ func (n *NIOFSDirectory) OpenInput(name string, context *IOContext) (IndexInput,
 	}
 	path := n.resolveFilePath(name)
 
-	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
+	file, err := os.OpenFile(path, os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +62,10 @@ type NIOFSIndexInput struct {
 }
 
 func (n *NIOFSIndexInput) Read(p []byte) (size int, err error) {
+	if n.pos >= n.end {
+		return 0, io.EOF
+	}
+
 	size = len(p)
 	left := int(n.end - n.pos)
 	if left < size {
@@ -126,8 +132,8 @@ func (n *NIOFSIndexInput) Close() error {
 }
 
 func (n *NIOFSIndexInput) Seek(pos int64, whence int) (int64, error) {
-	n.pos = pos
-	return n.file.Seek(pos, io.SeekStart)
+	n.pos = n.off + pos
+	return n.file.Seek(n.pos, whence)
 }
 
 func (n *NIOFSIndexInput) Length() int64 {
@@ -135,9 +141,9 @@ func (n *NIOFSIndexInput) Length() int64 {
 }
 
 func (n *NIOFSIndexInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
-	return NewNIOFSIndexInputV1(n.file, offset, length), nil
+	return NewNIOFSIndexInputV1(n.file, n.off+offset, length), nil
 }
 
 func (n *NIOFSIndexInput) GetFilePointer() int64 {
-	return n.pos
+	return n.pos - n.off
 }

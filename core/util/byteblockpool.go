@@ -233,7 +233,7 @@ func (r *ByteBlockPool) GetBytes(textStart int) []byte {
 		length = int(bytes[pos])
 		offset = pos + 1
 	} else {
-		length = int((bytes[pos] & 0x7f) + (bytes[pos+1]&0xff)<<7)
+		length = int((bytes[pos] & 0x7f) + (bytes[pos+1])<<7)
 		offset = pos + 2
 	}
 
@@ -251,7 +251,7 @@ func (r *ByteBlockPool) get(textStart int) []byte {
 		offset := pos + 1
 		return bytes[offset : offset+size]
 	} else {
-		size := int((bytes[pos] & 0x7f) + (bytes[pos+1]&0xff)<<7)
+		size := int((bytes[pos] & 0x7f) + (bytes[pos+1])<<7)
 		offset := pos + 2
 		return bytes[offset : offset+size]
 	}

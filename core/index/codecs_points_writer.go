@@ -1,6 +1,7 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/types"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
@@ -27,7 +28,7 @@ type PointsWriterDefault struct {
 // the values from the incoming segment. The default codec overrides this for 1D fields and
 // uses a faster but more complex implementation.
 func (p *PointsWriterDefault) MergeOneField(mergeState *MergeState, fieldInfo *document.FieldInfo) error {
-	maxPointCount := int64(0)
+	maxPointCount := 0
 	docCount := 0
 
 	for i, pointsReader := range mergeState.PointsReaders {
@@ -58,7 +59,7 @@ func (p *PointsWriterDefault) MergeOneField(mergeState *MergeState, fieldInfo *d
 var _ PointsReader = &innerPointsReader{}
 
 type innerPointsReader struct {
-	size     int64
+	size     int
 	docCount int
 }
 
@@ -71,32 +72,32 @@ func (i innerPointsReader) CheckIntegrity() error {
 	panic("implement me")
 }
 
-func (i innerPointsReader) GetValues(field string) (PointValues, error) {
+func (i innerPointsReader) GetValues(field string) (types.PointValues, error) {
 	return &innerPointValues{
 		size:     i.size,
 		docCount: i.docCount,
 	}, nil
 }
 
-var _ PointValues = &innerPointValues{}
+var _ types.PointValues = &innerPointValues{}
 
 type innerPointValues struct {
-	size     int64
+	size     int
 	docCount int
 }
 
-func (i *innerPointValues) Intersect(visitor IntersectVisitor) error {
+func (i *innerPointValues) Intersect(visitor types.IntersectVisitor) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (i *innerPointValues) EstimatePointCount(visitor IntersectVisitor) int64 {
+func (i *innerPointValues) EstimatePointCount(visitor types.IntersectVisitor) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (i *innerPointValues) EstimateDocCount(visitor IntersectVisitor) int64 {
-	return EstimateDocCount(i, visitor)
+func (i *innerPointValues) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(i, visitor)
 }
 
 func (i *innerPointValues) GetMinPackedValue() ([]byte, error) {
@@ -124,7 +125,7 @@ func (i *innerPointValues) GetBytesPerDimension() (int, error) {
 	panic("implement me")
 }
 
-func (i *innerPointValues) Size() int64 {
+func (i *innerPointValues) Size() int {
 	return i.size
 }
 

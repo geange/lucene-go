@@ -1,8 +1,10 @@
 package index
 
+import "github.com/geange/lucene-go/core/types"
+
 // NumericDocValues A per-document numeric item.
 type NumericDocValues interface {
-	DocValuesIterator
+	types.DocValuesIterator
 
 	// LongValue Returns the numeric item for the current document ID. It is illegal to call this method
 	// after advanceExact(int) returned false.

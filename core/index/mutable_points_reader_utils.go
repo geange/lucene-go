@@ -2,15 +2,17 @@ package index
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/bkd"
 	"github.com/geange/lucene-go/core/util/packed"
+	"github.com/geange/lucene-go/core/util/radixselector"
 	"sort"
 )
 
 // SortByDim Sort points on the given dimension.
 func SortByDim(config *bkd.Config, sortedDim int, commonPrefixLengths []int,
-	reader MutablePointValues, from, to int,
+	reader types.MutablePointValues, from, to int,
 	scratch1, scratch2 *bytes.Buffer) {
 
 	start := sortedDim*config.BytesPerDoc() + commonPrefixLengths[sortedDim]
@@ -37,7 +39,7 @@ type innerSortByDim struct {
 	to     int
 	start  int
 	dimEnd int
-	reader MutablePointValues
+	reader types.MutablePointValues
 	buf1   *bytes.Buffer
 	buf2   *bytes.Buffer
 	config *bkd.Config
@@ -78,7 +80,7 @@ func (r *innerSortByDim) Swap(i, j int) {
 
 // Partition points around mid. All values on the left must be less than or equal to it and all values on the right must be greater than or equal to it.
 func Partition(config *bkd.Config, maxDoc, splitDim, commonPrefixLen int,
-	reader MutablePointValues, from, to, mid int,
+	reader types.MutablePointValues, from, to, mid int,
 	scratch1, scratch2 *bytes.Buffer) {
 
 	dimOffset := splitDim*config.BytesPerDoc() + commonPrefixLen
@@ -86,7 +88,7 @@ func Partition(config *bkd.Config, maxDoc, splitDim, commonPrefixLen int,
 	dataCmpBytes := (config.NumDims()-config.NumIndexDims())*config.BytesPerDoc() + dimCmpBytes
 	bitsPerDocId := packed.PackedIntsBitsRequired(uint64(maxDoc - 1))
 
-	radix := util.NewRadixSelector(&util.RadixSelectorConfig{
+	radix := radixselector.NewRadixSelector(&radixselector.RadixSelectorConfig{
 		MaxLength: dataCmpBytes + (bitsPerDocId+7)/8,
 		FnByteAt: func(i, k int) int {
 			if k < dimCmpBytes {
@@ -95,7 +97,7 @@ func Partition(config *bkd.Config, maxDoc, splitDim, commonPrefixLen int,
 				return int(reader.GetByteAt(i, config.PackedIndexBytesLength()+k-dimCmpBytes))
 			} else {
 				shift := bitsPerDocId - ((k - dataCmpBytes + 1) << 3)
-				return (reader.GetDocID(i) >> max(0, shift)) & 0xff
+				return (reader.GetDocID(i) >> max(0, shift))
 			}
 		},
 		FnSwap: func(i, j int) {
@@ -111,7 +113,7 @@ func Partition(config *bkd.Config, maxDoc, splitDim, commonPrefixLen int,
 type innerSelector struct {
 	pivot    *bytes.Buffer
 	pivotDoc int
-	reader   MutablePointValues
+	reader   types.MutablePointValues
 	*util.IntroSelector
 }
 

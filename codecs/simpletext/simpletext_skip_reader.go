@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/core/types"
 	"math"
 
 	"github.com/geange/lucene-go/core/index"
@@ -94,7 +95,7 @@ func (s *SimpleTextSkipReader) ReadSkipData(level int, skipStream store.IndexInp
 
 func (s *SimpleTextSkipReader) getNextSkipDoc() int {
 	if !s.hasSkipList {
-		return index.NO_MORE_DOCS
+		return types.NO_MORE_DOCS
 	}
 	return s.SkipDoc[0]
 }

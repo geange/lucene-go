@@ -205,7 +205,7 @@ func (r *BytesHash) Add(bytes []byte) (int, error) {
 		} else {
 			// 2 byte to store length
 			buffer[bufferUpto] = byte(0x80 | (length & 0x7f))
-			buffer[bufferUpto+1] = byte((length >> 7) & 0xff)
+			buffer[bufferUpto+1] = byte(length >> 7)
 			r.pool.bufferUpto += length + 2
 			copy(buffer[bufferUpto+2:bufferUpto+2+length], bytes)
 		}
@@ -368,7 +368,7 @@ func (r *BytesHash) rehash(newSize int, hashOnData bool) {
 					length = int(bytes[start])
 					pos = start + 1
 				} else {
-					length = int((bytes[start] & 0x7f) + ((bytes[start+1] & 0xff) << 7))
+					length = int((bytes[start] & 0x7f) + ((bytes[start+1]) << 7))
 					pos = start + 2
 				}
 				code = r.doHash(bytes[pos : pos+length])

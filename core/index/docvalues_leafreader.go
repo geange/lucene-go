@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -93,7 +94,7 @@ func (d *DocValuesLeafReader) GetLiveDocs() util.Bits {
 	panic("implement me")
 }
 
-func (d *DocValuesLeafReader) GetPointValues(field string) (PointValues, bool) {
+func (d *DocValuesLeafReader) GetPointValues(field string) (types.PointValues, bool) {
 	//TODO implement me
 	panic("implement me")
 }

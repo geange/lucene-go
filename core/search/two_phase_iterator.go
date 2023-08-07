@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 )
 
@@ -37,7 +37,7 @@ import (
 //
 // 通过使用`TwoPhaseIterator`，可以在搜索过程中根据具体需求进行过滤和评分的优化，提高搜索性能并降低开销。
 type TwoPhaseIterator interface {
-	Approximation() index.DocIdSetIterator
+	Approximation() types.DocIdSetIterator
 
 	// Matches
 	// Return whether the current doc ID that approximation() is on matches.
@@ -51,15 +51,15 @@ type TwoPhaseIterator interface {
 	MatchCost() float64
 }
 
-func AsDocIdSetIterator(twoPhaseIterator TwoPhaseIterator) index.DocIdSetIterator {
+func AsDocIdSetIterator(twoPhaseIterator TwoPhaseIterator) types.DocIdSetIterator {
 	return NewTwoPhaseIteratorAsDocIdSetIterator(twoPhaseIterator)
 }
 
-var _ index.DocIdSetIterator = &TwoPhaseIteratorAsDocIdSetIterator{}
+var _ types.DocIdSetIterator = &TwoPhaseIteratorAsDocIdSetIterator{}
 
 type TwoPhaseIteratorAsDocIdSetIterator struct {
 	twoPhaseIterator TwoPhaseIterator
-	approximation    index.DocIdSetIterator
+	approximation    types.DocIdSetIterator
 }
 
 func NewTwoPhaseIteratorAsDocIdSetIterator(twoPhaseIterator TwoPhaseIterator) *TwoPhaseIteratorAsDocIdSetIterator {
@@ -90,7 +90,7 @@ func (t *TwoPhaseIteratorAsDocIdSetIterator) Advance(target int) (int, error) {
 }
 
 func (t *TwoPhaseIteratorAsDocIdSetIterator) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(t, target)
+	return types.SlowAdvance(t, target)
 }
 
 func (t *TwoPhaseIteratorAsDocIdSetIterator) Cost() int64 {
@@ -99,7 +99,7 @@ func (t *TwoPhaseIteratorAsDocIdSetIterator) Cost() int64 {
 
 func (t *TwoPhaseIteratorAsDocIdSetIterator) doNext(doc int) (int, error) {
 	for {
-		if doc == index.NO_MORE_DOCS {
+		if doc == types.NO_MORE_DOCS {
 			return 0, io.EOF
 		}
 
@@ -115,7 +115,7 @@ func (t *TwoPhaseIteratorAsDocIdSetIterator) doNext(doc int) (int, error) {
 	}
 }
 
-func UnwrapIterator(iterator index.DocIdSetIterator) TwoPhaseIterator {
+func UnwrapIterator(iterator types.DocIdSetIterator) TwoPhaseIterator {
 	if v, ok := iterator.(*TwoPhaseIteratorAsDocIdSetIterator); ok {
 		return v.twoPhaseIterator
 	}

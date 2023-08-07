@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/types"
+)
 
 var _ Scorer = &ConstantScoreScorer{}
 
@@ -9,9 +11,9 @@ type ConstantScoreScorer struct {
 
 	score            float64
 	scoreMode        ScoreMode
-	approximation    index.DocIdSetIterator
+	approximation    types.DocIdSetIterator
 	twoPhaseIterator TwoPhaseIterator
-	disi             index.DocIdSetIterator
+	disi             types.DocIdSetIterator
 }
 
 func (c *ConstantScoreScorer) Score() (float64, error) {
@@ -22,7 +24,7 @@ func (c *ConstantScoreScorer) DocID() int {
 	return c.disi.DocID()
 }
 
-func (c *ConstantScoreScorer) Iterator() index.DocIdSetIterator {
+func (c *ConstantScoreScorer) Iterator() types.DocIdSetIterator {
 	return c.disi
 }
 
@@ -41,7 +43,7 @@ func (c *ConstantScoreScorer) GetMaxScore(upTo int) (float64, error) {
 //	scoreMode – the score mode
 //	disi – the iterator that defines matching documents
 func NewConstantScoreScorer(weight Weight, score float64,
-	scoreMode *ScoreMode, disi index.DocIdSetIterator) (*ConstantScoreScorer, error) {
+	scoreMode *ScoreMode, disi types.DocIdSetIterator) (*ConstantScoreScorer, error) {
 
 	if scoreMode.Equal(TOP_SCORES) {
 		//
@@ -85,11 +87,11 @@ func NewConstantScoreScorerV1(weight Weight, score float64,
 var _ TwoPhaseIterator = &constantTwoPhaseIterator{}
 
 type constantTwoPhaseIterator struct {
-	approximation    index.DocIdSetIterator
+	approximation    types.DocIdSetIterator
 	twoPhaseIterator TwoPhaseIterator
 }
 
-func (t *constantTwoPhaseIterator) Approximation() index.DocIdSetIterator {
+func (t *constantTwoPhaseIterator) Approximation() types.DocIdSetIterator {
 	return t.approximation
 }
 

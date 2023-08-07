@@ -39,7 +39,7 @@ following major modules have been gradually completed:
 
 ## Try
 
-> go1.18+
+> go1.21+
 
 ### Example
 

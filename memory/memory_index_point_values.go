@@ -1,10 +1,10 @@
 package memory
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
-var _ index.PointValues = &MemoryIndexPointValues{}
+var _ types.PointValues = &MemoryIndexPointValues{}
 
 type MemoryIndexPointValues struct {
 	info *Info
@@ -14,7 +14,7 @@ func newMemoryIndexPointValues(info *Info) *MemoryIndexPointValues {
 	return &MemoryIndexPointValues{info: info}
 }
 
-func (m *MemoryIndexPointValues) Intersect(visitor index.IntersectVisitor) error {
+func (m *MemoryIndexPointValues) Intersect(visitor types.IntersectVisitor) error {
 	values := m.info.pointValues
 	visitor.Grow(m.info.pointValuesCount)
 	for i := 0; i < m.info.pointValuesCount; i++ {
@@ -26,12 +26,12 @@ func (m *MemoryIndexPointValues) Intersect(visitor index.IntersectVisitor) error
 	return nil
 }
 
-func (m *MemoryIndexPointValues) EstimatePointCount(visitor index.IntersectVisitor) int64 {
-	return 1
+func (m *MemoryIndexPointValues) EstimatePointCount(visitor types.IntersectVisitor) (int, error) {
+	return 1, nil
 }
 
-func (m *MemoryIndexPointValues) EstimateDocCount(visitor index.IntersectVisitor) int64 {
-	return index.EstimateDocCount(m, visitor)
+func (m *MemoryIndexPointValues) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(m, visitor)
 }
 
 func (m *MemoryIndexPointValues) GetMinPackedValue() ([]byte, error) {
@@ -54,8 +54,8 @@ func (m *MemoryIndexPointValues) GetBytesPerDimension() (int, error) {
 	return m.info.fieldInfo.GetPointNumBytes(), nil
 }
 
-func (m *MemoryIndexPointValues) Size() int64 {
-	return int64(m.info.pointValuesCount)
+func (m *MemoryIndexPointValues) Size() int {
+	return m.info.pointValuesCount
 }
 
 func (m *MemoryIndexPointValues) GetDocCount() int {

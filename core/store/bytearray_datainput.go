@@ -28,7 +28,7 @@ func (b *ByteArrayDataInput) Read(p []byte) (n int, err error) {
 	return b.buf.Read(p)
 }
 
-func (b *ByteArrayDataInput) Close() error {
-	//TODO implement me
-	panic("implement me")
-}
+//func (b *ByteArrayDataInput) Close() error {
+//	//TODO implement me
+//	panic("implement me")
+//}

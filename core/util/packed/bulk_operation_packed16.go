@@ -24,7 +24,7 @@ func (b *BulkOperationPacked16) DecodeByteToLong(blocks []byte, values []uint64,
 	blocksOffset, valuesOffset := 0, 0
 	for j := 0; j < iterations; j++ {
 		block0 := uint64(blocks[blocksOffset]) << 8
-		block1 := uint64(blocks[blocksOffset+1] & 0xFF)
+		block1 := uint64(blocks[blocksOffset+1])
 		values[valuesOffset] = block0 | block1
 		valuesOffset++
 		blocksOffset += 2
@@ -35,7 +35,7 @@ func (b *BulkOperationPacked16) DecodeByteToInt(blocks []byte, values []uint32, 
 	blocksOffset, valuesOffset := 0, 0
 	for j := 0; j < iterations; j++ {
 		block0 := uint32(blocks[blocksOffset]) << 8
-		block1 := uint32(blocks[blocksOffset+1] & 0xFF)
+		block1 := uint32(blocks[blocksOffset+1])
 		values[valuesOffset] = block0 | block1
 		valuesOffset++
 		blocksOffset += 2

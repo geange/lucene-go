@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/types"
+)
 
 // A FilterScorer contains another Scorer, which it uses as its basic source of data,
 // possibly transforming the data along the way or providing additional functionality.
@@ -28,7 +30,7 @@ func (f *FilterScorer) DocID() int {
 	return f.in.DocID()
 }
 
-func (f *FilterScorer) Iterator() index.DocIdSetIterator {
+func (f *FilterScorer) Iterator() types.DocIdSetIterator {
 	return f.in.Iterator()
 }
 

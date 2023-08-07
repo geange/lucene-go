@@ -95,25 +95,25 @@ func (b *BulkOperationPacked14) DecodeLongToLong(blocks, values []uint64, iterat
 func (b *BulkOperationPacked14) DecodeByteToLong(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := uint64(blocks[blocksOffset] & 0xFF)
+		byte0 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte1 := uint64(blocks[blocksOffset] & 0xFF)
+		byte1 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (byte0 << 6) | (byte1 >> 2)
 		valuesOffset++
-		byte2 := uint64(blocks[blocksOffset] & 0xFF)
+		byte2 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte3 := uint64(blocks[blocksOffset] & 0xFF)
+		byte3 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte1 & 3) << 12) | (byte2 << 4) | (byte3 >> 4)
 		valuesOffset++
-		byte4 := uint64(blocks[blocksOffset] & 0xFF)
+		byte4 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte5 := uint64(blocks[blocksOffset] & 0xFF)
+		byte5 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte3 & 15) << 10) | (byte4 << 2) | (byte5 >> 6)
 		valuesOffset++
-		byte6 := uint64(blocks[blocksOffset] & 0xFF)
+		byte6 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte5 & 63) << 8) | byte6
 		valuesOffset++
@@ -123,25 +123,25 @@ func (b *BulkOperationPacked14) DecodeByteToLong(blocks []byte, values []uint64,
 func (b *BulkOperationPacked14) DecodeByteToInt(blocks []byte, values []uint32, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := uint32(blocks[blocksOffset] & 0xFF)
+		byte0 := uint32(blocks[blocksOffset])
 		blocksOffset++
-		byte1 := uint32(blocks[blocksOffset] & 0xFF)
+		byte1 := uint32(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (byte0 << 6) | (byte1 >> 2)
 		valuesOffset++
-		byte2 := uint32(blocks[blocksOffset] & 0xFF)
+		byte2 := uint32(blocks[blocksOffset])
 		blocksOffset++
-		byte3 := uint32(blocks[blocksOffset] & 0xFF)
+		byte3 := uint32(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte1 & 3) << 12) | (byte2 << 4) | (byte3 >> 4)
 		valuesOffset++
-		byte4 := uint32(blocks[blocksOffset] & 0xFF)
+		byte4 := uint32(blocks[blocksOffset])
 		blocksOffset++
-		byte5 := uint32(blocks[blocksOffset] & 0xFF)
+		byte5 := uint32(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte3 & 15) << 10) | (byte4 << 2) | (byte5 >> 6)
 		valuesOffset++
-		byte6 := uint32(blocks[blocksOffset] & 0xFF)
+		byte6 := uint32(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte5 & 63) << 8) | byte6
 		valuesOffset++

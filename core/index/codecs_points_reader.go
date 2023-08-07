@@ -1,6 +1,7 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/types"
 	"io"
 )
 
@@ -16,7 +17,7 @@ type PointsReader interface {
 	CheckIntegrity() error
 
 	// GetValues Return PointValues for the given field.
-	GetValues(field string) (PointValues, error)
+	GetValues(field string) (types.PointValues, error)
 }
 
 // GetMergeInstance Returns an instance optimized for merging.

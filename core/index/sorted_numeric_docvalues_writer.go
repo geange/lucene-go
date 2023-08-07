@@ -1,5 +1,7 @@
 package index
 
+import "github.com/geange/lucene-go/core/types"
+
 var _ DocValuesWriter = &SortedNumericDocValuesWriter{}
 
 type SortedNumericDocValuesWriter struct {
@@ -10,7 +12,7 @@ func (s *SortedNumericDocValuesWriter) Flush(state *SegmentWriteState, sortMap D
 	panic("implement me")
 }
 
-func (s *SortedNumericDocValuesWriter) GetDocValues() DocIdSetIterator {
+func (s *SortedNumericDocValuesWriter) GetDocValues() types.DocIdSetIterator {
 	//TODO implement me
 	panic("implement me")
 }

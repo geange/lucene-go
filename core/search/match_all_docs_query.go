@@ -3,6 +3,7 @@ package search
 import (
 	context2 "context"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 	"math"
@@ -51,7 +52,7 @@ func newConstantScoreWeight(score float64, query Query, scoreMode *ScoreMode) *c
 
 func (c *constantScoreWeight) Scorer(context *index.LeafReaderContext) (Scorer, error) {
 	maxDoc := context.Reader().MaxDoc()
-	return NewConstantScoreScorer(c, c.score, c.scoreMode, index.DocIdSetIteratorAll(maxDoc))
+	return NewConstantScoreScorer(c, c.score, c.scoreMode, types.DocIdSetIteratorAll(maxDoc))
 }
 
 func (c *constantScoreWeight) IsCacheable(ctx *index.LeafReaderContext) bool {

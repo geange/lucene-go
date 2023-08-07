@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/types"
 
 	"github.com/geange/lucene-go/core/document"
 )
@@ -161,7 +162,7 @@ func (c *CodecReaderDefault) GetNormValues(field string) (NumericDocValues, erro
 	return c.GetNormsReader().GetNorms(fi)
 }
 
-func (c *CodecReaderDefault) GetPointValues(field string) (PointValues, bool) {
+func (c *CodecReaderDefault) GetPointValues(field string) (types.PointValues, bool) {
 	//ensureOpen();
 	fi := c.GetFieldInfos().FieldInfo(field)
 	if fi == nil || fi.GetPointDimensionCount() == 0 {

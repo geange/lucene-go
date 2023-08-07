@@ -3,8 +3,10 @@ package search
 import (
 	"bytes"
 	"errors"
-	"github.com/geange/lucene-go/core/index"
 	"io"
+
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ Query = &PointInSetQuery{}
@@ -142,7 +144,7 @@ func (p *PointInSetQuery) Visit(visitor QueryVisitor) (err error) {
 	return nil
 }
 
-var _ index.IntersectVisitor = &MergePointVisitor{}
+var _ types.IntersectVisitor = &MergePointVisitor{}
 
 type MergePointVisitor struct {
 	result             *DocIdSetBuilder
@@ -186,7 +188,7 @@ func (m *MergePointVisitor) VisitLeaf(docID int, packedValue []byte) error {
 	return nil
 }
 
-func (m *MergePointVisitor) VisitIterator(iterator index.DocValuesIterator, packedValue []byte) error {
+func (m *MergePointVisitor) VisitIterator(iterator types.DocValuesIterator, packedValue []byte) error {
 	if m.matches(packedValue) {
 		for {
 			docID, err := iterator.NextDoc()
@@ -228,7 +230,7 @@ func (m *MergePointVisitor) matches(packedValue []byte) bool {
 	return false
 }
 
-func (m *MergePointVisitor) Compare(minPackedValue, maxPackedValue []byte) index.Relation {
+func (m *MergePointVisitor) Compare(minPackedValue, maxPackedValue []byte) types.Relation {
 	var err error
 	for m.nextQueryPoint != nil {
 		cmpMin := bytes.Compare(m.nextQueryPoint, minPackedValue)
@@ -244,27 +246,27 @@ func (m *MergePointVisitor) Compare(minPackedValue, maxPackedValue []byte) index
 		cmpMax := bytes.Compare(m.nextQueryPoint, maxPackedValue)
 		if cmpMax > 0 {
 			// query point is after the end of this cell
-			return index.CELL_OUTSIDE_QUERY
+			return types.CELL_OUTSIDE_QUERY
 		}
 
 		if cmpMin == 0 && cmpMax == 0 {
 			// NOTE: we only hit this if we are on a cell whose min and max values are exactly equal to our point,
 			// which can easily happen if many (> 1024) docs share this one value
-			return index.CELL_INSIDE_QUERY
+			return types.CELL_INSIDE_QUERY
 		} else {
-			return index.CELL_CROSSES_QUERY
+			return types.CELL_CROSSES_QUERY
 		}
 	}
 
 	// We exhausted all points in the query:
-	return index.CELL_OUTSIDE_QUERY
+	return types.CELL_OUTSIDE_QUERY
 }
 
 func (m *MergePointVisitor) Grow(count int) {
 	m.adder = m.result.Grow(count)
 }
 
-var _ index.IntersectVisitor = &SinglePointVisitor{}
+var _ types.IntersectVisitor = &SinglePointVisitor{}
 
 type SinglePointVisitor struct {
 	result     *DocIdSetBuilder
@@ -298,26 +300,7 @@ func (s *SinglePointVisitor) VisitLeaf(docID int, packedValue []byte) error {
 	return nil
 }
 
-func (s *SinglePointVisitor) VisitIterator(iterator index.DocValuesIterator, packedValue []byte) error {
-	if bytes.Equal(packedValue, s.pointBytes) {
-		for {
-			docID, err := iterator.NextDoc()
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-				return err
-			}
-			err = s.Visit(docID)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (s *SinglePointVisitor) Compare(minPackedValue, maxPackedValue []byte) index.Relation {
+func (s *SinglePointVisitor) Compare(minPackedValue, maxPackedValue []byte) types.Relation {
 	crosses := false
 
 	bytesPerDim := s.p.bytesPerDim
@@ -326,12 +309,12 @@ func (s *SinglePointVisitor) Compare(minPackedValue, maxPackedValue []byte) inde
 
 		cmpMin := bytes.Compare(minPackedValue[offset:offset+bytesPerDim], s.pointBytes[offset:offset+bytesPerDim])
 		if cmpMin > 0 {
-			return index.CELL_OUTSIDE_QUERY
+			return types.CELL_OUTSIDE_QUERY
 		}
 
 		cmpMax := bytes.Compare(maxPackedValue[offset:offset+bytesPerDim], s.pointBytes[offset:offset+bytesPerDim])
 		if cmpMax < 0 {
-			return index.CELL_OUTSIDE_QUERY
+			return types.CELL_OUTSIDE_QUERY
 		}
 
 		if cmpMin != 0 || cmpMax != 0 {
@@ -340,12 +323,12 @@ func (s *SinglePointVisitor) Compare(minPackedValue, maxPackedValue []byte) inde
 	}
 
 	if crosses {
-		return index.CELL_CROSSES_QUERY
+		return types.CELL_CROSSES_QUERY
 	}
 
 	// NOTE: we only hit this if we are on a cell whose min and max values are exactly equal to our point,
 	// which can easily happen if many docs share this one value
-	return index.CELL_INSIDE_QUERY
+	return types.CELL_INSIDE_QUERY
 }
 
 func (s *SinglePointVisitor) Grow(count int) {

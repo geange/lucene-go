@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/types"
+)
 
 // DisjunctionScorer
 // Base class for Scorers that score disjunctions.
@@ -11,7 +13,7 @@ type DisjunctionScorer struct {
 
 	subScorers *DisiPriorityQueue
 
-	approximation index.DocIdSetIterator
+	approximation types.DocIdSetIterator
 
 	twoPhase *TwoPhase
 }
@@ -21,7 +23,7 @@ var _ TwoPhaseIterator = &TwoPhase{}
 type TwoPhase struct {
 }
 
-func (t *TwoPhase) Approximation() index.DocIdSetIterator {
+func (t *TwoPhase) Approximation() types.DocIdSetIterator {
 	//TODO implement me
 	panic("implement me")
 }

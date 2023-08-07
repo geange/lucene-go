@@ -1,8 +1,10 @@
 package index
 
+import "github.com/geange/lucene-go/core/types"
+
 // SortedNumericDocValues A list of per-document numeric values, sorted according to Long.CompareFn(long, long).
 type SortedNumericDocValues interface {
-	DocValuesIterator
+	types.DocValuesIterator
 
 	// NextValue Iterates to the next item in the current document. Do not call this more than
 	// docValueCount times for the document.

@@ -3,13 +3,15 @@ package simpletext
 import (
 	"bytes"
 	"errors"
+	"io"
+	"strconv"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/fst"
-	"io"
-	"strconv"
 )
 
 var _ index.Terms = &simpleTextTerms{}
@@ -59,7 +61,7 @@ func (s *SimpleTextFieldsReader) loadTerms(term *simpleTextTerms) error {
 	fstCompiler := fst.NewBuilder[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]](fst.BYTE1, outputs)
 
 	in := s.in.Clone()
-	if _, err := in.Seek(term.termsStart, 0); err != nil {
+	if _, err := in.Seek(term.termsStart, io.SeekStart); err != nil {
 		return err
 	}
 	lastTerm := new(bytes.Buffer)
@@ -524,7 +526,7 @@ func (s *simpleTextDocsEnum) AdvanceShallow(target int) error {
 		if err != nil {
 			return err
 		}
-		if s.skipReader.getNextSkipDoc() != index.NO_MORE_DOCS {
+		if s.skipReader.getNextSkipDoc() != types.NO_MORE_DOCS {
 			s.seekTo = s.skipReader.getNextSkipDocFP()
 		}
 		s.nextSkipDoc = s.skipReader.getNextSkipDoc()
@@ -545,7 +547,7 @@ func (s *simpleTextDocsEnum) CanReuse(in store.IndexInput) bool {
 }
 
 func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPointer int64) (index.PostingsEnum, error) {
-	_, err := s.in.Seek(fp, 0)
+	_, err := s.in.Seek(fp, io.SeekStart)
 	if err != nil {
 		return nil, err
 	}
@@ -563,7 +565,7 @@ func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPoint
 }
 
 func (s *simpleTextDocsEnum) readDoc() (int, error) {
-	if s.docID == index.NO_MORE_DOCS {
+	if s.docID == types.NO_MORE_DOCS {
 		return s.docID, nil
 	}
 	first := true
@@ -579,7 +581,7 @@ func (s *simpleTextDocsEnum) readDoc() (int, error) {
 		}
 		if bytes.HasPrefix(scratch.Bytes(), FIELDS_DOC) {
 			if !first {
-				_, err := s.in.Seek(lineStart, 0)
+				_, err := s.in.Seek(lineStart, io.SeekStart)
 				if err != nil {
 					return 0, err
 				}
@@ -621,7 +623,7 @@ func (s *simpleTextDocsEnum) readDoc() (int, error) {
 				bytes.HasPrefix(scratch.Bytes(), FIELDS_END) {
 
 				if !first {
-					_, err := s.in.Seek(lineStart, 0)
+					_, err := s.in.Seek(lineStart, io.SeekStart)
 					if err != nil {
 						return 0, err
 					}
@@ -632,7 +634,7 @@ func (s *simpleTextDocsEnum) readDoc() (int, error) {
 				}
 
 			}
-			s.docID = index.NO_MORE_DOCS
+			s.docID = types.NO_MORE_DOCS
 			return s.docID, io.EOF
 		}
 	}

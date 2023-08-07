@@ -1,9 +1,8 @@
 package search
 
 import (
+	"github.com/geange/lucene-go/core/types"
 	"math"
-
-	"github.com/geange/lucene-go/core/index"
 )
 
 var _ Scorer = &ReqOptSumScorer{}
@@ -36,10 +35,10 @@ type ReqOptSumScorer struct {
 	reqScorer Scorer
 	optScorer Scorer
 
-	reqApproximation index.DocIdSetIterator
-	optApproximation index.DocIdSetIterator
+	reqApproximation types.DocIdSetIterator
+	optApproximation types.DocIdSetIterator
 	optTwoPhase      TwoPhaseIterator
-	approximation    index.DocIdSetIterator
+	approximation    types.DocIdSetIterator
 	twoPhase         TwoPhaseIterator
 
 	maxScorePropagator *MaxScoreSumPropagator
@@ -93,7 +92,7 @@ func NewReqOptSumScorer(reqScorer, optScorer Scorer, scoreMode *ScoreMode) (*Req
 		if err != nil {
 			return nil, err
 		}
-		scorer.reqMaxScore, err = reqScorer.GetMaxScore(index.NO_MORE_DOCS)
+		scorer.reqMaxScore, err = reqScorer.GetMaxScore(types.NO_MORE_DOCS)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +115,7 @@ func NewReqOptSumScorer(reqScorer, optScorer Scorer, scoreMode *ScoreMode) (*Req
 	return scorer, nil
 }
 
-var _ index.DocIdSetIterator = &innerDocIdSetIterator{}
+var _ types.DocIdSetIterator = &innerDocIdSetIterator{}
 
 type innerDocIdSetIterator struct {
 	upTo     int
@@ -150,8 +149,8 @@ func (r *innerDocIdSetIterator) advanceImpacts(target int) (int, error) {
 			return target, nil
 		}
 
-		if r.upTo == index.NO_MORE_DOCS {
-			return index.NO_MORE_DOCS, nil
+		if r.upTo == types.NO_MORE_DOCS {
+			return types.NO_MORE_DOCS, nil
 		}
 
 		target = r.upTo + 1
@@ -176,12 +175,12 @@ func (r *innerDocIdSetIterator) Advance(target int) (int, error) {
 }
 
 func (r *innerDocIdSetIterator) advanceInternal(target int) (int, error) {
-	if target == index.NO_MORE_DOCS {
+	if target == types.NO_MORE_DOCS {
 		_, err := r.scorer.reqApproximation.Advance(target)
 		if err != nil {
 			return 0, err
 		}
-		return index.NO_MORE_DOCS, nil
+		return types.NO_MORE_DOCS, nil
 	}
 	reqDoc := target
 
@@ -198,13 +197,13 @@ OUTER:
 		if r.scorer.reqApproximation.DocID() < reqDoc {
 			reqDoc, err = r.scorer.reqApproximation.Advance(reqDoc)
 		}
-		if reqDoc == index.NO_MORE_DOCS || r.scorer.optIsRequired == false {
+		if reqDoc == types.NO_MORE_DOCS || r.scorer.optIsRequired == false {
 			return reqDoc, nil
 		}
 
 		upperBound := r.upTo
 		if r.scorer.reqMaxScore < r.scorer.minScore {
-			upperBound = index.NO_MORE_DOCS
+			upperBound = types.NO_MORE_DOCS
 		}
 		if reqDoc > upperBound {
 			continue
@@ -234,7 +233,7 @@ OUTER:
 				}
 			}
 
-			if reqDoc == index.NO_MORE_DOCS || optDoc == reqDoc {
+			if reqDoc == types.NO_MORE_DOCS || optDoc == reqDoc {
 				return reqDoc, nil
 			}
 		}
@@ -243,7 +242,7 @@ OUTER:
 }
 
 func (r *innerDocIdSetIterator) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(r, target)
+	return types.SlowAdvance(r, target)
 }
 
 func (r *innerDocIdSetIterator) Cost() int64 {
@@ -253,12 +252,12 @@ func (r *innerDocIdSetIterator) Cost() int64 {
 var _ TwoPhaseIterator = &innerTwoPhaseIterator{}
 
 type innerTwoPhaseIterator struct {
-	approximation index.DocIdSetIterator
+	approximation types.DocIdSetIterator
 	scorer        *ReqOptSumScorer
 	reqTwoPhase   TwoPhaseIterator
 }
 
-func (i *innerTwoPhaseIterator) Approximation() index.DocIdSetIterator {
+func (i *innerTwoPhaseIterator) Approximation() types.DocIdSetIterator {
 	return i.approximation
 }
 
@@ -357,7 +356,7 @@ func (r *ReqOptSumScorer) DocID() int {
 	return r.reqScorer.DocID()
 }
 
-func (r *ReqOptSumScorer) Iterator() index.DocIdSetIterator {
+func (r *ReqOptSumScorer) Iterator() types.DocIdSetIterator {
 	if r.twoPhase == nil {
 		return r.approximation
 	} else {
@@ -376,7 +375,7 @@ func (r *ReqOptSumScorer) AdvanceShallow(target int) (int, error) {
 			return 0, err
 		}
 		upTo = min(upTo, shallow)
-	} else if r.optScorer.DocID() != index.NO_MORE_DOCS {
+	} else if r.optScorer.DocID() != types.NO_MORE_DOCS {
 		upTo = min(upTo, r.optScorer.DocID()-1)
 	}
 	return upTo, nil

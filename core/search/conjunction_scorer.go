@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"math"
 	"sort"
 )
@@ -15,7 +16,7 @@ var _ Scorer = &ConjunctionScorer{}
 type ConjunctionScorer struct {
 	*ScorerDefault
 
-	disi     index.DocIdSetIterator
+	disi     types.DocIdSetIterator
 	scorers  []Scorer
 	required []Scorer
 }
@@ -53,7 +54,7 @@ func (c *ConjunctionScorer) TwoPhaseIterator() TwoPhaseIterator {
 	return UnwrapIterator(c.disi)
 }
 
-func (c *ConjunctionScorer) Iterator() index.DocIdSetIterator {
+func (c *ConjunctionScorer) Iterator() types.DocIdSetIterator {
 	return c.disi
 }
 
@@ -68,12 +69,12 @@ func (c *ConjunctionScorer) GetMaxScore(upTo int) (float64, error) {
 	}
 }
 
-func intersectScorers(scorers []Scorer) (index.DocIdSetIterator, error) {
+func intersectScorers(scorers []Scorer) (types.DocIdSetIterator, error) {
 	if len(scorers) < 2 {
 		return nil, errors.New("cannot make a ConjunctionDISI of less than 2 iterators")
 	}
 
-	allIterators := make([]index.DocIdSetIterator, 0)
+	allIterators := make([]types.DocIdSetIterator, 0)
 	twoPhaseIterators := make([]TwoPhaseIterator, 0)
 
 	for _, scorer := range scorers {
@@ -83,8 +84,8 @@ func intersectScorers(scorers []Scorer) (index.DocIdSetIterator, error) {
 }
 
 // Adds the scorer, possibly splitting up into two phases or collapsing if it is another conjunction
-func addScorer(scorer Scorer, allIterators []index.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) ([]index.DocIdSetIterator, []TwoPhaseIterator) {
+func addScorer(scorer Scorer, allIterators []types.DocIdSetIterator,
+	twoPhaseIterators []TwoPhaseIterator) ([]types.DocIdSetIterator, []TwoPhaseIterator) {
 	twoPhaseIter := scorer.TwoPhaseIterator()
 	if twoPhaseIter != nil {
 		allIterators, twoPhaseIterators = addTwoPhaseIterator(twoPhaseIter, allIterators, twoPhaseIterators)
@@ -95,8 +96,8 @@ func addScorer(scorer Scorer, allIterators []index.DocIdSetIterator,
 	return allIterators, twoPhaseIterators
 }
 
-func addTwoPhaseIterator(twoPhaseIter TwoPhaseIterator, allIterators []index.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) ([]index.DocIdSetIterator, []TwoPhaseIterator) {
+func addTwoPhaseIterator(twoPhaseIter TwoPhaseIterator, allIterators []types.DocIdSetIterator,
+	twoPhaseIterators []TwoPhaseIterator) ([]types.DocIdSetIterator, []TwoPhaseIterator) {
 	allIterators, twoPhaseIterators = addIterator(twoPhaseIter.Approximation(), allIterators, twoPhaseIterators)
 	if v, ok := twoPhaseIter.(*ConjunctionTwoPhaseIterator); ok {
 		// Check for exactly this class for collapsing
@@ -107,8 +108,8 @@ func addTwoPhaseIterator(twoPhaseIter TwoPhaseIterator, allIterators []index.Doc
 	return allIterators, twoPhaseIterators
 }
 
-func createConjunction(allIterators []index.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) (index.DocIdSetIterator, error) {
+func createConjunction(allIterators []types.DocIdSetIterator,
+	twoPhaseIterators []TwoPhaseIterator) (types.DocIdSetIterator, error) {
 
 	// check that all sub-iterators are on the same doc ID
 	curDoc := 0
@@ -151,7 +152,7 @@ func createConjunction(allIterators []index.DocIdSetIterator,
 	}
 
 	bitSetIterators := make([]*index.BitSetIterator, 0)
-	iterators := make([]index.DocIdSetIterator, 0)
+	iterators := make([]types.DocIdSetIterator, 0)
 
 	for _, it := range allIterators {
 		if v, ok := it.(*index.BitSetIterator); ok {
@@ -163,7 +164,7 @@ func createConjunction(allIterators []index.DocIdSetIterator,
 		iterators = append(iterators, it)
 	}
 
-	var disi index.DocIdSetIterator
+	var disi types.DocIdSetIterator
 	if len(iterators) == 1 {
 		disi = iterators[0]
 	} else {
@@ -180,8 +181,8 @@ func createConjunction(allIterators []index.DocIdSetIterator,
 	return disi, nil
 }
 
-func addIterator(disi index.DocIdSetIterator, allIterators []index.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) ([]index.DocIdSetIterator, []TwoPhaseIterator) {
+func addIterator(disi types.DocIdSetIterator, allIterators []types.DocIdSetIterator,
+	twoPhaseIterators []TwoPhaseIterator) ([]types.DocIdSetIterator, []TwoPhaseIterator) {
 
 	twoPhase := UnwrapIterator(disi)
 
@@ -207,7 +208,7 @@ func addIterator(disi index.DocIdSetIterator, allIterators []index.DocIdSetItera
 var _ TwoPhaseIterator = &ConjunctionTwoPhaseIterator{}
 
 type ConjunctionTwoPhaseIterator struct {
-	approximation     index.DocIdSetIterator
+	approximation     types.DocIdSetIterator
 	twoPhaseIterators []TwoPhaseIterator
 	matchCost         float64
 }
@@ -228,7 +229,7 @@ func (t TimSortTwoPhase) Swap(i, j int) {
 	t[i], t[j] = t[j], t[i]
 }
 
-func newConjunctionTwoPhaseIterator(approximation index.DocIdSetIterator,
+func newConjunctionTwoPhaseIterator(approximation types.DocIdSetIterator,
 	twoPhaseIterators []TwoPhaseIterator) *ConjunctionTwoPhaseIterator {
 
 	it := &ConjunctionTwoPhaseIterator{approximation: approximation}
@@ -247,7 +248,7 @@ func newConjunctionTwoPhaseIterator(approximation index.DocIdSetIterator,
 	return it
 }
 
-func (c *ConjunctionTwoPhaseIterator) Approximation() index.DocIdSetIterator {
+func (c *ConjunctionTwoPhaseIterator) Approximation() types.DocIdSetIterator {
 	//TODO implement me
 	panic("implement me")
 }
@@ -261,10 +262,10 @@ func (c *ConjunctionTwoPhaseIterator) MatchCost() float64 {
 	return c.matchCost
 }
 
-var _ index.DocIdSetIterator = &BitSetConjunctionDISI{}
+var _ types.DocIdSetIterator = &BitSetConjunctionDISI{}
 
 type BitSetConjunctionDISI struct {
-	lead            index.DocIdSetIterator
+	lead            types.DocIdSetIterator
 	bitSetIterators []*index.BitSetIterator
 	bitSets         []*bitset.BitSet
 	minLength       int
@@ -286,7 +287,7 @@ func (t TimSortBitSet) Swap(i, j int) {
 	t[i], t[j] = t[j], t[i]
 }
 
-func newBitSetConjunctionDISI(lead index.DocIdSetIterator, bitSetIterators []*index.BitSetIterator) *BitSetConjunctionDISI {
+func newBitSetConjunctionDISI(lead types.DocIdSetIterator, bitSetIterators []*index.BitSetIterator) *BitSetConjunctionDISI {
 	disi := &BitSetConjunctionDISI{
 		lead:            lead,
 		bitSetIterators: bitSetIterators,

@@ -33,7 +33,7 @@ import (
 // For example, Lucene analyzers can split on whitespace, normalize to lower case for case insensitivity,
 // ignore common Terms with little discriminatory value such as "he", "in", "and" (stop words), reduce the Terms
 // to their natural linguistic root form such as "fishing" being reduced to "fish" (stemming), resolve
-// synonyms/inflexions/thesauri (upon indexing and/or querying), etc. For details, see Lucene Analyzer Intro.
+// synonyms/inflexions/thesauri (upon indexing and/or querying), etc. For details, see Lucene Analyzer intro.
 // Arbitrary Lucene queries can be run against this class - see Lucene Query Syntax as well as Query Parser Rules.
 // Note that a Lucene query selects on the field names and associated (indexed) tokenized Terms, not on the
 // original fulltext(s) - the latter are not stored but rather thrown away immediately after tokenization.

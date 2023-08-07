@@ -1,6 +1,7 @@
-package index
+package types
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"math"
@@ -63,14 +64,14 @@ type PointValues interface {
 	// EstimatePointCount Estimate the number of points that would be visited
 	// by intersect with the given PointValues.BytesVisitor.
 	// This should run many times faster than intersect(PointValues.BytesVisitor).
-	EstimatePointCount(visitor IntersectVisitor) int64
+	EstimatePointCount(visitor IntersectVisitor) (int, error)
 
 	// EstimateDocCount
 	// Estimate the number of documents that would be matched by intersect with the given
 	// PointValues.IntersectVisitor. This should run many times faster than
 	// intersect(PointValues.IntersectVisitor).
 	// See Also: DocIdSetIterator.cost
-	EstimateDocCount(visitor IntersectVisitor) int64
+	EstimateDocCount(visitor IntersectVisitor) (int, error)
 
 	// GetMinPackedValue Returns minimum item for each dimension, packed, or null if size is 0
 	GetMinPackedValue() ([]byte, error)
@@ -88,30 +89,33 @@ type PointValues interface {
 	GetBytesPerDimension() (int, error)
 
 	// Size Returns the total number of indexed points across all documents.
-	Size() int64
+	Size() int
 
 	// GetDocCount Returns the total number of documents that have indexed at least one point.
 	GetDocCount() int
 }
 
 type EstimateDocCountSPI interface {
-	EstimatePointCount(visitor IntersectVisitor) int64
-	Size() int64
+	EstimatePointCount(visitor IntersectVisitor) (int, error)
+	Size() int
 	GetDocCount() int
 }
 
-func EstimateDocCount(spi EstimateDocCountSPI, visitor IntersectVisitor) int64 {
+func EstimateDocCount(spi EstimateDocCountSPI, visitor IntersectVisitor) (int, error) {
 
-	estimatedPointCount := spi.EstimatePointCount(visitor)
+	estimatedPointCount, err := spi.EstimatePointCount(visitor)
+	if err != nil {
+		return 0, err
+	}
 	docCount := spi.GetDocCount()
 	size := spi.Size()
 	if estimatedPointCount >= size {
 		// math all docs
-		return int64(docCount)
-	} else if size == int64(docCount) || estimatedPointCount == 0 {
+		return docCount, nil
+	} else if size == docCount || estimatedPointCount == 0 {
 		// if the point count estimate is 0 or we have only single values
 		// return this estimate
-		return estimatedPointCount
+		return estimatedPointCount, nil
 	} else {
 		// in case of multi values estimate the number of docs using the solution provided in
 		// https://math.stackexchange.com/questions/1175295/urn-problem-probability-of-drawing-balls-of-k-unique-colors
@@ -125,16 +129,15 @@ func EstimateDocCount(spi EstimateDocCountSPI, visitor IntersectVisitor) int64 {
 		docEstimate := f64DocCount * (1 - math.Pow((f64Size-f64EstimatedPointCount)/f64Size, f64Size/f64DocCount))
 
 		if docEstimate == 0 {
-			return 1
+			return 1, nil
 		}
-		return int64(docEstimate)
+		return int(docEstimate), nil
 	}
 }
 
 type IntersectVisitor interface {
 	Visit(docID int) error
 	VisitLeaf(docID int, packedValue []byte) error
-	VisitIterator(iterator DocValuesIterator, packedValue []byte) error
 	Compare(minPackedValue, maxPackedValue []byte) Relation
 	Grow(count int)
 }
@@ -175,6 +178,21 @@ func (r *BytesVisitor) Grow(count int) {
 	r.GrowFn(count)
 }
 
+func Visit(visitor IntersectVisitor, iterator DocIdSetIterator, packedValue []byte) error {
+	for {
+		docID, err := iterator.NextDoc()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
+		}
+		if err := visitor.VisitLeaf(docID, packedValue); err != nil {
+			return err
+		}
+	}
+}
+
 func (r *BytesVisitor) VisitIterator(iterator DocValuesIterator, packedValue []byte) error {
 	for {
 		docID, err := iterator.NextDoc()
@@ -188,4 +206,26 @@ func (r *BytesVisitor) VisitIterator(iterator DocValuesIterator, packedValue []b
 			return err
 		}
 	}
+}
+
+type MutablePointValues interface {
+	PointValues
+
+	// GetValue Set packedValue with a reference to the packed bytes of the i-th item.
+	GetValue(i int, packedValue *bytes.Buffer)
+
+	// GetByteAt Get the k-th byte of the i-th item.
+	GetByteAt(i, k int) byte
+
+	// GetDocID Return the doc ID of the i-th item.
+	GetDocID(i int) int
+
+	// Swap the i-th and j-th values.
+	Swap(i, j int)
+
+	// Save the i-th item into the j-th position in temporary storage.
+	Save(i, j int)
+
+	// Restore values between i-th and j-th(excluding) in temporary storage into original storage.
+	Restore(i, j int)
 }

@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+	"strconv"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"io"
-	"math"
-	"strconv"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var (
@@ -86,7 +88,7 @@ func (s *SimpleTextDocValuesWriter) AddNumericField(field *document.FieldInfo, v
 			}
 			return err
 		}
-		if doc != index.NO_MORE_DOCS {
+		if doc != types.NO_MORE_DOCS {
 			break
 		}
 
@@ -198,7 +200,7 @@ func (s *SimpleTextDocValuesWriter) doAddBinaryField(field *document.FieldInfo, 
 			}
 		}
 
-		if doc == index.NO_MORE_DOCS {
+		if doc == types.NO_MORE_DOCS {
 			break
 		}
 
@@ -481,7 +483,7 @@ func (i *innerBinaryDocValues) BinaryValue() ([]byte, error) {
 }
 
 func (i *innerBinaryDocValues) setCurrentDoc() error {
-	if i.DocID() == index.NO_MORE_DOCS {
+	if i.DocID() == types.NO_MORE_DOCS {
 		return nil
 	}
 

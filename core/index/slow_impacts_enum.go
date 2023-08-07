@@ -1,6 +1,9 @@
 package index
 
-import "math"
+import (
+	"github.com/geange/lucene-go/core/types"
+	"math"
+)
 
 var _ ImpactsEnum = &SlowImpactsEnum{}
 
@@ -75,7 +78,7 @@ var dummyImpacts = &slowImpactsEnumImpacts{
 }
 
 func (s *slowImpactsEnumImpacts) GetDocIdUpTo(level int) int {
-	return NO_MORE_DOCS
+	return types.NO_MORE_DOCS
 }
 
 func (s *slowImpactsEnumImpacts) GetImpacts(level int) []*Impact {

@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"math"
 	"sort"
@@ -43,7 +43,7 @@ func NewMaxScoreSumPropagator(scorerList []Scorer) (*MaxScoreSumPropagator, erro
 		if err != nil {
 			return nil, err
 		}
-		maxScores[i], err = propagator.scorers[i].GetMaxScore(index.NO_MORE_DOCS)
+		maxScores[i], err = propagator.scorers[i].GetMaxScore(types.NO_MORE_DOCS)
 		if err != nil {
 			return nil, err
 		}

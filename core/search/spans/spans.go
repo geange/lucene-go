@@ -1,11 +1,13 @@
 package spans
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/types"
+)
 
 // Spans
 // Iterates through combinations of start/end positions per-doc. Each start/end position represents a range of term positions within the current document. These are enumerated in order, by increasing document number, within that by increasing start position and finally by increasing end position.
 type Spans interface {
-	index.DocIdSetIterator
+	types.DocIdSetIterator
 
 	// NextStartPosition
 	// Returns the next start position for the current doc. There is always at least one start/end position per doc. After the last start/end position at the current doc this returns NO_MORE_POSITIONS.

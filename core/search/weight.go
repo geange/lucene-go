@@ -193,7 +193,7 @@ var _ BulkScorer = &DefaultBulkScorer{}
 
 type DefaultBulkScorer struct {
 	scorer   Scorer
-	iterator index.DocIdSetIterator
+	iterator types.DocIdSetIterator
 	twoPhase TwoPhaseIterator
 }
 
@@ -217,7 +217,7 @@ func (d *DefaultBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.
 		return 0, err
 	}
 
-	scorerIterator := func() index.DocIdSetIterator {
+	scorerIterator := func() types.DocIdSetIterator {
 		if d.twoPhase == nil {
 			return d.iterator
 		}
@@ -229,7 +229,7 @@ func (d *DefaultBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.
 		return 0, err
 	}
 
-	var filteredIterator index.DocIdSetIterator
+	var filteredIterator types.DocIdSetIterator
 	if competitiveIterator == nil {
 		filteredIterator = scorerIterator
 	} else {
@@ -244,18 +244,18 @@ func (d *DefaultBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.
 			competitiveIterator = NewStartDISIWrapper(competitiveIterator)
 		}
 
-		filteredIterator = IntersectIterators([]index.DocIdSetIterator{
+		filteredIterator = IntersectIterators([]types.DocIdSetIterator{
 			scorerIterator,
 			competitiveIterator,
 		})
 	}
 
-	if filteredIterator.DocID() == -1 && min == 0 && max == index.NO_MORE_DOCS {
+	if filteredIterator.DocID() == -1 && min == 0 && max == types.NO_MORE_DOCS {
 		err := scoreAll(collector, filteredIterator, d.twoPhase, acceptDocs)
 		if err != nil {
 			return 0, err
 		}
-		return index.NO_MORE_DOCS, nil
+		return types.NO_MORE_DOCS, nil
 	} else {
 		doc := filteredIterator.DocID()
 		if doc < min {
@@ -268,7 +268,7 @@ func (d *DefaultBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.
 	}
 }
 
-func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
+func scoreAll(collector LeafCollector, iterator types.DocIdSetIterator,
 	twoPhase TwoPhaseIterator, acceptDocs util.Bits) error {
 
 	doc, err := iterator.NextDoc()
@@ -317,7 +317,7 @@ func scoreAll(collector LeafCollector, iterator index.DocIdSetIterator,
 
 }
 
-func scoreRange(collector LeafCollector, iterator index.DocIdSetIterator, twoPhase TwoPhaseIterator,
+func scoreRange(collector LeafCollector, iterator types.DocIdSetIterator, twoPhase TwoPhaseIterator,
 	acceptDocs util.Bits, currentDoc, end int) (int, error) {
 
 	var err error
@@ -358,15 +358,15 @@ func (d *DefaultBulkScorer) Cost() int64 {
 	return d.iterator.Cost()
 }
 
-var _ index.DocIdSetIterator = &StartDISIWrapper{}
+var _ types.DocIdSetIterator = &StartDISIWrapper{}
 
 type StartDISIWrapper struct {
-	in         index.DocIdSetIterator
+	in         types.DocIdSetIterator
 	startDocID int
 	docID      int
 }
 
-func NewStartDISIWrapper(in index.DocIdSetIterator) *StartDISIWrapper {
+func NewStartDISIWrapper(in types.DocIdSetIterator) *StartDISIWrapper {
 	return &StartDISIWrapper{
 		in:         in,
 		startDocID: in.DocID(),
@@ -392,7 +392,7 @@ func (s *StartDISIWrapper) Advance(target int) (int, error) {
 }
 
 func (s *StartDISIWrapper) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(s, target)
+	return types.SlowAdvance(s, target)
 }
 
 func (s *StartDISIWrapper) Cost() int64 {

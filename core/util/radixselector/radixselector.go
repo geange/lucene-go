@@ -1,12 +1,16 @@
-package util
+package radixselector
 
-import "bytes"
+import (
+	"bytes"
 
-// RadixSelector Radix selector.
+	"github.com/geange/lucene-go/core/util"
+)
+
+// option Radix selector.
 // This implementation works similarly to a MSB radix sort except that it only recurses
 // into the sub partition that contains the desired value.
 // lucene.internal
-//type RadixSelector interface {
+//type option interface {
 //	Selector
 //
 //	// ByteAt Return the k-th byte of the entry at index i, or -1 if its length is less than or
@@ -29,29 +33,55 @@ const (
 	LENGTH_THRESHOLD = 100
 )
 
-var _ Selector = &RadixSelector{}
+//var _ Selector = &option{}
 
 type RadixSelectorConfig struct {
 	MaxLength             int
 	FnByteAt              func(i, k int) int
 	FnSwap                func(i, j int)
-	FnGetFallbackSelector func(d int) Selector
+	FnGetFallbackSelector func(d int) util.Selector
 }
 
-type RadixSelector struct {
+type option struct {
 	// we store one histogram per recursion level
 	histogram             []int
 	commonPrefix          []int
 	maxLength             int
 	fnByteAt              func(i, k int) int
 	fnSwap                func(i, j int)
-	fnGetFallbackSelector func(d int) Selector
+	fnGetFallbackSelector func(d int) util.Selector
+}
+
+type Option func(*option)
+
+func WithMaxLength(size int) Option {
+	return func(o *option) {
+		o.maxLength = size
+	}
+}
+
+func WithByteAtFunc(fn func(i, k int) int) Option {
+	return func(o *option) {
+		o.fnByteAt = fn
+	}
+}
+
+func WithSwapFunc(fn func(i, j int)) Option {
+	return func(o *option) {
+		o.fnSwap = fn
+	}
+}
+
+func WithGetFallbackSelectorFunc(fn func(d int) util.Selector) Option {
+	return func(o *option) {
+		o.fnGetFallbackSelector = fn
+	}
 }
 
 // NewRadixSelector Sole constructor.
 // Params: maxLength – the maximum length of keys, pass Integer.MAX_VALUE if unknown.
-func NewRadixSelector(cfg *RadixSelectorConfig) *RadixSelector {
-	return &RadixSelector{
+func NewRadixSelector(cfg *RadixSelectorConfig) util.Selector {
+	return &option{
 		histogram:    make([]int, HISTOGRAM_SIZE),
 		commonPrefix: make([]int, min(24, cfg.MaxLength)),
 		maxLength:    cfg.MaxLength,
@@ -60,14 +90,14 @@ func NewRadixSelector(cfg *RadixSelectorConfig) *RadixSelector {
 	}
 }
 
-func (r *RadixSelector) Swap(i, j int) {
+func (r *option) Swap(i, j int) {
 	r.fnSwap(i, j)
 }
 
-func (r *RadixSelector) getFallbackSelector(d int) Selector {
+func (r *option) getFallbackSelector(d int) util.Selector {
 	buf := new(bytes.Buffer)
 
-	return NewIntroSelector(&IntroSelectorConfig{
+	return util.NewIntroSelector(&util.IntroSelectorConfig{
 		FnSwap: func(i, j int) {
 			r.fnSwap(i, j)
 		},
@@ -111,12 +141,12 @@ func (r *RadixSelector) getFallbackSelector(d int) Selector {
 	})
 }
 
-func (r *RadixSelector) Select(from, to, k int) {
-	SelectorCheckArgs(from, to, k)
+func (r *option) Select(from, to, k int) {
+	util.SelectorCheckArgs(from, to, k)
 	r.fnSelect(from, to, k, 0, 0)
 }
 
-func (r *RadixSelector) fnSelect(from, to, k, d, l int) {
+func (r *option) fnSelect(from, to, k, d, l int) {
 	if to-from <= LENGTH_THRESHOLD || l >= LEVEL_THRESHOLD {
 		r.getFallbackSelector(d).Select(from, to, k)
 	} else {
@@ -127,7 +157,7 @@ func (r *RadixSelector) fnSelect(from, to, k, d, l int) {
 // Params:  d – the character number to CompareFn
 //
 //	l – the level of recursion
-func (r *RadixSelector) radixSelect(from, to, k, d, l int) {
+func (r *option) radixSelect(from, to, k, d, l int) {
 	histogram := r.histogram
 	for i := range histogram {
 		histogram[i] = 0
@@ -166,7 +196,7 @@ func (r *RadixSelector) radixSelect(from, to, k, d, l int) {
 }
 
 // only used from assert
-func (r *RadixSelector) assertHistogram(commonPrefixLength int, histogram []int) bool {
+func (r *option) assertHistogram(commonPrefixLength int, histogram []int) bool {
 	numberOfUniqueBytes := 0
 	for _, freq := range r.histogram {
 		if freq > 0 {
@@ -186,25 +216,25 @@ func (r *RadixSelector) assertHistogram(commonPrefixLength int, histogram []int)
 }
 
 // Return a number for the k-th character between 0 and HISTOGRAM_SIZE.
-func (r *RadixSelector) getBucket(i, k int) int {
+func (r *option) getBucket(i, k int) int {
 	return r.fnByteAt(i, k) + 1
 }
 
 // Build a histogram of the number of values per bucket and return a common prefix length for all visited values.
 // See Also: buildHistogram
-func (r *RadixSelector) computeCommonPrefixLengthAndBuildHistogram(from, to, k int, histogram []int) int {
+func (r *option) computeCommonPrefixLengthAndBuildHistogram(from, to, k int, histogram []int) int {
 	panic("")
 }
 
 // Build an histogram of the k-th characters of values occurring between offsets from and to, using getBucket.
-func (r *RadixSelector) buildHistogram(from, to, k int, histogram []int) {
+func (r *option) buildHistogram(from, to, k int, histogram []int) {
 	for i := from; i < to; i++ {
 		histogram[r.getBucket(i, k)]++
 	}
 }
 
 // Reorder elements so that all of them that fall into bucket are between offsets bucketFrom and bucketTo.
-func (r *RadixSelector) partition(from, to, bucket, bucketFrom, bucketTo, d int) {
+func (r *option) partition(from, to, bucket, bucketFrom, bucketTo, d int) {
 	left := from
 	right := to - 1
 

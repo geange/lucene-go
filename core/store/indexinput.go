@@ -66,15 +66,6 @@ func (i *IndexInputBase) RandomAccessSlice(offset int64, length int64) (RandomAc
 	return &randomAccessIndexInput{in: slice}, nil
 }
 
-type IndexInputDefaultConfig struct {
-	Reader         io.Reader
-	Close          func() error
-	GetFilePointer func() int64
-	Seek           func(pos int64, whence int) (int64, error)
-	Slice          func(sliceDescription string, offset, length int64) (IndexInput, error)
-	Length         func() int64
-}
-
 func NewIndexInputBase(input IndexInput) *IndexInputBase {
 	return &IndexInputBase{
 		Reader: NewReader(input),
@@ -122,7 +113,7 @@ type randomAccessIndexInput struct {
 }
 
 func (r *randomAccessIndexInput) RUint8(pos int64) (byte, error) {
-	_, err := r.in.Seek(pos, 0)
+	_, err := r.in.Seek(pos, io.SeekStart)
 	if err != nil {
 		return 0, err
 	}
@@ -130,7 +121,7 @@ func (r *randomAccessIndexInput) RUint8(pos int64) (byte, error) {
 }
 
 func (r *randomAccessIndexInput) RUint16(pos int64) (uint16, error) {
-	_, err := r.in.Seek(pos, 0)
+	_, err := r.in.Seek(pos, io.SeekStart)
 	if err != nil {
 		return 0, err
 	}
@@ -138,7 +129,7 @@ func (r *randomAccessIndexInput) RUint16(pos int64) (uint16, error) {
 }
 
 func (r *randomAccessIndexInput) RUint32(pos int64) (uint32, error) {
-	_, err := r.in.Seek(pos, 0)
+	_, err := r.in.Seek(pos, io.SeekStart)
 	if err != nil {
 		return 0, err
 	}
@@ -146,7 +137,7 @@ func (r *randomAccessIndexInput) RUint32(pos int64) (uint32, error) {
 }
 
 func (r *randomAccessIndexInput) RUint64(pos int64) (uint64, error) {
-	_, err := r.in.Seek(pos, 0)
+	_, err := r.in.Seek(pos, io.SeekStart)
 	if err != nil {
 		return 0, err
 	}

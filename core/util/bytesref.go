@@ -89,7 +89,7 @@ func StringToBytes(value string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		bs = append(bs, byte(parseInt&0xFF))
+		bs = append(bs, byte(parseInt))
 	}
 	return bs, nil
 }

@@ -1,11 +1,11 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"sort"
 )
 
-var _ index.DocIdSetIterator = &ConjunctionDISI{}
+var _ types.DocIdSetIterator = &ConjunctionDISI{}
 
 // ConjunctionDISI
 // A conjunction of DocIdSetIterators. Requires that all of its sub-iterators must be on the same
@@ -13,12 +13,12 @@ var _ index.DocIdSetIterator = &ConjunctionDISI{}
 // Public only for use in org.apache.lucene.search.spans.
 // lucene.internal
 type ConjunctionDISI struct {
-	lead1  index.DocIdSetIterator
-	lead2  index.DocIdSetIterator
-	others []index.DocIdSetIterator
+	lead1  types.DocIdSetIterator
+	lead2  types.DocIdSetIterator
+	others []types.DocIdSetIterator
 }
 
-func newConjunctionDISI(iterators []index.DocIdSetIterator) *ConjunctionDISI {
+func newConjunctionDISI(iterators []types.DocIdSetIterator) *ConjunctionDISI {
 	// Sort the array the first time to allow the least frequent DocsEnum to
 	// lead the matching.
 	sort.Sort(TimSort(iterators))
@@ -31,7 +31,7 @@ func newConjunctionDISI(iterators []index.DocIdSetIterator) *ConjunctionDISI {
 
 var _ sort.Interface = TimSort{}
 
-type TimSort []index.DocIdSetIterator
+type TimSort []types.DocIdSetIterator
 
 func (t TimSort) Len() int {
 	return len(t)
@@ -61,7 +61,7 @@ func (c *ConjunctionDISI) Advance(target int) (int, error) {
 }
 
 func (c *ConjunctionDISI) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(c, target)
+	return types.SlowAdvance(c, target)
 }
 
 func (c *ConjunctionDISI) Cost() int64 {
@@ -70,7 +70,7 @@ func (c *ConjunctionDISI) Cost() int64 {
 }
 
 // IntersectIterators Create a conjunction over the provided Scorers. Note that the returned DocIdSetIterator might leverage two-phase iteration in which case it is possible to retrieve the TwoPhaseIterator using TwoPhaseIterator.unwrap.
-func IntersectIterators(iterators []index.DocIdSetIterator) index.DocIdSetIterator {
+func IntersectIterators(iterators []types.DocIdSetIterator) types.DocIdSetIterator {
 	panic("")
 }
 

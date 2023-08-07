@@ -151,7 +151,7 @@ func nextBitSet(bitIndex, bitTableBytes int, reader BytesReader) (int, error) {
 			return 0, err
 		}
 
-		i = int32(b&0xFF) & mask
+		i = int32(b) & mask
 	}
 	for i == 0 {
 		if byteIndex+1 == bitTableBytes {
@@ -162,7 +162,7 @@ func nextBitSet(bitIndex, bitTableBytes int, reader BytesReader) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		i = int32(b & 0xFF)
+		i = int32(b)
 	}
 
 	return bits.TrailingZeros32(uint32(i)) + byteIndex<<3, nil
@@ -198,7 +198,7 @@ func previousBitSet(bitIndex int, reader BytesReader) (int, error) {
 		return 0, err
 	}
 
-	i := uint32(b&0xFF) & mask
+	i := uint32(b) & mask
 	for i == 0 {
 		if byteIndex-1 == 0 {
 			byteIndex--
@@ -215,7 +215,7 @@ func previousBitSet(bitIndex int, reader BytesReader) (int, error) {
 			return 0, err
 		}
 
-		i = uint32(b & 0xFF)
+		i = uint32(b)
 	}
 
 	return (INTEGER_SIZE - 1) - bits.LeadingZeros32(i) + (byteIndex << 3), nil
@@ -226,7 +226,7 @@ func readByte(reader BytesReader) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return int64(b) & 0xFF, nil
+	return int64(b), nil
 }
 
 func readUpTo8Bytes(numBytes int64, reader BytesReader) (int64, error) {

@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/types"
+)
 
 var _ Scorer = &DisjunctionSumScorer{}
 
@@ -24,7 +26,7 @@ func (d *DisjunctionSumScorer) DocID() int {
 	panic("implement me")
 }
 
-func (d *DisjunctionSumScorer) Iterator() index.DocIdSetIterator {
+func (d *DisjunctionSumScorer) Iterator() types.DocIdSetIterator {
 	//TODO implement me
 	panic("implement me")
 }

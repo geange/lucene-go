@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 
 	"github.com/bits-and-blooms/bitset"
@@ -49,7 +50,7 @@ func (n *NumericDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap,
 	})
 }
 
-func (n *NumericDocValuesWriter) GetDocValues() DocIdSetIterator {
+func (n *NumericDocValuesWriter) GetDocValues() types.DocIdSetIterator {
 	//TODO implement me
 	panic("implement me")
 }
@@ -58,12 +59,12 @@ var _ NumericDocValues = &BufferedNumericDocValues{}
 
 type BufferedNumericDocValues struct {
 	iter          *packed.PackedLongValuesIterator
-	docsWithField DocIdSetIterator
+	docsWithField types.DocIdSetIterator
 	value         int64
 }
 
 func NewBufferedNumericDocValues(values *packed.PackedLongValues,
-	docsWithFields DocIdSetIterator) *BufferedNumericDocValues {
+	docsWithFields types.DocIdSetIterator) *BufferedNumericDocValues {
 
 	docValues := &BufferedNumericDocValues{
 		iter:          values.Iterator(),
@@ -91,7 +92,7 @@ func (b *BufferedNumericDocValues) Advance(target int) (int, error) {
 }
 
 func (b *BufferedNumericDocValues) SlowAdvance(target int) (int, error) {
-	return SlowAdvance(b, target)
+	return types.SlowAdvance(b, target)
 }
 
 func (b *BufferedNumericDocValues) Cost() int64 {
@@ -132,7 +133,7 @@ func (s *SortingNumericDocValues) Advance(target int) (int, error) {
 }
 
 func (s *SortingNumericDocValues) SlowAdvance(target int) (int, error) {
-	return SlowAdvance(s, target)
+	return types.SlowAdvance(s, target)
 }
 
 func (s *SortingNumericDocValues) Cost() int64 {

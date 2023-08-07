@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/types"
 	"math"
 
 	"github.com/geange/lucene-go/core/document"
@@ -162,7 +163,7 @@ func (b *BinaryDocValuesFieldUpdates) addInternal(doc int, hasValueMask int64) (
 // An iterator over documents and their updated values. Only documents with updates are returned
 // by this iterator, and the documents are returned in increasing order.
 type DocValuesFieldUpdatesIterator interface {
-	DocValuesIterator
+	types.DocValuesIterator
 
 	// LongValue Returns a long item for the current document if this iterator is a long iterator.
 	LongValue() (int64, error)

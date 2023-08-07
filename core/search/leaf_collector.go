@@ -2,7 +2,7 @@ package search
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 // LeafCollector
@@ -65,13 +65,13 @@ type LeafCollector interface {
 	// delegate this method to their comparators if their comparators provide the skipping functionality
 	// over non-competitive docs. The default is to return null which is interpreted as the collector
 	// provide any competitive iterator.
-	CompetitiveIterator() (index.DocIdSetIterator, error)
+	CompetitiveIterator() (types.DocIdSetIterator, error)
 }
 
 type LeafCollectorDefault struct {
 }
 
-func (*LeafCollectorDefault) CompetitiveIterator() (index.DocIdSetIterator, error) {
+func (*LeafCollectorDefault) CompetitiveIterator() (types.DocIdSetIterator, error) {
 	return nil, nil
 }
 
@@ -84,7 +84,7 @@ var _ LeafCollector = &LeafCollectorAnon{}
 type LeafCollectorAnon struct {
 	FnSetScorer           func(scorer Scorable) error
 	FnCollect             func(ctx context.Context, doc int) error
-	FnCompetitiveIterator func() (index.DocIdSetIterator, error)
+	FnCompetitiveIterator func() (types.DocIdSetIterator, error)
 }
 
 func (l *LeafCollectorAnon) SetScorer(scorer Scorable) error {
@@ -95,6 +95,6 @@ func (l *LeafCollectorAnon) Collect(ctx context.Context, doc int) error {
 	return l.FnCollect(ctx, doc)
 }
 
-func (l *LeafCollectorAnon) CompetitiveIterator() (index.DocIdSetIterator, error) {
+func (l *LeafCollectorAnon) CompetitiveIterator() (types.DocIdSetIterator, error) {
 	return l.FnCompetitiveIterator()
 }

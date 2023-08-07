@@ -2,11 +2,13 @@ package simpletext
 
 import (
 	"bytes"
+	"io"
+	"strconv"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util/fst"
-	"strconv"
 )
 
 var _ index.Terms = &textTerms{}
@@ -58,7 +60,7 @@ func (s *textTerms) loadTerms() error {
 	fstCompiler := fst.NewBuilder[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]](fst.BYTE1, outputs)
 
 	in := s.reader.in.Clone()
-	if _, err := in.Seek(s.termsStart, 0); err != nil {
+	if _, err := in.Seek(s.termsStart, io.SeekStart); err != nil {
 		return err
 	}
 

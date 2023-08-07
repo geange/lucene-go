@@ -1,6 +1,7 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -9,7 +10,7 @@ type DocIdSet interface {
 	// Iterator
 	// DVFUIterator Provides a DocIdSetIterator to access the set.
 	// This implementation can return null if there are no docs that match.
-	Iterator() (DocIdSetIterator, error)
+	Iterator() (types.DocIdSetIterator, error)
 
 	// Bits
 	// TODO: somehow this class should express the cost of
