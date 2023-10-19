@@ -6,6 +6,7 @@ import (
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 )
@@ -81,7 +82,7 @@ func (s *SimpleTextPointsReader) CheckIntegrity() error {
 	return nil
 }
 
-func (s *SimpleTextPointsReader) GetValues(field string) (index.PointValues, error) {
+func (s *SimpleTextPointsReader) GetValues(field string) (types.PointValues, error) {
 	fieldInfo := s.readState.FieldInfos.FieldInfo(field)
 	if fieldInfo == nil {
 		return nil, fmt.Errorf("field=%s is unrecognized", field)
@@ -144,7 +145,7 @@ func (s *SimpleTextPointsReader) initReader(fp int64) (*SimpleTextBKDReader, err
 		return nil, err
 	}
 
-	pointCount, err := tr.ParseInt64(POINT_COUNT)
+	pointCount, err := tr.ParseInt(POINT_COUNT)
 	if err != nil {
 		return nil, err
 	}

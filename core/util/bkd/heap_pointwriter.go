@@ -9,27 +9,22 @@ var _ PointWriter = &HeapPointWriter{}
 // HeapPointWriter Utility class to write new points into in-heap arrays.
 // lucene.internal
 type HeapPointWriter struct {
-	block      []byte
-	size       int
-	config     *Config
-	scratch    []byte
-	nextWrite  int
-	closed     bool
-	pointValue *HeapPointValue
+	block     []byte
+	size      int
+	config    *Config
+	scratch   []byte
+	nextWrite int
+	closed    bool
 }
 
 func NewHeapPointWriter(config *Config, size int) *HeapPointWriter {
 	writer := &HeapPointWriter{
-		block:      make([]byte, config.BytesPerDoc()*size),
-		size:       size,
-		config:     config,
-		scratch:    make([]byte, config.BytesPerDoc()),
-		nextWrite:  0,
-		closed:     false,
-		pointValue: nil,
-	}
-	if size > 0 {
-		writer.pointValue = NewHeapPointValue(config, writer.block)
+		block:     make([]byte, config.BytesPerDoc()*size),
+		size:      size,
+		config:    config,
+		scratch:   make([]byte, config.BytesPerDoc()),
+		nextWrite: 0,
+		closed:    false,
 	}
 	return writer
 }
@@ -88,8 +83,11 @@ func Mismatch(a, b []byte) int {
 }
 
 func (h *HeapPointWriter) GetPackedValueSlice(index int) PointValue {
-	h.pointValue.SetOffset(index * h.config.BytesPerDoc())
-	return h.pointValue
+	return &HeapPointValue{
+		config: h.config,
+		bytes:  h.block,
+		offset: index * h.config.BytesPerDoc(),
+	}
 }
 
 func (h *HeapPointWriter) Append(packedValue []byte, docID int) error {
@@ -103,25 +101,21 @@ func (h *HeapPointWriter) Append(packedValue []byte, docID int) error {
 	return nil
 }
 
-func (h *HeapPointWriter) AppendValue(pointValue PointValue) error {
-	//assert closed == false : "point writer is already closed";
-	//assert nextWrite < size : "nextWrite=" + (nextWrite + 1) + " vs size=" + size;
+func (h *HeapPointWriter) AppendPoint(pointValue PointValue) error {
 	packedValueDocID := pointValue.PackedValueDocIDBytes()
-	//assert packedValueDocID.length == config.BytesPerDoc() : "[packedValue] must have length [" + (config.BytesPerDoc()) + "] but was [" + packedValueDocID.length + "]";
-	copy(h.block[h.nextWrite*h.config.BytesPerDoc():], packedValueDocID[:h.config.BytesPerDoc()])
+	size := h.config.BytesPerDoc()
+	destPos := h.nextWrite * h.config.BytesPerDoc()
+	copy(h.block[destPos:], packedValueDocID[:size])
 	h.nextWrite++
 	return nil
 }
 
-func (h *HeapPointWriter) GetReader(start, length int64) (PointReader, error) {
-	//assert closed : "point writer is still open and trying to get a reader";
-	//assert start + length <= size: "start=" + start + " length=" + length + " docIDs.length=" + size;
-	//assert start + length <= nextWrite: "start=" + start + " length=" + length + " nextWrite=" + nextWrite;
-	return NewHeapPointReader(h.config, h.block, int(start), int(start+length)), nil
+func (h *HeapPointWriter) GetReader(start, length int) (PointReader, error) {
+	return NewHeapPointReader(h.config, h.block, start, start+length), nil
 }
 
-func (h *HeapPointWriter) Count() int64 {
-	return int64(h.nextWrite)
+func (h *HeapPointWriter) Count() int {
+	return h.nextWrite
 }
 
 func (h *HeapPointWriter) Destroy() error {

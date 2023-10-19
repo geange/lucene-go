@@ -91,21 +91,21 @@ func (b *BulkOperationPacked10) DecodeLongToLong(blocks, values []uint64, iterat
 func (b *BulkOperationPacked10) DecodeByteToLong(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := uint64(blocks[blocksOffset] & 0xFF)
+		byte0 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte1 := uint64(blocks[blocksOffset] & 0xFF)
+		byte1 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (byte0 << 2) | (byte1 >> 6)
 		valuesOffset++
-		byte2 := uint64(blocks[blocksOffset] & 0xFF)
+		byte2 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte1 & 63) << 4) | (byte2 >> 4)
 		valuesOffset++
-		byte3 := uint64(blocks[blocksOffset] & 0xFF)
+		byte3 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte2 & 15) << 6) | (byte3 >> 2)
 		valuesOffset++
-		byte4 := uint64(blocks[blocksOffset] & 0xFF)
+		byte4 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte3 & 3) << 8) | byte4
 		valuesOffset++
@@ -115,21 +115,21 @@ func (b *BulkOperationPacked10) DecodeByteToLong(blocks []byte, values []uint64,
 func (b *BulkOperationPacked10) DecodeByteToInt(blocks []byte, values []uint32, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := uint32(blocks[blocksOffset] & 0xFF)
+		byte0 := uint32(blocks[blocksOffset])
 		blocksOffset++
-		byte1 := uint32(blocks[blocksOffset] & 0xFF)
+		byte1 := uint32(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (byte0 << 2) | (byte1 >> 6)
 		valuesOffset++
-		byte2 := uint32(blocks[blocksOffset] & 0xFF)
+		byte2 := uint32(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte1 & 63) << 4) | (byte2 >> 4)
 		valuesOffset++
-		byte3 := uint32(blocks[blocksOffset] & 0xFF)
+		byte3 := uint32(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte2 & 15) << 6) | (byte3 >> 2)
 		valuesOffset++
-		byte4 := uint32(blocks[blocksOffset] & 0xFF)
+		byte4 := uint32(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte3 & 3) << 8) | byte4
 		valuesOffset++

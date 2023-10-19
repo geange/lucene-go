@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 	"math"
@@ -52,8 +53,8 @@ func NewDocIdSetBuilderV1(maxDoc int, terms index.Terms) (*DocIdSetBuilder, erro
 
 // NewDocIdSetBuilderV2
 // Create a DocIdSetBuilder instance that is optimized for accumulating docs that match the given PointValues.
-func NewDocIdSetBuilderV2(maxDoc int, values index.PointValues, field string) *DocIdSetBuilder {
-	return newDocIdSetBuilder(maxDoc, values.GetDocCount(), values.Size())
+func NewDocIdSetBuilderV2(maxDoc int, values types.PointValues, field string) *DocIdSetBuilder {
+	return newDocIdSetBuilder(maxDoc, values.GetDocCount(), int64(values.Size()))
 }
 
 func newDocIdSetBuilder(maxDoc, docCount int, valueCount int64) *DocIdSetBuilder {
@@ -83,7 +84,7 @@ func newDocIdSetBuilder(maxDoc, docCount int, valueCount int64) *DocIdSetBuilder
 // Add the content of the provided DocIdSetIterator to this builder.
 // NOTE: if you need to build a DocIdSet out of a single DocIdSetIterator,
 // you should rather use RoaringDocIdSet.Builder.
-func (d *DocIdSetBuilder) Add(iter index.DocIdSetIterator) error {
+func (d *DocIdSetBuilder) Add(iter types.DocIdSetIterator) error {
 	if d.bitSet != nil {
 		it, ok := iter.(*index.BitSetIterator)
 		if ok {

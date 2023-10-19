@@ -1,6 +1,9 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
+)
 
 var _ index.LeafFieldComparator = &MultiLeafFieldComparator{}
 
@@ -44,7 +47,7 @@ func (m *MultiLeafFieldComparator) SetScorer(scorer index.Scorable) error {
 	panic("implement me")
 }
 
-func (m *MultiLeafFieldComparator) CompetitiveIterator() (index.DocIdSetIterator, error) {
+func (m *MultiLeafFieldComparator) CompetitiveIterator() (types.DocIdSetIterator, error) {
 	//TODO implement me
 	panic("implement me")
 }

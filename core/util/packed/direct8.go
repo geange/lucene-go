@@ -17,7 +17,7 @@ func NewDirect8(valueCount int) *Direct8 {
 }
 
 func (d *Direct8) Get(index int) uint64 {
-	return uint64(d.values[index] & 0xFF)
+	return uint64(d.values[index])
 }
 
 func (d *Direct8) Set(index int, value uint64) {
@@ -33,7 +33,7 @@ func (d *Direct8) Clear() {
 func (d *Direct8) GetBulk(index int, arr []uint64) int {
 	gets := min(d.valueCount-index, len(arr))
 	for i := range arr {
-		arr[i] = uint64(d.values[index+i] & 0xFF)
+		arr[i] = uint64(d.values[index+i])
 	}
 	return gets
 }

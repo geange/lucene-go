@@ -23,7 +23,7 @@ func (b *BulkOperationPacked8) DecodeLongToLong(blocks, values []uint64, iterati
 func (b *BulkOperationPacked8) DecodeByteToLong(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for j := 0; j < iterations; j++ {
-		values[valuesOffset] = uint64(blocks[blocksOffset] & 0xFF)
+		values[valuesOffset] = uint64(blocks[blocksOffset])
 		blocksOffset++
 		valuesOffset++
 	}
@@ -32,7 +32,7 @@ func (b *BulkOperationPacked8) DecodeByteToLong(blocks []byte, values []uint64, 
 func (b *BulkOperationPacked8) DecodeByteToInt(blocks []byte, values []uint32, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for j := 0; j < iterations; j++ {
-		values[valuesOffset] = uint32(blocks[blocksOffset] & 0xFF)
+		values[valuesOffset] = uint32(blocks[blocksOffset])
 		blocksOffset++
 		valuesOffset++
 	}

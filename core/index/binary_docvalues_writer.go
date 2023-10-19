@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
@@ -48,7 +49,7 @@ func (b *BinaryDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, 
 	})
 }
 
-func (b *BinaryDocValuesWriter) GetDocValues() DocIdSetIterator {
+func (b *BinaryDocValuesWriter) GetDocValues() types.DocIdSetIterator {
 	iterator, _ := b.docsWithField.Iterator()
 	return NewBufferedBinaryDocValues(b.bytes, iterator)
 }
@@ -56,12 +57,12 @@ func (b *BinaryDocValuesWriter) GetDocValues() DocIdSetIterator {
 var _ BinaryDocValues = &BufferedBinaryDocValues{}
 
 type BufferedBinaryDocValues struct {
-	docsWithField DocIdSetIterator
+	docsWithField types.DocIdSetIterator
 	values        [][]byte
 	pos           int
 }
 
-func NewBufferedBinaryDocValues(values [][]byte, docsWithField DocIdSetIterator) *BufferedBinaryDocValues {
+func NewBufferedBinaryDocValues(values [][]byte, docsWithField types.DocIdSetIterator) *BufferedBinaryDocValues {
 	return &BufferedBinaryDocValues{
 		docsWithField: docsWithField,
 		values:        values,
@@ -87,7 +88,7 @@ func (b *BufferedBinaryDocValues) Advance(target int) (int, error) {
 }
 
 func (b *BufferedBinaryDocValues) SlowAdvance(target int) (int, error) {
-	return SlowAdvance(b, target)
+	return types.SlowAdvance(b, target)
 }
 
 func (b *BufferedBinaryDocValues) Cost() int64 {

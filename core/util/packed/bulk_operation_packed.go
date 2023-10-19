@@ -84,7 +84,7 @@ func (b *BulkOperationPacked) DecodeByteToLong(blocks []byte, values []uint64, i
 	nextValue := uint64(0)
 	bitsLeft := b.bitsPerValue
 	for i := 0; i < iterations*b.byteBlockCount; i++ {
-		bytes := blocks[blocksOffset] & 0xFF
+		bytes := blocks[blocksOffset]
 		blocksOffset++
 		if bitsLeft > 8 {
 			// just buffer
@@ -112,7 +112,7 @@ func (b *BulkOperationPacked) DecodeByteToInt(blocks []byte, values []uint32, it
 	nextValue := 0
 	bitsLeft := b.bitsPerValue
 	for i := 0; i < iterations*b.byteBlockCount; i++ {
-		bytes := blocks[blocksOffset] & 0xFF
+		bytes := blocks[blocksOffset]
 		blocksOffset++
 		if bitsLeft > 8 {
 			// just buffer

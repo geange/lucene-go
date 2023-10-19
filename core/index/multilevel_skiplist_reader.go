@@ -2,9 +2,11 @@ package index
 
 import (
 	"errors"
+	"io"
+	"math"
+
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
-	"math"
 )
 
 // MultiLevelSkipListReader This abstract class reads skip lists with multiple levels. See
@@ -157,7 +159,7 @@ func (m *MultiLevelSkipListReaderDefault) loadNextSkip(level int) (bool, error) 
 }
 
 func (m *MultiLevelSkipListReaderDefault) seekChild(level int) error {
-	if _, err := m.skipStream[level].Seek(m.lastChildPointer, 0); err != nil {
+	if _, err := m.skipStream[level].Seek(m.lastChildPointer, io.SeekStart); err != nil {
 		return err
 	}
 	m.numSkipped[level] = m.numSkipped[level+1] - m.skipInterval[level+1]
@@ -216,7 +218,7 @@ func (m *MultiLevelSkipListReaderDefault) loadSkipLevels() error {
 		m.numberOfSkipLevels = m.MaxNumberOfSkipLevels
 	}
 
-	m.skipStream[0].Seek(m.skipPointer[0], 0)
+	m.skipStream[0].Seek(m.skipPointer[0], io.SeekStart)
 
 	toBuffer := m.numberOfLevelsToBuffer
 
@@ -247,7 +249,7 @@ func (m *MultiLevelSkipListReaderDefault) loadSkipLevels() error {
 			}
 
 			// move base stream beyond the current level
-			if _, err := m.skipStream[0].Seek(m.skipStream[0].GetFilePointer()+length, 0); err != nil {
+			if _, err := m.skipStream[0].Seek(m.skipStream[0].GetFilePointer()+length, io.SeekStart); err != nil {
 				return err
 			}
 		}

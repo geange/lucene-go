@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"github.com/geange/lucene-go/core/types"
 	"math"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -158,7 +159,7 @@ func (m *MemoryIndexReader) GetLiveDocs() util.Bits {
 	return nil
 }
 
-func (m *MemoryIndexReader) GetPointValues(field string) (index.PointValues, bool) {
+func (m *MemoryIndexReader) GetPointValues(field string) (types.PointValues, bool) {
 	info, ok := m.fields.Get(field)
 	if ok {
 		return newMemoryIndexPointValues(info), true

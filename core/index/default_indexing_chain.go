@@ -7,6 +7,7 @@ import (
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 )
@@ -653,7 +654,7 @@ func (d *DefaultIndexingChain) Abort() error {
 	return nil
 }
 
-func (d *DefaultIndexingChain) GetHasDocValues(field string) DocIdSetIterator {
+func (d *DefaultIndexingChain) GetHasDocValues(field string) types.DocIdSetIterator {
 	perField := d.getPerField(field)
 	if perField != nil {
 		if perField.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {

@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 // Scorer Expert: Common scoring functionality for different types of queries.
@@ -24,7 +24,7 @@ type Scorer interface {
 	// documents have been scored already, or the last document id that has been scored otherwise.
 	// The returned iterator is a view: calling this method several times will return iterators
 	// that have the same state.
-	Iterator() index.DocIdSetIterator
+	Iterator() types.DocIdSetIterator
 
 	// TwoPhaseIterator Optional method: Return a TwoPhaseIterator view of this Scorer. A return value
 	// of null indicates that two-phase iteration is not supported. Note that the returned
@@ -67,5 +67,5 @@ func (s *ScorerDefault) TwoPhaseIterator() TwoPhaseIterator {
 }
 
 func (s *ScorerDefault) AdvanceShallow(target int) (int, error) {
-	return index.NO_MORE_DOCS, nil
+	return types.NO_MORE_DOCS, nil
 }

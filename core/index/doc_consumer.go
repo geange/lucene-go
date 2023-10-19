@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/types"
 )
 
 type DocConsumer interface {
@@ -14,5 +15,5 @@ type DocConsumer interface {
 
 	// GetHasDocValues Returns a DocIdSetIterator for the given field or null
 	// if the field doesn't have doc values.
-	GetHasDocValues(field string) DocIdSetIterator
+	GetHasDocValues(field string) types.DocIdSetIterator
 }

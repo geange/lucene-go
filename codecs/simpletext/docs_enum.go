@@ -2,10 +2,13 @@ package simpletext
 
 import (
 	"bytes"
+	"io"
+	"strconv"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"strconv"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ index.ImpactsEnum = &SimpleTextDocsEnum{}
@@ -53,7 +56,7 @@ func (s *SimpleTextDocsEnum) NextDoc() (int, error) {
 }
 
 func (s *SimpleTextDocsEnum) readDoc() (int, error) {
-	if s.docID == index.NO_MORE_DOCS {
+	if s.docID == types.NO_MORE_DOCS {
 		return s.docID, nil
 	}
 	first := true
@@ -69,7 +72,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 
 		if bytes.HasPrefix(text, FIELDS_DOC) {
 			if !first {
-				if _, err := s.in.Seek(lineStart, 0); err != nil {
+				if _, err := s.in.Seek(lineStart, io.SeekStart); err != nil {
 					return 0, err
 				}
 				if !s.omitTF {
@@ -98,7 +101,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 		} else {
 
 			if !first {
-				if _, err := s.in.Seek(lineStart, 0); err != nil {
+				if _, err := s.in.Seek(lineStart, io.SeekStart); err != nil {
 					return 0, err
 				}
 				if !s.omitTF {
@@ -106,7 +109,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 				}
 				return s.docID, nil
 			}
-			s.docID = index.NO_MORE_DOCS
+			s.docID = types.NO_MORE_DOCS
 			return s.docID, nil
 		}
 	}
@@ -114,7 +117,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 
 func (s *SimpleTextDocsEnum) advanceTarget(target int) (int, error) {
 	if s.seekTo > 0 {
-		if _, err := s.in.Seek(s.seekTo, 0); err != nil {
+		if _, err := s.in.Seek(s.seekTo, io.SeekStart); err != nil {
 			return 0, err
 		}
 		s.seekTo = -1
@@ -176,7 +179,7 @@ func (s *SimpleTextDocsEnum) AdvanceShallow(target int) error {
 		if _, err := s.skipReader.SkipTo(target); err != nil {
 			return err
 		}
-		if s.skipReader.getNextSkipDoc() != index.NO_MORE_DOCS {
+		if s.skipReader.getNextSkipDoc() != types.NO_MORE_DOCS {
 			s.seekTo = s.skipReader.getNextSkipDocFP()
 		}
 		s.nextSkipDoc = s.skipReader.getNextSkipDoc()

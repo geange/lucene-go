@@ -1,6 +1,8 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/types"
+)
 
 var _ Scorer = &WANDScorer{}
 
@@ -38,7 +40,7 @@ func (w *WANDScorer) DocID() int {
 	panic("implement me")
 }
 
-func (w *WANDScorer) Iterator() index.DocIdSetIterator {
+func (w *WANDScorer) Iterator() types.DocIdSetIterator {
 	//TODO implement me
 	panic("implement me")
 }
@@ -52,7 +54,7 @@ func (w *WANDScorer) GetMaxScore(upTo int) (float64, error) {
 // Wrapper used in DisiPriorityQueue.
 // lucene.internal
 type DisiWrapper struct {
-	iterator  index.DocIdSetIterator
+	iterator  types.DocIdSetIterator
 	scorer    Scorer
 	cost      int64
 	matchCost float64      // the match cost for two-phase iterators, 0 otherwise
@@ -61,7 +63,7 @@ type DisiWrapper struct {
 
 	// An approximation of the iterator, or the iterator itself if it does not
 	// support two-phase iteration
-	approximation index.DocIdSetIterator
+	approximation types.DocIdSetIterator
 
 	// A two-phase view of the iterator, or null if the iterator does not support
 	// two-phase iteration

@@ -2,7 +2,6 @@ package bkd
 
 import (
 	"encoding/binary"
-	"github.com/geange/lucene-go/core/util"
 )
 
 var _ PointReader = &HeapPointReader{}
@@ -25,7 +24,7 @@ func NewHeapPointReader(config *Config, block []byte, start, end int) *HeapPoint
 		end:     end,
 	}
 
-	if start < end {
+	if len(block) > 0 {
 		reader.pointValue = NewHeapPointValue(config, block)
 	}
 	return reader
@@ -49,32 +48,32 @@ var _ PointValue = &HeapPointValue{}
 
 // HeapPointValue Reusable implementation for a point value on-heap
 type HeapPointValue struct {
-	packedValue       *util.BytesRef
-	packedValueDocID  *util.BytesRef
-	packedValueLength int
+	config *Config
+	bytes  []byte
+	offset int
 }
 
 func NewHeapPointValue(config *Config, value []byte) *HeapPointValue {
 	return &HeapPointValue{
-		packedValue:       util.NewBytesRef(value, 0, config.PackedBytesLength()),
-		packedValueDocID:  util.NewBytesRef(value, 0, config.BytesPerDoc()),
-		packedValueLength: config.PackedBytesLength(),
+		config: config,
+		bytes:  value,
 	}
 }
 
 func (h *HeapPointValue) SetOffset(offset int) {
-	h.packedValue.Offset = offset
-	h.packedValueDocID.Offset = offset
+	h.offset = offset
 }
 
 func (h *HeapPointValue) PackedValue() []byte {
-	return h.packedValue.GetBytes()
+	return h.bytes[h.offset : h.offset+h.config.PackedBytesLength()]
+
 }
 
 func (h *HeapPointValue) DocID() int {
-	return int(binary.BigEndian.Uint32(h.packedValueDocID.GetBytes()[h.packedValueLength:]))
+	bs := h.bytes[h.offset+h.config.PackedBytesLength():]
+	return int(binary.BigEndian.Uint32(bs))
 }
 
 func (h *HeapPointValue) PackedValueDocIDBytes() []byte {
-	return h.packedValueDocID.GetBytes()
+	return h.bytes[h.offset : h.offset+h.config.BytesPerDoc()]
 }

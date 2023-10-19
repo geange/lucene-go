@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"math"
 )
@@ -10,10 +10,10 @@ var _ BulkScorer = &ReqExclBulkScorer{}
 
 type ReqExclBulkScorer struct {
 	req  BulkScorer
-	excl index.DocIdSetIterator
+	excl types.DocIdSetIterator
 }
 
-func newReqExclBulkScorer(req BulkScorer, excl index.DocIdSetIterator) *ReqExclBulkScorer {
+func newReqExclBulkScorer(req BulkScorer, excl types.DocIdSetIterator) *ReqExclBulkScorer {
 	return &ReqExclBulkScorer{
 		req:  req,
 		excl: excl,

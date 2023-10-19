@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -10,7 +10,7 @@ import (
 type DocIdSet interface {
 	// Iterator
 	// Provides a DocIdSetIterator to access the set. This implementation can return null if there are no docs that match.
-	Iterator() index.DocIdSetIterator
+	Iterator() types.DocIdSetIterator
 
 	// Bits
 	// TODO: somehow this class should express the cost of
@@ -39,8 +39,8 @@ func GetEmptyDocIdSet() DocIdSet {
 type emptyDocIdSet struct {
 }
 
-func (e *emptyDocIdSet) Iterator() index.DocIdSetIterator {
-	return index.GetEmptyDocIdSetIterator()
+func (e *emptyDocIdSet) Iterator() types.DocIdSetIterator {
+	return types.GetEmptyDocIdSetIterator()
 }
 
 func (e *emptyDocIdSet) Bits() util.Bits {

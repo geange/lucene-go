@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 	"math"
 )
@@ -172,7 +173,7 @@ func (i *IntSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocComparat
 		if err != nil {
 			return nil, err
 		}
-		if docID == NO_MORE_DOCS {
+		if docID == types.NO_MORE_DOCS {
 			break
 		}
 		value, err := dvs.LongValue()
@@ -285,7 +286,7 @@ func (i *LongSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocCompara
 		if err != nil {
 			return nil, err
 		}
-		if docID == NO_MORE_DOCS {
+		if docID == types.NO_MORE_DOCS {
 			break
 		}
 		value, err := dvs.LongValue()
@@ -402,7 +403,7 @@ func (f *FloatSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocCompar
 		if err != nil {
 			return nil, err
 		}
-		if docID == NO_MORE_DOCS {
+		if docID == types.NO_MORE_DOCS {
 			break
 		}
 		value, err := dvs.LongValue()
@@ -521,7 +522,7 @@ func (d *DoubleSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocCompa
 			}
 			return nil, err
 		}
-		if docID == NO_MORE_DOCS {
+		if docID == types.NO_MORE_DOCS {
 			break
 		}
 		value, err := dvs.LongValue()

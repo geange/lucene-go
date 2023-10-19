@@ -84,7 +84,7 @@ func CheckIndexHeaderSuffix(in store.DataInput, expectedSuffix string) (string, 
 	if err != nil {
 		return "", err
 	}
-	suffixLength := int(b & 0xFF)
+	suffixLength := int(b)
 
 	suffixBytes := make([]byte, suffixLength)
 	_, err = in.Read(suffixBytes)

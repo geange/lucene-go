@@ -7,6 +7,7 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/bkd"
 )
 
@@ -148,15 +149,15 @@ func (s *SimpleTextPointsWriter) WriteField(fieldInfo *document.FieldInfo, reade
 		DEFAULT_MAX_MB_SORT_IN_HEAP,
 		values.Size())
 
-	err = values.Intersect(&index.BytesVisitor{
+	err = values.Intersect(&types.BytesVisitor{
 		VisitFn: func(docID int) error {
 			return errors.New("illegal State")
 		},
 		VisitLeafFn: func(docID int, packedValue []byte) error {
 			return writer.Add(packedValue, docID)
 		},
-		CompareFn: func(minPackedValue, maxPackedValue []byte) index.Relation {
-			return index.CELL_CROSSES_QUERY
+		CompareFn: func(minPackedValue, maxPackedValue []byte) types.Relation {
+			return types.CELL_CROSSES_QUERY
 		},
 		GrowFn: func(count int) {
 		},

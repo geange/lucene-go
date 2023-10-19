@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/types"
 	"math"
 
 	"github.com/geange/lucene-go/core/index"
@@ -205,7 +206,7 @@ func (s *simpleTopScoreDocCollectorLeafCollector) SetScorer(scorer Scorable) err
 	return s.p.updateGlobalMinCompetitiveScore(s.scorer)
 }
 
-func (s *simpleTopScoreDocCollectorLeafCollector) CompetitiveIterator() (index.DocIdSetIterator, error) {
+func (s *simpleTopScoreDocCollectorLeafCollector) CompetitiveIterator() (types.DocIdSetIterator, error) {
 	return nil, nil
 }
 
@@ -303,7 +304,7 @@ func (p *pagingTopScoreDocCollectorLeafCollector) Collect(ctx context.Context, d
 	return p.updateMinCompetitiveScore(p.scorer)
 }
 
-func (p *pagingTopScoreDocCollectorLeafCollector) CompetitiveIterator() (index.DocIdSetIterator, error) {
+func (p *pagingTopScoreDocCollectorLeafCollector) CompetitiveIterator() (types.DocIdSetIterator, error) {
 	return nil, nil
 }
 

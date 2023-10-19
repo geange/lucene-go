@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"slices"
 )
 
 const (
@@ -98,17 +99,11 @@ type Reader struct {
 }
 
 func (d *Reader) Clone(reader io.Reader) *Reader {
-	buff := make([]byte, len(d.buff))
-	copy(buff, d.buff)
-
-	skipBuffer := make([]byte, len(d.skipBuffer))
-	copy(skipBuffer, d.skipBuffer)
-
 	return &Reader{
 		reader:     reader,
 		endian:     d.endian,
-		buff:       buff,
-		skipBuffer: skipBuffer,
+		buff:       slices.Clone(d.buff),
+		skipBuffer: slices.Clone(d.skipBuffer),
 	}
 }
 

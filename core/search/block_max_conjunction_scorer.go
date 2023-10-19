@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 	"sort"
 )
@@ -12,7 +12,7 @@ type BlockMaxConjunctionScorer struct {
 	*ScorerDefault
 
 	scorers            []Scorer
-	approximations     []index.DocIdSetIterator
+	approximations     []types.DocIdSetIterator
 	twoPhases          []TwoPhaseIterator
 	maxScorePropagator *MaxScoreSumPropagator
 	minScore           float64
@@ -22,7 +22,7 @@ func NewBlockMaxConjunctionScorer(weight Weight, scorersList []Scorer) (*BlockMa
 	res := &BlockMaxConjunctionScorer{
 		ScorerDefault:      NewScorer(weight),
 		scorers:            scorersList,
-		approximations:     make([]index.DocIdSetIterator, len(scorersList)),
+		approximations:     make([]types.DocIdSetIterator, len(scorersList)),
 		twoPhases:          nil,
 		maxScorePropagator: nil,
 		minScore:           0,
@@ -104,7 +104,7 @@ func (b *BlockMaxConjunctionScorer) DocID() int {
 	return b.scorers[0].DocID()
 }
 
-func (b *BlockMaxConjunctionScorer) Iterator() index.DocIdSetIterator {
+func (b *BlockMaxConjunctionScorer) Iterator() types.DocIdSetIterator {
 	if len(b.twoPhases) == 0 {
 		return b.approximation()
 	}
@@ -161,12 +161,12 @@ func (b *BlockMaxConjunctionScorer) TwoPhaseIterator() TwoPhaseIterator {
 var _ TwoPhaseIterator = &bmcTwoPhaseIterator{}
 
 type bmcTwoPhaseIterator struct {
-	approx    index.DocIdSetIterator
+	approx    types.DocIdSetIterator
 	matchCost float64
 	p         *BlockMaxConjunctionScorer
 }
 
-func (b *bmcTwoPhaseIterator) Approximation() index.DocIdSetIterator {
+func (b *bmcTwoPhaseIterator) Approximation() types.DocIdSetIterator {
 	return b.approx
 }
 
@@ -183,7 +183,7 @@ func (b *bmcTwoPhaseIterator) MatchCost() float64 {
 	return b.matchCost
 }
 
-func (b *BlockMaxConjunctionScorer) approximation() index.DocIdSetIterator {
+func (b *BlockMaxConjunctionScorer) approximation() types.DocIdSetIterator {
 	lead := b.approximations[0]
 	return &bmcDocIdSetIterator{
 		maxScore: 0,
@@ -193,12 +193,12 @@ func (b *BlockMaxConjunctionScorer) approximation() index.DocIdSetIterator {
 	}
 }
 
-var _ index.DocIdSetIterator = &bmcDocIdSetIterator{}
+var _ types.DocIdSetIterator = &bmcDocIdSetIterator{}
 
 type bmcDocIdSetIterator struct {
 	maxScore float64
 	upTo     int
-	lead     index.DocIdSetIterator
+	lead     types.DocIdSetIterator
 	p        *BlockMaxConjunctionScorer
 }
 
@@ -227,8 +227,8 @@ func (b *bmcDocIdSetIterator) Advance(target int) (int, error) {
 func (b *bmcDocIdSetIterator) doNext(doc int) (int, error) {
 advanceHead:
 	for {
-		if doc == index.NO_MORE_DOCS {
-			return index.NO_MORE_DOCS, io.EOF
+		if doc == types.NO_MORE_DOCS {
+			return types.NO_MORE_DOCS, io.EOF
 		}
 
 		if doc > b.upTo {
@@ -280,7 +280,7 @@ advanceHead:
 }
 
 func (b *bmcDocIdSetIterator) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(b, target)
+	return types.SlowAdvance(b, target)
 }
 
 func (b *bmcDocIdSetIterator) Cost() int64 {

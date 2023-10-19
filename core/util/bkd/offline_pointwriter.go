@@ -1,6 +1,7 @@
 package bkd
 
 import (
+	"errors"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -14,13 +15,13 @@ type OfflinePointWriter struct {
 	out           store.IndexOutput
 	name          string
 	config        *Config
-	count         int64
+	count         int
 	closed        bool
-	expectedCount int64
+	expectedCount int
 }
 
 func NewOfflinePointWriter(config *Config, tempDir store.Directory,
-	tempFileNamePrefix, desc string, expectedCount int64) *OfflinePointWriter {
+	tempFileNamePrefix, desc string, expectedCount int) *OfflinePointWriter {
 	out, err := tempDir.CreateTempOutput(tempFileNamePrefix, "bkd_"+desc, nil)
 	if err != nil {
 		return nil
@@ -38,6 +39,10 @@ func NewOfflinePointWriter(config *Config, tempDir store.Directory,
 }
 
 func (w *OfflinePointWriter) Close() error {
+	if w.closed {
+		return nil
+	}
+
 	if err := utils.WriteFooter(w.out); err != nil {
 		return err
 	}
@@ -50,9 +55,6 @@ func (w *OfflinePointWriter) Close() error {
 }
 
 func (w *OfflinePointWriter) Append(packedValue []byte, docID int) error {
-	// TODO: need impl it ?
-	//assert closed == false : "Point writer is already closed";
-	//assert packedValue.length == config.packedBytesLength : "[packedValue] must have length [" + config.packedBytesLength + "] but was [" + packedValue.length + "]";
 	if _, err := w.out.Write(packedValue); err != nil {
 		return err
 	}
@@ -61,10 +63,9 @@ func (w *OfflinePointWriter) Append(packedValue []byte, docID int) error {
 	}
 	w.count++
 	return nil
-	//assert expectedCount == 0 || count <= expectedCount:  "expectedCount=" + expectedCount + " vs count=" + count;
 }
 
-func (w *OfflinePointWriter) AppendValue(pointValue PointValue) error {
+func (w *OfflinePointWriter) AppendPoint(pointValue PointValue) error {
 	//assert closed == false : "Point writer is already closed";
 	packedValueDocID := pointValue.PackedValueDocIDBytes()
 	//assert packedValueDocID.length == config.BytesPerDoc : "[packedValue and docID] must have length [" + (config.BytesPerDoc) + "] but was [" + packedValueDocID.length + "]";
@@ -76,12 +77,16 @@ func (w *OfflinePointWriter) AppendValue(pointValue PointValue) error {
 	//assert expectedCount == 0 || count <= expectedCount : "expectedCount=" + expectedCount + " vs count=" + count;
 }
 
-func (w *OfflinePointWriter) GetReader(start, length int64) (PointReader, error) {
+func (w *OfflinePointWriter) GetReader(startPoint, length int) (PointReader, error) {
+	if !w.closed {
+		return nil, errors.New("point writer is still open and trying to get a reader")
+	}
+
 	buffer := make([]byte, w.config.BytesPerDoc())
-	return w.getReader(start, length, buffer)
+	return w.getReader(startPoint, length, buffer)
 }
 
-func (w *OfflinePointWriter) getReader(start, length int64, reusableBuffer []byte) (*OfflinePointReader, error) {
+func (w *OfflinePointWriter) getReader(start, length int, reusableBuffer []byte) (*OfflinePointReader, error) {
 	// TODO: need impl it ?
 	//assert closed: "point writer is still open and trying to get a reader";
 	//assert start + length <= count: "start=" + start + " length=" + length + " count=" + count;
@@ -89,7 +94,7 @@ func (w *OfflinePointWriter) getReader(start, length int64, reusableBuffer []byt
 	return NewOfflinePointReader(w.config, w.tempDir, w.name, start, length, reusableBuffer)
 }
 
-func (w *OfflinePointWriter) Count() int64 {
+func (w *OfflinePointWriter) Count() int {
 	return w.count
 }
 

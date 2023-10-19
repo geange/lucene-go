@@ -1,4 +1,4 @@
-package index
+package types
 
 type DocValuesIterator interface {
 	DocIdSetIterator

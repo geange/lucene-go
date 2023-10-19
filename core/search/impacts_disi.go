@@ -2,16 +2,17 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"math"
 )
 
-var _ index.DocIdSetIterator = &ImpactsDISI{}
+var _ types.DocIdSetIterator = &ImpactsDISI{}
 
 // ImpactsDISI DocIdSetIterator that skips non-competitive docs thanks to the indexed impacts.
 // Call SetMinCompetitiveScore(float) in order to give this iterator the ability to skip
 // low-scoring documents.
 type ImpactsDISI struct {
-	in                  index.DocIdSetIterator
+	in                  types.DocIdSetIterator
 	impactsSource       index.ImpactsSource
 	maxScoreCache       *MaxScoreCache
 	globalMaxScore      float64
@@ -20,7 +21,7 @@ type ImpactsDISI struct {
 	maxScore            float64
 }
 
-func NewImpactsDISI(in index.DocIdSetIterator, impactsSource index.ImpactsSource, scorer index.SimScorer) *ImpactsDISI {
+func NewImpactsDISI(in types.DocIdSetIterator, impactsSource index.ImpactsSource, scorer index.SimScorer) *ImpactsDISI {
 	return &ImpactsDISI{
 		in:             in,
 		impactsSource:  impactsSource,
@@ -110,8 +111,8 @@ func (d *ImpactsDISI) advanceTarget(target int) (int, error) {
 			return target, nil
 		}
 
-		if d.upTo == index.NO_MORE_DOCS {
-			return index.NO_MORE_DOCS, nil
+		if d.upTo == types.NO_MORE_DOCS {
+			return types.NO_MORE_DOCS, nil
 		}
 
 		skipUpTo, err := d.maxScoreCache.GetSkipUpTo(d.minCompetitiveScore)
@@ -120,8 +121,8 @@ func (d *ImpactsDISI) advanceTarget(target int) (int, error) {
 		}
 		if skipUpTo == -1 { // no further skipping
 			target = d.upTo + 1
-		} else if skipUpTo == index.NO_MORE_DOCS {
-			return index.NO_MORE_DOCS, nil
+		} else if skipUpTo == types.NO_MORE_DOCS {
+			return types.NO_MORE_DOCS, nil
 		} else {
 			target = skipUpTo + 1
 		}

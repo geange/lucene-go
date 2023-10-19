@@ -3,6 +3,7 @@ package search
 import (
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -13,7 +14,7 @@ type BitDocIdSet struct {
 	cost int64
 }
 
-func (b BitDocIdSet) Iterator() index.DocIdSetIterator {
+func (b BitDocIdSet) Iterator() types.DocIdSetIterator {
 	return index.NewBitSetIterator(b.set, b.cost)
 }
 

@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"errors"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -279,7 +280,7 @@ func (s *SimpleTVPostingsEnum) Advance(target int) (int, error) {
 }
 
 func (s *SimpleTVPostingsEnum) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(s, target)
+	return types.SlowAdvance(s, target)
 }
 
 func (s *SimpleTVPostingsEnum) Cost() int64 {
@@ -364,7 +365,7 @@ func (s *SimpleTVDocsEnum) Advance(target int) (int, error) {
 }
 
 func (s *SimpleTVDocsEnum) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(s, target)
+	return types.SlowAdvance(s, target)
 }
 
 func (s *SimpleTVDocsEnum) Cost() int64 {

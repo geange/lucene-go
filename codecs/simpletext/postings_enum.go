@@ -2,10 +2,13 @@ package simpletext
 
 import (
 	"bytes"
+	"io"
+	"strconv"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"strconv"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ index.ImpactsEnum = &SimpleTextPostingsEnum{}
@@ -42,7 +45,7 @@ func (s *SimpleTextPostingsEnum) NextDoc() (int, error) {
 
 func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 	first := true
-	if _, err := s.in.Seek(s.nextDocStart, 0); err != nil {
+	if _, err := s.in.Seek(s.nextDocStart, io.SeekStart); err != nil {
 		return 0, err
 	}
 	posStart := int64(0)
@@ -56,7 +59,7 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 		if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_DOC) {
 			if !first {
 				s.nextDocStart = lineStart
-				if _, err := s.in.Seek(posStart, 0); err != nil {
+				if _, err := s.in.Seek(posStart, io.SeekStart); err != nil {
 					return 0, err
 				}
 				return s.docID, nil
@@ -86,12 +89,12 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 
 			if !first {
 				s.nextDocStart = lineStart
-				if _, err := s.in.Seek(posStart, 0); err != nil {
+				if _, err := s.in.Seek(posStart, io.SeekStart); err != nil {
 					return 0, err
 				}
 				return s.docID, nil
 			}
-			s.docID = index.NO_MORE_DOCS
+			s.docID = types.NO_MORE_DOCS
 			return s.docID, nil
 		}
 	}
@@ -196,7 +199,7 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 		s.payload = s.scratch2.Bytes()
 	} else {
 		s.payload = s.payload[:0]
-		if _, err := s.in.Seek(fp, 0); err != nil {
+		if _, err := s.in.Seek(fp, io.SeekStart); err != nil {
 			return 0, err
 		}
 	}
@@ -220,7 +223,7 @@ func (s *SimpleTextPostingsEnum) AdvanceShallow(target int) error {
 		if _, err := s.skipReader.SkipTo(target); err != nil {
 			return err
 		}
-		if s.skipReader.getNextSkipDoc() != index.NO_MORE_DOCS {
+		if s.skipReader.getNextSkipDoc() != types.NO_MORE_DOCS {
 			s.seekTo = s.skipReader.getNextSkipDocFP()
 		}
 	}

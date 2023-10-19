@@ -8,6 +8,7 @@ import (
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	bkd2 "github.com/geange/lucene-go/core/util/bkd"
 	"github.com/geange/lucene-go/core/util/numeric"
@@ -53,16 +54,16 @@ type SimpleTextBKDWriter struct {
 	maxPackedValue []byte
 
 	// 数据点的数量
-	pointCount int64
+	pointCount int
 
 	// An upper bound on how many points the caller will add (includes deletions)
-	totalPointCount int64
+	totalPointCount int
 
 	maxDoc int
 }
 
 func NewSimpleTextBKDWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string,
-	config *bkd2.Config, maxMBSortInHeap float64, totalPointCount int64) *SimpleTextBKDWriter {
+	config *bkd2.Config, maxMBSortInHeap float64, totalPointCount int) *SimpleTextBKDWriter {
 	return &SimpleTextBKDWriter{
 		config:              config,
 		scratch:             new(bytes.Buffer),
@@ -141,14 +142,14 @@ func (s *SimpleTextBKDWriter) Add(packedValue []byte, docID int) error {
 }
 
 // GetPointCount How many points have been added so far
-func (s *SimpleTextBKDWriter) GetPointCount() int64 {
+func (s *SimpleTextBKDWriter) GetPointCount() int {
 	return s.pointCount
 }
 
 // WriteField Write a field from a MutablePointValues. This way of writing points is faster than regular
 // writes with add since there is opportunity for reordering points before writing them to disk.
 // This method does not use transient disk in order to reorder points.
-func (s *SimpleTextBKDWriter) WriteField(out store.IndexOutput, fieldName string, reader index.MutablePointValues) (int64, error) {
+func (s *SimpleTextBKDWriter) WriteField(out store.IndexOutput, fieldName string, reader types.MutablePointValues) (int64, error) {
 	if s.config.NumIndexDims() == 1 {
 		return s.writeField1Dim(out, fieldName, reader)
 	} else {
@@ -185,7 +186,7 @@ func (s *SimpleTextBKDWriter) Finish(out store.IndexOutput) (int64, error) {
 	countPerLeaf := s.pointCount
 	innerNodeCount := 1
 
-	for countPerLeaf > int64(s.config.MaxPointsInLeafNode()) {
+	for countPerLeaf > s.config.MaxPointsInLeafNode() {
 		countPerLeaf = (countPerLeaf + 1) / 2
 		innerNodeCount *= 2
 	}
@@ -228,7 +229,7 @@ func (s *SimpleTextBKDWriter) Finish(out store.IndexOutput) (int64, error) {
 
 /* In the 2+D case, we recursively pick the split dimension, compute the
  * median value and partition other values around it. */
-func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName string, values index.MutablePointValues) (int64, error) {
+func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName string, values types.MutablePointValues) (int64, error) {
 	if s.pointCount != 0 {
 		return 0, errors.New("cannot mix add and writeField")
 	}
@@ -244,7 +245,7 @@ func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName s
 	s.pointCount = countPerLeaf
 	innerNodeCount := int64(1)
 
-	for countPerLeaf > int64(s.config.MaxPointsInLeafNode()) {
+	for countPerLeaf > s.config.MaxPointsInLeafNode() {
 		countPerLeaf = (countPerLeaf + 1) / 2
 		innerNodeCount *= 2
 	}
@@ -266,7 +267,7 @@ func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName s
 		s.maxPackedValue[i] = 0
 	}
 
-	for i := 0; i < int(s.pointCount); i++ {
+	for i := 0; i < s.pointCount; i++ {
 		values.GetValue(i, s.scratchBytesRef1)
 
 		for dim := 0; dim < s.config.NumIndexDims(); dim++ {
@@ -305,67 +306,143 @@ func (s *SimpleTextBKDWriter) writeFieldNDims(out store.IndexOutput, fieldName s
 func (s *SimpleTextBKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []int64, splitPackedValues []byte) error {
 	w := utils.NewTextWriter(out)
 
-	w.Bytes(NUM_DATA_DIMS)
-	w.Int(s.config.NumDims())
-	w.NewLine()
-
-	w.Bytes(NUM_INDEX_DIMS)
-	w.Int(s.config.NumIndexDims())
-	w.NewLine()
-
-	w.Bytes(BYTES_PER_DIM)
-	w.Int(s.config.BytesPerDim())
-	w.NewLine()
-
-	w.Bytes(MAX_LEAF_POINTS)
-	w.Int(s.config.MaxPointsInLeafNode())
-	w.NewLine()
-
-	w.Bytes(INDEX_COUNT)
-	w.Int(len(leafBlockFPs))
-	w.NewLine()
-
-	w.Bytes(MIN_VALUE)
-	w.String(util.BytesToString(s.minPackedValue))
-	w.NewLine()
-
-	w.Bytes(MAX_VALUE)
-	w.String(util.BytesToString(s.maxPackedValue))
-	w.NewLine()
-
-	w.Bytes(POINT_COUNT)
-	w.Long(s.pointCount)
-	w.NewLine()
-
-	w.Bytes(DOC_COUNT)
-	w.Long(int64(s.docsSeen.Len()))
-	w.NewLine()
-
-	for i := 0; i < len(leafBlockFPs); i++ {
-		w.Bytes(BLOCK_FP)
-		w.Long(leafBlockFPs[i])
-		w.NewLine()
+	if err := w.Bytes(NUM_DATA_DIMS); err != nil {
+		return err
+	}
+	if err := w.Int(s.config.NumDims()); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
 	}
 
-	// assert (splitPackedValues.length % (1 + config.bytesPerDim)) == 0;
-	count := len(splitPackedValues) / (1 + s.config.BytesPerDim())
-	// assert count == leafBlockFPs.length;
+	if err := w.Bytes(NUM_INDEX_DIMS); err != nil {
+		return err
+	}
+	if err := w.Int(s.config.NumIndexDims()); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
-	w.Bytes(SPLIT_COUNT)
-	w.Int(count)
-	w.NewLine()
+	if err := w.Bytes(BYTES_PER_DIM); err != nil {
+		return err
+	}
+	if err := w.Int(s.config.BytesPerDim()); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(MAX_LEAF_POINTS); err != nil {
+		return err
+	}
+	if err := w.Int(s.config.MaxPointsInLeafNode()); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(INDEX_COUNT); err != nil {
+		return err
+	}
+	if err := w.Int(len(leafBlockFPs)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(MIN_VALUE); err != nil {
+		return err
+	}
+	if err := w.String(util.BytesToString(s.minPackedValue)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(MAX_VALUE); err != nil {
+		return err
+	}
+	if err := w.String(util.BytesToString(s.maxPackedValue)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(POINT_COUNT); err != nil {
+		return err
+	}
+	if err := w.Long(int64(s.pointCount)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(DOC_COUNT); err != nil {
+		return err
+	}
+	if err := w.Long(int64(s.docsSeen.Len())); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
+
+	for i := 0; i < len(leafBlockFPs); i++ {
+		if err := w.Bytes(BLOCK_FP); err != nil {
+			return err
+		}
+		if err := w.Long(leafBlockFPs[i]); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
+	}
+
+	count := len(splitPackedValues) / (1 + s.config.BytesPerDim())
+
+	if err := w.Bytes(SPLIT_COUNT); err != nil {
+		return err
+	}
+	if err := w.Int(count); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
 	for i := 0; i < count; i++ {
-		w.Bytes(SPLIT_DIM)
-		w.Int(int(splitPackedValues[i*(1+s.config.BytesPerDim())] & 0xff))
-		w.NewLine()
-		w.Bytes(SPLIT_VALUE)
+		if err := w.Bytes(SPLIT_DIM); err != nil {
+			return err
+		}
+		if err := w.Int(int(splitPackedValues[i*(1+s.config.BytesPerDim())])); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
+		if err := w.Bytes(SPLIT_VALUE); err != nil {
+			return err
+		}
 
 		offset := 1 + (i * (1 + s.config.BytesPerDim()))
 		endOffset := offset + s.config.BytesPerDim()
 		values := splitPackedValues[offset:endOffset]
-		w.String(util.BytesToString(values))
-		w.NewLine()
+		if err := w.String(util.BytesToString(values)); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -378,7 +455,7 @@ func (s *SimpleTextBKDWriter) checkMaxLeafNodeCount(numLeaves int) error {
 	return nil
 }
 
-func (s *SimpleTextBKDWriter) buildV1(nodeID, leafNodeOffset int, reader index.MutablePointValues, from, to int,
+func (s *SimpleTextBKDWriter) buildV1(nodeID, leafNodeOffset int, reader types.MutablePointValues, from, to int,
 	out store.IndexOutput, minPackedValue, maxPackedValue, splitPackedValues []byte,
 	leafBlockFPs []int64, spareDocIds []int) error {
 
@@ -612,7 +689,7 @@ func (s *SimpleTextBKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd2.P
 				for i := 0; i < count; i++ {
 					value := heapSource.GetPackedValueSlice(i)
 					packedValue := value.PackedValue()
-					bucket := packedValue[offset+prefix] & 0xff
+					bucket := packedValue[offset+prefix]
 					usedBytes[dim].Set(uint(bucket))
 				}
 				cardinality := int(usedBytes[dim].Count())
@@ -762,7 +839,7 @@ func (s *SimpleTextBKDWriter) switchToHeap(source bkd2.PointWriter) (*bkd2.HeapP
 			return nil, err
 		}
 
-		if err := writer.AppendValue(reader.PointValue()); err != nil {
+		if err := writer.AppendPoint(reader.PointValue()); err != nil {
 			return nil, err
 		}
 	}
@@ -771,7 +848,7 @@ func (s *SimpleTextBKDWriter) switchToHeap(source bkd2.PointWriter) (*bkd2.HeapP
 
 /* In the 1D case, we can simply sort points in ascending order and use the
  * same writing logic as we use at merge time. */
-func (s *SimpleTextBKDWriter) writeField1Dim(out store.IndexOutput, fieldName string, values index.MutablePointValues) (int64, error) {
+func (s *SimpleTextBKDWriter) writeField1Dim(out store.IndexOutput, fieldName string, values types.MutablePointValues) (int64, error) {
 	panic("")
 }
 

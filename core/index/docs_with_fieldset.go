@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -22,7 +23,7 @@ func NewDocsWithFieldSet() *DocsWithFieldSet {
 	}
 }
 
-func (d *DocsWithFieldSet) Iterator() (DocIdSetIterator, error) {
+func (d *DocsWithFieldSet) Iterator() (types.DocIdSetIterator, error) {
 	return NewBitSetIterator(d.set, int64(d.cost)), nil
 }
 

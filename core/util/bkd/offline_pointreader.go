@@ -4,14 +4,13 @@ import (
 	"encoding/binary"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
 	"io"
 )
 
 var _ PointReader = &OfflinePointReader{}
 
 type OfflinePointReader struct {
-	countLeft      int64
+	countLeft      int
 	in             store.IndexInput
 	onHeapBuffer   []byte
 	offset         int
@@ -24,7 +23,7 @@ type OfflinePointReader struct {
 }
 
 func NewOfflinePointReader(config *Config, tempDir store.Directory,
-	tempFileName string, start, length int64, reusableBuffer []byte) (*OfflinePointReader, error) {
+	tempFileName string, start, length int, reusableBuffer []byte) (*OfflinePointReader, error) {
 
 	reader := &OfflinePointReader{
 		countLeft:      0,
@@ -35,7 +34,7 @@ func NewOfflinePointReader(config *Config, tempDir store.Directory,
 		config:         config,
 		pointsInBuffer: 0,
 		maxPointOnHeap: len(reusableBuffer) / config.BytesPerDoc(),
-		name:           "",
+		name:           tempFileName,
 		pointValue:     nil,
 	}
 
@@ -55,7 +54,7 @@ func NewOfflinePointReader(config *Config, tempDir store.Directory,
 		return nil, err
 	}
 
-	if start == 0 && length*int64(config.BytesPerDoc()) == (fileLength)-int64(utils.FooterLength()) {
+	if start == 0 && length*config.BytesPerDoc() == int(fileLength)-utils.FooterLength() {
 
 		// If we are going to read the entire file, e.g. because BKDWriter is now
 		// partitioning it, we open with checksums:
@@ -74,9 +73,8 @@ func NewOfflinePointReader(config *Config, tempDir store.Directory,
 		}
 	}
 
-	reader.name = tempFileName
-	seekFP := start * int64(config.BytesPerDoc())
-	if _, err = reader.in.Seek(seekFP, io.SeekStart); err != nil {
+	seekFP := start * (config.BytesPerDoc())
+	if _, err = reader.in.Seek(int64(seekFP), io.SeekStart); err != nil {
 		return nil, err
 	}
 	reader.countLeft = length
@@ -98,33 +96,34 @@ func (r *OfflinePointReader) Close() error {
 }
 
 func (r *OfflinePointReader) Next() (bool, error) {
-	if r.pointsInBuffer == 0 {
-		if r.countLeft == 0 {
-			return false, nil
-		}
-
-		if int(r.countLeft) > r.maxPointOnHeap {
-			size := r.maxPointOnHeap * r.config.BytesPerDoc()
-			_, err := r.in.Read(r.onHeapBuffer[0:size])
-			if err != nil {
-				return false, err
-			}
-			r.pointsInBuffer = r.maxPointOnHeap - 1
-			r.countLeft -= int64(r.maxPointOnHeap)
-		} else {
-			size := int(r.countLeft) * r.config.BytesPerDoc()
-			_, err := r.in.Read(r.onHeapBuffer[0:size])
-			if err != nil {
-				return false, err
-			}
-			r.pointsInBuffer = int(r.countLeft - 1)
-			r.countLeft = 0
-		}
-		r.offset = 0
-	} else {
+	if r.pointsInBuffer > 0 {
 		r.pointsInBuffer--
 		r.offset += r.config.BytesPerDoc()
+		return true, nil
 	}
+
+	if r.countLeft == 0 {
+		return false, nil
+	}
+
+	if r.countLeft > r.maxPointOnHeap {
+		size := r.maxPointOnHeap * r.config.BytesPerDoc()
+		_, err := r.in.Read(r.onHeapBuffer[0:size])
+		if err != nil {
+			return false, err
+		}
+		r.pointsInBuffer = r.maxPointOnHeap - 1
+		r.countLeft -= r.maxPointOnHeap
+	} else {
+		size := r.countLeft * r.config.BytesPerDoc()
+		_, err := r.in.Read(r.onHeapBuffer[0:size])
+		if err != nil {
+			return false, err
+		}
+		r.pointsInBuffer = r.countLeft - 1
+		r.countLeft = 0
+	}
+	r.offset = 0
 	return true, nil
 }
 
@@ -137,34 +136,32 @@ var _ PointValue = &OfflinePointValue{}
 
 // OfflinePointValue Reusable implementation for a point value offline
 type OfflinePointValue struct {
-	packedValue       *util.BytesRef
-	packedValueDocID  *util.BytesRef
-	packedValueLength int
+	config *Config
+	bytes  []byte
+	offset int
 }
 
 func NewOfflinePointValue(config *Config, value []byte) *OfflinePointValue {
 	return &OfflinePointValue{
-		packedValue:       util.NewBytesRef(value, 0, config.PackedBytesLength()),
-		packedValueDocID:  util.NewBytesRef(value, 0, config.BytesPerDoc()),
-		packedValueLength: config.PackedBytesLength(),
+		config: config,
+		bytes:  value,
 	}
 }
 
 func (v *OfflinePointValue) PackedValue() []byte {
-	return v.packedValue.GetBytes()
+	return v.bytes[v.offset : v.offset+v.config.PackedBytesLength()]
 }
 
 func (v *OfflinePointValue) DocID() int {
-	position := v.packedValueDocID.Offset + v.packedValueLength
-	return int(binary.BigEndian.Uint32(v.packedValueDocID.GetBytes()[position:]))
+	position := v.offset + v.config.PackedBytesLength()
+	return int(binary.BigEndian.Uint32(v.bytes[position:]))
 }
 
 func (v *OfflinePointValue) PackedValueDocIDBytes() []byte {
-	return v.packedValueDocID.GetBytes()
+	return v.bytes[v.offset : v.offset+v.config.BytesPerDoc()]
 }
 
 // SetOffset Sets a new value by changing the offset.
 func (v *OfflinePointValue) SetOffset(offset int) {
-	v.packedValue.Offset = offset
-	v.packedValueDocID.Offset = offset
+	v.offset = offset
 }

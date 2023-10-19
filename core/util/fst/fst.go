@@ -272,7 +272,7 @@ func (f *Fst[T]) ReadLabel(in store.DataInput) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		v = int(n & 0xFF)
+		v = int(n)
 		return v, nil
 	case BYTE2:
 		n, err := in.ReadUint16()
@@ -479,7 +479,7 @@ func (f *Fst[T]) shouldExpandNodeWithDirectAddressing(builder *Builder[T], nodeI
 	allowedOversize := int64(float64(sizeForBinarySearch) * builder.GetDirectAddressingMaxOversizingFactor())
 	expansionCost := (sizeForDirectAddressing) - allowedOversize
 
-	// Select direct addressing if either:
+	// SelectK direct addressing if either:
 	// - Direct addressing size is smaller than binary search.
 	//   In this case, increment the credit by the reduced size (to use it later).
 	// - Direct addressing size is larger than binary search, but the positive credit allows the oversizing.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 	"math"
 
@@ -116,7 +117,7 @@ func (r *prQueryWeight) matches(packedValue []byte) bool {
 	return true
 }
 
-func (r *prQueryWeight) relate(minPackedValue, maxPackedValue []byte) index.Relation {
+func (r *prQueryWeight) relate(minPackedValue, maxPackedValue []byte) types.Relation {
 	crosses := false
 
 	for dim := 0; dim < r.p.numDims; dim++ {
@@ -126,7 +127,7 @@ func (r *prQueryWeight) relate(minPackedValue, maxPackedValue []byte) index.Rela
 
 		if bytes.Compare(minPackedValue[offset:toIndex], r.p.upperPoint[offset:toIndex]) > 0 ||
 			bytes.Compare(maxPackedValue[offset:toIndex], r.p.lowerPoint[offset:toIndex]) < 0 {
-			return index.CELL_OUTSIDE_QUERY
+			return types.CELL_OUTSIDE_QUERY
 		}
 
 		crosses = crosses || (bytes.Compare(minPackedValue[offset:toIndex], r.p.lowerPoint[offset:toIndex]) < 0 ||
@@ -134,12 +135,12 @@ func (r *prQueryWeight) relate(minPackedValue, maxPackedValue []byte) index.Rela
 	}
 
 	if crosses {
-		return index.CELL_CROSSES_QUERY
+		return types.CELL_CROSSES_QUERY
 	}
-	return index.CELL_INSIDE_QUERY
+	return types.CELL_INSIDE_QUERY
 }
 
-func (r *prQueryWeight) getIntersectVisitor(result *DocIdSetBuilder) index.IntersectVisitor {
+func (r *prQueryWeight) getIntersectVisitor(result *DocIdSetBuilder) types.IntersectVisitor {
 	return &prQueryVisitor{
 		weight: r,
 		addr:   nil,
@@ -147,7 +148,7 @@ func (r *prQueryWeight) getIntersectVisitor(result *DocIdSetBuilder) index.Inter
 	}
 }
 
-var _ index.IntersectVisitor = &prQueryVisitor{}
+var _ types.IntersectVisitor = &prQueryVisitor{}
 
 type prQueryVisitor struct {
 	weight *prQueryWeight
@@ -167,7 +168,7 @@ func (p *prQueryVisitor) VisitLeaf(docID int, packedValue []byte) error {
 	return nil
 }
 
-func (p *prQueryVisitor) VisitIterator(iterator index.DocValuesIterator, packedValue []byte) error {
+func (p *prQueryVisitor) VisitIterator(iterator types.DocValuesIterator, packedValue []byte) error {
 	if p.weight.matches(packedValue) {
 		for {
 			doc, err := iterator.NextDoc()
@@ -186,7 +187,7 @@ func (p *prQueryVisitor) VisitIterator(iterator index.DocValuesIterator, packedV
 	return nil
 }
 
-func (p *prQueryVisitor) Compare(minPackedValue, maxPackedValue []byte) index.Relation {
+func (p *prQueryVisitor) Compare(minPackedValue, maxPackedValue []byte) types.Relation {
 	return p.weight.relate(minPackedValue, maxPackedValue)
 }
 
@@ -194,11 +195,11 @@ func (p *prQueryVisitor) Grow(count int) {
 	p.addr = p.result.Grow(count)
 }
 
-func (r *prQueryWeight) getInverseIntersectVisitor(result *bitset.BitSet, cost []int64) index.IntersectVisitor {
+func (r *prQueryWeight) getInverseIntersectVisitor(result *bitset.BitSet, cost []int64) types.IntersectVisitor {
 	panic("")
 }
 
-var _ index.IntersectVisitor = &invPrQueryVisitor{}
+var _ types.IntersectVisitor = &invPrQueryVisitor{}
 
 type invPrQueryVisitor struct {
 	result *bitset.BitSet
@@ -219,7 +220,7 @@ func (r *invPrQueryVisitor) VisitLeaf(docID int, packedValue []byte) error {
 	return nil
 }
 
-func (r *invPrQueryVisitor) VisitIterator(iterator index.DocValuesIterator, packedValue []byte) error {
+func (r *invPrQueryVisitor) VisitIterator(iterator types.DocValuesIterator, packedValue []byte) error {
 	if r.weight.matches(packedValue) == false {
 		for {
 			doc, err := iterator.NextDoc()
@@ -238,15 +239,15 @@ func (r *invPrQueryVisitor) VisitIterator(iterator index.DocValuesIterator, pack
 	return nil
 }
 
-func (r *invPrQueryVisitor) Compare(minPackedValue, maxPackedValue []byte) index.Relation {
+func (r *invPrQueryVisitor) Compare(minPackedValue, maxPackedValue []byte) types.Relation {
 	relation := r.weight.relate(minPackedValue, maxPackedValue)
 	switch relation {
-	case index.CELL_INSIDE_QUERY:
+	case types.CELL_INSIDE_QUERY:
 		// all points match, skip this subtree
-		return index.CELL_OUTSIDE_QUERY
-	case index.CELL_OUTSIDE_QUERY:
+		return types.CELL_OUTSIDE_QUERY
+	case types.CELL_OUTSIDE_QUERY:
 		// none of the points match, clear all documents
-		return index.CELL_INSIDE_QUERY
+		return types.CELL_INSIDE_QUERY
 	default:
 		return relation
 	}
@@ -340,7 +341,7 @@ type allDocsScorerSupplier struct {
 }
 
 func (r *allDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
-	return NewConstantScoreScorer(r.weight, r.weight.Score(), r.scoreMode, index.DocIdSetIteratorAll(r.reader.MaxDoc()))
+	return NewConstantScoreScorer(r.weight, r.weight.Score(), r.scoreMode, types.DocIdSetIteratorAll(r.reader.MaxDoc()))
 }
 
 func (a *allDocsScorerSupplier) Cost() int64 {
@@ -351,9 +352,9 @@ var _ ScorerSupplier = &notAllDocsScorerSupplier{}
 
 type notAllDocsScorerSupplier struct {
 	result    *DocIdSetBuilder
-	visitor   index.IntersectVisitor
+	visitor   types.IntersectVisitor
 	reader    index.LeafReader
-	values    index.PointValues
+	values    types.PointValues
 	cost      int64
 	weight    *prQueryWeight
 	scoreMode *ScoreMode
@@ -361,7 +362,8 @@ type notAllDocsScorerSupplier struct {
 
 func (r *notAllDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
 	if r.values.GetDocCount() == r.reader.MaxDoc() &&
-		int64(r.values.GetDocCount()) == r.values.Size() && r.Cost() > int64(r.reader.MaxDoc()/2) {
+		r.values.GetDocCount() == r.values.Size() &&
+		r.Cost() > int64(r.reader.MaxDoc()/2) {
 
 		// If all docs have exactly one value and the cost is greater
 		// than half the leaf size then maybe we can make things faster
@@ -390,7 +392,8 @@ func (r *notAllDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
 func (r *notAllDocsScorerSupplier) Cost() int64 {
 	if r.cost == -1 {
 		// Computing the cost may be expensive, so only do it if necessary
-		r.cost = r.values.EstimateDocCount(r.visitor)
+		cost, _ := r.values.EstimateDocCount(r.visitor)
+		r.cost = int64(cost)
 		//assert cost >= 0;
 	}
 	return r.cost

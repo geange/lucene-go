@@ -8,6 +8,7 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 	"io"
 	"strconv"
 	"strings"
@@ -296,7 +297,7 @@ func (i *innerDocValuesIterator1) Advance(target int) (int, error) {
 			return i.doc, nil
 		}
 	}
-	i.doc = index.NO_MORE_DOCS
+	i.doc = types.NO_MORE_DOCS
 	return i.doc, nil
 }
 
@@ -434,7 +435,7 @@ func (i *innerDocValuesIterator2) Advance(target int) (int, error) {
 			return i.doc, nil
 		}
 	}
-	i.doc = index.NO_MORE_DOCS
+	i.doc = types.NO_MORE_DOCS
 	return i.doc, nil
 }
 
@@ -573,7 +574,7 @@ func (i *innerSortedDocValues) Advance(target int) (int, error) {
 			return i.doc, nil
 		}
 	}
-	i.doc = index.NO_MORE_DOCS
+	i.doc = types.NO_MORE_DOCS
 	return i.doc, nil
 }
 
@@ -688,7 +689,7 @@ func (i *innerSortedNumericDocValues) DocValueCount() int {
 }
 
 func (i *innerSortedNumericDocValues) setCurrentDoc() error {
-	if i.DocID() == index.NO_MORE_DOCS {
+	if i.DocID() == types.NO_MORE_DOCS {
 		return nil
 	}
 	bs, err := i.binary.BinaryValue()
@@ -778,7 +779,7 @@ func (i *innerSortedSetDocValues) Advance(target int) (int, error) {
 			return i.doc, nil
 		}
 	}
-	i.doc = index.NO_MORE_DOCS
+	i.doc = types.NO_MORE_DOCS
 	return i.doc, nil
 }
 
@@ -892,7 +893,7 @@ func (s *SimpleTextDocValuesReader) stripPrefix(field []byte) string {
 }
 
 type DocValuesIterator interface {
-	index.DocIdSetIterator
+	types.DocIdSetIterator
 
 	AdvanceExact(target int) (bool, error)
 }

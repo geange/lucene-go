@@ -1,8 +1,10 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/types"
+)
 
-var _ index.DocIdSetIterator = &BlockMaxDISI{}
+var _ types.DocIdSetIterator = &BlockMaxDISI{}
 
 type BlockMaxDISI struct {
 }
@@ -28,5 +30,5 @@ func (b *BlockMaxDISI) Cost() int64 {
 }
 
 func (b *BlockMaxDISI) SlowAdvance(target int) (int, error) {
-	return index.SlowAdvance(b, target)
+	return types.SlowAdvance(b, target)
 }

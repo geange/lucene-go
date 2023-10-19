@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 	. "github.com/geange/lucene-go/core/util/structure"
 )
 
@@ -280,7 +281,7 @@ func (s *simpleLeafCollector) Collect(ctx context.Context, doc int) error {
 	}
 }
 
-func (s *simpleLeafCollector) CompetitiveIterator() (index.DocIdSetIterator, error) {
+func (s *simpleLeafCollector) CompetitiveIterator() (types.DocIdSetIterator, error) {
 	return s.comparator.CompetitiveIterator()
 }
 
@@ -453,7 +454,7 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 	}
 }
 
-func (p *pagingLeafCollector) CompetitiveIterator() (index.DocIdSetIterator, error) {
+func (p *pagingLeafCollector) CompetitiveIterator() (types.DocIdSetIterator, error) {
 	return p.comparator.CompetitiveIterator()
 }
 
