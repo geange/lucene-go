@@ -2,9 +2,10 @@ package util
 
 import (
 	"bufio"
+	"io"
+
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/tokenattr"
-	"io"
 )
 
 // CharTokenizer An abstract base class for simple, character-oriented tokenizers.
@@ -49,8 +50,8 @@ type CharTokenizerBase struct {
 	finalOffset int
 	maxTokenLen int
 
-	termAtt   tokenattr.CharTermAttribute
-	offsetAtt tokenattr.OffsetAttribute
+	termAtt   tokenattr.CharTermAttr
+	offsetAtt tokenattr.OffsetAttr
 
 	reader *bufio.Reader
 

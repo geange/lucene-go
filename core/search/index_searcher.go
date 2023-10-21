@@ -83,6 +83,10 @@ func (r *IndexSearcher) GetTopReaderContext() index.ReaderContext {
 	return r.readerContext
 }
 
+func (r *IndexSearcher) GetIndexReader() index.Reader {
+	return r.reader
+}
+
 func (r *IndexSearcher) SetSimilarity(similarity index.Similarity) {
 	r.similarity = similarity
 }

@@ -41,20 +41,15 @@ func (d *DataFields) Size() int {
 var _ Terms = &DataTerms{}
 
 type DataTerms struct {
-	*TermsDefault
+	*TermsBase
 
 	fieldData *FieldData
 }
 
 func NewDataTerms(fieldData *FieldData) *DataTerms {
-	dataTerms := &DataTerms{
-		fieldData: fieldData,
-	}
-	dataTerms.TermsDefault = NewTermsDefault(&TermsDefaultConfig{
-		Iterator: dataTerms.Iterator,
-		Size:     dataTerms.Size,
-	})
-	return dataTerms
+	terms := &DataTerms{fieldData: fieldData}
+	terms.TermsBase = NewTerms(terms)
+	return terms
 }
 
 func (d *DataTerms) Iterator() (TermsEnum, error) {

@@ -7,10 +7,10 @@ import (
 	"math"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"go.uber.org/atomic"
 )
 
 var (
@@ -94,16 +94,16 @@ type Writer struct {
 	readerPool            *ReaderPool
 	mergeFinishedGen      *atomic.Int64
 	bufferedUpdatesStream *BufferedUpdatesStream
-	config                *IndexWriterConfig
+	config                *WriterConfig
 	startCommitTime       int64
 	pendingNumDocs        *atomic.Int64
 	softDeletesEnabled    bool
 }
 
-func NewWriter(d store.Directory, conf *IndexWriterConfig) (*Writer, error) {
+func NewWriter(d store.Directory, conf *WriterConfig) (*Writer, error) {
 	writer := &Writer{
-		changeCount:    atomic.NewInt64(0),
-		pendingNumDocs: atomic.NewInt64(0),
+		changeCount:    new(atomic.Int64),
+		pendingNumDocs: new(atomic.Int64),
 	}
 	conf.setIndexWriter(writer)
 	writer.config = conf
@@ -563,7 +563,7 @@ func (w *Writer) updatePendingMerges(mergePolicy MergePolicy, trigger MergeTrigg
 }
 
 func (w *Writer) newSegmentName() string {
-	w.changeCount.Inc()
+	w.changeCount.Add(1)
 	w.segmentInfos.Changed()
 	v := w.segmentInfos.counter
 	w.segmentInfos.counter++
@@ -601,7 +601,7 @@ func (w *Writer) shutdown() error {
 }
 
 func (w *Writer) Changed() {
-	w.changeCount.Inc()
+	w.changeCount.Add(1)
 	w.segmentInfos.Changed()
 }
 
@@ -693,7 +693,7 @@ func (w *Writer) GetDirectory() store.Directory {
 	return w.directoryOrig
 }
 
-func (w *Writer) GetConfig() *IndexWriterConfig {
+func (w *Writer) GetConfig() *WriterConfig {
 	return w.config
 }
 

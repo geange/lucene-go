@@ -3,9 +3,10 @@ package store
 import (
 	"errors"
 	"fmt"
-	"go.uber.org/atomic"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 )
 
 // FSDirectory Base class for Directory implementations that store index files in the file system.
@@ -51,18 +52,27 @@ func NewFSDirectoryBase(path string, factory LockFactory) (*FSDirectoryBase, err
 		BaseDirectoryBase:   &BaseDirectoryBase{},
 		directory:           directory,
 		pendingDeletes:      map[string]struct{}{},
-		opsSinceLastDelete:  atomic.NewInt64(0),
-		nextTempFileCounter: atomic.NewInt64(0),
+		opsSinceLastDelete:  new(atomic.Int64),
+		nextTempFileCounter: new(atomic.Int64),
 	}, nil
 }
 
 func (f *FSDirectoryBase) ListAll() ([]string, error) {
 	stat, err := os.Stat(f.directory)
 	if err != nil {
-		return nil, err
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
+		if err := os.MkdirAll(f.directory, 0755); err != nil {
+			return nil, err
+		}
+		stat, err = os.Stat(f.directory)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if !stat.IsDir() {
-		return nil, errors.New("TODO")
+		return nil, fmt.Errorf("%s is not dir", f.directory)
 	}
 	dir, err := os.ReadDir(f.directory)
 	if err != nil {
@@ -127,7 +137,7 @@ func (f *FSDirectoryBase) CreateTempOutput(prefix, suffix string, context *IOCon
 	}
 
 	for {
-		name := getTempFileName(prefix, suffix, f.nextTempFileCounter.Inc())
+		name := getTempFileName(prefix, suffix, f.nextTempFileCounter.Add(1))
 		if _, ok := f.pendingDeletes[name]; ok {
 			continue
 		}

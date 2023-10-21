@@ -3,7 +3,7 @@ package automaton
 import (
 	"fmt"
 	"github.com/bits-and-blooms/bitset"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/array"
 	"sort"
 )
 
@@ -154,7 +154,7 @@ func (r *Automaton) Copy(other *Automaton) {
 
 	// Bulk copy and then fixup the state pointers:
 	stateOffset := r.GetNumStates()
-	r.states = util.Grow(r.states, r.nextState+other.nextState)
+	r.states = array.Grow(r.states, r.nextState+other.nextState)
 	copy(r.states[r.nextState:r.nextState+other.nextState], other.states)
 	for i := 0; i < other.nextState; i += 2 {
 		if r.states[r.nextState+i] != -1 {
@@ -180,7 +180,7 @@ func (r *Automaton) Copy(other *Automaton) {
 	}
 
 	// Bulk copy and then fixup dest for each transition:
-	r.transitions = util.Grow(r.transitions, r.nextTransition+other.nextTransition)
+	r.transitions = array.Grow(r.transitions, r.nextTransition+other.nextTransition)
 	copy(r.transitions[r.nextTransition:r.nextTransition+other.nextTransition], other.transitions)
 	for i := 0; i < other.nextTransition; i += 3 {
 		r.transitions[r.nextTransition+i] += stateOffset
@@ -312,13 +312,13 @@ func (r *Automaton) GetNumTransitionsWithState(state int) int {
 
 func (r *Automaton) growStates() {
 	if r.nextState+2 > len(r.states) {
-		r.states = util.Grow(r.states, r.nextState+2)
+		r.states = array.Grow(r.states, r.nextState+2)
 	}
 }
 
 func (r *Automaton) growTransitions() {
 	if r.nextTransition+3 > len(r.transitions) {
-		r.transitions = util.Grow(r.transitions, r.nextTransition+3)
+		r.transitions = array.Grow(r.transitions, r.nextTransition+3)
 	}
 }
 

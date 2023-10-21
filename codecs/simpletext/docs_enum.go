@@ -11,9 +11,9 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ index.ImpactsEnum = &SimpleTextDocsEnum{}
+var _ index.ImpactsEnum = &DocsEnum{}
 
-type SimpleTextDocsEnum struct {
+type DocsEnum struct {
 	inStart      store.IndexInput
 	in           store.IndexInput
 	omitTF       bool
@@ -22,13 +22,13 @@ type SimpleTextDocsEnum struct {
 	scratch      *bytes.Buffer
 	scratchUTF16 *bytes.Buffer
 	cost         int
-	skipReader   *SimpleTextSkipReader
+	skipReader   *SkipReader
 	nextSkipDoc  int
 	seekTo       int64
 }
 
-func (s *SimpleTextFieldsReader) NewSimpleTextDocsEnum() *SimpleTextDocsEnum {
-	return &SimpleTextDocsEnum{
+func (s *FieldsReader) NewSimpleTextDocsEnum() *DocsEnum {
+	return &DocsEnum{
 		inStart:      s.in,
 		in:           s.in.Clone(),
 		omitTF:       false,
@@ -37,25 +37,25 @@ func (s *SimpleTextFieldsReader) NewSimpleTextDocsEnum() *SimpleTextDocsEnum {
 		scratch:      nil,
 		scratchUTF16: nil,
 		cost:         0,
-		skipReader:   NewSimpleTextSkipReader(s.in.Clone()),
+		skipReader:   NewSkipReader(s.in.Clone()),
 		nextSkipDoc:  0,
 		seekTo:       -1,
 	}
 }
 
-func (s *SimpleTextDocsEnum) CanReuse(in store.IndexInput) bool {
+func (s *DocsEnum) CanReuse(in store.IndexInput) bool {
 	return in == s.inStart
 }
 
-func (s *SimpleTextDocsEnum) DocID() int {
+func (s *DocsEnum) DocID() int {
 	return s.docID
 }
 
-func (s *SimpleTextDocsEnum) NextDoc() (int, error) {
+func (s *DocsEnum) NextDoc() (int, error) {
 	return s.Advance(s.docID + 1)
 }
 
-func (s *SimpleTextDocsEnum) readDoc() (int, error) {
+func (s *DocsEnum) readDoc() (int, error) {
 	if s.docID == types.NO_MORE_DOCS {
 		return s.docID, nil
 	}
@@ -115,7 +115,7 @@ func (s *SimpleTextDocsEnum) readDoc() (int, error) {
 	}
 }
 
-func (s *SimpleTextDocsEnum) advanceTarget(target int) (int, error) {
+func (s *DocsEnum) advanceTarget(target int) (int, error) {
 	if s.seekTo > 0 {
 		if _, err := s.in.Seek(s.seekTo, io.SeekStart); err != nil {
 			return 0, err
@@ -138,43 +138,43 @@ func (s *SimpleTextDocsEnum) advanceTarget(target int) (int, error) {
 	return doc, nil
 }
 
-func (s *SimpleTextDocsEnum) Advance(target int) (int, error) {
+func (s *DocsEnum) Advance(target int) (int, error) {
 	if err := s.AdvanceShallow(target); err != nil {
 		return 0, err
 	}
 	return s.advanceTarget(target)
 }
 
-func (s *SimpleTextDocsEnum) SlowAdvance(target int) (int, error) {
+func (s *DocsEnum) SlowAdvance(target int) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SimpleTextDocsEnum) Cost() int64 {
+func (s *DocsEnum) Cost() int64 {
 	return int64(s.cost)
 }
 
-func (s *SimpleTextDocsEnum) Freq() (int, error) {
+func (s *DocsEnum) Freq() (int, error) {
 	return s.tf, nil
 }
 
-func (s *SimpleTextDocsEnum) NextPosition() (int, error) {
+func (s *DocsEnum) NextPosition() (int, error) {
 	return -1, nil
 }
 
-func (s *SimpleTextDocsEnum) StartOffset() (int, error) {
+func (s *DocsEnum) StartOffset() (int, error) {
 	return -1, nil
 }
 
-func (s *SimpleTextDocsEnum) EndOffset() (int, error) {
+func (s *DocsEnum) EndOffset() (int, error) {
 	return -1, nil
 }
 
-func (s *SimpleTextDocsEnum) GetPayload() ([]byte, error) {
+func (s *DocsEnum) GetPayload() ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (s *SimpleTextDocsEnum) AdvanceShallow(target int) error {
+func (s *DocsEnum) AdvanceShallow(target int) error {
 	if target > s.nextSkipDoc {
 		if _, err := s.skipReader.SkipTo(target); err != nil {
 			return err
@@ -187,7 +187,7 @@ func (s *SimpleTextDocsEnum) AdvanceShallow(target int) error {
 	return nil
 }
 
-func (s *SimpleTextDocsEnum) GetImpacts() (index.Impacts, error) {
+func (s *DocsEnum) GetImpacts() (index.Impacts, error) {
 	if err := s.AdvanceShallow(s.docID); err != nil {
 		return nil, err
 	}

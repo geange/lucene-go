@@ -3,9 +3,9 @@ package store
 import (
 	"errors"
 	"fmt"
-	"go.uber.org/atomic"
 	"hash"
 	"sort"
+	"sync/atomic"
 )
 
 var _ BaseDirectory = &RAMDirectory{}
@@ -105,7 +105,7 @@ func (r *RAMDirectory) CreateTempOutput(prefix, suffix string, context *IOContex
 	// ... then try to find a unique name for it:
 	for {
 		name := SegmentFileName(prefix,
-			fmt.Sprintf("%s_%d", suffix, r.nextTempFileCounter.Inc()), "tmp")
+			fmt.Sprintf("%s_%d", suffix, r.nextTempFileCounter.Add(1)), "tmp")
 
 		if _, ok := r.fileMap[name]; !ok {
 			return NewRAMOutputStreamV1(name, file, true), nil

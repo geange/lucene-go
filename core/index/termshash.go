@@ -2,7 +2,8 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/ints"
 )
 
 // TermsHash This class is passed each token produced by the analyzer on each field during indexing,
@@ -15,7 +16,7 @@ type TermsHash interface {
 
 	AddField(fieldInvertState *FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error)
 
-	SetTermBytePool(termBytePool *util.ByteBlockPool)
+	SetTermBytePool(termBytePool *bytesutils.BlockPool)
 
 	FinishDocument(docID int) error
 
@@ -25,24 +26,24 @@ type TermsHash interface {
 
 	StartDocument() error
 
-	GetIntPool() *util.IntBlockPool
-	GetBytePool() *util.ByteBlockPool
-	GetTermBytePool() *util.ByteBlockPool
+	GetIntPool() *ints.BlockPool
+	GetBytePool() *bytesutils.BlockPool
+	GetTermBytePool() *bytesutils.BlockPool
 }
 
 type TermsHashDefault struct {
 	nextTermsHash TermsHash
-	intPool       *util.IntBlockPool
-	bytePool      *util.ByteBlockPool
-	termBytePool  *util.ByteBlockPool
+	intPool       *ints.BlockPool
+	bytePool      *bytesutils.BlockPool
+	termBytePool  *bytesutils.BlockPool
 }
 
-func NewTermsHashDefault(intBlockAllocator util.IntsAllocator, byteBlockAllocator util.BytesAllocator,
+func NewTermsHashDefault(intBlockAllocator ints.IntsAllocator, byteBlockAllocator bytesutils.Allocator,
 	nextTermsHash TermsHash) *TermsHashDefault {
 	termHash := &TermsHashDefault{
 		nextTermsHash: nextTermsHash,
-		intPool:       util.NewIntBlockPool(intBlockAllocator),
-		bytePool:      util.NewByteBlockPool(byteBlockAllocator),
+		intPool:       ints.NewBlockPool(intBlockAllocator),
+		bytePool:      bytesutils.NewBlockPool(byteBlockAllocator),
 	}
 
 	if nextTermsHash != nil {
@@ -52,15 +53,15 @@ func NewTermsHashDefault(intBlockAllocator util.IntsAllocator, byteBlockAllocato
 	return termHash
 }
 
-func (h *TermsHashDefault) GetIntPool() *util.IntBlockPool {
+func (h *TermsHashDefault) GetIntPool() *ints.BlockPool {
 	return h.intPool
 }
 
-func (h *TermsHashDefault) GetBytePool() *util.ByteBlockPool {
+func (h *TermsHashDefault) GetBytePool() *bytesutils.BlockPool {
 	return h.bytePool
 }
 
-func (h *TermsHashDefault) GetTermBytePool() *util.ByteBlockPool {
+func (h *TermsHashDefault) GetTermBytePool() *bytesutils.BlockPool {
 	return h.termBytePool
 }
 

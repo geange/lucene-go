@@ -1,7 +1,6 @@
 package fst
 
 import (
-	"fmt"
 	"math/bits"
 )
 
@@ -20,10 +19,10 @@ const (
 //	than number of bit-table bytes * Byte.SIZE.
 //	reader – The Fst.BytesReader to read. It must be positioned at the beginning of the bit-table.
 func isBitSet(bitIndex int, reader BytesReader) (bool, error) {
-	if err := assert(bitIndex >= 0,
-		fmt.Sprintf("bitIndex=%d", bitIndex)); err != nil {
-		return false, err
-	}
+	//if err := assert(bitIndex >= 0,
+	//	fmt.Sprintf("bitIndex=%d", bitIndex)); err != nil {
+	//	return false, err
+	//}
 
 	if err := reader.SkipBytes(bitIndex >> 3); err != nil {
 		return false, err
@@ -42,10 +41,10 @@ func isBitSet(bitIndex int, reader BytesReader) (bool, error) {
 //	bitTableBytes – The number of bytes in the bit-table.
 //	reader – The Fst.BytesReader to read. It must be positioned at the beginning of the bit-table.
 func countBits(bitTableBytes int64, reader BytesReader) (int64, error) {
-	if err := assert(bitTableBytes >= 0,
-		fmt.Sprintf("bitTableBytes=%d", bitTableBytes)); err != nil {
-		return 0, err
-	}
+	//if err := assert(bitTableBytes >= 0,
+	//	fmt.Sprintf("bitTableBytes=%d", bitTableBytes)); err != nil {
+	//	return 0, err
+	//}
 
 	bitCount := 0
 	for i := bitTableBytes >> 3; i > 0; i-- {
@@ -78,10 +77,10 @@ func countBits(bitTableBytes int64, reader BytesReader) (int64, error) {
 //	than or equal to number of bit-table bytes * Byte.SIZE.
 //	reader – The Fst.BytesReader to read. It must be positioned at the beginning of the bit-table.
 func countBitsUpTo(bitIndex int, reader BytesReader) (int, error) {
-	if err := assert(bitIndex > 0,
-		fmt.Sprintf("bitIndex=%d", bitIndex)); err != nil {
-		return 0, err
-	}
+	//if err := assert(bitIndex > 0,
+	//	fmt.Sprintf("bitIndex=%d", bitIndex)); err != nil {
+	//	return 0, err
+	//}
 
 	bitCount := 0
 
@@ -128,10 +127,10 @@ func countBitsUpTo(bitIndex int, reader BytesReader) (int, error) {
 //
 //	The zero-based index of the next bit set after the provided bitIndex; or -1 if none.
 func nextBitSet(bitIndex, bitTableBytes int, reader BytesReader) (int, error) {
-	if err := assert(bitIndex >= -1 && bitIndex < bitTableBytes*BYTE_SIZE,
-		fmt.Sprintf("bitIndex=%d bitTableBytes=%d", bitIndex, bitTableBytes)); err != nil {
-		return 0, err
-	}
+	//if err := assert(bitIndex >= -1 && bitIndex < bitTableBytes*BYTE_SIZE,
+	//	fmt.Sprintf("bitIndex=%d bitTableBytes=%d", bitIndex, bitTableBytes)); err != nil {
+	//	return 0, err
+	//}
 
 	byteIndex := bitIndex / BYTE_SIZE
 	mask := int32(-1) << ((bitIndex + 1) & (BYTE_SIZE - 1))
@@ -182,9 +181,9 @@ func nextBitSet(bitIndex, bitTableBytes int, reader BytesReader) (int, error) {
 //
 //	The zero-based index of the previous bit set before the provided bitIndex; or -1 if none.
 func previousBitSet(bitIndex int, reader BytesReader) (int, error) {
-	if err := assert(bitIndex >= 0); err != nil {
-		return 0, err
-	}
+	//if err := assert(bitIndex >= 0); err != nil {
+	//	return 0, err
+	//}
 
 	byteIndex := bitIndex >> 3
 	if err := reader.SkipBytes(byteIndex); err != nil {
@@ -230,9 +229,9 @@ func readByte(reader BytesReader) (int64, error) {
 }
 
 func readUpTo8Bytes(numBytes int64, reader BytesReader) (int64, error) {
-	if err := assert(numBytes > 0 && numBytes <= 8, fmt.Sprintf("numBytes=%d", numBytes)); err != nil {
-		return 0, err
-	}
+	//if err := assert(numBytes > 0 && numBytes <= 8, fmt.Sprintf("numBytes=%d", numBytes)); err != nil {
+	//	return 0, err
+	//}
 
 	bs := make([]byte, numBytes)
 	if _, err := reader.Read(bs); err != nil {

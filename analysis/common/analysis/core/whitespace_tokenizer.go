@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/geange/lucene-go/analysis/common/analysis/util"
 	"unicode"
+
+	"github.com/geange/lucene-go/analysis/common/analysis/util"
 )
 
 type WhitespaceTokenizer struct {

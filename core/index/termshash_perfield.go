@@ -2,9 +2,10 @@ package index
 
 import (
 	"encoding/binary"
+	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/ints"
 
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/util"
 )
 
 const HASH_INIT_SIZE = 4
@@ -52,8 +53,8 @@ type TermsHashPerField interface {
 
 type TermsHashPerFieldDefault struct {
 	nextPerField TermsHashPerField
-	intPool      *util.IntBlockPool
-	bytePool     *util.ByteBlockPool
+	intPool      *ints.BlockPool
+	bytePool     *bytesutils.BlockPool
 
 	// for each term we store an integer per stream that points into the bytePool above
 	// the address is updated once data is written to the stream to point to the next free offset
@@ -72,7 +73,7 @@ type TermsHashPerFieldDefault struct {
 
 	// This stores the actual term bytes for postings and offsets into the parent hash in the case that this
 	// TermsHashPerField is hashing term vectors.
-	bytesHash *util.BytesHash
+	bytesHash *bytesutils.BytesHash
 
 	postingsArray ParallelPostingsArray
 
@@ -88,7 +89,7 @@ type TermsHashPerFieldDefault struct {
 }
 
 func NewTermsHashPerFieldDefault(streamCount int,
-	intPool *util.IntBlockPool, bytePool, termBytePool *util.ByteBlockPool,
+	intPool *ints.BlockPool, bytePool, termBytePool *bytesutils.BlockPool,
 	nextPerField TermsHashPerField, fieldName string, indexOptions document.IndexOptions, perField TermsHashPerField) *TermsHashPerFieldDefault {
 
 	res := &TermsHashPerFieldDefault{
@@ -130,10 +131,10 @@ func (t *TermsHashPerFieldDefault) Reset() error {
 
 func (t *TermsHashPerFieldDefault) initReader(reader ByteSliceReader, termID, stream int) error {
 	streamStartOffset := t.postingsArray.GetAddressOffset(termID)
-	streamAddressBuffer := t.intPool.Get(streamStartOffset >> util.INT_BLOCK_SHIFT)
-	offsetInAddressBuffer := streamStartOffset & util.INT_BLOCK_MASK
+	streamAddressBuffer := t.intPool.Get(streamStartOffset >> ints.INT_BLOCK_SHIFT)
+	offsetInAddressBuffer := streamStartOffset & ints.INT_BLOCK_MASK
 	return reader.init(t.bytePool,
-		t.postingsArray.GetByteStarts(termID)+stream*util.BYTE_FIRST_LEVEL_SIZE,
+		t.postingsArray.GetByteStarts(termID)+stream*bytesutils.ByteFirstLevelSize,
 		streamAddressBuffer[offsetInAddressBuffer+stream])
 }
 
@@ -148,7 +149,7 @@ func (t *TermsHashPerFieldDefault) getSortedTermIDs() []int {
 }
 
 func (t *TermsHashPerFieldDefault) reinitHash() {
-	t.bytesHash.Reinit()
+	t.bytesHash.ReInit()
 }
 
 // Secondary entry point (for 2nd & subsequent TermsHash),
@@ -168,13 +169,13 @@ func (t *TermsHashPerFieldDefault) add(textStart, docID int) error {
 
 func (t *TermsHashPerFieldDefault) initStreamSlices(termID, docID int) error {
 	// Init stream slices
-	if t.streamCount+t.intPool.IntUpto() > util.INT_BLOCK_SIZE {
+	if t.streamCount+t.intPool.IntUpto() > ints.INT_BLOCK_SIZE {
 		// not enough space remaining in this buffer -- jump to next buffer and lose this remaining
 		// piece
 		t.intPool.NextBuffer()
 	}
 
-	if util.BYTE_BLOCK_SIZE-t.bytePool.ByteUpto() < (2*t.streamCount)*util.BYTE_FIRST_LEVEL_SIZE {
+	if bytesutils.BlockSize-t.bytePool.ByteUpto() < (2*t.streamCount)*bytesutils.ByteFirstLevelSize {
 		// can we fit at least one byte per stream in the current buffer, if not allocate a new one
 		t.bytePool.NextBuffer()
 	}
@@ -188,8 +189,8 @@ func (t *TermsHashPerFieldDefault) initStreamSlices(termID, docID int) error {
 	for i := 0; i < t.streamCount; i++ {
 		// initialize each stream with a slice we start with ByteBlockPool.FIRST_LEVEL_SIZE)
 		// and grow as we need more space. see ByteBlockPool.LEVEL_SIZE_ARRAY
-		upto := t.bytePool.NewSlice(util.BYTE_FIRST_LEVEL_SIZE)
-		t.termStreamAddressBuffer[t.streamAddressOffset+i] = upto + t.bytePool.ByteOffset
+		upto := t.bytePool.NewSlice(bytesutils.ByteFirstLevelSize)
+		t.termStreamAddressBuffer[t.streamAddressOffset+i] = upto + t.bytePool.ByteOffset()
 	}
 	t.postingsArray.SetByteStarts(termID, t.termStreamAddressBuffer[t.streamAddressOffset])
 	return t.fnNewTerm(termID, docID)
@@ -198,8 +199,8 @@ func (t *TermsHashPerFieldDefault) initStreamSlices(termID, docID int) error {
 func (t *TermsHashPerFieldDefault) positionStreamSlice(termID, docID int) (int, error) {
 	termID = (-termID) - 1
 	intStart := t.postingsArray.GetAddressOffset(termID)
-	t.termStreamAddressBuffer = t.intPool.Get(intStart >> util.INT_BLOCK_SHIFT)
-	t.streamAddressOffset = intStart & util.INT_BLOCK_MASK
+	t.termStreamAddressBuffer = t.intPool.Get(intStart >> ints.INT_BLOCK_SHIFT)
+	t.streamAddressOffset = intStart & ints.INT_BLOCK_MASK
 	if err := t.fnAddTerm(termID, docID); err != nil {
 		return 0, err
 	}
@@ -291,19 +292,19 @@ func (t *TermsHashPerFieldDefault) writeVInt(stream, i int) {
 func (t *TermsHashPerFieldDefault) writeByte(stream int, b byte) {
 	streamAddress := t.streamAddressOffset + stream
 	upto := t.termStreamAddressBuffer[streamAddress]
-	bytes := t.bytePool.Get(upto >> util.BYTE_BLOCK_SHIFT)
-	offset := upto & util.BYTE_BLOCK_MASK
+	bytes := t.bytePool.Get(upto >> bytesutils.BlockShift)
+	offset := upto & bytesutils.BlockMask
 	if bytes[offset] != 0 {
 		// End of slice; allocate a new one
 		offset = t.bytePool.AllocSlice(bytes, offset)
 		bytes = t.bytePool.Current()
-		t.termStreamAddressBuffer[streamAddress] = offset + t.bytePool.ByteOffset
+		t.termStreamAddressBuffer[streamAddress] = offset + t.bytePool.ByteOffset()
 	}
 	bytes[offset] = b
 	t.termStreamAddressBuffer[streamAddress]++
 }
 
-var _ util.BytesStartArray = &PostingsBytesStartArray{}
+var _ bytesutils.BytesStartArray = &PostingsBytesStartArray{}
 
 type PostingsBytesStartArray struct {
 	perField TermsHashPerField

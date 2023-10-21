@@ -132,10 +132,10 @@ func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 	switch r.ValueType() {
 	case FieldValueString:
 		value, _ := r.StringValue()
-		return analyzer.TokenStreamByString(r.name, value)
+		return analyzer.GetTokenStreamFromText(r.name, value)
 	case FieldValueReader:
 		reader, _ := r.ReaderValue()
-		return analyzer.TokenStreamByReader(r.name, reader)
+		return analyzer.GetTokenStreamFromReader(r.name, reader)
 	default:
 		return nil, errors.New("field must have either TokenStream, String, Reader or Number value")
 	}
@@ -267,8 +267,8 @@ func NewStringTokenStream(source *tokenattr.AttributeSource) (*StringTokenStream
 
 type StringTokenStream struct {
 	source          *tokenattr.AttributeSource
-	termAttribute   tokenattr.CharTermAttribute
-	offsetAttribute tokenattr.OffsetAttribute
+	termAttribute   tokenattr.CharTermAttr
+	offsetAttribute tokenattr.OffsetAttr
 	used            bool
 	value           string
 }
@@ -329,7 +329,7 @@ func NewBinaryTokenStream(source *tokenattr.AttributeSource) (*BinaryTokenStream
 
 type BinaryTokenStream struct {
 	source   *tokenattr.AttributeSource
-	bytesAtt tokenattr.BytesTermAttribute
+	bytesAtt tokenattr.BytesTermAttr
 	used     bool
 	value    []byte
 }
@@ -348,7 +348,7 @@ func (r *BinaryTokenStream) IncrementToken() (bool, error) {
 		return false, err
 	}
 
-	if err := r.bytesAtt.SetBytesRef(r.value); err != nil {
+	if err := r.bytesAtt.SetBytes(r.value); err != nil {
 		return false, err
 	}
 	r.used = true

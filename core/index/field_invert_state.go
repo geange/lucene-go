@@ -20,13 +20,13 @@ type FieldInvertState struct {
 	// we must track these across field instances (multi-valued case)
 	lastStartOffset int
 	lastPosition    int
-	attributeSource *tokenattr.AttributeSource
 
-	offsetAttribute   tokenattr.OffsetAttribute
-	posIncrAttribute  tokenattr.PositionIncrementAttribute
-	payloadAttribute  tokenattr.PayloadAttribute
-	termAttribute     tokenattr.TermToBytesRefAttribute
-	termFreqAttribute tokenattr.TermFrequencyAttribute
+	attributeSource   *tokenattr.AttributeSource
+	offsetAttribute   tokenattr.OffsetAttr
+	posIncrAttribute  tokenattr.PositionIncrAttr
+	payloadAttribute  tokenattr.PayloadAttr
+	termAttribute     tokenattr.Term2BytesAttr
+	termFreqAttribute tokenattr.TermFreqAttr
 }
 
 // NewFieldInvertState Creates {code FieldInvertState} for the specified field name and values for all fields.

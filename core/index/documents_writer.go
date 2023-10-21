@@ -3,10 +3,10 @@ package index
 import (
 	"context"
 	"io"
+	"sync/atomic"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"go.uber.org/atomic"
 )
 
 // DocumentsWriter This class accepts multiple added documents and directly writes segment files.
@@ -72,7 +72,7 @@ func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int
 		closed:                           false,
 		infoStream:                       nil,
 		config:                           config,
-		numDocsInRAM:                     atomic.NewInt64(0),
+		numDocsInRAM:                     new(atomic.Int64),
 		deleteQueue:                      deleteQueue,
 		ticketQueue:                      nil,
 		pendingChangesInCurrentFullFlush: false,

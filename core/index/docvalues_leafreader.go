@@ -15,7 +15,7 @@ type DocValuesLeafReader struct {
 func NewDocValuesLeafReader() *DocValuesLeafReader {
 	reader := &DocValuesLeafReader{}
 
-	reader.LeafReaderBase = NewLeafReaderDefault(reader)
+	reader.LeafReaderBase = NewLeafReaderBase(reader)
 	return reader
 }
 

@@ -1,10 +1,10 @@
 package index
 
 import (
-	"go.uber.org/atomic"
 	"io"
 	"math"
 	"sync"
+	"sync/atomic"
 )
 
 // DocumentsWriterDeleteQueue is a non-blocking linked pending deletes queue.
@@ -60,14 +60,17 @@ func newDocumentsWriterDeleteQueue(generation, startSeqNo int64,
 
 	tail := NewNode(nil, nil)
 
+	nextSeqNo := new(atomic.Int64)
+	nextSeqNo.Add(startSeqNo)
+
 	return &DocumentsWriterDeleteQueue{
 		tail:                  tail,
 		closed:                false,
 		globalSlice:           NewDeleteSlice(tail),
-		globalBufferedUpdates: NewBufferedUpdatesV1("global"),
+		globalBufferedUpdates: NewBufferedUpdates(WithSegmentName("global")),
 		globalBufferLock:      &sync.Mutex{},
 		generation:            generation,
-		nextSeqNo:             atomic.NewInt64(startSeqNo),
+		nextSeqNo:             nextSeqNo,
 		infoStream:            nil,
 		maxSeqNo:              math.MaxInt64,
 		startSeqNo:            startSeqNo,
@@ -109,7 +112,7 @@ func (d *DocumentsWriterDeleteQueue) UpdateSlice(slice *DeleteSlice) int64 {
 }
 
 func (d *DocumentsWriterDeleteQueue) getNextSequenceNumber() int64 {
-	return d.nextSeqNo.Inc()
+	return d.nextSeqNo.Add(1)
 }
 
 func (d *DocumentsWriterDeleteQueue) tryApplyGlobalSlice() {

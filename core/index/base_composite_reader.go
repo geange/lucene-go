@@ -32,7 +32,7 @@ func (b *BaseCompositeReader) DoClose() error {
 func (b *BaseCompositeReader) GetContext() (ReaderContext, error) {
 	if b.readerContext == nil {
 		var err error
-		b.readerContext, err = NewCompositeReaderContext(b)
+		b.readerContext, err = NewCompositeReaderContext(WithCompositeReaderContextV1(b))
 		if err != nil {
 			return nil, err
 		}
@@ -57,7 +57,7 @@ func (b *BaseCompositeReader) GetSequentialSubReaders() []Reader {
 func NewBaseCompositeReader(subReaders []Reader,
 	subReadersSorter func(a, b LeafReader) int) (*BaseCompositeReader, error) {
 
-	sort.Sort(&IndexReaderSorter{
+	sort.Sort(&ReaderSorter{
 		Readers:   subReaders,
 		FnCompare: subReadersSorter,
 	})
@@ -71,7 +71,7 @@ func NewBaseCompositeReader(subReaders []Reader,
 		subReadersList:   subReaders,
 	}
 
-	reader.ReaderBase = NewIndexReaderDefault(reader)
+	reader.ReaderBase = NewIndexReaderBase(reader)
 
 	maxDoc := 0
 	for i := 0; i < len(subReaders); i++ {

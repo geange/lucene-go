@@ -1,6 +1,8 @@
 package index
 
-import "github.com/geange/lucene-go/core/util"
+import (
+	"github.com/geange/lucene-go/core/util/bytesutils"
+)
 
 // FieldTermIterator
 // Iterates over terms in across multiple fields.
@@ -8,7 +10,7 @@ import "github.com/geange/lucene-go/core/util"
 // but == can be used since the iterator implementation ensures
 // it will use the same String instance for a given field.
 type FieldTermIterator interface {
-	util.BytesRefIterator
+	bytesutils.BytesIterator
 
 	// Field
 	// Returns current field.

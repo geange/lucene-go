@@ -2,8 +2,9 @@ package index
 
 import (
 	"errors"
+	"sync/atomic"
+
 	"github.com/geange/lucene-go/core/store"
-	"go.uber.org/atomic"
 )
 
 // ReadersAndUpdates
@@ -54,7 +55,7 @@ func NewReadersAndUpdates(indexCreatedVersionMajor int,
 
 	return &ReadersAndUpdates{
 		info:                     info,
-		refCount:                 atomic.NewInt64(0),
+		refCount:                 new(atomic.Int64),
 		reader:                   nil,
 		pendingDeletes:           pendingDeletes,
 		indexCreatedVersionMajor: indexCreatedVersionMajor,
@@ -77,11 +78,11 @@ func NewReadersAndUpdatesV1(indexCreatedVersionMajor int,
 }
 
 func (r *ReadersAndUpdates) IncRef() {
-	r.refCount.Inc()
+	r.refCount.Add(1)
 }
 
 func (r *ReadersAndUpdates) DecRef() {
-	r.refCount.Dec()
+	r.refCount.Add(-1)
 }
 
 func (r *ReadersAndUpdates) RefCount() int64 {

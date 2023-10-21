@@ -47,18 +47,80 @@ type CompositeReaderContext struct {
 	reader   CompositeReader
 }
 
-func NewCompositeReaderContext(reader CompositeReader) (*CompositeReaderContext, error) {
-	return NewCompositeReaderBuilder(reader).Build()
+type compositeReaderContextOption struct {
+	opt1 *compositeReaderContextOptionV1
+	opt2 *compositeReaderContextOptionV2
+	opt3 *compositeReaderContextOptionV3
 }
 
-func NewCompositeReaderContextV1(parent *CompositeReaderContext, reader CompositeReader,
-	ordInParent, docbaseInParent int, children *structure.ArrayList[ReaderContext]) *CompositeReaderContext {
-	return newCompositeReaderContext(parent, reader, ordInParent, docbaseInParent, children, nil)
+type compositeReaderContextOptionV1 struct {
+	reader CompositeReader
 }
 
-func NewCompositeReaderContextV2(reader CompositeReader,
-	children, leaves *structure.ArrayList[ReaderContext]) *CompositeReaderContext {
-	return newCompositeReaderContext(nil, reader, 0, 0, children, leaves)
+type compositeReaderContextOptionV2 struct {
+	parent          *CompositeReaderContext
+	reader          CompositeReader
+	ordInParent     int
+	docbaseInParent int
+	children        *structure.ArrayList[ReaderContext]
+}
+
+type compositeReaderContextOptionV3 struct {
+	reader           CompositeReader
+	children, leaves *structure.ArrayList[ReaderContext]
+}
+
+type CompositeReaderContextOption func(*compositeReaderContextOption)
+
+func WithCompositeReaderContextV1(reader CompositeReader) CompositeReaderContextOption {
+	return func(o *compositeReaderContextOption) {
+		o.opt1 = &compositeReaderContextOptionV1{reader: reader}
+	}
+}
+
+func WithCompositeReaderContextV2(parent *CompositeReaderContext, reader CompositeReader,
+	ordInParent, docbaseInParent int, children *structure.ArrayList[ReaderContext]) CompositeReaderContextOption {
+	return func(o *compositeReaderContextOption) {
+		o.opt2 = &compositeReaderContextOptionV2{
+			parent:          parent,
+			reader:          reader,
+			ordInParent:     ordInParent,
+			docbaseInParent: docbaseInParent,
+			children:        children,
+		}
+	}
+}
+
+func WithCompositeReaderContextV3(reader CompositeReader,
+	children, leaves *structure.ArrayList[ReaderContext]) CompositeReaderContextOption {
+	return func(o *compositeReaderContextOption) {
+		o.opt3 = &compositeReaderContextOptionV3{
+			reader:   reader,
+			children: children,
+			leaves:   leaves,
+		}
+	}
+}
+
+func NewCompositeReaderContext(fn CompositeReaderContextOption) (*CompositeReaderContext, error) {
+	opt := &compositeReaderContextOption{}
+	fn(opt)
+
+	if opt.opt1 != nil {
+		return NewCompositeReaderBuilder(opt.opt1.reader).Build()
+	}
+
+	if opt.opt2 != nil {
+		option := opt.opt2
+		return newCompositeReaderContext(option.parent, option.reader, option.ordInParent, option.docbaseInParent, option.children, nil), nil
+	}
+
+	if opt.opt3 != nil {
+		option := opt.opt3
+		return newCompositeReaderContext(nil, option.reader, 0, 0, option.children, option.leaves), nil
+	}
+
+	return nil, errors.New("todo")
 }
 
 func newCompositeReaderContext(parent *CompositeReaderContext, reader CompositeReader,
@@ -130,9 +192,9 @@ func (c *CompositeReaderBuilder) build(parent *CompositeReaderContext, reader Re
 	children := structure.NewArrayListArray(make([]ReaderContext, len(sequentialSubReaders)))
 	var newParent *CompositeReaderContext
 	if parent == nil {
-		newParent = NewCompositeReaderContextV2(cr, children, c.leaves)
+		newParent, _ = NewCompositeReaderContext(WithCompositeReaderContextV3(cr, children, c.leaves))
 	} else {
-		newParent = NewCompositeReaderContextV1(parent, cr, ord, docBase, children)
+		newParent, _ = NewCompositeReaderContext(WithCompositeReaderContextV2(parent, cr, ord, docBase, children))
 	}
 
 	newDocBase := 0

@@ -2,8 +2,8 @@ package search
 
 import (
 	"github.com/geange/gods-generic/utils"
-	"go.uber.org/atomic"
 	"math"
+	"sync/atomic"
 )
 
 const (
@@ -20,8 +20,11 @@ type MaxScoreAccumulator struct {
 }
 
 func NewMaxScoreAccumulator() *MaxScoreAccumulator {
+	acc := new(atomic.Int64)
+	acc.Add(math.MinInt64)
+
 	return &MaxScoreAccumulator{
-		acc:         atomic.NewInt64(math.MinInt64),
+		acc:         acc,
 		modInterval: DEFAULT_INTERVAL,
 	}
 }

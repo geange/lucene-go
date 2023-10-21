@@ -21,17 +21,17 @@ type SimpleCollectorSPI interface {
 	Collect(ctx context.Context, doc int) error
 }
 
-type SimpleCollectorDefault struct {
-	*LeafCollectorDefault
+type DefSimpleCollector struct {
+	*DefLeafCollector
 
 	SimpleCollectorSPI
 }
 
-func NewSimpleCollectorDefault(spi SimpleCollectorSPI) *SimpleCollectorDefault {
-	return &SimpleCollectorDefault{SimpleCollectorSPI: spi}
+func NewSimpleCollector(spi SimpleCollectorSPI) *DefSimpleCollector {
+	return &DefSimpleCollector{SimpleCollectorSPI: spi}
 }
 
-func (s *SimpleCollectorDefault) GetLeafCollector(_ context.Context, ctx *index.LeafReaderContext) (LeafCollector, error) {
+func (s *DefSimpleCollector) GetLeafCollector(_ context.Context, ctx *index.LeafReaderContext) (LeafCollector, error) {
 	err := s.DoSetNextReader(ctx)
 	if err != nil {
 		return nil, err

@@ -21,6 +21,7 @@ type RAMOutputStream struct {
 	bufferPosition     int
 	bufferStart        int
 	bufferLength       int
+	checksum           bool
 	crc                hash.Hash32
 }
 
@@ -44,9 +45,10 @@ func (r *RAMOutputStream) WriteByte(b byte) error {
 }
 
 func (r *RAMOutputStream) Write(b []byte) (int, error) {
-	_, err := r.crc.Write(b)
-	if err != nil {
-		return 0, err
+	if r.crc != nil {
+		if _, err := r.crc.Write(b); err != nil {
+			return 0, err
+		}
 	}
 
 	offset := 0
@@ -63,7 +65,7 @@ func (r *RAMOutputStream) Write(b []byte) (int, error) {
 		if size >= remainInBuffer {
 			bytesToCopy = remainInBuffer
 		}
-		copy(r.copyBuffer[r.bufferPosition:], b[offset:offset+bytesToCopy])
+		copy(r.currentBuffer[r.bufferPosition:], b[offset:offset+bytesToCopy])
 		offset += bytesToCopy
 		size -= bytesToCopy
 		r.bufferPosition += bytesToCopy
@@ -78,6 +80,7 @@ func NewRAMOutputStreamV1(name string, f *RAMFile, checksum bool) *RAMOutputStre
 		bufferSize:         1024,
 		file:               f,
 		currentBufferIndex: -1,
+		checksum:           checksum,
 	}
 
 	output.IndexOutputBase = NewIndexOutputBase(name, output)

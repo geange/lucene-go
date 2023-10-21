@@ -43,8 +43,8 @@ const (
 type BytesTermAttribute interface {
 	TermToBytesRefAttribute
 
-	// SetBytesRef Sets the BytesRef of the term
-	SetBytesRef(bytes []byte) error
+	// SetBytes Sets the BytesRef of the term
+	SetBytes(bytes []byte) error
 }
 
 // CharTermAttribute The term text of a Token.
@@ -97,7 +97,7 @@ type CharTermAttribute interface {
 //	}
 //	...
 type TermToBytesRefAttribute interface {
-	GetBytesRef() []byte
+	GetBytes() []byte
 }
 
 // TermFrequencyAttribute Sets the custom term frequency of a term within one document. If this attribute

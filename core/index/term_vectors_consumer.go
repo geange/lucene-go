@@ -3,7 +3,8 @@ package index
 import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/ints"
 )
 
 var _ TermsHash = &TermVectorsConsumer{}
@@ -21,8 +22,8 @@ type TermVectorsConsumer struct {
 	perFields       []*TermVectorsConsumerPerField
 }
 
-func NewTermVectorsConsumer(intBlockAllocator util.IntsAllocator,
-	byteBlockAllocator util.BytesAllocator, directory store.Directory,
+func NewTermVectorsConsumer(intBlockAllocator ints.IntsAllocator,
+	byteBlockAllocator bytesutils.Allocator, directory store.Directory,
 	info *SegmentInfo, codec Codec) *TermVectorsConsumer {
 
 	termsHashDefault := NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nil)
@@ -34,7 +35,7 @@ func NewTermVectorsConsumer(intBlockAllocator util.IntsAllocator,
 	}
 }
 
-func (t *TermVectorsConsumer) SetTermBytePool(termBytePool *util.ByteBlockPool) {
+func (t *TermVectorsConsumer) SetTermBytePool(termBytePool *bytesutils.BlockPool) {
 	t.termBytePool = termBytePool
 }
 
@@ -86,7 +87,7 @@ func (t *TermVectorsConsumer) initTermVectorsWriter() error {
 func (t *TermVectorsConsumer) AddField(invertState *FieldInvertState,
 	fieldInfo *document.FieldInfo) (TermsHashPerField, error) {
 
-	return NewTermVectorsConsumerPerField(invertState, t, fieldInfo), nil
+	return NewTermVectorsConsumerPerField(invertState, t, fieldInfo)
 }
 
 func (t *TermVectorsConsumer) addFieldToFlush(fieldToFlush *TermVectorsConsumerPerField) error {
