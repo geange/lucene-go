@@ -1,11 +1,12 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/automaton"
+	"github.com/geange/lucene-go/core/util/bytesutils"
 )
 
 type Terms interface {
+	// Iterator
 	// DVFUIterator Returns an iterator that will step through all terms. This method will not return null.
 	Iterator() (TermsEnum, error)
 
@@ -56,29 +57,27 @@ type Terms interface {
 	GetMax() ([]byte, error)
 }
 
-type TermsDefaultConfig struct {
+type TermsSPI interface {
+	Iterator() (TermsEnum, error)
+	Size() (int, error)
+}
+
+type TermsBase struct {
+	spi      TermsSPI
 	Iterator func() (TermsEnum, error)
 	Size     func() (int, error)
 }
 
-type TermsDefault struct {
-	Iterator func() (TermsEnum, error)
-	Size     func() (int, error)
+func NewTerms(in TermsSPI) *TermsBase {
+	return &TermsBase{spi: in}
 }
 
-func NewTermsDefault(cfg *TermsDefaultConfig) *TermsDefault {
-	return &TermsDefault{
-		Iterator: cfg.Iterator,
-		Size:     cfg.Size,
-	}
-}
-
-func (t *TermsDefault) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error) {
+func (t *TermsBase) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error) {
 	// TODO: could we factor out a common interface b/w
 	// CompiledAutomaton and FST?  Then we could pass FST there too,
 	// and likely speed up resolving terms to deleted docs ... but
-	// AutomatonTermsEnum makes this tricky because of its on-the-fly cycle
-	// detection
+	// AutomatonTermsEnum makes this tricky because of its on-the-fly
+	// cycle detection
 
 	// TODO: eventually we could support seekCeil/Exact on
 	// the returned enum, instead of only being able to seek
@@ -100,7 +99,7 @@ func (t *TermsDefault) Intersect(compiled *automaton.CompiledAutomaton, startTer
 	panic("")
 }
 
-func (t *TermsDefault) GetMin() ([]byte, error) {
+func (t *TermsBase) GetMin() ([]byte, error) {
 	iterator, err := t.Iterator()
 	if err != nil {
 		return nil, err
@@ -108,7 +107,7 @@ func (t *TermsDefault) GetMin() ([]byte, error) {
 	return iterator.Next()
 }
 
-func (t *TermsDefault) GetMax() ([]byte, error) {
+func (t *TermsBase) GetMax() ([]byte, error) {
 	size, err := t.Size()
 	if err != nil {
 		return nil, err
@@ -140,7 +139,7 @@ func (t *TermsDefault) GetMax() ([]byte, error) {
 		return nil, nil
 	}
 
-	scratch := util.NewBytesRefBuilder()
+	scratch := bytesutils.NewBytesRefBuilder()
 	scratch.AppendByte(0)
 
 	for {

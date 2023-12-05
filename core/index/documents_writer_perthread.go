@@ -2,13 +2,14 @@ package index
 
 import (
 	"context"
+	"io"
+	"sync"
+	"sync/atomic"
+
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/pkg/errors"
-	"go.uber.org/atomic"
-	"io"
-	"sync"
 )
 
 const (
@@ -58,7 +59,7 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 		indexWriterConfig: indexWriterConfig,
 		codec:             codec,
 		pendingNumDocs:    pendingNumDocs,
-		pendingUpdates:    NewBufferedUpdatesV1(segmentName),
+		pendingUpdates:    NewBufferedUpdates(WithSegmentName(segmentName)),
 		deleteQueue:       deleteQueue,
 		deleteSlice:       deleteQueue.newSlice(),
 		segmentInfo:       segmentInfo,
@@ -73,9 +74,9 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 // Anything that will add N docs to the index should reserve first to make sure it's allowed.
 // 保证添加的文档的数量在可允许的范围内
 func (d *DocumentsWriterPerThread) reserveOneDoc() error {
-	if d.pendingNumDocs.Inc() > int64(GetActualMaxDocs()) {
+	if d.pendingNumDocs.Add(1) > int64(GetActualMaxDocs()) {
 		// Reserve failed: put the one doc back and throw exc:
-		d.pendingNumDocs.Dec()
+		d.pendingNumDocs.Add(-1)
 		return errors.New("number of documents in the index cannot exceed")
 	}
 	return nil

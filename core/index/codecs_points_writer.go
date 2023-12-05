@@ -19,7 +19,7 @@ type PointsWriter interface {
 	Finish() error
 }
 
-type PointsWriterDefault struct {
+type DefPointsWriter struct {
 	WriteField func(fieldInfo *document.FieldInfo, values PointsReader) error
 	Finish     func() error
 }
@@ -27,7 +27,7 @@ type PointsWriterDefault struct {
 // MergeOneField Default naive merge implementation for one field: it just re-indexes all
 // the values from the incoming segment. The default codec overrides this for 1D fields and
 // uses a faster but more complex implementation.
-func (p *PointsWriterDefault) MergeOneField(mergeState *MergeState, fieldInfo *document.FieldInfo) error {
+func (p *DefPointsWriter) MergeOneField(mergeState *MergeState, fieldInfo *document.FieldInfo) error {
 	maxPointCount := 0
 	docCount := 0
 
@@ -134,7 +134,7 @@ func (i *innerPointValues) GetDocCount() int {
 }
 
 // Merge Default merge implementation to merge incoming points readers by visiting all their points and adding to this writer
-func (p *PointsWriterDefault) Merge(mergeState *MergeState) error {
+func (p *DefPointsWriter) Merge(mergeState *MergeState) error {
 	// check each incoming reader
 	for _, reader := range mergeState.PointsReaders {
 		if reader == nil {

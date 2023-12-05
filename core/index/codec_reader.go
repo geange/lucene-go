@@ -57,7 +57,7 @@ func NewCodecReaderDefault(reader CodecReader) *CodecReaderDefault {
 		CodecReaderDefaultSPI: reader,
 	}
 
-	codec.LeafReaderBase = NewLeafReaderDefault(reader)
+	codec.LeafReaderBase = NewLeafReaderBase(reader)
 	return codec
 }
 

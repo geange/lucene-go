@@ -1,5 +1,10 @@
 package index
 
+import (
+	"github.com/geange/lucene-go/core/types"
+	"sort"
+)
+
 type DocValues struct {
 }
 
@@ -21,4 +26,35 @@ func GetSorted(reader LeafReader, field string) (SortedDocValues, error) {
 	}
 
 	panic("")
+}
+
+var _ sort.Interface = &DocValueSorter{}
+
+type DocValueSorter struct {
+	docs       []int
+	comparator DocComparator
+}
+
+func NewDocValueSorter(docs []int, comparator DocComparator) *DocValueSorter {
+	return &DocValueSorter{docs: docs, comparator: comparator}
+}
+
+func (d *DocValueSorter) Len() int {
+	return len(d.docs)
+}
+
+func (d *DocValueSorter) Less(i, j int) bool {
+	if d.comparator.Compare(d.docs[i], d.docs[j]) < 0 {
+		return true
+	}
+	return false
+}
+
+func (d *DocValueSorter) Swap(i, j int) {
+	d.docs[i], d.docs[j] = d.docs[j], d.docs[i]
+}
+
+type DocValuesWriter interface {
+	Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error
+	GetDocValues() types.DocIdSetIterator
 }

@@ -2,7 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/store"
-	"go.uber.org/atomic"
+	"sync/atomic"
 )
 
 // SegmentCoreReaders
@@ -39,7 +39,7 @@ type SegmentCoreReaders struct {
 }
 
 func (r *SegmentCoreReaders) DecRef() error {
-	if r.ref.Dec() == 0 {
+	if r.ref.Add(-1) == 0 {
 		// TODO: close
 
 	}

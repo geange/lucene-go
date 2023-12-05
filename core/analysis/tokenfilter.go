@@ -11,35 +11,34 @@ type TokenFilter interface {
 	TokenStream
 }
 
-type TokenFilterImp struct {
+type DefTokenFilter struct {
 	source *tokenattr.AttributeSource
-
-	Input TokenStream
+	input  TokenStream
 }
 
-func NewTokenFilterImp(input TokenStream) *TokenFilterImp {
-	return &TokenFilterImp{
+func NewTokenFilter(input TokenStream) *DefTokenFilter {
+	return &DefTokenFilter{
 		source: input.AttributeSource(),
-		Input:  input,
+		input:  input,
 	}
 }
 
-func (t *TokenFilterImp) AttributeSource() *tokenattr.AttributeSource {
-	return t.Input.AttributeSource()
+func (t *DefTokenFilter) AttributeSource() *tokenattr.AttributeSource {
+	return t.input.AttributeSource()
 }
 
 //func (t *TokenFilterImp) IncrementToken() (bool, error) {
 //	return t.input.IncrementToken()
 //}
 
-func (t *TokenFilterImp) End() error {
-	return t.Input.End()
+func (t *DefTokenFilter) End() error {
+	return t.input.End()
 }
 
-func (t *TokenFilterImp) Reset() error {
-	return t.Input.Reset()
+func (t *DefTokenFilter) Reset() error {
+	return t.input.Reset()
 }
 
-func (t *TokenFilterImp) Close() error {
-	return t.Input.Close()
+func (t *DefTokenFilter) Close() error {
+	return t.input.Close()
 }

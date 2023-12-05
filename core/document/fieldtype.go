@@ -135,8 +135,37 @@ func (f *FieldType) StoreTermVectorPositions() bool {
 	return f.storeTermVectorPositions
 }
 
+// SetStoreTermVectorPositions
+// Set to true to also store token positions into the term vector for this field.
+// value – true if this field should store term vector positions.
+//
+//	IllegalStateException – if this FieldType is frozen against future modifications.
+//	storeTermVectorPositions()
+func (f *FieldType) SetStoreTermVectorPositions(value bool) error {
+	err := f.checkIfFrozen()
+	if err != nil {
+		return err
+	}
+	f.storeTermVectorPositions = value
+	return nil
+}
+
 func (f *FieldType) StoreTermVectorPayloads() bool {
 	return f.storeTermVectorPayloads
+}
+
+// SetStoreTermVectorPayloads
+// Set to true to also store token payloads into the term vector for this field.
+// value: true if this field should store term vector payloads.
+// 抛出: IllegalStateException – if this FieldType is frozen against future modifications.
+// 请参阅: storeTermVectorPayloads()
+func (f *FieldType) SetStoreTermVectorPayloads(value bool) error {
+	err := f.checkIfFrozen()
+	if err != nil {
+		return err
+	}
+	f.storeTermVectorPayloads = value
+	return nil
 }
 
 func (f *FieldType) OmitNorms() bool {

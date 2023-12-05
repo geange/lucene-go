@@ -11,9 +11,9 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ index.ImpactsEnum = &SimpleTextPostingsEnum{}
+var _ index.ImpactsEnum = &PostingsEnum{}
 
-type SimpleTextPostingsEnum struct {
+type PostingsEnum struct {
 	inStart        store.IndexInput
 	in             store.IndexInput
 	docID          int
@@ -30,20 +30,20 @@ type SimpleTextPostingsEnum struct {
 	startOffset    int
 	endOffset      int
 	cost           int
-	skipReader     *SimpleTextSkipReader
+	skipReader     *SkipReader
 	nextSkipDoc    int
 	seekTo         int64
 }
 
-func (s *SimpleTextPostingsEnum) DocID() int {
+func (s *PostingsEnum) DocID() int {
 	return s.docID
 }
 
-func (s *SimpleTextPostingsEnum) NextDoc() (int, error) {
+func (s *PostingsEnum) NextDoc() (int, error) {
 	return s.Advance(s.docID + 1)
 }
 
-func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
+func (s *PostingsEnum) readDoc() (int, error) {
 	first := true
 	if _, err := s.in.Seek(s.nextDocStart, io.SeekStart); err != nil {
 		return 0, err
@@ -100,7 +100,7 @@ func (s *SimpleTextPostingsEnum) readDoc() (int, error) {
 	}
 }
 
-func (s *SimpleTextPostingsEnum) advanceTarget(target int) (int, error) {
+func (s *PostingsEnum) advanceTarget(target int) (int, error) {
 	if s.seekTo > 0 {
 		s.nextDocStart = s.seekTo
 		s.seekTo = -1
@@ -122,14 +122,14 @@ func (s *SimpleTextPostingsEnum) advanceTarget(target int) (int, error) {
 	return doc, nil
 }
 
-func (s *SimpleTextPostingsEnum) Advance(target int) (int, error) {
+func (s *PostingsEnum) Advance(target int) (int, error) {
 	if err := s.AdvanceShallow(target); err != nil {
 		return 0, err
 	}
 	return s.advanceTarget(target)
 }
 
-func (s *SimpleTextPostingsEnum) SlowAdvance(target int) (int, error) {
+func (s *PostingsEnum) SlowAdvance(target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
@@ -141,15 +141,15 @@ func (s *SimpleTextPostingsEnum) SlowAdvance(target int) (int, error) {
 	return doc, nil
 }
 
-func (s *SimpleTextPostingsEnum) Cost() int64 {
+func (s *PostingsEnum) Cost() int64 {
 	return int64(s.cost)
 }
 
-func (s *SimpleTextPostingsEnum) Freq() (int, error) {
+func (s *PostingsEnum) Freq() (int, error) {
 	return s.tf, nil
 }
 
-func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
+func (s *PostingsEnum) NextPosition() (int, error) {
 	if s.readPositions {
 		if err := utils.ReadLine(s.in, s.scratch); err != nil {
 			return 0, err
@@ -206,19 +206,19 @@ func (s *SimpleTextPostingsEnum) NextPosition() (int, error) {
 	return s.pos, nil
 }
 
-func (s *SimpleTextPostingsEnum) StartOffset() (int, error) {
+func (s *PostingsEnum) StartOffset() (int, error) {
 	return s.startOffset, nil
 }
 
-func (s *SimpleTextPostingsEnum) EndOffset() (int, error) {
+func (s *PostingsEnum) EndOffset() (int, error) {
 	return s.endOffset, nil
 }
 
-func (s *SimpleTextPostingsEnum) GetPayload() ([]byte, error) {
+func (s *PostingsEnum) GetPayload() ([]byte, error) {
 	return s.payload, nil
 }
 
-func (s *SimpleTextPostingsEnum) AdvanceShallow(target int) error {
+func (s *PostingsEnum) AdvanceShallow(target int) error {
 	if target > s.nextSkipDoc {
 		if _, err := s.skipReader.SkipTo(target); err != nil {
 			return err
@@ -231,7 +231,7 @@ func (s *SimpleTextPostingsEnum) AdvanceShallow(target int) error {
 	return nil
 }
 
-func (s *SimpleTextPostingsEnum) GetImpacts() (index.Impacts, error) {
+func (s *PostingsEnum) GetImpacts() (index.Impacts, error) {
 	if err := s.AdvanceShallow(s.docID); err != nil {
 		return nil, err
 	}

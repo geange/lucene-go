@@ -7,21 +7,21 @@ import (
 
 // LowerCaseFilter Normalizes token text to lower case.
 type LowerCaseFilter struct {
-	*TokenFilterImp
+	*DefTokenFilter
 
 	termAtt tokenattr.CharTermAttribute
 }
 
 func NewLowerCaseFilter(in TokenStream) *LowerCaseFilter {
 	filter := LowerCaseFilter{
-		TokenFilterImp: NewTokenFilterImp(in),
+		DefTokenFilter: NewTokenFilter(in),
 		termAtt:        in.AttributeSource().CharTerm(),
 	}
 	return &filter
 }
 
 func (r *LowerCaseFilter) IncrementToken() (bool, error) {
-	if ok, err := r.Input.IncrementToken(); err != nil {
+	if ok, err := r.input.IncrementToken(); err != nil {
 		return false, err
 	} else if ok {
 		lower := strings.ToLower(string(r.termAtt.Buffer()))

@@ -2,7 +2,7 @@ package index
 
 import (
 	"github.com/bits-and-blooms/bitset"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/bytesutils"
 	"math"
 )
 
@@ -16,9 +16,9 @@ import (
 // share the same item for a numeric field we only store the item once.
 type FieldUpdatesBuffer struct {
 	numUpdates    int
-	termValues    *util.BytesRefArray
-	termSortState *util.SortState
-	byteValues    *util.BytesRefArray
+	termValues    *bytesutils.BytesRefArray
+	termSortState *bytesutils.SortState
+	byteValues    *bytesutils.BytesRefArray
 	docsUpTo      []int
 	numericValues []int64
 	hasValues     *bitset.BitSet

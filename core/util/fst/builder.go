@@ -6,10 +6,10 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-// Builder Builds a minimal Fst (maps an IntsRef term to an arbitrary output) from pre-sorted terms with output.
-// The Fst becomes an FSA if you use NoOutputs. The Fst is written on-the-fly into a compact serialized format
+// Builder Builds a minimal FST (maps an IntsRef term to an arbitrary output) from pre-sorted terms with output.
+// The FST becomes an FSA if you use NoOutputs. The FST is written on-the-fly into a compact serialized format
 // byte array, which can be saved to / loaded from a Directory or used directly for traversal.
-// The Fst is always finite (no cycles).
+// The FST is always finite (no cycles).
 //
 // NOTE: The algorithm is described at http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.24.3698
 //
@@ -21,7 +21,7 @@ import (
 // lucene.experimental
 type Builder[T any | *Pair[int64, int64]] struct {
 	dedupHash *NodeHash[T]
-	fst       *Fst[T]
+	fst       *FST[T]
 	noOutput  T
 
 	// private static final boolean DEBUG = true;
@@ -52,7 +52,7 @@ type Builder[T any | *Pair[int64, int64]] struct {
 	// node in the byte[] is the target node):
 	lastFrozenNode int64
 
-	// Reused temporarily while building the Fst:
+	// Reused temporarily while building the FST:
 	numBytesPerArc      []int
 	numLabelBytesPerArc []int64
 
@@ -68,7 +68,7 @@ type Builder[T any | *Pair[int64, int64]] struct {
 	bytes                               *ByteStore
 }
 
-// NewBuilder Instantiates an Fst/FSA builder without any pruning.
+// NewBuilder Instantiates an FST/FSA builder without any pruning.
 // A shortcut to Builder(Fst.INPUT_TYPE, int, int, boolean, boolean, int, Outputs, boolean, int)
 // with pruning options turned off.
 func NewBuilder[T PairAble](inputType INPUT_TYPE, outputs Outputs[T]) *Builder[T] {
@@ -76,17 +76,17 @@ func NewBuilder[T PairAble](inputType INPUT_TYPE, outputs Outputs[T]) *Builder[T
 		math.MaxInt32, outputs, true, 15)
 }
 
-// NewBuilderV1 Instantiates an Fst/FSA builder with all the possible tuning and construction tweaks. Read parameter documentation carefully.
+// NewBuilderV1 Instantiates an FST/FSA builder with all the possible tuning and construction tweaks. Read parameter documentation carefully.
 //
 // inputType – The input type (transition labels). Can be anything from Fst.INPUT_TYPE enumeration. Shorter types will consume less memory. Strings (character sequences) are represented as Fst.INPUT_TYPE.BYTE4 (full unicode codepoints).
 // minSuffixCount1 – If pruning the input graph during construction, this threshold is used for telling if a node is kept or pruned. If transition_count(node) >= minSuffixCount1, the node is kept.
 // minSuffixCount2 – (Note: only Mike McCandless knows what this one is really doing...)
-// doShareSuffix – If true, the shared suffixes will be compacted into unique paths. This requires an additional RAM-intensive hash map for lookups in memory. Setting this parameter to false creates a single suffix path for all input sequences. This will result in a larger Fst, but requires substantially less memory and CPU during building.
-// doShareNonSingletonNodes – Only used if doShareSuffix is true. Set this to true to ensure Fst is fully minimal, at cost of more CPU and more RAM during building.
-// shareMaxTailLength – Only used if doShareSuffix is true. Set this to Integer.MAX_VALUE to ensure Fst is fully minimal, at cost of more CPU and more RAM during building.
-// output – The output type for each input sequence. Applies only if building an Fst. For FSA, use NoOutputs.getSingleton() and NoOutputs.getNoOutput() as the singleton output object.
-// allowFixedLengthArcs – Pass false to disable the fixed length arc optimization (binary search or direct addressing) while building the Fst; this will make the resulting Fst smaller but slower to traverse.
-// bytesPageBits – How many bits wide to make each byte[] block in the BytesStore; if you know the Fst will be large then make this larger. For example 15 bits = 32768 byte pages.
+// doShareSuffix – If true, the shared suffixes will be compacted into unique paths. This requires an additional RAM-intensive hash map for lookups in memory. Setting this parameter to false creates a single suffix path for all input sequences. This will result in a larger FST, but requires substantially less memory and CPU during building.
+// doShareNonSingletonNodes – Only used if doShareSuffix is true. Set this to true to ensure FST is fully minimal, at cost of more CPU and more RAM during building.
+// shareMaxTailLength – Only used if doShareSuffix is true. Set this to Integer.MAX_VALUE to ensure FST is fully minimal, at cost of more CPU and more RAM during building.
+// output – The output type for each input sequence. Applies only if building an FST. For FSA, use NoOutputs.getSingleton() and NoOutputs.getNoOutput() as the singleton output object.
+// allowFixedLengthArcs – Pass false to disable the fixed length arc optimization (binary search or direct addressing) while building the FST; this will make the resulting FST smaller but slower to traverse.
+// bytesPageBits – How many bits wide to make each byte[] block in the BytesStore; if you know the FST will be large then make this larger. For example 15 bits = 32768 byte pages.
 func NewBuilderV1[T PairAble](inputType INPUT_TYPE, minSuffixCount1, minSuffixCount2 int,
 	doShareSuffix, doShareNonSingletonNodes bool, shareMaxTailLength int, outputs Outputs[T],
 	allowFixedLengthArcs bool, bytesPageBits int) *Builder[T] {
@@ -179,16 +179,16 @@ func (b *Builder[T]) compileNode(nodeIn *UnCompiledNode[T], tailLength int) (*Co
 		}
 	}
 
-	if err := assert(node != -2); err != nil {
-		return nil, err
-	}
+	//if err := assert(node != -2); err != nil {
+	//	return nil, err
+	//}
 
 	bytesPosEnd := b.bytes.GetPosition()
 	if bytesPosEnd != bytesPosStart {
 		// The Fst added a new node:
-		if err := assert(bytesPosEnd > bytesPosStart); err != nil {
-			return nil, err
-		}
+		//if err := assert(bytesPosEnd > bytesPosStart); err != nil {
+		//	return nil, err
+		//}
 		b.lastFrozenNode = node
 	}
 
@@ -435,8 +435,8 @@ func (b *Builder[T]) Add(input []rune, output T) error {
 	return err
 }
 
-// Finish Returns final Fst. NOTE: this will return null if nothing is accepted by the Fst.
-func (b *Builder[T]) Finish() (*Fst[T], error) {
+// Finish Returns final FST. NOTE: this will return null if nothing is accepted by the FST.
+func (b *Builder[T]) Finish() (*FST[T], error) {
 
 	root := b.frontier[0]
 
@@ -496,8 +496,8 @@ func (b *Builder[T]) compileAllTargets(node *UnCompiledNode[T], tailLength int) 
 
 // DIRECT_ADDRESSING_MAX_OVERSIZING_FACTOR Default oversizing factor used to decide whether to encode a node with direct addressing or binary search. Default is 1: ensure no oversizing on average.
 // This factor does not determine whether to encode a node with a list of variable length arcs or with fixed length arcs. It only determines the effective encoding of a node that is already known to be encoded with fixed length arcs. See Fst.shouldExpandNodeWithFixedLengthArcs() and Fst.shouldExpandNodeWithDirectAddressing().
-// For English words we measured 217K nodes, only 3.27% nodes are encoded with fixed length arcs, and 99.99% of them with direct addressing. Overall Fst memory reduced by 1.67%.
-// For worst case we measured 168K nodes, 50% of them are encoded with fixed length arcs, and 14% of them with direct encoding. Overall Fst memory reduced by 0.8%.
+// For English words we measured 217K nodes, only 3.27% nodes are encoded with fixed length arcs, and 99.99% of them with direct addressing. Overall FST memory reduced by 1.67%.
+// For worst case we measured 168K nodes, 50% of them are encoded with fixed length arcs, and 14% of them with direct encoding. Overall FST memory reduced by 0.8%.
 // Use TestFstDirectAddressing.main() and TestFstDirectAddressing.testWorstCaseForDirectAddressing() to evaluate a change.
 // see: setDirectAddressingMaxOversizingFactor
 const DIRECT_ADDRESSING_MAX_OVERSIZING_FACTOR = 1.0

@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-type IndexWriterConfig struct {
+type WriterConfig struct {
 	*liveIndexWriterConfig
 
 	sync.Once
@@ -19,23 +19,23 @@ type IndexWriterConfig struct {
 	flushPolicy FlushPolicy
 }
 
-func NewIndexWriterConfig(codec Codec, similarity Similarity) *IndexWriterConfig {
-	cfg := &IndexWriterConfig{}
-	analyzer := standard.NewStandardAnalyzer(analysis.EMPTY_SET)
+func NewWriterConfig(codec Codec, similarity Similarity) *WriterConfig {
+	cfg := &WriterConfig{}
+	analyzer := standard.NewAnalyzer(analysis.EMPTY_SET)
 	cfg.liveIndexWriterConfig = newLiveIndexWriterConfig(analyzer, codec, similarity)
 	return cfg
 }
 
-func (c *IndexWriterConfig) setIndexWriter(writer *Writer) {
+func (c *WriterConfig) setIndexWriter(writer *Writer) {
 	c.writer = writer
 }
 
-func (c *IndexWriterConfig) getSoftDeletesField() string {
+func (c *WriterConfig) getSoftDeletesField() string {
 	return c.softDeletesField
 }
 
 // SetIndexSort Set the Sort order to use for all (flushed and merged) segments.
-func (c *IndexWriterConfig) SetIndexSort(sort *Sort) error {
+func (c *WriterConfig) SetIndexSort(sort *Sort) error {
 	fields := make(map[string]struct{})
 	for _, sortField := range sort.GetSort() {
 		if sortField.GetIndexSorter() == nil {
@@ -49,30 +49,30 @@ func (c *IndexWriterConfig) SetIndexSort(sort *Sort) error {
 	return nil
 }
 
-func (c *IndexWriterConfig) GetIndexCreatedVersionMajor() int {
+func (c *WriterConfig) GetIndexCreatedVersionMajor() int {
 	return c.createdVersionMajor
 }
 
 // GetCommitOnClose Returns true if IndexWriter.close() should first commit before closing.
-func (c *IndexWriterConfig) GetCommitOnClose() bool {
+func (c *WriterConfig) GetCommitOnClose() bool {
 	return c.commitOnClose
 }
 
 // GetIndexCommit Returns the IndexCommit as specified in IndexWriterConfig.setIndexCommit(IndexCommit)
 // or the default, null which specifies to open the latest index commit point.
-func (c *IndexWriterConfig) GetIndexCommit() IndexCommit {
+func (c *WriterConfig) GetIndexCommit() IndexCommit {
 	return c.commit
 }
 
-func (c *IndexWriterConfig) GetMergeScheduler() MergeScheduler {
+func (c *WriterConfig) GetMergeScheduler() MergeScheduler {
 	return c.mergeScheduler
 }
 
-func (c *IndexWriterConfig) GetOpenMode() OpenMode {
+func (c *WriterConfig) GetOpenMode() OpenMode {
 	return c.openMode
 }
 
-func (c *IndexWriterConfig) GetFlushPolicy() FlushPolicy {
+func (c *WriterConfig) GetFlushPolicy() FlushPolicy {
 	return c.flushPolicy
 }
 

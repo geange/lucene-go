@@ -5,7 +5,7 @@ import (
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/array"
 	"io"
 	"math"
 	"sort"
@@ -243,7 +243,7 @@ func concatBuffers(buffers []*Buffer) *Buffer {
 	}
 	docs := largestBuffer.array
 	if len(docs) < totalLength {
-		docs = util.GrowExact(docs, totalLength)
+		docs = array.GrowExact(docs, totalLength)
 	}
 	totalLength = largestBuffer.length
 	for _, buffer := range buffers {

@@ -2,7 +2,8 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/ints"
 )
 
 var _ TermsHash = &FreqProxTermsWriter{}
@@ -11,8 +12,8 @@ type FreqProxTermsWriter struct {
 	*TermsHashDefault
 }
 
-func NewFreqProxTermsWriter(intBlockAllocator util.IntsAllocator,
-	byteBlockAllocator util.BytesAllocator, nextTermsHash TermsHash) *FreqProxTermsWriter {
+func NewFreqProxTermsWriter(intBlockAllocator ints.IntsAllocator,
+	byteBlockAllocator bytesutils.Allocator, nextTermsHash TermsHash) *FreqProxTermsWriter {
 
 	return &FreqProxTermsWriter{
 		NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nextTermsHash)}
@@ -59,10 +60,10 @@ func (f *FreqProxTermsWriter) AddField(invertState *FieldInvertState, fieldInfo 
 	if err != nil {
 		return nil, err
 	}
-	return NewFreqProxTermsWriterPerField(invertState, f, fieldInfo, addField), nil
+	return NewFreqProxTermsWriterPerField(invertState, f, fieldInfo, addField)
 }
 
-func (f *FreqProxTermsWriter) SetTermBytePool(termBytePool *util.ByteBlockPool) {
+func (f *FreqProxTermsWriter) SetTermBytePool(termBytePool *bytesutils.BlockPool) {
 	f.termBytePool = termBytePool
 }
 

@@ -2,9 +2,9 @@ package index
 
 import (
 	"bytes"
-
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/array"
 )
 
 // PrefixCodedTerms
@@ -41,9 +41,10 @@ func NewPrefixCodedTermsBuilder() *PrefixCodedTermsBuilder {
 	output := store.NewRAMOutputStreamV1("", buffer, false)
 
 	return &PrefixCodedTermsBuilder{
-		buffer:   buffer,
-		output:   output,
-		lastTerm: NewTerm("", nil),
+		buffer:        buffer,
+		output:        output,
+		lastTerm:      NewTerm("", nil),
+		lastTermBytes: new(bytes.Buffer),
 	}
 }
 
@@ -153,7 +154,7 @@ func (t *TermIterator) Next() ([]byte, error) {
 }
 
 func (t *TermIterator) readTermBytes(prefix, suffix int) ([]byte, error) {
-	t.bytes = util.Grow(t.bytes, prefix+suffix)
+	t.bytes = array.Grow(t.bytes, prefix+suffix)
 	_, err := t.input.Read(t.bytes[:suffix])
 	if err != nil {
 		return nil, err

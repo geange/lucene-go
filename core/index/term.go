@@ -45,3 +45,28 @@ func TermComparator(a, b any) int {
 	}
 	return cmp
 }
+
+// TermState Encapsulates all required internal state to position the associated TermsEnum without re-seeking.
+// See Also: TermsEnum.seekExact(org.apache.lucene.util.BytesRef, TermState), TermsEnum.termState()
+type TermState interface {
+
+	// CopyFrom Copies the content of the given TermState to this instance
+	// Params: other – the TermState to copy
+	CopyFrom(other TermState)
+}
+
+var _ TermState = &OrdTermState{}
+
+type OrdTermState struct {
+	Ord int64
+}
+
+func NewOrdTermState() *OrdTermState {
+	return &OrdTermState{}
+}
+
+func (r *OrdTermState) CopyFrom(other TermState) {
+	if v, ok := other.(*OrdTermState); ok {
+		r.Ord = v.Ord
+	}
+}

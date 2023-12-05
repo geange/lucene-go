@@ -8,7 +8,8 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/ints"
 	"io"
 )
 
@@ -17,7 +18,7 @@ var _ DocConsumer = &DefaultIndexingChain{}
 type DefaultIndexingChain struct {
 	fieldInfos           *FieldInfosBuilder
 	termsHash            TermsHash
-	docValuesBytePool    *util.ByteBlockPool
+	docValuesBytePool    *bytesutils.BlockPool
 	storedFieldsConsumer *StoredFieldsConsumer
 	termVectorsWriter    *TermVectorsConsumer
 
@@ -34,7 +35,7 @@ type DefaultIndexingChain struct {
 
 	fields []*PerField
 
-	byteBlockAllocator util.BytesAllocator
+	byteBlockAllocator bytesutils.Allocator
 
 	indexWriterConfig *liveIndexWriterConfig
 
@@ -60,7 +61,7 @@ func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentI
 	indexChain := &DefaultIndexingChain{
 		fieldInfos:               fieldInfos,
 		termsHash:                NewFreqProxTermsWriter(intBlockAllocator, byteBlockAllocator, termVectorsWriter),
-		docValuesBytePool:        util.NewByteBlockPool(byteBlockAllocator),
+		docValuesBytePool:        bytesutils.NewBlockPool(byteBlockAllocator),
 		storedFieldsConsumer:     storedFieldsConsumer,
 		termVectorsWriter:        termVectorsWriter,
 		fieldHash:                make(map[string]*PerField),
@@ -822,7 +823,7 @@ func (p *PerField) invert(docID int, field document.IndexableField, first bool) 
 		// internal state of the terms hash is now
 		// corrupt and should not be flushed to a
 		// new segment:
-		if err := p.termsHashPerField.Add(p.invertState.termAttribute.GetBytesRef(), docID); err != nil {
+		if err := p.termsHashPerField.Add(p.invertState.termAttribute.GetBytes(), docID); err != nil {
 			return err
 		}
 	}
@@ -867,19 +868,19 @@ func (p *PerField) Finish(docID int) error {
 	return p.termsHashPerField.Finish()
 }
 
-func newIntBlockAllocator() util.IntsAllocator {
-	return &util.IntsAllocatorDefault{
-		BlockSize: util.INT_BLOCK_SIZE,
+func newIntBlockAllocator() ints.IntsAllocator {
+	return &ints.IntsAllocatorDefault{
+		BlockSize: ints.INT_BLOCK_SIZE,
 		FnRecycleIntBlocks: func(blocks [][]int, start, end int) {
 			return
 		},
 	}
 }
 
-func newByteBlockAllocator() util.BytesAllocator {
-	return &util.BytesAllocatorDefault{
-		BlockSize: util.BYTE_BLOCK_SIZE,
-		FnRecycleByteBlocks: func(blocks [][]byte, start, end int) {
+func newByteBlockAllocator() bytesutils.Allocator {
+	return &bytesutils.BytesAllocator{
+		BlockSize: bytesutils.BlockSize,
+		FnRecycleByteBlocksRange: func(blocks [][]byte, start, end int) {
 			for i := start; i < end; i++ {
 				blocks[i] = nil
 			}

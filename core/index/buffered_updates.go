@@ -1,8 +1,9 @@
 package index
 
 import (
+	"sync/atomic"
+
 	"github.com/geange/gods-generic/maps/treemap"
-	"go.uber.org/atomic"
 )
 
 // BufferedUpdates Holds buffered deletes and updates, by docID, term or query for a single segment.
@@ -16,26 +17,35 @@ import (
 type BufferedUpdates struct {
 	numTermDeletes  *atomic.Int64
 	numFieldUpdates *atomic.Int64
+	gen             int64
+	segmentName     string
 	deleteTerms     *treemap.Map[*Term, int]
 	//deleteQueries   *treemap.Map
-	gen         int64
+}
+
+type bufferedUpdatesOption struct {
 	segmentName string
 }
 
-func NewBufferedUpdates() *BufferedUpdates {
-	return &BufferedUpdates{
-		numTermDeletes:  nil,
-		numFieldUpdates: nil,
-		deleteTerms:     treemap.NewWith[*Term, int](TermCompare),
+func WithSegmentName(segmentName string) BufferedUpdatesOption {
+	return func(o *bufferedUpdatesOption) {
+		o.segmentName = segmentName
 	}
 }
 
-func NewBufferedUpdatesV1(segmentName string) *BufferedUpdates {
+type BufferedUpdatesOption func(*bufferedUpdatesOption)
+
+func NewBufferedUpdates(options ...BufferedUpdatesOption) *BufferedUpdates {
+	opt := &bufferedUpdatesOption{}
+	for _, fn := range options {
+		fn(opt)
+	}
+
 	return &BufferedUpdates{
-		numTermDeletes:  nil,
-		numFieldUpdates: nil,
+		numTermDeletes:  new(atomic.Int64),
+		numFieldUpdates: new(atomic.Int64),
 		deleteTerms:     treemap.NewWith[*Term, int](TermCompare),
-		segmentName:     segmentName,
+		segmentName:     opt.segmentName,
 	}
 }
 
@@ -58,7 +68,7 @@ func (b *BufferedUpdates) AddTerm(term *Term, docIDUpto int) {
 	// note that if current != null then it means there's already a buffered
 	// delete on that term, therefore we seem to over-count. this over-counting
 	// is done to respect IndexWriterConfig.setMaxBufferedDeleteTerms.
-	b.numTermDeletes.Inc()
+	b.numTermDeletes.Add(1)
 }
 
 func (b *BufferedUpdates) AddNumericUpdate(update *NumericDocValuesUpdate, docIDUpto int) error {

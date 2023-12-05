@@ -2,8 +2,8 @@ package search
 
 import (
 	"fmt"
-	"go.uber.org/atomic"
 	"math"
+	"sync/atomic"
 )
 
 // HitsThresholdChecker
@@ -37,12 +37,12 @@ type GlobalHitsThresholdChecker struct {
 func NewGlobalHitsThresholdChecker(totalHitsThreshold int) (*GlobalHitsThresholdChecker, error) {
 	return &GlobalHitsThresholdChecker{
 		totalHitsThreshold: totalHitsThreshold,
-		globalHitCount:     atomic.NewInt64(0),
+		globalHitCount:     new(atomic.Int64),
 	}, nil
 }
 
 func (g *GlobalHitsThresholdChecker) IncrementHitCount() {
-	g.globalHitCount.Inc()
+	g.globalHitCount.Add(1)
 }
 
 func (g *GlobalHitsThresholdChecker) ScoreMode() *ScoreMode {

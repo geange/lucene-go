@@ -1,6 +1,6 @@
 package fst
 
-func binarySearch[T any](fst *Fst[T], arc *Arc[T], targetLabel int) (int, error) {
+func binarySearch[T any](fst *FST[T], arc *Arc[T], targetLabel int) (int, error) {
 	in, err := fst.GetBytesReader()
 	if err != nil {
 		return 0, err
@@ -12,8 +12,12 @@ func binarySearch[T any](fst *Fst[T], arc *Arc[T], targetLabel int) (int, error)
 
 	for low <= high {
 		mid = (low + high) >> 1
-		in.SetPosition(arc.PosArcsStart())
-		in.SkipBytes(arc.BytesPerArc()*mid + 1)
+		if err := in.SetPosition(arc.PosArcsStart()); err != nil {
+			return 0, err
+		}
+		if err := in.SkipBytes(arc.BytesPerArc()*mid + 1); err != nil {
+			return 0, err
+		}
 		midLabel, err := fst.ReadLabel(in)
 		if err != nil {
 			return 0, err

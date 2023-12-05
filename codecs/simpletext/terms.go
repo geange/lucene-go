@@ -14,9 +14,9 @@ import (
 var _ index.Terms = &textTerms{}
 
 type textTerms struct {
-	*index.TermsDefault
+	*index.TermsBase
 
-	reader *SimpleTextFieldsReader
+	reader *FieldsReader
 
 	termsStart       int64
 	fieldInfo        *document.FieldInfo
@@ -24,12 +24,12 @@ type textTerms struct {
 	sumTotalTermFreq int64
 	sumDocFreq       int64
 	docCount         int
-	fst              *fst.Fst[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]]
+	fst              *fst.FST[fst.OutputsValue]
 	termCount        int
 	scratch          *bytes.Buffer
 }
 
-func (s *SimpleTextFieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc int) *textTerms {
+func (s *FieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc int) *textTerms {
 	terms := &textTerms{
 		reader:           s,
 		termsStart:       termsStart,
@@ -42,22 +42,14 @@ func (s *SimpleTextFieldsReader) newSimpleTextTerms(field string, termsStart int
 		termCount:        0,
 		scratch:          new(bytes.Buffer),
 	}
-	terms.TermsDefault = index.NewTermsDefault(&index.TermsDefaultConfig{
-		Iterator: terms.Iterator,
-		Size:     terms.Size,
-	})
+	terms.TermsBase = index.NewTerms(terms)
 	return terms
 }
 
 func (s *textTerms) loadTerms() error {
-	posIntOutputs := fst.NewPositiveIntOutputs[int64]()
+	outputs := fst.NewDefOutputs()
 
-	outputsOuter := fst.NewPairOutputs[int64, int64](posIntOutputs, posIntOutputs)
-	outputsInner := fst.NewPairOutputs[int64, int64](posIntOutputs, posIntOutputs)
-
-	outputs := fst.NewPairOutputs[*fst.Pair[int64, int64], *fst.Pair[int64, int64]](outputsOuter, outputsInner)
-
-	fstCompiler := fst.NewBuilder[*fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]](fst.BYTE1, outputs)
+	fstCompiler := fst.NewBuilder[fst.OutputsValue](fst.BYTE1, &outputs)
 
 	in := s.reader.in.Clone()
 	if _, err := in.Seek(s.termsStart, io.SeekStart); err != nil {
@@ -83,10 +75,8 @@ func (s *textTerms) loadTerms() error {
 
 		if bytes.Equal(text, FIELDS_END) || bytes.HasPrefix(text, FIELDS_FIELD) {
 			if lastDocsStart != -1 {
-				if err := fstCompiler.Add(bytes.Runes(lastTerm.Bytes()),
-					fst.NewPair(fst.NewPair(lastDocsStart, skipPointer),
-						fst.NewPair(docFreq, totalTermFreq),
-					)); err != nil {
+				value := fst.NewOutputsValue(lastDocsStart, skipPointer, docFreq, totalTermFreq)
+				if err := fstCompiler.Add(bytes.Runes(lastTerm.Bytes()), value); err != nil {
 					return err
 				}
 				s.sumTotalTermFreq += totalTermFreq
@@ -112,11 +102,8 @@ func (s *textTerms) loadTerms() error {
 			skipPointer = in.GetFilePointer()
 		} else if bytes.HasPrefix(text, FIELDS_TERM) {
 			if lastDocsStart != -1 {
-				if err := fstCompiler.Add(bytes.Runes(lastTerm.Bytes()),
-					fst.NewPair(
-						fst.NewPair(lastDocsStart, skipPointer),
-						fst.NewPair(docFreq, totalTermFreq),
-					)); err != nil {
+				value := fst.NewOutputsValue(lastDocsStart, skipPointer, docFreq, totalTermFreq)
+				if err := fstCompiler.Add(bytes.Runes(lastTerm.Bytes()), value); err != nil {
 					return err
 				}
 			}

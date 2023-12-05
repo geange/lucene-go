@@ -65,26 +65,21 @@ type LeafReader interface {
 }
 
 type LeafReaderBase struct {
-	LeafReaderInner
+	LeafReaderBaseInner
 
 	readerContext *LeafReaderContext
 	*ReaderBase
 }
 
-type LeafReaderInner interface {
+type LeafReaderBaseInner interface {
 	Terms(field string) (Terms, error)
 }
 
-type LeafReaderDefaultConfig struct {
-	Terms         func(field string) (Terms, error)
-	ReaderContext *LeafReaderContext
-}
-
-func NewLeafReaderDefault(reader LeafReader) *LeafReaderBase {
+func NewLeafReaderBase(reader LeafReader) *LeafReaderBase {
 	return &LeafReaderBase{
-		LeafReaderInner: reader,
-		readerContext:   NewLeafReaderContext(reader),
-		ReaderBase:      NewIndexReaderDefault(reader),
+		LeafReaderBaseInner: reader,
+		readerContext:       NewLeafReaderContext(reader),
+		ReaderBase:          NewIndexReaderBase(reader),
 	}
 }
 

@@ -127,7 +127,7 @@ type liveIndexWriterConfig struct {
 
 	mergedSegmentWarmer ReaderWarmer
 
-	// modified by IndexWriterConfig
+	// modified by WriterConfig
 	// IndexDeletionPolicy controlling when commit points are deleted.
 	delPolicy IndexDeletionPolicy
 

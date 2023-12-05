@@ -3,11 +3,12 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/document"
-	"go.uber.org/atomic"
 	"io"
 	"sort"
 	"sync"
+	"sync/atomic"
+
+	"github.com/geange/lucene-go/core/document"
 )
 
 type Reader interface {
@@ -138,10 +139,10 @@ type ReaderBase struct {
 	sync.Mutex
 }
 
-func NewIndexReaderDefault(spi ReaderInner) *ReaderBase {
+func NewIndexReaderBase(spi ReaderInner) *ReaderBase {
 	return &ReaderBase{
 		spi:           spi,
-		refCount:      atomic.NewInt64(0),
+		refCount:      new(atomic.Int64),
 		parentReaders: make(map[Reader]struct{}),
 	}
 }
@@ -210,7 +211,7 @@ func (r *ReaderBase) DecRef() error {
 		return errors.New("this Reader is closed")
 	}
 
-	rc := r.refCount.Dec()
+	rc := r.refCount.Add(-1)
 	if rc == 0 {
 		r.closed = true
 		return r.spi.DoClose()
@@ -239,15 +240,11 @@ func (r *ReaderBase) TryIncRef() bool {
 	count := int64(0)
 	for {
 		count = r.refCount.Load()
-		if count > 0 {
-			if r.refCount.CAS(count, count+1) {
-				return true
-			}
-		} else {
-			break
+		if count <= 0 {
+			return false
 		}
+		return r.refCount.Swap(count+1) == count
 	}
-	return false
 }
 
 func (r *ReaderBase) GetTermVector(docID int, field string) (Terms, error) {
@@ -292,22 +289,22 @@ type CacheHelper interface {
 	GetKey()
 }
 
-var _ sort.Interface = &IndexReaderSorter{}
+var _ sort.Interface = &ReaderSorter{}
 
-type IndexReaderSorter struct {
+type ReaderSorter struct {
 	Readers   []Reader
 	FnCompare func(a, b LeafReader) int
 }
 
-func (r *IndexReaderSorter) Len() int {
+func (r *ReaderSorter) Len() int {
 	return len(r.Readers)
 }
 
-func (r *IndexReaderSorter) Less(i, j int) bool {
+func (r *ReaderSorter) Less(i, j int) bool {
 	return r.FnCompare(r.Readers[i].(LeafReader), r.Readers[j].(LeafReader)) < 0
 }
 
-func (r *IndexReaderSorter) Swap(i, j int) {
+func (r *ReaderSorter) Swap(i, j int) {
 	r.Readers[i], r.Readers[j] = r.Readers[j], r.Readers[i]
 }
 
