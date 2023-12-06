@@ -1,6 +1,7 @@
 package bkd
 
 import (
+	"context"
 	"io"
 	"math/rand"
 	"testing"
@@ -57,12 +58,12 @@ func TestWriterReader2Dim(t *testing.T) {
 	out, err := dir.CreateOutput("1d.bkd", nil)
 	assert.Nil(t, err)
 
-	finalizer, err := w.Finish(out, out, out)
+	finalizer, err := w.Finish(nil, out, out, out)
 	assert.Nil(t, err)
 
 	indexFP := out.GetFilePointer()
 
-	err = finalizer()
+	err = finalizer(context.Background())
 	assert.Nil(t, err)
 
 	err = out.Close()
@@ -74,13 +75,13 @@ func TestWriterReader2Dim(t *testing.T) {
 	_, err = in.Seek(indexFP, io.SeekStart)
 	assert.Nil(t, err)
 
-	reader, err := NewReader(in, in, in)
+	reader, err := NewReader(nil, in, in, in)
 	assert.Nil(t, err)
 
 	visitor, err := NewVerifyPointsVisitor("1d", numDocs, reader)
 	assert.Nil(t, err)
 
-	err = reader.Intersect(visitor)
+	err = reader.Intersect(nil, visitor)
 	assert.Nil(t, err)
 
 	err = in.Close()
@@ -123,13 +124,13 @@ func TestJustWriter(t *testing.T) {
 	out, err := dir.CreateOutput("1d.bkd", nil)
 	assert.Nil(t, err)
 
-	finalizer, err := w.Finish(out, out, out)
+	finalizer, err := w.Finish(nil, out, out, out)
 	assert.Nil(t, err)
 
 	fp := out.GetFilePointer()
 	t.Log(fp)
 
-	err = finalizer()
+	err = finalizer(context.Background())
 	assert.Nil(t, err)
 
 	err = out.Close()
@@ -169,11 +170,11 @@ func TestWriterReaderForDebug(t *testing.T) {
 	out, err := dir.CreateOutput("1d.bkd", nil)
 	assert.Nil(t, err)
 
-	finalizer, err := w.Finish(out, out, out)
+	finalizer, err := w.Finish(nil, out, out, out)
 	assert.Nil(t, err)
 
 	fp := out.GetFilePointer()
-	err = finalizer()
+	err = finalizer(context.Background())
 	assert.Nil(t, err)
 
 	err = out.Close()
@@ -187,13 +188,13 @@ func TestWriterReaderForDebug(t *testing.T) {
 	_, err = in.Seek(fp, io.SeekStart)
 	assert.Nil(t, err)
 
-	reader, err := NewReader(in, in, in)
+	reader, err := NewReader(nil, in, in, in)
 	assert.Nil(t, err)
 
 	visitor, err := NewVerifyPointsVisitor("1d", numDocs, reader)
 	assert.Nil(t, err)
 
-	err = reader.Intersect(visitor)
+	err = reader.Intersect(nil, visitor)
 	assert.Nil(t, err)
 
 	err = in.Close()
@@ -230,11 +231,11 @@ func doWriteField(t *testing.T, numDocs, numDims, numIndexDims, bytesPerDim int)
 	out, err := dir.CreateOutput("1d.bkd", nil)
 	assert.Nil(t, err)
 
-	finalizer, err := w.Finish(out, out, out)
+	finalizer, err := w.Finish(nil, out, out, out)
 	assert.Nil(t, err)
 
 	//indexFP := out.GetFilePointer()
-	err = finalizer()
+	err = finalizer(context.Background())
 	assert.Nil(t, err)
 
 	out.Close()

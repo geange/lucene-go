@@ -1,6 +1,7 @@
 package bytesutils
 
 import (
+	"context"
 	"io"
 	"sync/atomic"
 )
@@ -110,7 +111,7 @@ type bytesRefIterator struct {
 	array *BytesRefArray
 }
 
-func (b *bytesRefIterator) Next() ([]byte, error) {
+func (b *bytesRefIterator) Next(context.Context) ([]byte, error) {
 	b.pos++
 	if b.pos < b.size {
 		b.ord = b.pos

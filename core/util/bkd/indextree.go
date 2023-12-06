@@ -1,6 +1,7 @@
 package bkd
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/store"
 	"io"
 	"slices"
@@ -47,10 +48,10 @@ type IndexTree struct {
 	scratch []byte
 }
 
-func (r *Reader) newIndexTree() (*IndexTree, error) {
+func (r *Reader) newIndexTree(ctx context.Context) (*IndexTree, error) {
 	in := r.packedIndex.Clone()
 	index := r.newIndexTreeV1(in, 1, 1)
-	err := index.readNodeData(false)
+	err := index.readNodeData(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -82,10 +83,10 @@ func (r *Reader) newIndexTreeV1(in store.IndexInput, nodeID int, level int) *Ind
 	}
 }
 
-func (t *IndexTree) PushLeft() error {
+func (t *IndexTree) PushLeft(ctx context.Context) error {
 	t.nodeID *= 2
 	t.level++
-	return t.readNodeData(true)
+	return t.readNodeData(ctx, true)
 }
 
 func (t *IndexTree) Clone() *IndexTree {
@@ -103,7 +104,7 @@ func (t *IndexTree) Clone() *IndexTree {
 	return index
 }
 
-func (t *IndexTree) PushRight() error {
+func (t *IndexTree) PushRight(ctx context.Context) error {
 	nodePosition := t.rightNodePositions[t.level]
 	t.nodeID = t.nodeID*2 + 1
 	t.level++
@@ -112,7 +113,7 @@ func (t *IndexTree) PushRight() error {
 	if err != nil {
 		return err
 	}
-	return t.readNodeData(false)
+	return t.readNodeData(ctx, false)
 }
 
 func (t *IndexTree) Pop() {
@@ -180,7 +181,7 @@ func (t *IndexTree) getNumLeaves() int {
 	return numLeaves
 }
 
-func (t *IndexTree) readNodeData(isLeft bool) error {
+func (t *IndexTree) readNodeData(ctx context.Context, isLeft bool) error {
 	config := t.reader.config
 
 	level := t.level
@@ -196,7 +197,7 @@ func (t *IndexTree) readNodeData(isLeft bool) error {
 
 	// read leaf block FP delta
 	if isLeft == false {
-		n, err := t.in.ReadUvarint()
+		n, err := t.in.ReadUvarint(ctx)
 		if err != nil {
 			return err
 		}
@@ -208,7 +209,7 @@ func (t *IndexTree) readNodeData(isLeft bool) error {
 	} else {
 
 		// read split dim, prefix, firstDiffByteDelta encoded as int:
-		n, err := t.in.ReadUvarint()
+		n, err := t.in.ReadUvarint(ctx)
 		if err != nil {
 			return err
 		}
@@ -240,7 +241,7 @@ func (t *IndexTree) readNodeData(isLeft bool) error {
 
 		var leftNumBytes int
 		if t.nodeID*2 < t.reader.leafNodeOffset {
-			n, err := t.in.ReadUvarint()
+			n, err := t.in.ReadUvarint(ctx)
 			if err != nil {
 				return err
 			}

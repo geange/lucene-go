@@ -2,6 +2,7 @@ package bkd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -113,8 +114,8 @@ func (r *OneDimensionBKDWriter) Finish() (Runnable, error) {
 
 	leafNodes := &oneDimBKDTreeLeafNodes{dimWriter: r}
 
-	return func() error {
-		return w.writeIndex(r.metaOut, r.indexOut, config.MaxPointsInLeafNode(), leafNodes, r.dataStartFP)
+	return func(ctx context.Context) error {
+		return w.writeIndex(ctx, r.metaOut, r.indexOut, config.MaxPointsInLeafNode(), leafNodes, r.dataStartFP)
 	}, nil
 }
 

@@ -373,7 +373,7 @@ func (r *notAllDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
 			result.Bytes()[i] = math.MaxUint64
 		}
 		cost := []int64{int64(r.reader.MaxDoc())}
-		err := r.values.Intersect(r.weight.getInverseIntersectVisitor(result, cost))
+		err := r.values.Intersect(nil, r.weight.getInverseIntersectVisitor(result, cost))
 		if err != nil {
 			return nil, err
 		}
@@ -381,7 +381,7 @@ func (r *notAllDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
 		return NewConstantScoreScorer(r.weight, r.weight.Score(), r.scoreMode, iterator)
 	}
 
-	err := r.values.Intersect(r.visitor)
+	err := r.values.Intersect(nil, r.visitor)
 	if err != nil {
 		return nil, err
 	}

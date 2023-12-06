@@ -1,6 +1,7 @@
 package packed
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -29,7 +30,7 @@ type Mutable interface {
 
 	// Save this mutable into out. Instantiating a reader from the generated data will return a
 	// reader with the same number of bits per value.
-	Save(out store.DataOutput) error
+	Save(ctx context.Context, out store.DataOutput) error
 
 	GetFormat() Format
 }
@@ -79,9 +80,9 @@ func (m *mutable) Clear() {
 	m.Fill(0, m.spi.Size(), 0)
 }
 
-func (m *mutable) Save(out store.DataOutput) error {
+func (m *mutable) Save(ctx context.Context, out store.DataOutput) error {
 	writer := getWriterNoHeader(out, m.GetFormat(), m.spi.Size(), m.spi.GetBitsPerValue(), DEFAULT_BUFFER_SIZE)
-	err := writer.WriteHeader()
+	err := writer.WriteHeader(ctx)
 	if err != nil {
 		return err
 	}

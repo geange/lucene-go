@@ -1,16 +1,13 @@
 package fst
 
 import (
-	"bytes"
+	"context"
 	"errors"
 	"io"
 
 	"github.com/geange/gods-generic/lists/arraylist"
 	"github.com/geange/lucene-go/core/store"
 )
-
-// TODO: merge with PagedBytes, except PagedBytes doesn't
-// let you read while writing which Fst needs
 
 type ByteStore struct {
 	*store.Writer
@@ -26,14 +23,14 @@ type ByteStore struct {
 func NewByteStore(blockBits int) *ByteStore {
 	blockSize := int64(1 << blockBits)
 	byteStore := &ByteStore{
-		blocks:    arraylist.NewWith[[]byte](bytes.Compare),
+		blocks:    arraylist.New[[]byte](),
 		blockSize: blockSize,
 		blockBits: int64(blockBits),
 		blockMask: blockSize - 1,
-		current:   make([]byte, blockSize),
+		//current:   make([]byte, blockSize),
 		nextWrite: 0,
 	}
-	byteStore.blocks.Add(byteStore.current)
+	//byteStore.blocks.Add(byteStore.current)
 	byteStore.Writer = store.NewWriter(byteStore)
 	return byteStore
 }
@@ -47,7 +44,7 @@ func NewBytesStoreByDataInput(in io.Reader, numBytes, maxBlockSize int64) (*Byte
 	}
 
 	bs := &ByteStore{
-		blocks: arraylist.NewWith[[]byte](bytes.Compare),
+		blocks: arraylist.New[[]byte](),
 	}
 
 	bs.blockBits = blockBits
@@ -79,7 +76,7 @@ func (r *ByteStore) WriteByteAt(dest int64, b byte) error {
 	blockIndex := int64(dest >> r.blockBits)
 	block, ok := r.blocks.Get(int(blockIndex))
 	if !ok {
-		return ErrItemNotFound
+		return errors.New("block not found")
 	}
 	block[dest&r.blockMask] = b
 	return nil
@@ -132,7 +129,7 @@ func (r *ByteStore) GetBlockBits() int64 {
 
 // WriteBytesAt Absolute writeBytes without changing the current position.
 // Note: this cannot "grow" the bytes, so you must only call it on already written parts.
-func (r *ByteStore) WriteBytesAt(dest int64, bs []byte) error {
+func (r *ByteStore) WriteBytesAt(ctx context.Context, dest int64, bs []byte) error {
 	size := int64(len(bs))
 
 	end := dest + int64(len(bs))
@@ -169,7 +166,7 @@ func (r *ByteStore) WriteBytesAt(dest int64, bs []byte) error {
 
 // MoveBytes Absolute copy bytes self to self, without changing the position.
 // Note: this cannot "grow" the bytes, so must only call it on already written parts.
-func (r *ByteStore) MoveBytes(src, dest, size int64) error {
+func (r *ByteStore) MoveBytes(ctx context.Context, src, dest, size int64) error {
 	if src >= dest {
 		return errors.New("src >= dest")
 	}
@@ -189,16 +186,14 @@ func (r *ByteStore) MoveBytes(src, dest, size int64) error {
 
 	for size > 0 {
 		if size <= downTo {
-			err := r.WriteBytesAt(dest, block[downTo-size:downTo])
-			if err != nil {
+			if err := r.WriteBytesAt(ctx, dest, block[downTo-size:downTo]); err != nil {
 				return err
 			}
 			break
 		}
 
 		size -= downTo
-		err := r.WriteBytesAt(dest+size, block[0:downTo])
-		if err != nil {
+		if err := r.WriteBytesAt(ctx, dest+size, block[0:downTo]); err != nil {
 			return err
 		}
 		blockIndex--
@@ -212,7 +207,41 @@ func (r *ByteStore) MoveBytes(src, dest, size int64) error {
 }
 
 // CopyBytesToArray Copies bytes from this store to a target byte array.
-func (r *ByteStore) CopyBytesToArray(src int64, dest []byte) error {
+//func (r *ByteStore) CopyBytesToArray(src int64, dest []byte) error {
+//	blockIndex := src >> r.blockBits
+//	upto := src & r.blockMask
+//
+//	block, ok := r.blocks.Get(int(blockIndex))
+//	if !ok {
+//		return ErrItemNotFound
+//	}
+//
+//	offset, size := int64(0), int64(len(dest))
+//
+//	for size > 0 {
+//		chunk := r.blockSize - upto
+//		if size <= chunk {
+//			copy(dest[offset:offset+size], block[upto:])
+//			break
+//		}
+//
+//		copy(dest[offset:offset+chunk], block[upto:])
+//		blockIndex++
+//
+//		block, ok = r.blocks.Get(int(blockIndex))
+//		if !ok {
+//			return ErrItemNotFound
+//		}
+//
+//		upto = 0
+//		size -= chunk
+//		offset += chunk
+//	}
+//	return nil
+//}
+
+// CopyTo Copies bytes from this store to a target io.Writer
+func (r *ByteStore) CopyTo(ctx context.Context, src int64, size int64, w io.Writer) error {
 	blockIndex := src >> r.blockBits
 	upto := src & r.blockMask
 
@@ -221,16 +250,20 @@ func (r *ByteStore) CopyBytesToArray(src int64, dest []byte) error {
 		return ErrItemNotFound
 	}
 
-	offset, size := int64(0), int64(len(dest))
+	offset := int64(0)
 
 	for size > 0 {
 		chunk := r.blockSize - upto
 		if size <= chunk {
-			copy(dest[offset:offset+size], block[upto:])
+			if _, err := w.Write(block[upto : upto+size]); err != nil {
+				return err
+			}
 			break
 		}
 
-		copy(dest[offset:offset+chunk], block[upto:])
+		if _, err := w.Write(block[upto:]); err != nil {
+			return err
+		}
 		blockIndex++
 
 		block, ok = r.blocks.Get(int(blockIndex))
@@ -345,21 +378,14 @@ func (r *ByteStore) GetPosition() int64 {
 	return int64(r.blocks.Size()-1)*r.blockSize + r.nextWrite
 }
 
-// Truncate Pos must be less than the max position written so far! Ie, you cannot "grow" the file with this!
+// Truncate
+// Pos must be less than the max position written so far! Ie, you cannot "grow" the file with this!
 func (r *ByteStore) Truncate(newLen int64) error {
-	if newLen > r.GetPosition() {
-		return errors.New("newLen > r.GetPosition()")
-	}
-
-	if newLen < 0 {
-		return errors.New("newLen < 0")
-	}
-
 	blockIndex := newLen >> r.blockBits
-	nextWrite := newLen & r.blockMask
-	if nextWrite == 0 {
+	r.nextWrite = newLen & r.blockMask
+	if r.nextWrite == 0 {
 		blockIndex--
-		nextWrite = r.blockSize
+		r.nextWrite = r.blockSize
 	}
 
 	r.blocks.RemoveRange(int(blockIndex+1), r.blocks.Size())
@@ -367,17 +393,12 @@ func (r *ByteStore) Truncate(newLen int64) error {
 	if newLen == 0 {
 		r.current = nil
 	} else {
-		var ok bool
-		r.current, ok = r.blocks.Get(int(blockIndex))
+		v, ok := r.blocks.Get(int(blockIndex))
 		if !ok {
 			return ErrItemNotFound
 		}
+		r.current = v
 	}
-
-	if newLen != r.GetPosition() {
-		return errors.New("newLen != r.GetPosition()")
-	}
-
 	return nil
 }
 
@@ -392,11 +413,10 @@ func (r *ByteStore) Finish() error {
 	return nil
 }
 
-// WriteTo Writes all of our bytes to the target DataOutput.
-func (r *ByteStore) WriteTo(out store.DataOutput) error {
+// WriteToDataOutput Writes all of our bytes to the target DataOutput.
+func (r *ByteStore) WriteToDataOutput(out store.DataOutput) error {
 	for _, block := range r.blocks.Values() {
-		_, err := out.Write(block)
-		if err != nil {
+		if _, err := out.Write(block); err != nil {
 			return err
 		}
 	}
@@ -413,8 +433,8 @@ func (r *ByteStore) getReverseReader(allowSingle bool) (BytesReader, error) {
 		if !ok {
 			return nil, ErrItemNotFound
 		}
-		return NewReverseBytesReader(item), nil
+		return newReverseBytesReader(item), nil
 	}
 
-	return NewBuilderBytesReader(r)
+	return newBuilderBytesReader(r)
 }

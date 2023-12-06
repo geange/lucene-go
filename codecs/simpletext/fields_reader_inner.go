@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"strconv"
@@ -26,12 +27,12 @@ type simpleTextTerms struct {
 	sumTotalTermFreq int64
 	sumDocFreq       int64
 	docCount         int
-	fst              *fst.FST[fst.OutputsValue]
+	fst              *fst.FST
 	termCount        int
 	scratch          *bytes.Buffer
 }
 
-func (s *FieldsReader) newFieldsReaderTerm(field string, termsStart int64, maxDoc int) (*simpleTextTerms, error) {
+func (s *FieldsReader) newFieldsReaderTerm(ctx context.Context, field string, termsStart int64, maxDoc int) (*simpleTextTerms, error) {
 	info := s.fieldInfos.FieldInfo(field)
 	term := &simpleTextTerms{
 		r:          s,
@@ -43,21 +44,24 @@ func (s *FieldsReader) newFieldsReaderTerm(field string, termsStart int64, maxDo
 
 	term.TermsBase = index.NewTerms(term)
 
-	if err := s.loadTerms(term); err != nil {
+	if err := s.loadTerms(ctx, term); err != nil {
 		return nil, err
 	}
 	return term, nil
 }
 
-func (s *FieldsReader) loadTerms(term *simpleTextTerms) error {
+func (s *FieldsReader) loadTerms(ctx context.Context, term *simpleTextTerms) error {
 	//posIntOutputs := fst.NewPositiveIntOutputs()
 	//outputsOuter := fst.NewPairOutputs[int64, int64](posIntOutputs, posIntOutputs)
 	//outputsInner := fst.NewPairOutputs[int64, int64](posIntOutputs, posIntOutputs)
 	//outputs := fst.NewPairOutputs[*fst.Pair[int64, int64], *fst.Pair[int64, int64]](outputsOuter, outputsInner)
 
-	outputs := fst.NewDefOutputs[fst.OutputsValue]()
+	//outputs := fst.NewDefOutputs[fst.PostingOutput]()
 
-	fstCompiler := fst.NewBuilder[fst.OutputsValue](fst.BYTE1, &outputs)
+	fstCompiler, err := fst.NewBuilder(fst.BYTE1, fst.NewPostingOutputManager())
+	if err != nil {
+		return err
+	}
 
 	in := s.in.Clone()
 	if _, err := in.Seek(term.termsStart, io.SeekStart); err != nil {
@@ -82,9 +86,9 @@ func (s *FieldsReader) loadTerms(term *simpleTextTerms) error {
 			if lastDocsStart != -1 {
 				//output := fst.NewPair(fst.NewPair(lastDocsStart, skipPointer), fst.NewPair(docFreq, totalTermFreq))
 
-				output := fst.NewOutputsValue(lastDocsStart, skipPointer, docFreq, totalTermFreq)
+				output := fst.NewPostingOutput(lastDocsStart, skipPointer, docFreq, totalTermFreq)
 
-				if err := fstCompiler.Add(bytes.Runes(lastTerm.Bytes()), output); err != nil {
+				if err := fstCompiler.Add(ctx, bytes.Runes(lastTerm.Bytes()), output); err != nil {
 					return err
 				}
 				term.sumTotalTermFreq += totalTermFreq
@@ -111,8 +115,8 @@ func (s *FieldsReader) loadTerms(term *simpleTextTerms) error {
 			skipPointer = in.GetFilePointer()
 		} else if bytes.HasPrefix(text, FIELDS_TERM) {
 			if lastDocsStart != -1 {
-				output := fst.NewOutputsValue(lastDocsStart, skipPointer, docFreq, totalTermFreq)
-				if err := fstCompiler.Add(bytes.Runes(lastTerm.Bytes()), output); err != nil {
+				output := fst.NewPostingOutput(lastDocsStart, skipPointer, docFreq, totalTermFreq)
+				if err := fstCompiler.Add(ctx, bytes.Runes(lastTerm.Bytes()), output); err != nil {
 					return err
 				}
 			}
@@ -130,14 +134,13 @@ func (s *FieldsReader) loadTerms(term *simpleTextTerms) error {
 	}
 	term.docCount = len(visitedDocs)
 
-	var err error
-	term.fst, err = fstCompiler.Finish()
+	term.fst, err = fstCompiler.Finish(ctx)
 	return err
 }
 
 func (f *simpleTextTerms) Iterator() (index.TermsEnum, error) {
 	if f.fst != nil {
-		return f.r.newSimpleTextTermsEnum(f.fst, f.fieldInfo.GetIndexOptions()), nil
+		return f.r.newSimpleTextTermsEnum(f.fst, f.fieldInfo.GetIndexOptions())
 	}
 	return nil, io.EOF
 }
@@ -176,103 +179,114 @@ func (f *simpleTextTerms) HasPayloads() bool {
 
 var _ index.TermsEnum = &simpleTextTermsEnum{}
 
-type EnumPair fst.Pair[*fst.Pair[int64, int64], *fst.Pair[int64, int64]]
-
-type BytesEnum fst.BytesRefFSTEnum[*EnumPair]
+type BytesEnum fst.EnumWrap
 
 type simpleTextTermsEnum struct {
-	r *FieldsReader
-
 	*index.BaseTermsEnum
 
+	r             *FieldsReader
 	indexOptions  document.IndexOptions
 	docFreq       int
 	totalTermFreq int64
 	docsStart     int64
 	skipPointer   int64
 	ended         bool
-	fstEnum       *fst.BytesRefFSTEnum[fst.OutputsValue]
+	fstEnum       *fst.EnumWrap
 }
 
-func (s *FieldsReader) newSimpleTextTermsEnum(fstInstance *fst.FST[fst.OutputsValue],
-	indexOptions document.IndexOptions) *simpleTextTermsEnum {
+func (s *FieldsReader) newSimpleTextTermsEnum(fstInstance *fst.FST, indexOptions document.IndexOptions) (*simpleTextTermsEnum, error) {
+	fstEnum, err := fst.NewEnumWrap(fstInstance)
+	if err != nil {
+		return nil, err
+	}
+
 	enum := &simpleTextTermsEnum{
 		indexOptions: indexOptions,
-		fstEnum:      fst.NewBytesRefFSTEnum(fstInstance),
+		fstEnum:      fstEnum,
 		r:            s,
 	}
 	enum.BaseTermsEnum = index.NewBaseTermsEnum(&index.BaseTermsEnumConfig{SeekCeil: enum.SeekCeil})
-	return enum
+	return enum, nil
 }
 
-func (t *simpleTextTermsEnum) SeekExact(text []byte) (bool, error) {
-	result, err := t.fstEnum.SeekExact(text)
+func (t *simpleTextTermsEnum) SeekExact(ctx context.Context, text []byte) (bool, error) {
+	result, ok, err := t.fstEnum.SeekExact(ctx, text)
 	if err != nil {
 		return false, err
 	}
 
-	if result != nil {
-		output := result.Output
+	if !ok {
+		return false, nil
+	}
 
-		t.docsStart = output.LastDocsStart
-		t.skipPointer = output.SkipPointer
-		t.docFreq = int(output.DocFreq)
-		t.totalTermFreq = output.TotalTermFreq
+	if result != nil {
+		output := result.GetOutput()
+
+		if posting, ok := output.(*fst.PostingOutput); ok {
+			t.docsStart = posting.LastDocsStart
+			t.skipPointer = posting.SkipPointer
+			t.docFreq = int(posting.DocFreq)
+			t.totalTermFreq = posting.TotalTermFreq
+		}
+
 		return true, nil
 	}
 	return false, nil
 }
 
-func (t *simpleTextTermsEnum) Next() ([]byte, error) {
-	result, err := t.fstEnum.Next()
+func (t *simpleTextTermsEnum) Next(ctx context.Context) ([]byte, error) {
+	result, err := t.fstEnum.Next(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if result != nil {
-		output := result.Output
+		output := result.GetOutput()
 
-		t.docsStart = output.LastDocsStart
-		t.skipPointer = output.SkipPointer
-		t.docFreq = int(output.DocFreq)
-		t.totalTermFreq = output.TotalTermFreq
-		return result.Input, nil
+		if posting, ok := output.(*fst.PostingOutput); ok {
+			t.docsStart = posting.LastDocsStart
+			t.skipPointer = posting.SkipPointer
+			t.docFreq = int(posting.DocFreq)
+			t.totalTermFreq = posting.TotalTermFreq
+		}
+
+		return result.GetInput(), nil
 	} else {
 		return nil, nil
 	}
 }
 
-func (t *simpleTextTermsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
-	result, err := t.fstEnum.SeekCeil(text)
+func (t *simpleTextTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
+	result, found, err := t.fstEnum.SeekCeil(ctx, text)
 	if err != nil {
 		return 0, err
 	}
 
-	if result == nil {
+	if !found {
 		return index.SEEK_STATUS_END, nil
 	}
 
-	output := result.Output
+	output := result.GetOutput()
 
-	t.docsStart = output.LastDocsStart
-	t.skipPointer = output.SkipPointer
-	t.docFreq = int(output.DocFreq)
-	t.totalTermFreq = output.TotalTermFreq
+	if posting, ok := output.(*fst.PostingOutput); ok {
+		t.docsStart = posting.LastDocsStart
+		t.skipPointer = posting.SkipPointer
+		t.docFreq = int(posting.DocFreq)
+		t.totalTermFreq = posting.TotalTermFreq
+	}
 
-	if bytes.Equal(result.Input, text) {
-		//System.out.println("  match docsStart=" + docsStart);
+	if bytes.Equal(result.GetInput(), text) {
 		return index.SEEK_STATUS_FOUND, nil
 	} else {
-		//System.out.println("  not match docsStart=" + docsStart);
 		return index.SEEK_STATUS_NOT_FOUND, nil
 	}
 }
 
-func (t *simpleTextTermsEnum) SeekExactByOrd(ord int64) error {
+func (t *simpleTextTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
 	return errors.New("ErrUnsupportedOperation")
 }
 
 func (t *simpleTextTermsEnum) Term() ([]byte, error) {
-	return t.fstEnum.Current().Input, nil
+	return t.fstEnum.Current().GetInput(), nil
 }
 
 func (t *simpleTextTermsEnum) Ord() (int64, error) {

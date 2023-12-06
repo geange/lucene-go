@@ -151,7 +151,7 @@ func (r *RAMDirectory) OpenInput(name string, context *IOContext) (IndexInput, e
 	if !ok {
 		return nil, errors.New("file not found")
 	}
-	return NewRAMInputStream(name, file)
+	return NewRAMIndexInput(name, file)
 }
 
 func (r *RAMDirectory) Close() error {

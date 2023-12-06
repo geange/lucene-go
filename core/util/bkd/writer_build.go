@@ -2,6 +2,7 @@ package bkd
 
 import (
 	"bytes"
+	"context"
 	"math"
 	"sort"
 
@@ -14,9 +15,7 @@ import (
 // Recursively reorders the provided reader and writes the bkd-tree on the fly; this method is used
 // when we are writing a new segment directly from IndexWriter's indexing buffer (MutablePointsReader).
 // 递归地重新排序所提供的读取器，并动态地写入bkd树；当我们直接从IndexWriter的索引缓冲区（MutablePointsReader）写入新段时，会使用此方法。
-func (w *Writer) build(leavesOffset, numLeaves int, reader types.MutablePointValues, from, to int,
-	out store.IndexOutput, minPackedValue, maxPackedValue []byte, parentSplits []int,
-	splitPackedValues, splitDimensionValues []byte, leafBlockFPs []int64, spareDocIds []int) error {
+func (w *Writer) build(ctx context.Context, leavesOffset, numLeaves int, reader types.MutablePointValues, from, to int, out store.IndexOutput, minPackedValue, maxPackedValue []byte, parentSplits []int, splitPackedValues, splitDimensionValues []byte, leafBlockFPs []int64, spareDocIds []int) error {
 
 	config := w.config
 
@@ -24,7 +23,7 @@ func (w *Writer) build(leavesOffset, numLeaves int, reader types.MutablePointVal
 	bytesPerDim := config.BytesPerDim()
 
 	if numLeaves == 1 {
-		return w.build1Leaf(leavesOffset, reader, from, to, out, leafBlockFPs, spareDocIds)
+		return w.build1Leaf(ctx, leavesOffset, reader, from, to, out, leafBlockFPs, spareDocIds)
 	}
 
 	splitDim := 0
@@ -78,15 +77,11 @@ func (w *Writer) build(leavesOffset, numLeaves int, reader types.MutablePointVal
 
 	// recurse
 	parentSplits[splitDim]++
-	if err := w.build(leavesOffset, numLeftLeafNodes, reader, from, mid, out,
-		minPackedValue, maxSplitPackedValue, parentSplits,
-		splitPackedValues, splitDimensionValues, leafBlockFPs, spareDocIds); err != nil {
+	if err := w.build(ctx, leavesOffset, numLeftLeafNodes, reader, from, mid, out, minPackedValue, maxSplitPackedValue, parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs, spareDocIds); err != nil {
 		return err
 	}
 
-	if err := w.build(rightOffset, numLeaves-numLeftLeafNodes, reader, mid, to, out,
-		minSplitPackedValue, maxPackedValue, parentSplits,
-		splitPackedValues, splitDimensionValues, leafBlockFPs, spareDocIds); err != nil {
+	if err := w.build(ctx, rightOffset, numLeaves-numLeftLeafNodes, reader, mid, to, out, minSplitPackedValue, maxPackedValue, parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs, spareDocIds); err != nil {
 		return err
 	}
 	parentSplits[splitDim]--
@@ -94,8 +89,7 @@ func (w *Writer) build(leavesOffset, numLeaves int, reader types.MutablePointVal
 	return nil
 }
 
-func (w *Writer) build1Leaf(leavesOffset int, reader types.MutablePointValues, from, to int,
-	out store.IndexOutput, leafBlockFPs []int64, spareDocIds []int) error {
+func (w *Writer) build1Leaf(ctx context.Context, leavesOffset int, reader types.MutablePointValues, from, to int, out store.IndexOutput, leafBlockFPs []int64, spareDocIds []int) error {
 
 	config := w.config
 
@@ -219,16 +213,14 @@ func (w *Writer) build1Leaf(leavesOffset int, reader types.MutablePointValues, f
 
 // The point writer contains the data that is going to be splitted using radix selection.
 // This method is used when we are merging previously written segments, in the numDims > 1 case.
-func (w *Writer) buildMerging(leavesOffset, numLeaves int, points *PathSlice, out store.IndexOutput,
-	radixSelector *RadixSelector, minPackedValue, maxPackedValue []byte, parentSplits []int,
-	splitPackedValues, splitDimensionValues []byte, leafBlockFPs []int64, spareDocIds []int) error {
+func (w *Writer) buildMerging(ctx context.Context, leavesOffset, numLeaves int, points *PathSlice, out store.IndexOutput, radixSelector *RadixSelector, minPackedValue, maxPackedValue []byte, parentSplits []int, splitPackedValues, splitDimensionValues []byte, leafBlockFPs []int64, spareDocIds []int) error {
 
 	config := w.config
 	//numIndexDims := config.NumIndexDims()
 	//bytesPerDim := config.BytesPerDim()
 
 	if numLeaves == 1 {
-		return w.buildMerging1Leaf(leavesOffset, points, out, radixSelector, leafBlockFPs, spareDocIds)
+		return w.buildMerging1Leaf(ctx, leavesOffset, points, out, radixSelector, leafBlockFPs, spareDocIds)
 	}
 
 	// Inner node: partition/recurse
@@ -292,16 +284,12 @@ func (w *Writer) buildMerging(leavesOffset, numLeaves int, points *PathSlice, ou
 	parentSplits[splitDim]++
 
 	// Recurse on left tree:
-	if err := w.buildMerging(leavesOffset, numLeftLeafNodes, slices[0],
-		out, radixSelector, minPackedValue, maxSplitPackedValue,
-		parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs, spareDocIds); err != nil {
+	if err := w.buildMerging(ctx, leavesOffset, numLeftLeafNodes, slices[0], out, radixSelector, minPackedValue, maxSplitPackedValue, parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs, spareDocIds); err != nil {
 		return err
 	}
 
 	// Recurse on right tree:
-	if err := w.buildMerging(rightOffset, numLeaves-numLeftLeafNodes, slices[1],
-		out, radixSelector, minSplitPackedValue, maxPackedValue,
-		parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs, spareDocIds); err != nil {
+	if err := w.buildMerging(ctx, rightOffset, numLeaves-numLeftLeafNodes, slices[1], out, radixSelector, minSplitPackedValue, maxPackedValue, parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs, spareDocIds); err != nil {
 		return err
 	}
 
@@ -309,8 +297,7 @@ func (w *Writer) buildMerging(leavesOffset, numLeaves int, points *PathSlice, ou
 	return nil
 }
 
-func (w *Writer) buildMerging1Leaf(leavesOffset int, points *PathSlice, out store.IndexOutput,
-	radixSelector *RadixSelector, leafBlockFPs []int64, spareDocIds []int) error {
+func (w *Writer) buildMerging1Leaf(ctx context.Context, leavesOffset int, points *PathSlice, out store.IndexOutput, radixSelector *RadixSelector, leafBlockFPs []int64, spareDocIds []int) error {
 
 	config := w.config
 

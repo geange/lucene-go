@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"strconv"
 
@@ -16,15 +17,14 @@ var _ index.Terms = &textTerms{}
 type textTerms struct {
 	*index.TermsBase
 
-	reader *FieldsReader
-
+	reader           *FieldsReader
 	termsStart       int64
 	fieldInfo        *document.FieldInfo
 	maxDoc           int
 	sumTotalTermFreq int64
 	sumDocFreq       int64
 	docCount         int
-	fst              *fst.FST[fst.OutputsValue]
+	fst              *fst.FST
 	termCount        int
 	scratch          *bytes.Buffer
 }
@@ -46,10 +46,11 @@ func (s *FieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc
 	return terms
 }
 
-func (s *textTerms) loadTerms() error {
-	outputs := fst.NewDefOutputs()
-
-	fstCompiler := fst.NewBuilder[fst.OutputsValue](fst.BYTE1, &outputs)
+func (s *textTerms) loadTerms(ctx context.Context) error {
+	fstCompiler, err := fst.NewBuilder(fst.BYTE1, fst.NewPostingOutputManager())
+	if err != nil {
+		return err
+	}
 
 	in := s.reader.in.Clone()
 	if _, err := in.Seek(s.termsStart, io.SeekStart); err != nil {
@@ -64,6 +65,7 @@ func (s *textTerms) loadTerms() error {
 	skipPointer := int64(0)
 	visitedDocs := make(map[int]struct{})
 
+OUTER:
 	for {
 		s.scratch.Reset()
 
@@ -73,16 +75,17 @@ func (s *textTerms) loadTerms() error {
 
 		text := s.scratch.Bytes()
 
-		if bytes.Equal(text, FIELDS_END) || bytes.HasPrefix(text, FIELDS_FIELD) {
+		switch {
+		case bytes.Equal(text, FIELDS_END) || bytes.HasPrefix(text, FIELDS_FIELD):
 			if lastDocsStart != -1 {
-				value := fst.NewOutputsValue(lastDocsStart, skipPointer, docFreq, totalTermFreq)
-				if err := fstCompiler.Add(bytes.Runes(lastTerm.Bytes()), value); err != nil {
+				value := fst.NewPostingOutput(lastDocsStart, skipPointer, docFreq, totalTermFreq)
+				if err := fstCompiler.Add(ctx, bytes.Runes(lastTerm.Bytes()), value); err != nil {
 					return err
 				}
 				s.sumTotalTermFreq += totalTermFreq
 			}
-			break
-		} else if bytes.HasSuffix(text, FIELDS_DOC) {
+			break OUTER
+		case bytes.HasSuffix(text, FIELDS_DOC):
 			docFreq++
 			s.sumDocFreq++
 			totalTermFreq++
@@ -92,18 +95,21 @@ func (s *textTerms) loadTerms() error {
 				return err
 			}
 			visitedDocs[docID] = struct{}{}
-		} else if bytes.HasPrefix(text, FIELDS_FREQ) {
+
+		case bytes.HasPrefix(text, FIELDS_FREQ):
 			value, err := strconv.Atoi(string(text[len(FIELDS_FREQ):]))
 			if err != nil {
 				return err
 			}
 			totalTermFreq += int64(value)
-		} else if bytes.HasPrefix(text, SKIP_LIST) {
+
+		case bytes.HasPrefix(text, SKIP_LIST):
 			skipPointer = in.GetFilePointer()
-		} else if bytes.HasPrefix(text, FIELDS_TERM) {
+
+		case bytes.HasPrefix(text, FIELDS_TERM):
 			if lastDocsStart != -1 {
-				value := fst.NewOutputsValue(lastDocsStart, skipPointer, docFreq, totalTermFreq)
-				if err := fstCompiler.Add(bytes.Runes(lastTerm.Bytes()), value); err != nil {
+				value := fst.NewPostingOutput(lastDocsStart, skipPointer, docFreq, totalTermFreq)
+				if err := fstCompiler.Add(ctx, bytes.Runes(lastTerm.Bytes()), value); err != nil {
 					return err
 				}
 			}
@@ -115,11 +121,10 @@ func (s *textTerms) loadTerms() error {
 			s.termCount++
 			skipPointer = 0
 		}
-
 	}
 
 	s.docCount = len(visitedDocs)
-	compiled, err := fstCompiler.Finish()
+	compiled, err := fstCompiler.Finish(ctx)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,9 @@
 package bkd
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 // PointValue Represents a dimensional point value written in the BKD tree.
 // lucene.internal
@@ -36,7 +39,7 @@ type PointWriter interface {
 	io.Closer
 
 	// Append Add a new point from the packed value and docId
-	Append(packedValue []byte, docID int) error
+	Append(ctx context.Context, packedValue []byte, docID int) error
 
 	// AppendPoint Add a new point from a PointValue
 	AppendPoint(pointValue PointValue) error

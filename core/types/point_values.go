@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"math"
@@ -59,12 +60,12 @@ type PointValues interface {
 	// Intersect Finds all documents and points matching the provided visitor.
 	// This method does not enforce live documents,
 	// so it's up to the caller to test whether each document is deleted, if necessary.
-	Intersect(visitor IntersectVisitor) error
+	Intersect(ctx context.Context, visitor IntersectVisitor) error
 
 	// EstimatePointCount Estimate the number of points that would be visited
 	// by intersect with the given PointValues.BytesVisitor.
 	// This should run many times faster than intersect(PointValues.BytesVisitor).
-	EstimatePointCount(visitor IntersectVisitor) (int, error)
+	EstimatePointCount(ctx context.Context, visitor IntersectVisitor) (int, error)
 
 	// EstimateDocCount
 	// Estimate the number of documents that would be matched by intersect with the given
@@ -96,14 +97,14 @@ type PointValues interface {
 }
 
 type EstimateDocCountSPI interface {
-	EstimatePointCount(visitor IntersectVisitor) (int, error)
+	EstimatePointCount(ctx context.Context, visitor IntersectVisitor) (int, error)
 	Size() int
 	GetDocCount() int
 }
 
 func EstimateDocCount(spi EstimateDocCountSPI, visitor IntersectVisitor) (int, error) {
 
-	estimatedPointCount, err := spi.EstimatePointCount(visitor)
+	estimatedPointCount, err := spi.EstimatePointCount(nil, visitor)
 	if err != nil {
 		return 0, err
 	}

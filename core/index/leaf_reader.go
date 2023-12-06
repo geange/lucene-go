@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
@@ -15,7 +16,7 @@ type LeafReader interface {
 	// term does not exist.
 	// NOTE: The returned PostingsEnum may contain deleted docs.
 	// See Also: TermsEnum.postings(PostingsEnum)
-	Postings(term *Term, flags int) (PostingsEnum, error)
+	Postings(ctx context.Context, term *Term, flags int) (PostingsEnum, error)
 
 	// GetNumericDocValues Returns NumericDocValues for this field, or null if no numeric doc values were
 	// indexed for this field. The returned instance should only be used by a single thread.
@@ -83,7 +84,7 @@ func NewLeafReaderBase(reader LeafReader) *LeafReaderBase {
 	}
 }
 
-func (r *LeafReaderBase) Postings(term *Term, flags int) (PostingsEnum, error) {
+func (r *LeafReaderBase) Postings(ctx context.Context, term *Term, flags int) (PostingsEnum, error) {
 	terms, err := r.Terms(term.Field())
 	if err != nil {
 		return nil, err
@@ -97,7 +98,7 @@ func (r *LeafReaderBase) Postings(term *Term, flags int) (PostingsEnum, error) {
 			return nil, err
 		}
 
-		if ok, err := termsEnum.SeekExact(term.Bytes()); err == nil && ok {
+		if ok, err := termsEnum.SeekExact(ctx, term.Bytes()); err == nil && ok {
 			return termsEnum.Postings(nil, flags)
 		}
 	}
@@ -108,7 +109,7 @@ func (r *LeafReaderBase) GetContext() (ReaderContext, error) {
 	return r.readerContext, nil
 }
 
-func (r *LeafReaderBase) DocFreq(term Term) (int, error) {
+func (r *LeafReaderBase) DocFreq(ctx context.Context, term Term) (int, error) {
 	terms, err := r.Terms(term.Field())
 	if err != nil {
 		return 0, err
@@ -121,14 +122,14 @@ func (r *LeafReaderBase) DocFreq(term Term) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if ok, err := termsEnum.SeekExact(term.Bytes()); err == nil && ok {
+	if ok, err := termsEnum.SeekExact(ctx, term.Bytes()); err == nil && ok {
 		return termsEnum.DocFreq()
 	} else {
 		return 0, err
 	}
 }
 
-func (r *LeafReaderBase) TotalTermFreq(term *Term) (int64, error) {
+func (r *LeafReaderBase) TotalTermFreq(ctx context.Context, term *Term) (int64, error) {
 	terms, err := r.Terms(term.Field())
 	if err != nil {
 		return 0, err
@@ -141,7 +142,7 @@ func (r *LeafReaderBase) TotalTermFreq(term *Term) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if ok, err := termsEnum.SeekExact(term.Bytes()); err == nil && ok {
+	if ok, err := termsEnum.SeekExact(ctx, term.Bytes()); err == nil && ok {
 		return termsEnum.TotalTermFreq()
 	} else {
 		return 0, err

@@ -123,7 +123,7 @@ func (d *DirectoryDefault) CopyFrom(from Directory, src, dest string, context *I
 			return err
 		}
 
-		if err := os.CopyBytes(is, int(is.Length())); err != nil {
+		if err := os.CopyBytes(nil, is, int(is.Length())); err != nil {
 			// IOUtils.deleteFilesIgnoringExceptions(this, dest)
 			// TODO: 删除目标文件
 			return err

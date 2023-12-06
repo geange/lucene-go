@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
 	"math"
@@ -89,9 +90,9 @@ type IndexFileDeleter struct {
 // incref the files they reference, call the policy to let it delete commits. This will remove
 // any files not referenced by any of the commits.
 // Throws: IOException – if there is a low-level IO error
-func NewIndexFileDeleter(files []string, directoryOrig, directory store.Directory,
-	policy IndexDeletionPolicy, segmentInfos *SegmentInfos, writer *Writer,
-	initialIndexExists, isReaderInit bool) (*IndexFileDeleter, error) {
+func NewIndexFileDeleter(ctx context.Context, files []string, directoryOrig, directory store.Directory,
+	policy IndexDeletionPolicy, segmentInfos *SegmentInfos, writer *Writer, initialIndexExists,
+	isReaderInit bool) (*IndexFileDeleter, error) {
 
 	fd := &IndexFileDeleter{
 		refCounts: map[string]*RefCount{},
@@ -127,7 +128,7 @@ func NewIndexFileDeleter(files []string, directoryOrig, directory store.Director
 					// it's valid (<= the max gen).  Load it, then
 					// incref all files it refers to:
 
-					sis, err := ReadCommit(directoryOrig, fileName)
+					sis, err := ReadCommit(ctx, directoryOrig, fileName)
 					if err != nil {
 						return nil, err
 					}
@@ -163,7 +164,7 @@ func NewIndexFileDeleter(files []string, directoryOrig, directory store.Director
 		// listing was stale (eg when index accessed via NFS
 		// client with stale directory listing cache).  So we
 		// try now to explicitly open this commit point:
-		sis, err := ReadCommit(directoryOrig, currentSegmentsFile)
+		sis, err := ReadCommit(ctx, directoryOrig, currentSegmentsFile)
 		if err != nil {
 			return nil, err
 		}

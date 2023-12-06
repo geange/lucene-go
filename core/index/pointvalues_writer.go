@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/geange/lucene-go/core/document"
@@ -70,7 +71,7 @@ func (p *PointValuesWriter) Flush(state *SegmentWriteState, docMap *DocMap, writ
 		points.ords[i] = i
 	}
 	reader := &innerReader{values: points}
-	return writer.WriteField(p.fieldInfo, reader)
+	return writer.WriteField(nil, p.fieldInfo, reader)
 }
 
 var _ PointsReader = &innerReader{}
@@ -103,7 +104,7 @@ type innerMutablePointValues struct {
 	temp        []int
 }
 
-func (r *innerMutablePointValues) Intersect(visitor types.IntersectVisitor) error {
+func (r *innerMutablePointValues) Intersect(ctx context.Context, visitor types.IntersectVisitor) error {
 	scratch := new(bytes.Buffer)
 	packedValue := make([]byte, r.pw.packedBytesLength)
 
@@ -117,7 +118,7 @@ func (r *innerMutablePointValues) Intersect(visitor types.IntersectVisitor) erro
 	return nil
 }
 
-func (r *innerMutablePointValues) EstimatePointCount(visitor types.IntersectVisitor) (int, error) {
+func (r *innerMutablePointValues) EstimatePointCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }

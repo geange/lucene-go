@@ -38,7 +38,7 @@ func (b *BinaryDocValuesWriter) AddValue(docID int, value []byte) error {
 }
 
 func (b *BinaryDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
-	return consumer.AddBinaryField(b.fieldInfo, &EmptyDocValuesProducer{
+	return consumer.AddBinaryField(nil, b.fieldInfo, &EmptyDocValuesProducer{
 		FnGetBinary: func(field *document.FieldInfo) (BinaryDocValues, error) {
 			iterator, err := b.docsWithField.Iterator()
 			if err != nil {

@@ -34,7 +34,7 @@ func costWithMinShouldMatch(costs []int64, numScorers, minShouldMatch int) int64
 
 	sum := int64(0)
 	for it.HasNext() {
-		v, _ := it.Next()
+		v, _ := it.Next(nil)
 		sum += v
 	}
 	return sum

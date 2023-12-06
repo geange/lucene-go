@@ -131,7 +131,7 @@ func (s *TextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fi
 
 		// for each term in field
 		for {
-			term, err := termsEnum.Next()
+			term, err := termsEnum.Next(nil)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break

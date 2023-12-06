@@ -14,7 +14,7 @@ func TestWriteDocIdsSorted(t *testing.T) {
 	for i := range docIds {
 		docIds[i] = i
 	}
-	err := WriteDocIds(docIds, output)
+	err := WriteDocIds(nil, docIds, output)
 	assert.Nil(t, err)
 
 	input := store.NewByteArrayDataInput(output.Bytes())
@@ -32,7 +32,7 @@ func TestWriteDocIdsInt24(t *testing.T) {
 	for i := range docIds {
 		docIds[i] = rand.Intn(0xFFFFFF)
 	}
-	err := WriteDocIds(docIds, output)
+	err := WriteDocIds(nil, docIds, output)
 	assert.Nil(t, err)
 
 	input := store.NewByteArrayDataInput(output.Bytes())
@@ -50,7 +50,7 @@ func TestWriteDocIdsInt32(t *testing.T) {
 	for i := range docIds {
 		docIds[i] = rand.Intn(0xFFFFFF) + 0xFFFFFF
 	}
-	err := WriteDocIds(docIds, output)
+	err := WriteDocIds(nil, docIds, output)
 	assert.Nil(t, err)
 
 	input := store.NewByteArrayDataInput(output.Bytes())

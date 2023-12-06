@@ -1,17 +1,17 @@
 package bkd
 
 import (
+	"context"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/samber/lo"
 )
 
 // 写入索引的
-func (w *Writer) writeIndex(metaOut, indexOut store.IndexOutput,
-	countPerLeaf int, leafNodes LeafNodes, dataStartFP int64) error {
+func (w *Writer) writeIndex(ctx context.Context, metaOut, indexOut store.IndexOutput, countPerLeaf int, leafNodes LeafNodes, dataStartFP int64) error {
 
 	// 计算
-	packedIndex, err := w.packIndex(leafNodes)
+	packedIndex, err := w.packIndex(ctx, leafNodes)
 	if err != nil {
 		return err
 	}
@@ -27,19 +27,19 @@ func (w *Writer) writeIndex(metaOut, indexOut store.IndexOutput,
 	if err := utils.WriteHeader(metaOut, CODEC_NAME, VERSION_CURRENT); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUvarint(uint64(numDims)); err != nil {
+	if err := metaOut.WriteUvarint(ctx, uint64(numDims)); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUvarint(uint64(numIndexDims)); err != nil {
+	if err := metaOut.WriteUvarint(ctx, uint64(numIndexDims)); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUvarint(uint64(countPerLeaf)); err != nil {
+	if err := metaOut.WriteUvarint(ctx, uint64(countPerLeaf)); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUvarint(uint64(bytesPerDim)); err != nil {
+	if err := metaOut.WriteUvarint(ctx, uint64(bytesPerDim)); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUvarint(uint64(numLeaves)); err != nil {
+	if err := metaOut.WriteUvarint(ctx, uint64(numLeaves)); err != nil {
 		return err
 	}
 	if _, err := metaOut.Write(w.minPackedValue[:packedIndexBytesLength]); err != nil {
@@ -48,16 +48,16 @@ func (w *Writer) writeIndex(metaOut, indexOut store.IndexOutput,
 	if _, err := metaOut.Write(w.maxPackedValue[:packedIndexBytesLength]); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUvarint(uint64(w.pointCount)); err != nil {
+	if err := metaOut.WriteUvarint(ctx, uint64(w.pointCount)); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUvarint(uint64(w.docsSeen.Len())); err != nil {
+	if err := metaOut.WriteUvarint(ctx, uint64(w.docsSeen.Len())); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUvarint(uint64(len(packedIndex))); err != nil {
+	if err := metaOut.WriteUvarint(ctx, uint64(len(packedIndex))); err != nil {
 		return err
 	}
-	if err := metaOut.WriteUint64(uint64(dataStartFP)); err != nil {
+	if err := metaOut.WriteUint64(ctx, uint64(dataStartFP)); err != nil {
 		return err
 	}
 
@@ -67,7 +67,7 @@ func (w *Writer) writeIndex(metaOut, indexOut store.IndexOutput,
 	if metaOut == indexOut {
 		fp += 8
 	}
-	if err := metaOut.WriteUint64(uint64(fp)); err != nil {
+	if err := metaOut.WriteUint64(ctx, uint64(fp)); err != nil {
 		return err
 	}
 	if _, err := indexOut.Write(packedIndex); err != nil {
@@ -77,10 +77,10 @@ func (w *Writer) writeIndex(metaOut, indexOut store.IndexOutput,
 }
 
 func (w *Writer) writeLeafBlockDocs(out store.DataOutput, docIDs []int) error {
-	if err := out.WriteUvarint(uint64(len(docIDs))); err != nil {
+	if err := out.WriteUvarint(nil, uint64(len(docIDs))); err != nil {
 		return err
 	}
-	return WriteDocIds(docIDs, out)
+	return WriteDocIds(nil, docIDs, out)
 }
 
 type packedValuesFunc func(int) []byte
@@ -153,7 +153,7 @@ func (w *Writer) writeLowCardinalityLeafBlockPackedValues(out store.DataOutput, 
 			start := dim*config.bytesPerDim + commonPrefixLengths[dim]
 			end := dim*config.bytesPerDim + config.bytesPerDim
 			if Mismatch(value[start:end], w.scratch1[start:end]) != -1 {
-				if err := out.WriteUvarint(uint64(cardinality)); err != nil {
+				if err := out.WriteUvarint(nil, uint64(cardinality)); err != nil {
 					return err
 				}
 				for j := 0; j < config.numDims; j++ {
@@ -171,7 +171,7 @@ func (w *Writer) writeLowCardinalityLeafBlockPackedValues(out store.DataOutput, 
 			}
 		}
 	}
-	if err := out.WriteUvarint(uint64(cardinality)); err != nil {
+	if err := out.WriteUvarint(nil, uint64(cardinality)); err != nil {
 		return err
 	}
 	for i := 0; i < config.numDims; i++ {
@@ -263,7 +263,7 @@ func (w *Writer) writeCommonPrefixes(out store.DataOutput, commonPrefixes []int,
 	bytesPerDim := config.BytesPerDim()
 
 	for dim := 0; dim < numDims; dim++ {
-		if err := out.WriteUvarint(uint64(commonPrefixes[dim])); err != nil {
+		if err := out.WriteUvarint(nil, uint64(commonPrefixes[dim])); err != nil {
 			return err
 		}
 		start := dim * bytesPerDim

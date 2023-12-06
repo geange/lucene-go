@@ -100,7 +100,7 @@ type Writer struct {
 	softDeletesEnabled    bool
 }
 
-func NewWriter(d store.Directory, conf *WriterConfig) (*Writer, error) {
+func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Writer, error) {
 	writer := &Writer{
 		changeCount:    new(atomic.Int64),
 		pendingNumDocs: new(atomic.Int64),
@@ -162,7 +162,7 @@ func NewWriter(d store.Directory, conf *WriterConfig) (*Writer, error) {
 		// segments_N file with no segments:
 		sis := NewSegmentInfos(writer.config.GetIndexCreatedVersionMajor())
 		if indexExists {
-			previous, err := ReadLatestCommit(writer.directory)
+			previous, err := ReadLatestCommit(ctx, writer.directory)
 			if err != nil {
 				return nil, err
 			}
@@ -193,7 +193,7 @@ func NewWriter(d store.Directory, conf *WriterConfig) (*Writer, error) {
 		reader.segmentInfos.Clone()
 
 		var lastCommit *SegmentInfos
-		lastCommit, err = ReadCommit(writer.directoryOrig, writer.segmentInfos.GetSegmentsFileName())
+		lastCommit, err = ReadCommit(ctx, writer.directoryOrig, writer.segmentInfos.GetSegmentsFileName())
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +221,7 @@ func NewWriter(d store.Directory, conf *WriterConfig) (*Writer, error) {
 
 		// Do not use SegmentInfos.read(Directory) since the spooky
 		// retrying it does is not necessary here (we hold the write lock):
-		writer.segmentInfos, err = ReadCommit(writer.directoryOrig, lastSegmentsFile)
+		writer.segmentInfos, err = ReadCommit(ctx, writer.directoryOrig, lastSegmentsFile)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +237,7 @@ func NewWriter(d store.Directory, conf *WriterConfig) (*Writer, error) {
 				return nil, errors.New("IndexCommit's directory doesn't match my directory")
 			}
 
-			oldInfos, err := ReadCommit(writer.directoryOrig, commit.GetSegmentsFileName())
+			oldInfos, err := ReadCommit(nil, writer.directoryOrig, commit.GetSegmentsFileName())
 			if err != nil {
 				return nil, err
 			}

@@ -208,7 +208,7 @@ func (m *MultiLevelSkipListWriterDefault) writeLevelLength(levelLength int64, ou
 	if m.fnWriteLevelLength != nil {
 		return m.fnWriteLevelLength(levelLength, output)
 	}
-	return output.WriteUvarint(uint64(levelLength))
+	return output.WriteUvarint(nil, uint64(levelLength))
 }
 
 // Writes the child pointer of a block to the given output.
@@ -218,5 +218,5 @@ func (m *MultiLevelSkipListWriterDefault) writeChildPointer(childPointer int64, 
 	if m.fnWriteChildPointer != nil {
 		return m.fnWriteChildPointer(childPointer, skipBuffer)
 	}
-	return skipBuffer.WriteUvarint(uint64(childPointer))
+	return skipBuffer.WriteUvarint(nil, uint64(childPointer))
 }

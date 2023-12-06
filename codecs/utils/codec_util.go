@@ -22,13 +22,13 @@ const (
 //
 //	IllegalArgumentException – If the codec name is not simple ASCII, or is more than 127 characters in length
 func WriteHeader(out store.DataOutput, codec string, version int) error {
-	if err := out.WriteUint32(CODEC_MAGIC); err != nil {
+	if err := out.WriteUint32(nil, CODEC_MAGIC); err != nil {
 		return err
 	}
-	if err := out.WriteString(codec); err != nil {
+	if err := out.WriteString(nil, codec); err != nil {
 		return err
 	}
-	if err := out.WriteUint32(uint32(version)); err != nil {
+	if err := out.WriteUint32(nil, uint32(version)); err != nil {
 		return err
 	}
 	return nil
@@ -47,7 +47,7 @@ func WriteHeader(out store.DataOutput, codec string, version int) error {
 // See Also: writeHeader(DataOutput, String, int)
 func CheckHeader(in store.DataInput, codec string, minVersion, maxVersion int) (int, error) {
 	// Safety to guard against reading a bogus string:
-	actualHeader, err := in.ReadUint32()
+	actualHeader, err := in.ReadUint32(nil)
 	if err != nil {
 		return 0, err
 	}
@@ -60,7 +60,7 @@ func CheckHeader(in store.DataInput, codec string, minVersion, maxVersion int) (
 // CheckHeaderNoMagic Like checkHeader(DataInput, String, int, int) except this version assumes
 // the first int has already been read and validated from the input.
 func CheckHeaderNoMagic(in store.DataInput, codec string, minVersion, maxVersion int) (int, error) {
-	actualCodec, err := in.ReadString()
+	actualCodec, err := in.ReadString(nil)
 	if err != nil {
 		return 0, err
 	}
@@ -68,7 +68,7 @@ func CheckHeaderNoMagic(in store.DataInput, codec string, minVersion, maxVersion
 		return 0, errors.New("codec mismatch")
 	}
 
-	actualVersion, err := in.ReadUint32()
+	actualVersion, err := in.ReadUint32(nil)
 	if err != nil {
 		return 0, err
 	}
@@ -118,11 +118,11 @@ func FooterLength() int {
 // Params: out – Output stream
 // Throws: IOException – If there is an I/O error writing to the underlying medium.
 func WriteFooter(out store.IndexOutput) error {
-	if err := out.WriteUint32(FOOTER_MAGIC); err != nil {
+	if err := out.WriteUint32(nil, FOOTER_MAGIC); err != nil {
 		return err
 	}
 
-	if err := out.WriteUint32(0); err != nil {
+	if err := out.WriteUint32(nil, 0); err != nil {
 		return err
 	}
 
@@ -139,5 +139,5 @@ func writeCRC(output store.IndexOutput) error {
 	//if (int(value) & 0xFFFFFFFF00000000) != 0 {
 	//	return fmt.Errorf("illegal CRC-32 checksum: %d (resource=%+v)", value, output)
 	//}
-	return output.WriteUint64(uint64(value))
+	return output.WriteUint64(nil, uint64(value))
 }

@@ -423,7 +423,7 @@ func (i *innerDocValuesIterator2) Advance(target int) (int, error) {
 		}
 
 		// skip past bytes
-		if err := i.in.SkipBytes(size); err != nil {
+		if err := i.in.SkipBytes(nil, size); err != nil {
 			return 0, err
 		}
 
@@ -459,7 +459,7 @@ func (i *innerDocValuesIterator2) AdvanceExact(target int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err := i.in.SkipBytes(size); err != nil {
+	if err := i.in.SkipBytes(nil, size); err != nil {
 		return false, err
 	}
 	utils.ReadLine(i.in, i.scratch)

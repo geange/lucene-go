@@ -1,6 +1,7 @@
 package bkd
 
 import (
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
@@ -54,11 +55,11 @@ func (w *OfflinePointWriter) Close() error {
 	return nil
 }
 
-func (w *OfflinePointWriter) Append(packedValue []byte, docID int) error {
+func (w *OfflinePointWriter) Append(ctx context.Context, packedValue []byte, docID int) error {
 	if _, err := w.out.Write(packedValue); err != nil {
 		return err
 	}
-	if err := w.out.WriteUint32(uint32(docID)); err != nil {
+	if err := w.out.WriteUint32(ctx, uint32(docID)); err != nil {
 		return err
 	}
 	w.count++

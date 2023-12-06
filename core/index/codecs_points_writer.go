@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/types"
 	"io"
 
@@ -13,21 +14,21 @@ type PointsWriter interface {
 	io.Closer
 
 	// WriteField Write all values contained in the provided reader
-	WriteField(fieldInfo *document.FieldInfo, values PointsReader) error
+	WriteField(ctx context.Context, fieldInfo *document.FieldInfo, values PointsReader) error
 
 	// Finish Called once at the end before close
 	Finish() error
 }
 
 type DefPointsWriter struct {
-	WriteField func(fieldInfo *document.FieldInfo, values PointsReader) error
+	WriteField func(ctx context.Context, fieldInfo *document.FieldInfo, values PointsReader) error
 	Finish     func() error
 }
 
 // MergeOneField Default naive merge implementation for one field: it just re-indexes all
 // the values from the incoming segment. The default codec overrides this for 1D fields and
 // uses a faster but more complex implementation.
-func (p *DefPointsWriter) MergeOneField(mergeState *MergeState, fieldInfo *document.FieldInfo) error {
+func (p *DefPointsWriter) MergeOneField(ctx context.Context, mergeState *MergeState, fieldInfo *document.FieldInfo) error {
 	maxPointCount := 0
 	docCount := 0
 
@@ -50,7 +51,7 @@ func (p *DefPointsWriter) MergeOneField(mergeState *MergeState, fieldInfo *docum
 	finalMaxPointCount := maxPointCount
 	finalDocCount := docCount
 
-	return p.WriteField(fieldInfo, &innerPointsReader{
+	return p.WriteField(ctx, fieldInfo, &innerPointsReader{
 		size:     finalMaxPointCount,
 		docCount: finalDocCount,
 	})
@@ -86,12 +87,12 @@ type innerPointValues struct {
 	docCount int
 }
 
-func (i *innerPointValues) Intersect(visitor types.IntersectVisitor) error {
+func (i *innerPointValues) Intersect(ctx context.Context, visitor types.IntersectVisitor) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (i *innerPointValues) EstimatePointCount(visitor types.IntersectVisitor) (int, error) {
+func (i *innerPointValues) EstimatePointCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -149,7 +150,7 @@ func (p *DefPointsWriter) Merge(mergeState *MergeState) error {
 		if fieldInfo.GetPointDimensionCount() == 0 {
 			continue
 		}
-		if err := p.MergeOneField(mergeState, fieldInfo); err != nil {
+		if err := p.MergeOneField(nil, mergeState, fieldInfo); err != nil {
 			return err
 		}
 	}

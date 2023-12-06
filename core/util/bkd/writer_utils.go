@@ -2,6 +2,7 @@ package bkd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"slices"
@@ -12,7 +13,7 @@ import (
 
 // Packs the two arrays, representing a semi-balanced binary tree, into a compact byte[] structure.
 // 将表示半平衡二进制树的两个数组打包为紧凑的byte[]结构。
-func (w *Writer) packIndex(leafNodes LeafNodes) ([]byte, error) {
+func (w *Writer) packIndex(ctx context.Context, leafNodes LeafNodes) ([]byte, error) {
 	config := w.config
 
 	bytesPerDim := config.BytesPerDim()
@@ -25,8 +26,7 @@ func (w *Writer) packIndex(leafNodes LeafNodes) ([]byte, error) {
 
 	lastSplitValues := make([]byte, bytesPerDim*numIndexDims)
 
-	totalSize, err := w.recursePackIndex(writeBuffer, leafNodes, 0, blocks, lastSplitValues,
-		make([]bool, numIndexDims), false, 0, leafNodes.NumLeaves())
+	totalSize, err := w.recursePackIndex(ctx, writeBuffer, leafNodes, 0, blocks, lastSplitValues, make([]bool, numIndexDims), false, 0, leafNodes.NumLeaves())
 	if err != nil {
 		return nil, err
 	}
@@ -52,9 +52,7 @@ func (w *Writer) appendBlock(writeBuffer *store.ByteBuffersDataOutput, blocks *l
 
 // lastSplitValues is per-dimension split value previously seen;
 // we use this to prefix-code the split byte[] on each inner node
-func (w *Writer) recursePackIndex(writeBuffer *store.ByteBuffersDataOutput, leafNodes LeafNodes,
-	minBlockFP int64, blocks *linked.List[[]byte], lastSplitValues []byte, negativeDeltas []bool,
-	isLeft bool, leavesOffset, numLeaves int) (int, error) {
+func (w *Writer) recursePackIndex(ctx context.Context, writeBuffer *store.ByteBuffersDataOutput, leafNodes LeafNodes, minBlockFP int64, blocks *linked.List[[]byte], lastSplitValues []byte, negativeDeltas []bool, isLeft bool, leavesOffset, numLeaves int) (int, error) {
 
 	config := w.config
 	if numLeaves == 1 {
@@ -64,7 +62,7 @@ func (w *Writer) recursePackIndex(writeBuffer *store.ByteBuffersDataOutput, leaf
 		} else {
 			delta := leafNodes.GetLeafLP(leavesOffset) - minBlockFP
 			//assert leafNodes.numLeaves() == numLeaves || delta > 0 : "expected delta > 0; got numLeaves =" + numLeaves + " and delta=" + delta;
-			if err := writeBuffer.WriteUvarint(uint64(delta)); err != nil {
+			if err := writeBuffer.WriteUvarint(ctx, uint64(delta)); err != nil {
 				return 0, err
 			}
 			return w.appendBlock(writeBuffer, blocks), nil
@@ -80,7 +78,7 @@ func (w *Writer) recursePackIndex(writeBuffer *store.ByteBuffersDataOutput, leaf
 		leftBlockFP = leafNodes.GetLeafLP(leavesOffset)
 		delta := leftBlockFP - minBlockFP
 		//assert leafNodes.numLeaves() == numLeaves || delta > 0 : "expected delta > 0; got numLeaves =" + numLeaves + " and delta=" + delta;
-		if err := writeBuffer.WriteUvarint(uint64(delta)); err != nil {
+		if err := writeBuffer.WriteUvarint(ctx, uint64(delta)); err != nil {
 			return 0, err
 		}
 	}
@@ -114,7 +112,7 @@ func (w *Writer) recursePackIndex(writeBuffer *store.ByteBuffersDataOutput, leaf
 	// pack the prefix, splitDim and delta first diff byte into a single vInt:
 	code := (firstDiffByteDelta*(1+config.bytesPerDim)+prefix)*config.numIndexDims + splitDim
 
-	if err := writeBuffer.WriteUvarint(uint64(code)); err != nil {
+	if err := writeBuffer.WriteUvarint(ctx, uint64(code)); err != nil {
 		return 0, err
 	}
 
@@ -146,14 +144,13 @@ func (w *Writer) recursePackIndex(writeBuffer *store.ByteBuffersDataOutput, leaf
 	savNegativeDelta := negativeDeltas[splitDim]
 	negativeDeltas[splitDim] = true
 
-	leftNumBytes, err := w.recursePackIndex(writeBuffer, leafNodes, leftBlockFP, blocks,
-		lastSplitValues, negativeDeltas, true, leavesOffset, numLeftLeafNodes)
+	leftNumBytes, err := w.recursePackIndex(ctx, writeBuffer, leafNodes, leftBlockFP, blocks, lastSplitValues, negativeDeltas, true, leavesOffset, numLeftLeafNodes)
 	if err != nil {
 		return 0, err
 	}
 
 	if numLeftLeafNodes != 1 {
-		if err := writeBuffer.WriteUvarint(uint64(leftNumBytes)); err != nil {
+		if err := writeBuffer.WriteUvarint(ctx, uint64(leftNumBytes)); err != nil {
 			return 0, err
 		}
 	} else {
@@ -166,8 +163,7 @@ func (w *Writer) recursePackIndex(writeBuffer *store.ByteBuffersDataOutput, leaf
 	blocks.Set(idxSav, bytes2)
 
 	negativeDeltas[splitDim] = false
-	rightNumBytes, err := w.recursePackIndex(writeBuffer, leafNodes, leftBlockFP, blocks,
-		lastSplitValues, negativeDeltas, false, rightOffset, numLeaves-numLeftLeafNodes)
+	rightNumBytes, err := w.recursePackIndex(nil, writeBuffer, leafNodes, leftBlockFP, blocks, lastSplitValues, negativeDeltas, false, rightOffset, numLeaves-numLeftLeafNodes)
 	if err != nil {
 		return 0, err
 	}

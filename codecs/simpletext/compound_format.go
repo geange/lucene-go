@@ -84,7 +84,7 @@ func (s *CompoundFormat) Write(dir store.Directory, si *index.SegmentInfo, conte
 		if err != nil {
 			return err
 		}
-		if err := out.CopyBytes(in, int(in.Length())); err != nil {
+		if err := out.CopyBytes(nil, in, int(in.Length())); err != nil {
 			return err
 		}
 		endOffsets[i] = out.GetFilePointer()

@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/store"
 	"strings"
 )
@@ -37,7 +38,7 @@ type DirectoryReader interface {
 	// Note that even if the writer has only performed merging, this method will still return false.
 	// In any event, if this returns false, you should call openIfChanged to get a new reader that sees the changes.
 	// Throws: IOException – if there is a low-level IO error
-	IsCurrent() (bool, error)
+	IsCurrent(ctx context.Context) (bool, error)
 
 	// GetIndexCommit
 	// Expert: return the IndexCommit that this reader has opened.

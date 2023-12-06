@@ -37,7 +37,7 @@ func TestNewOfflinePointWriter(t *testing.T) {
 	for docId := 0; docId < size; docId++ {
 		packedValue := getPackedValue(config)
 		values = append(values, packedValue)
-		err := writer.Append(packedValue, docId)
+		err := writer.Append(nil, packedValue, docId)
 		if !assert.Nil(t, err) {
 			t.FailNow()
 		}
@@ -98,7 +98,7 @@ func TestNewOfflinePointOneDimWriter(t *testing.T) {
 	for docId := 0; docId < size; docId++ {
 		packedValue := getPackedValue(config)
 		values = append(values, packedValue)
-		err := writer.Append(packedValue, docId)
+		err := writer.Append(nil, packedValue, docId)
 		if !assert.Nil(t, err) {
 			t.FailNow()
 		}

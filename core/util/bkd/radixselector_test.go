@@ -38,7 +38,7 @@ func doTestRadixSelectorWithSize(t *testing.T, size int) {
 	}()
 
 	for i := 0; i < size; i++ {
-		err = points.Append(getPackedValue(config), i)
+		err = points.Append(nil, getPackedValue(config), i)
 		assert.Nil(t, err)
 	}
 	err = points.Close()
@@ -70,7 +70,7 @@ func TestRadixSelectorOffline(t *testing.T) {
 
 	for i := 0; i < size; i++ {
 		binary.BigEndian.PutUint32(value, uint32(i+1))
-		err = points.Append(value, i)
+		err = points.Append(nil, value, i)
 		assert.Nil(t, err)
 	}
 	err = points.Close()

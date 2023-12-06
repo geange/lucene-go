@@ -1,6 +1,9 @@
 package index
 
-import "github.com/geange/lucene-go/core/tokenattr"
+import (
+	"context"
+	"github.com/geange/lucene-go/core/tokenattr"
+)
 
 type FilteredTermsEnum interface {
 	TermsEnum
@@ -102,16 +105,16 @@ func (f *FilteredTermsEnumBase) TotalTermFreq() (int64, error) {
 	return f.tenum.TotalTermFreq()
 }
 
-func (f *FilteredTermsEnumBase) SeekExact(text []byte) (bool, error) {
-	return f.tenum.SeekExact(text)
+func (f *FilteredTermsEnumBase) SeekExact(ctx context.Context, text []byte) (bool, error) {
+	return f.tenum.SeekExact(nil, text)
 }
 
-func (f *FilteredTermsEnumBase) SeekCeil(text []byte) (SeekStatus, error) {
-	return f.tenum.SeekCeil(text)
+func (f *FilteredTermsEnumBase) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
+	return f.tenum.SeekCeil(nil, text)
 }
 
-func (f *FilteredTermsEnumBase) SeekExactByOrd(ord int64) error {
-	return f.tenum.SeekExactByOrd(ord)
+func (f *FilteredTermsEnumBase) SeekExactByOrd(ctx context.Context, ord int64) error {
+	return f.tenum.SeekExactByOrd(nil, ord)
 }
 
 func (f *FilteredTermsEnumBase) Ord() (int64, error) {
@@ -128,8 +131,8 @@ func (f *FilteredTermsEnumBase) Impacts(flags int) (ImpactsEnum, error) {
 
 // SeekExactExpert This enum does not support seeking!
 // Throws: ErrUnsupportedOperation – In general, subclasses do not support seeking.
-func (f *FilteredTermsEnumBase) SeekExactExpert(term []byte, state TermState) error {
-	return f.tenum.SeekExactExpert(term, state)
+func (f *FilteredTermsEnumBase) SeekExactExpert(ctx context.Context, term []byte, state TermState) error {
+	return f.tenum.SeekExactExpert(ctx, term, state)
 }
 
 // TermState Returns the filtered enums term state
@@ -137,7 +140,7 @@ func (f *FilteredTermsEnumBase) TermState() (TermState, error) {
 	return f.tenum.TermState()
 }
 
-func (f *FilteredTermsEnumBase) Next() ([]byte, error) {
+func (f *FilteredTermsEnumBase) Next(context.Context) ([]byte, error) {
 	// System.out.println("FTE.next doSeek=" + doSeek);
 	// new Throwable().printStackTrace(System.out);
 	var err error
@@ -154,7 +157,7 @@ func (f *FilteredTermsEnumBase) Next() ([]byte, error) {
 				return nil, nil
 			}
 
-			if v, err := f.tenum.SeekCeil(t); err != nil {
+			if v, err := f.tenum.SeekCeil(nil, t); err != nil {
 				return nil, err
 			} else if v == SEEK_STATUS_END {
 				return nil, nil

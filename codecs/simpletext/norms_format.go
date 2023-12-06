@@ -94,5 +94,5 @@ func (s *SimpleTextNormsConsumer) AddNormsField(field *document.FieldInfo, norms
 		return normsProducer.GetNorms(field)
 	}
 
-	return s.impl.AddNumericField(field, producer)
+	return s.impl.AddNumericField(nil, field, producer)
 }

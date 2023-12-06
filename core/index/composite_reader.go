@@ -2,7 +2,8 @@ package index
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/util/structure"
+
+	"github.com/geange/gods-generic/lists/arraylist"
 )
 
 // CompositeReader
@@ -42,8 +43,8 @@ var _ ReaderContext = &CompositeReaderContext{}
 type CompositeReaderContext struct {
 	*IndexReaderContextDefault
 
-	children *structure.ArrayList[ReaderContext]
-	leaves   *structure.ArrayList[ReaderContext]
+	children *arraylist.List[ReaderContext]
+	leaves   *arraylist.List[ReaderContext]
 	reader   CompositeReader
 }
 
@@ -62,12 +63,12 @@ type compositeReaderContextOptionV2 struct {
 	reader          CompositeReader
 	ordInParent     int
 	docbaseInParent int
-	children        *structure.ArrayList[ReaderContext]
+	children        *arraylist.List[ReaderContext]
 }
 
 type compositeReaderContextOptionV3 struct {
 	reader           CompositeReader
-	children, leaves *structure.ArrayList[ReaderContext]
+	children, leaves *arraylist.List[ReaderContext]
 }
 
 type CompositeReaderContextOption func(*compositeReaderContextOption)
@@ -79,7 +80,7 @@ func WithCompositeReaderContextV1(reader CompositeReader) CompositeReaderContext
 }
 
 func WithCompositeReaderContextV2(parent *CompositeReaderContext, reader CompositeReader,
-	ordInParent, docbaseInParent int, children *structure.ArrayList[ReaderContext]) CompositeReaderContextOption {
+	ordInParent, docbaseInParent int, children *arraylist.List[ReaderContext]) CompositeReaderContextOption {
 	return func(o *compositeReaderContextOption) {
 		o.opt2 = &compositeReaderContextOptionV2{
 			parent:          parent,
@@ -92,7 +93,7 @@ func WithCompositeReaderContextV2(parent *CompositeReaderContext, reader Composi
 }
 
 func WithCompositeReaderContextV3(reader CompositeReader,
-	children, leaves *structure.ArrayList[ReaderContext]) CompositeReaderContextOption {
+	children, leaves *arraylist.List[ReaderContext]) CompositeReaderContextOption {
 	return func(o *compositeReaderContextOption) {
 		o.opt3 = &compositeReaderContextOptionV3{
 			reader:   reader,
@@ -125,7 +126,7 @@ func NewCompositeReaderContext(fn CompositeReaderContextOption) (*CompositeReade
 
 func newCompositeReaderContext(parent *CompositeReaderContext, reader CompositeReader,
 	ordInParent, docbaseInParent int,
-	children, leaves *structure.ArrayList[ReaderContext]) *CompositeReaderContext {
+	children, leaves *arraylist.List[ReaderContext]) *CompositeReaderContext {
 
 	return &CompositeReaderContext{
 		IndexReaderContextDefault: NewIndexReaderContextDefault(parent, ordInParent, docbaseInParent),
@@ -145,7 +146,7 @@ func (c *CompositeReaderContext) Leaves() ([]*LeafReaderContext, error) {
 	}
 
 	leaves := make([]*LeafReaderContext, 0, c.leaves.Size())
-	values := c.leaves.ToArray()
+	values := c.leaves.Values()
 	for i := range values {
 		leaves = append(leaves, values[i].(*LeafReaderContext))
 	}
@@ -153,20 +154,20 @@ func (c *CompositeReaderContext) Leaves() ([]*LeafReaderContext, error) {
 }
 
 func (c *CompositeReaderContext) Children() []ReaderContext {
-	return c.children.ToArray()
+	return c.children.Values()
 }
 
 type CompositeReaderBuilder struct {
 	reader CompositeReader
 	//leaves      []ReaderContext
-	leaves      *structure.ArrayList[ReaderContext]
+	leaves      *arraylist.List[ReaderContext]
 	leafDocBase int
 }
 
 func NewCompositeReaderBuilder(reader CompositeReader) *CompositeReaderBuilder {
 	return &CompositeReaderBuilder{
 		reader: reader,
-		leaves: structure.NewArrayList[ReaderContext](),
+		leaves: arraylist.New[ReaderContext](),
 	}
 }
 
@@ -189,7 +190,7 @@ func (c *CompositeReaderBuilder) build(parent *CompositeReaderContext, reader Re
 
 	cr := reader.(CompositeReader)
 	sequentialSubReaders := cr.GetSequentialSubReaders()
-	children := structure.NewArrayListArray(make([]ReaderContext, len(sequentialSubReaders)))
+	children := arraylist.New[ReaderContext](make([]ReaderContext, len(sequentialSubReaders))...)
 	var newParent *CompositeReaderContext
 	if parent == nil {
 		newParent, _ = NewCompositeReaderContext(WithCompositeReaderContextV3(cr, children, c.leaves))
@@ -206,9 +207,7 @@ func (c *CompositeReaderBuilder) build(parent *CompositeReaderContext, reader Re
 		if err != nil {
 			return nil, err
 		}
-		if err := children.Set(i, readerContext); err != nil {
-			return nil, err
-		}
+		children.Set(i, readerContext)
 		newDocBase += r.MaxDoc()
 	}
 	//assert newDocBase == cr.maxDoc();

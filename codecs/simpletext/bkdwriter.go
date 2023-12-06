@@ -133,7 +133,7 @@ func (s *BKDWriter) Add(packedValue []byte, docID int) error {
 		}
 	}
 
-	if err := s.pointWriter.Append(packedValue, docID); err != nil {
+	if err := s.pointWriter.Append(nil, packedValue, docID); err != nil {
 		return err
 	}
 	s.pointCount++
