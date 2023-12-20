@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"errors"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"

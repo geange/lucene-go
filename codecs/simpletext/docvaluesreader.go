@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"strconv"
+	"strings"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"io"
-	"strconv"
-	"strings"
 )
 
 var _ index.DocValuesProducer = &DocValuesReader{}
@@ -60,7 +61,7 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 		if err := reader.ReadLine(); err != nil {
 			return nil, err
 		}
-		//System.out.println("READ field=" + scratch.utf8ToString());
+
 		if bytes.Equal(r.scratch.Bytes(), DOC_VALUES_END) {
 			break
 		}
@@ -69,7 +70,6 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 			return nil, errors.New(r.scratch.String())
 		}
 		fieldName := r.stripPrefix(DOC_VALUES_FIELD)
-		//System.out.println("  field=" + fieldName);
 
 		field := NewOneField()
 		r.fields[fieldName] = field

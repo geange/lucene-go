@@ -685,8 +685,7 @@ func (r *Enum) doSeekFloorArrayPacked(ctx context.Context, targetLabel int, in B
 }
 
 func (r *Enum) doSeekFloorList(ctx context.Context, arc *Arc, lm LabelManager, targetLabel int) (*Arc, error) {
-	switch {
-	case arc.Label() == targetLabel:
+	if arc.Label() == targetLabel {
 		// Match -- recurse
 		output, err := r.output[r.upto-1].Add(arc.Output())
 		if err != nil {
@@ -704,8 +703,9 @@ func (r *Enum) doSeekFloorList(ctx context.Context, arc *Arc, lm LabelManager, t
 
 		r.incr(lm)
 		return r.fst.ReadFirstTargetArc(ctx, r.fstReader, arc, r.getArc(r.upto))
+	}
 
-	case arc.Label() > targetLabel:
+	if arc.Label() > targetLabel {
 		// TODO: if each arc could somehow read the arc just
 		// before, we can save this re-scan.  The ceil case
 		// doesn't need this because it reads the next arc
@@ -743,7 +743,9 @@ func (r *Enum) doSeekFloorList(ctx context.Context, arc *Arc, lm LabelManager, t
 			targetLabel = lm.GetTargetLabel(r.upto)
 			arc = r.getArc(r.upto)
 		}
-	case !arc.IsLast():
+	}
+
+	if !arc.IsLast() {
 		if n, _ := r.fst.readNextArcLabel(ctx, arc, r.fstReader); n > targetLabel {
 			if err := r.pushLast(ctx, lm); err != nil {
 				return nil, err
@@ -752,12 +754,12 @@ func (r *Enum) doSeekFloorList(ctx context.Context, arc *Arc, lm LabelManager, t
 		}
 		// keep scanning
 		return r.fst.ReadNextArc(ctx, arc, r.fstReader)
-	default:
-		if err := r.pushLast(ctx, lm); err != nil {
-			return nil, err
-		}
-		return nil, nil
 	}
+
+	if err := r.pushLast(ctx, lm); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 // Appends current arc, and then recurses from its target,

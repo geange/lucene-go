@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/bytesutils"
-	"io"
 )
 
 var _ types.PointValues = &BKDReader{}

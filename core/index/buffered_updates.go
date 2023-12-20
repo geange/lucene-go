@@ -6,7 +6,8 @@ import (
 	"github.com/geange/gods-generic/maps/treemap"
 )
 
-// BufferedUpdates Holds buffered deletes and updates, by docID, term or query for a single segment.
+// BufferedUpdates
+// Holds buffered deletes and updates, by docID, term or query for a single segment.
 // This is used to hold buffered pending deletes and updates against the to-be-flushed segment.
 // Once the deletes and updates are pushed (on Flush in DocumentsWriter), they are converted to a
 // FrozenBufferedUpdates instance and pushed to the BufferedUpdatesStream.
@@ -17,9 +18,10 @@ import (
 type BufferedUpdates struct {
 	numTermDeletes  *atomic.Int64
 	numFieldUpdates *atomic.Int64
+	deleteTerms     *treemap.Map[*Term, int]
+	fieldUpdates    map[string]*FieldUpdatesBuffer
 	gen             int64
 	segmentName     string
-	deleteTerms     *treemap.Map[*Term, int]
 	//deleteQueries   *treemap.Map
 }
 

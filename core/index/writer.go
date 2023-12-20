@@ -365,7 +365,8 @@ func (w *Writer) AddDocument(doc *document.Document) (int64, error) {
 	return w.UpdateDocument(nil, doc)
 }
 
-// UpdateDocument Updates a document by first deleting the document(s) containing term and then adding
+// UpdateDocument
+// Updates a document by first deleting the document(s) containing term and then adding
 // the new document. The delete and then add are atomic as seen by a reader on the same index
 // (Flush may happen only after the add).
 // Params: term – the term to identify the document(s) to be deleted doc – the document to be added
@@ -409,35 +410,36 @@ func (w *Writer) SoftUpdateDocument(term *Term, doc *document.Document, softDele
 func (w *Writer) buildDocValuesUpdate(term *Term, updates []*document.Field) ([]DocValuesUpdate, error) {
 	dvUpdates := make([]DocValuesUpdate, 0, len(updates))
 
-	for _, f := range updates {
-		dvType := f.FieldType().DocValuesType()
+	for _, field := range updates {
+		dvType := field.FieldType().DocValuesType()
 
-		if w.globalFieldNumberMap.contains(f.Name(), dvType) == false {
+		if w.globalFieldNumberMap.contains(field.Name(), dvType) == false {
 			// if this field doesn't exists we try to add it. if it exists and the DV type doesn't match we
 			// get a consistent error message as if you try to do that during an indexing operation.
-			_, err := w.globalFieldNumberMap.AddOrGet(f.Name(), -1, document.INDEX_OPTIONS_NONE, dvType, 0, 0, 0, f.Name() == w.config.softDeletesField)
-			if err != nil {
+			if _, err := w.globalFieldNumberMap.AddOrGet(field.Name(), -1,
+				document.INDEX_OPTIONS_NONE, dvType, 0, 0, 0,
+				field.Name() == w.config.softDeletesField); err != nil {
 				return nil, err
 			}
 		}
 
-		if _, ok := w.config.GetIndexSortFields()[f.Name()]; ok {
+		if _, ok := w.config.GetIndexSortFields()[field.Name()]; ok {
 			return nil, errors.New("cannot update docvalues field involved in the index sort")
 		}
 
 		switch dvType {
 		case document.DOC_VALUES_TYPE_NUMERIC:
-			value, err := f.I64Value()
+			value, err := field.I64Value()
 			if err != nil {
 				return nil, err
 			}
-			dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, f.Name(), value))
+			dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), value))
 		case document.DOC_VALUES_TYPE_BINARY:
-			value, err := f.BytesValue()
+			value, err := field.BytesValue()
 			if err != nil {
 				return nil, err
 			}
-			dvUpdates = append(dvUpdates, NewBinaryDocValuesUpdate(term, f.Name(), value))
+			dvUpdates = append(dvUpdates, NewBinaryDocValuesUpdate(term, field.Name(), value))
 		default:
 			return nil, errors.New("can only update NUMERIC or BINARY fields")
 		}

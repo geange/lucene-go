@@ -3,13 +3,13 @@ package simpletext
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"sort"
+	"strconv"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"io"
-	"math"
-	"sort"
-	"strconv"
 )
 
 const (
@@ -23,17 +23,8 @@ var (
 	COMPOUND_FORMAT_TABLESTART = []byte("    start: ")
 	COMPOUND_FORMAT_TABLEEND   = []byte("    end: ")
 	COMPOUND_FORMAT_TABLEPOS   = []byte("table of contents begins at offset: ")
-	OFFSETPATTERN              string
+	OFFSETPATTERN              = "0000000000000000000"
 )
-
-func init() {
-	numDigits := len(strconv.FormatInt(math.MaxInt64, 10))
-	pattern := make([]byte, 0, numDigits)
-	for i := 0; i < numDigits; i++ {
-		pattern = append(pattern, '0')
-	}
-	OFFSETPATTERN = string(pattern)
-}
 
 var _ index.CompoundFormat = &CompoundFormat{}
 

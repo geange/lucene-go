@@ -2,16 +2,17 @@ package simpletext
 
 import (
 	"bytes"
-	"github.com/geange/lucene-go/core/types"
 	"math"
 
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ index.MultiLevelSkipListReader = &SkipReader{}
 
-// SkipReader This class reads skip lists with multiple levels.
+// SkipReader
+// This class reads skip lists with multiple levels.
 // See TextFieldsWriter for the information about the encoding of the multi level skip lists.
 type SkipReader struct {
 	*index.MultiLevelSkipListReaderDefault
@@ -61,7 +62,7 @@ func (s *SkipReader) reset(skipPointer int64, docFreq int) error {
 func (s *SkipReader) init() {
 	s.nextSkipDocFP = -1
 	s.numLevels = 1
-	s.perLevelImpacts = make([][]*index.Impact, s.MaxNumberOfSkipLevels)
+	s.perLevelImpacts = make([][]*index.Impact, s.MaxNumberOfSkipLevels())
 	for i := range s.perLevelImpacts {
 		impacts := make([]*index.Impact, 0)
 		impacts = append(impacts, index.NewImpact(math.MaxInt32, 1))
@@ -81,7 +82,7 @@ func (i *innerImpacts) NumLevels() int {
 }
 
 func (i *innerImpacts) GetDocIdUpTo(level int) int {
-	return i.r.SkipDoc[level]
+	return i.r.GetSkipDoc(level)
 }
 
 func (i *innerImpacts) GetImpacts(level int) []*index.Impact {
@@ -97,7 +98,7 @@ func (s *SkipReader) getNextSkipDoc() int {
 	if !s.hasSkipList {
 		return types.NO_MORE_DOCS
 	}
-	return s.SkipDoc[0]
+	return s.GetSkipDoc(0)
 }
 
 func (s *SkipReader) getNextSkipDocFP() int64 {

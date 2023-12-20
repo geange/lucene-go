@@ -22,9 +22,8 @@ type DocumentsWriterPerThread struct {
 	consumer  DocConsumer
 
 	// Updates for our still-in-RAM (to be flushed next) segment
-	pendingUpdates *BufferedUpdates
-	// Current segment we are working on
-	segmentInfo            *SegmentInfo
+	pendingUpdates         *BufferedUpdates
+	segmentInfo            *SegmentInfo // Current segment we are working on
 	aborted                bool
 	flushPending           bool
 	lastCommittedBytesUsed int64
@@ -112,21 +111,20 @@ func (d *DocumentsWriterPerThread) finishDocuments(deleteNode *Node, docIdUpTo i
 
 	// Apply delTerm only after all indexing has succeeded, but apply it only to
 	// docs prior to when this batch started:
-	var seqNo int64
-
 	if deleteNode != nil {
-		seqNo = d.deleteQueue.Add(deleteNode, d.deleteSlice)
+		seqNo := d.deleteQueue.Add(deleteNode, d.deleteSlice)
 		d.deleteSlice.Apply(d.pendingUpdates, docIdUpTo)
 		return seqNo, nil
-	} else {
-		seqNo = d.deleteQueue.UpdateSlice(d.deleteSlice)
-		if seqNo < 0 {
-			seqNo = -seqNo
-			d.deleteSlice.Apply(d.pendingUpdates, docIdUpTo)
-		} else {
-			d.deleteSlice.Reset()
-		}
 	}
+
+	seqNo := d.deleteQueue.UpdateSlice(d.deleteSlice)
+	if seqNo < 0 {
+		seqNo = -seqNo
+		d.deleteSlice.Apply(d.pendingUpdates, docIdUpTo)
+	} else {
+		d.deleteSlice.Reset()
+	}
+
 	return seqNo, nil
 }
 
@@ -139,8 +137,7 @@ func (d *DocumentsWriterPerThread) Flush(ctx context.Context) error {
 		return err
 	}
 
-	flushState := NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(),
-		d.pendingUpdates, nil)
+	flushState := NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(), d.pendingUpdates)
 	_, err := d.consumer.Flush(ctx, flushState)
 	return err
 }
