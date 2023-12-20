@@ -179,7 +179,7 @@ func (f *simpleTextTerms) HasPayloads() bool {
 
 var _ index.TermsEnum = &simpleTextTermsEnum{}
 
-type BytesEnum fst.EnumWrap
+//type BytesEnum fst.EnumWrap
 
 type simpleTextTermsEnum struct {
 	*index.BaseTermsEnum
@@ -191,11 +191,11 @@ type simpleTextTermsEnum struct {
 	docsStart     int64
 	skipPointer   int64
 	ended         bool
-	fstEnum       *fst.EnumWrap
+	fstEnum       *fst.EnumWrap[byte]
 }
 
 func (s *FieldsReader) newSimpleTextTermsEnum(fstInstance *fst.FST, indexOptions document.IndexOptions) (*simpleTextTermsEnum, error) {
-	fstEnum, err := fst.NewEnumWrap(fstInstance)
+	fstEnum, err := fst.NewEnumWrap[byte](fstInstance)
 	if err != nil {
 		return nil, err
 	}
