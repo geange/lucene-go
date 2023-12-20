@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -25,31 +26,28 @@ func NewSortedSetSortField(field string, reverse bool) *SortedSetSortField {
 	return NewSortedSetSortFieldV1(field, reverse, MIN)
 }
 
-func (s *SortedSetSortField) serialize(out store.DataOutput) error {
-	err := out.WriteString(s.GetField())
-	if err != nil {
+func (s *SortedSetSortField) serialize(ctx context.Context, out store.DataOutput) error {
+	if err := out.WriteString(ctx, s.GetField()); err != nil {
 		return err
 	}
 	reverse := 0
 	if s.reverse {
 		reverse = 1
 	}
-	err = out.WriteUint32(uint32(reverse))
-	if err != nil {
+	if err := out.WriteUint32(ctx, uint32(reverse)); err != nil {
 		return err
 	}
-	err = out.WriteUint32(uint32(s.selector))
-	if err != nil {
+	if err := out.WriteUint32(ctx, uint32(s.selector)); err != nil {
 		return err
 	}
 	if s.missingValue == STRING_FIRST {
-		return out.WriteUint32(1)
+		return out.WriteUint32(nil, 1)
 	}
 
 	if s.missingValue == STRING_LAST {
-		return out.WriteUint32(2)
+		return out.WriteUint32(nil, 2)
 	}
-	return out.WriteUint32(0)
+	return out.WriteUint32(ctx, 0)
 }
 
 func NewSortedSetSortFieldV1(field string, reverse bool,
@@ -74,24 +72,24 @@ func (s *SortedSetSortFieldProvider) GetName() string {
 	return "SortedSetSortField"
 }
 
-func (s *SortedSetSortFieldProvider) ReadSortField(in store.DataInput) (SortField, error) {
-	field, err := in.ReadString()
+func (s *SortedSetSortFieldProvider) ReadSortField(ctx context.Context, in store.DataInput) (SortField, error) {
+	field, err := in.ReadString(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	num, err := in.ReadUint32()
+	num, err := in.ReadUint32(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	_type, err := readSelectorType(in)
+	_type, err := readSelectorType(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 
 	sf := NewSortedSetSortFieldV1(field, num == 1, _type)
-	missingValue, err := in.ReadUint32()
+	missingValue, err := in.ReadUint32(ctx)
 	if missingValue == 1 {
 		err := sf.SetMissingValue(STRING_FIRST)
 		if err != nil {
@@ -106,8 +104,8 @@ func (s *SortedSetSortFieldProvider) ReadSortField(in store.DataInput) (SortFiel
 	return sf, nil
 }
 
-func readSelectorType(in store.DataInput) (SortedSetSelectorType, error) {
-	_type, err := in.ReadUint32()
+func readSelectorType(ctx context.Context, in store.DataInput) (SortedSetSelectorType, error) {
+	_type, err := in.ReadUint32(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -119,10 +117,10 @@ func readSelectorType(in store.DataInput) (SortedSetSelectorType, error) {
 	return SortedSetSelectorType(int(_type)), nil
 }
 
-func (s *SortedSetSortFieldProvider) WriteSortField(sf SortField, out store.DataOutput) error {
+func (s *SortedSetSortFieldProvider) WriteSortField(ctx context.Context, sf SortField, out store.DataOutput) error {
 	v, ok := sf.(*SortedSetSortField)
 	if !ok {
 		return fmt.Errorf("sf is not *SortedSetSortField")
 	}
-	return v.serialize(out)
+	return v.serialize(ctx, out)
 }

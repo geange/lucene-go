@@ -2,6 +2,7 @@ package memory
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"github.com/geange/lucene-go/core/index"
@@ -116,7 +117,7 @@ func (m *memTermsEnum) binarySearch(text []byte, low, high int, hash *bytesutils
 	return -(low + 1)
 }
 
-func (m *memTermsEnum) Next() ([]byte, error) {
+func (m *memTermsEnum) Next(ctx context.Context) ([]byte, error) {
 	m.termUpto++
 	if m.termUpto >= m.info.terms.Size() {
 		return nil, io.EOF
@@ -129,12 +130,12 @@ func (m *memTermsEnum) Attributes() *tokenattr.AttributeSource {
 	return m.atts
 }
 
-func (m *memTermsEnum) SeekExact(text []byte) (bool, error) {
+func (m *memTermsEnum) SeekExact(ctx context.Context, text []byte) (bool, error) {
 	m.termUpto = m.binarySearch(text, 0, m.info.terms.Size(), m.info.terms, m.info.sortedTerms)
 	return m.termUpto >= 0, nil
 }
 
-func (m *memTermsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
+func (m *memTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
 	m.termUpto = m.binarySearch(text, 0, m.info.terms.Size()-1, m.info.terms, m.info.sortedTerms)
 	if m.termUpto < 0 { // not found; choose successor
 		m.termUpto = -m.termUpto - 1
@@ -147,14 +148,14 @@ func (m *memTermsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
 	return index.SEEK_STATUS_FOUND, nil
 }
 
-func (m *memTermsEnum) SeekExactByOrd(ord int64) error {
+func (m *memTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
 	m.termUpto = int(ord)
 	m.content = m.info.terms.Get(m.info.sortedTerms[m.termUpto])
 	return nil
 }
 
-func (m *memTermsEnum) SeekExactExpert(term []byte, state index.TermState) error {
-	return m.SeekExactByOrd(state.(*index.OrdTermState).Ord)
+func (m *memTermsEnum) SeekExactExpert(ctx context.Context, term []byte, state index.TermState) error {
+	return m.SeekExactByOrd(ctx, state.(*index.OrdTermState).Ord)
 }
 
 func (m *memTermsEnum) Term() ([]byte, error) {

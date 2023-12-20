@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"context"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/array"
@@ -48,11 +49,11 @@ func NewPrefixCodedTermsBuilder() *PrefixCodedTermsBuilder {
 	}
 }
 
-func (p *PrefixCodedTermsBuilder) Add(term *Term) error {
-	return p.AddBytes(term.field, term.Bytes())
+func (p *PrefixCodedTermsBuilder) Add(ctx context.Context, term *Term) error {
+	return p.AddBytes(ctx, term.field, term.Bytes())
 }
 
-func (p *PrefixCodedTermsBuilder) AddBytes(field string, bs []byte) (err error) {
+func (p *PrefixCodedTermsBuilder) AddBytes(ctx context.Context, field string, bs []byte) (err error) {
 	var prefix int
 	if p.size > 0 && field == p.lastTerm.field {
 		// same field as the last term
@@ -60,25 +61,25 @@ func (p *PrefixCodedTermsBuilder) AddBytes(field string, bs []byte) (err error) 
 		if err != nil {
 			return err
 		}
-		err = p.output.WriteUvarint(uint64(prefix << 1))
+		err = p.output.WriteUvarint(ctx, uint64(prefix<<1))
 		if err != nil {
 			return err
 		}
 	} else {
 		// field change
 		prefix = 0
-		err = p.output.WriteUvarint(1)
+		err = p.output.WriteUvarint(ctx, 1)
 		if err != nil {
 			return err
 		}
-		err = p.output.WriteString(field)
+		err = p.output.WriteString(ctx, field)
 		if err != nil {
 			return err
 		}
 	}
 
 	suffix := len(bs) - prefix
-	err = p.output.WriteUvarint(uint64(suffix))
+	err = p.output.WriteUvarint(ctx, uint64(suffix))
 	if err != nil {
 		return err
 	}
@@ -116,7 +117,7 @@ type TermIterator struct {
 }
 
 func NewTermIterator(delGen int64, buffer *store.RAMFile) (*TermIterator, error) {
-	input, err := store.NewRAMInputStream("PrefixCodedTermsIterator", buffer)
+	input, err := store.NewRAMIndexInput("PrefixCodedTermsIterator", buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -127,26 +128,26 @@ func NewTermIterator(delGen int64, buffer *store.RAMFile) (*TermIterator, error)
 	}, nil
 }
 
-func (t *TermIterator) Next() ([]byte, error) {
+func (t *TermIterator) Next(context.Context) ([]byte, error) {
 	if t.input.GetFilePointer() >= t.end {
 		t.field = ""
 		return nil, nil
 	}
 
-	code, err := t.input.ReadUvarint()
+	code, err := t.input.ReadUvarint(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	newField := (code & 1) != 0
 	if newField {
-		t.field, err = t.input.ReadString()
+		t.field, err = t.input.ReadString(context.Background())
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	prefix := code >> 1
-	suffix, err := t.input.ReadUvarint()
+	suffix, err := t.input.ReadUvarint(context.Background())
 	if err != nil {
 		return nil, err
 	}

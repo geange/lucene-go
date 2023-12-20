@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
@@ -113,7 +114,7 @@ func NewDataTermsEnum(fieldData *FieldData) *DataTermsEnum {
 	return termEnum
 }
 
-func (d *DataTermsEnum) Next() ([]byte, error) {
+func (d *DataTermsEnum) Next(context.Context) ([]byte, error) {
 	d.upto++
 	if d.upto == len(d.fieldData.terms) {
 		return nil, io.EOF
@@ -121,7 +122,7 @@ func (d *DataTermsEnum) Next() ([]byte, error) {
 	return d.Term()
 }
 
-func (d *DataTermsEnum) SeekCeil(text []byte) (SeekStatus, error) {
+func (d *DataTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
 	// Stupid linear impl:
 	for i := 0; i < len(d.fieldData.terms); i++ {
 		cmp := bytes.Compare(d.fieldData.terms[i].text, text)
@@ -136,7 +137,7 @@ func (d *DataTermsEnum) SeekCeil(text []byte) (SeekStatus, error) {
 	return SEEK_STATUS_END, nil
 }
 
-func (d *DataTermsEnum) SeekExactByOrd(ord int64) error {
+func (d *DataTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
 	//TODO implement me
 	panic("implement me")
 }

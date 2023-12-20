@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
@@ -70,7 +71,7 @@ func NewBKDReader(in store.IndexInput, numDims, numIndexDims, maxPointsInLeafNod
 	return reader, nil
 }
 
-func (s *BKDReader) Intersect(visitor types.IntersectVisitor) error {
+func (s *BKDReader) Intersect(ctx context.Context, visitor types.IntersectVisitor) error {
 	return s.intersect(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue)
 }
 
@@ -267,7 +268,7 @@ func (s *BKDReader) visitDocValues(commonPrefixLengths []int, scratchPackedValue
 	return nil
 }
 
-func (s *BKDReader) EstimatePointCount(visitor types.IntersectVisitor) (int, error) {
+func (s *BKDReader) EstimatePointCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
 	return s.estimatePointCount(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue), nil
 }
 

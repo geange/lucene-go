@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/codecs/utils"
@@ -257,7 +258,7 @@ func (i *SegmentInfos) Remove(index int) {
 	i.segments[index] = nil
 }
 
-func ReadCommit(directory store.Directory, segmentFileName string) (*SegmentInfos, error) {
+func ReadCommit(ctx context.Context, directory store.Directory, segmentFileName string) (*SegmentInfos, error) {
 	generation, err := GenerationFromSegmentsFileName(segmentFileName)
 	if err != nil {
 		return nil, err
@@ -267,18 +268,17 @@ func ReadCommit(directory store.Directory, segmentFileName string) (*SegmentInfo
 	if err != nil {
 		return nil, err
 	}
-	return ReadCommitFromChecksum(directory, input, generation)
+	return ReadCommitFromChecksum(ctx, directory, input, generation)
 }
 
 // ReadCommitFromChecksum Read the commit from the provided ChecksumIndexInput.
-func ReadCommitFromChecksum(directory store.Directory,
-	input store.ChecksumIndexInput, generation int64) (*SegmentInfos, error) {
+func ReadCommitFromChecksum(ctx context.Context, directory store.Directory, input store.ChecksumIndexInput, generation int64) (*SegmentInfos, error) {
 
 	format := -1
 
 	// NOTE: as long as we want to throw indexformattooold (vs corruptindexexception), we need
 	// to read the magic ourselves.
-	magic, err := input.ReadUint32()
+	magic, err := input.ReadUint32(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -303,20 +303,20 @@ func ReadCommitFromChecksum(directory store.Directory,
 		return nil, err
 	}
 
-	n1, err := input.ReadUvarint()
+	n1, err := input.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
-	n2, err := input.ReadUvarint()
+	n2, err := input.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
-	n3, err := input.ReadUvarint()
+	n3, err := input.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
 	luceneVersion := util.NewVersion(int(n1), int(n2), int(n3))
-	indexCreatedVersion, err := input.ReadUvarint()
+	indexCreatedVersion, err := input.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -337,41 +337,41 @@ func ReadCommitFromChecksum(directory store.Directory,
 	infos.lastGeneration = generation
 	infos.luceneVersion = luceneVersion
 
-	version, err := input.ReadUint64()
+	version, err := input.ReadUint64(ctx)
 	if err != nil {
 		return nil, err
 	}
 	infos.version = int64(version)
 
 	if format > VERSION_70 {
-		count, err := input.ReadUvarint()
+		count, err := input.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
 		}
 		infos.counter = int64(count)
 	} else {
-		count, err := input.ReadUint32()
+		count, err := input.ReadUint32(ctx)
 		if err != nil {
 			return nil, err
 		}
 		infos.counter = int64(count)
 	}
 
-	numSegments, err := input.ReadUint32()
+	numSegments, err := input.ReadUint32(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if numSegments > 0 {
-		n1, err := input.ReadUvarint()
+		n1, err := input.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
 		}
-		n2, err := input.ReadUvarint()
+		n2, err := input.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
 		}
-		n3, err := input.ReadUvarint()
+		n3, err := input.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -382,7 +382,7 @@ func ReadCommitFromChecksum(directory store.Directory,
 
 	totalDocs := 0
 	for seg := 0; seg < int(numSegments); seg++ {
-		segName, err := input.ReadString()
+		segName, err := input.ReadString(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -390,11 +390,11 @@ func ReadCommitFromChecksum(directory store.Directory,
 		if _, err := input.Read(segmentID); err != nil {
 			return nil, err
 		}
-		codec, err := ReadCodec(input)
+		codec, err := ReadCodec(nil, input)
 		if err != nil {
 			return nil, err
 		}
-		info, err := codec.SegmentInfoFormat().Read(directory, segName, segmentID, nil)
+		info, err := codec.SegmentInfoFormat().Read(nil, directory, segName, segmentID, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -406,11 +406,11 @@ func ReadCommitFromChecksum(directory store.Directory,
 		}
 		totalDocs += maxDoc
 
-		delGen, err := input.ReadUint64()
+		delGen, err := input.ReadUint64(ctx)
 		if err != nil {
 			return nil, err
 		}
-		delCount, err := input.ReadUint32()
+		delCount, err := input.ReadUint32(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -418,17 +418,17 @@ func ReadCommitFromChecksum(directory store.Directory,
 			return nil, errors.New("invalid deletion count")
 			//throw new CorruptIndexException("invalid deletion count: " + delCount + " vs maxDoc=" + info.maxDoc(), input);
 		}
-		fieldInfosGen, err := input.ReadUint64()
+		fieldInfosGen, err := input.ReadUint64(ctx)
 		if err != nil {
 			return nil, err
 		}
-		dvGen, err := input.ReadUint64()
+		dvGen, err := input.ReadUint64(ctx)
 		if err != nil {
 			return nil, err
 		}
 		softDelCount := 0
 		if format > VERSION_72 {
-			n, err := input.ReadUint32()
+			n, err := input.ReadUint32(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -466,13 +466,13 @@ func ReadCommitFromChecksum(directory store.Directory,
 			sciId = nil
 		}
 		siPerCommit := NewSegmentCommitInfo(info, int(delCount), softDelCount, int64(delGen), int64(fieldInfosGen), int64(dvGen), sciId)
-		setOfStrings, err := input.ReadSetOfStrings()
+		setOfStrings, err := input.ReadSetOfStrings(ctx)
 		if err != nil {
 			return nil, err
 		}
 		siPerCommit.SetFieldInfosFiles(setOfStrings)
 		dvUpdateFiles := make(map[int]map[string]struct{})
-		numDVFields, err := input.ReadUint32()
+		numDVFields, err := input.ReadUint32(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -481,11 +481,11 @@ func ReadCommitFromChecksum(directory store.Directory,
 		} else {
 			values := make(map[int]map[string]struct{})
 			for i := 0; i < int(numDVFields); i++ {
-				num, err := input.ReadUint32()
+				num, err := input.ReadUint32(ctx)
 				if err != nil {
 					return nil, err
 				}
-				strs, err := input.ReadSetOfStrings()
+				strs, err := input.ReadSetOfStrings(ctx)
 				if err != nil {
 					return nil, err
 				}
@@ -522,8 +522,8 @@ func ReadCommitFromChecksum(directory store.Directory,
 	return infos, nil
 }
 
-func ReadCodec(input store.DataInput) (Codec, error) {
-	name, err := input.ReadString()
+func ReadCodec(ctx context.Context, input store.DataInput) (Codec, error) {
+	name, err := input.ReadString(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -532,12 +532,12 @@ func ReadCodec(input store.DataInput) (Codec, error) {
 }
 
 // ReadLatestCommit Find the latest commit (segments_N file) and load all SegmentCommitInfos.
-func ReadLatestCommit(directory store.Directory) (*SegmentInfos, error) {
+func ReadLatestCommit(ctx context.Context, directory store.Directory) (*SegmentInfos, error) {
 	file := &FindSegmentsFile{
 		directory: directory,
 	}
 	file.DoBody = func(segmentFileName string) (any, error) {
-		return ReadCommit(file.directory, segmentFileName)
+		return ReadCommit(ctx, file.directory, segmentFileName)
 	}
 
 	infos, err := file.Run()

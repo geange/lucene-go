@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
@@ -42,8 +43,8 @@ func NewSegmentInfoFormat() *SegmentInfoFormat {
 	return &SegmentInfoFormat{}
 }
 
-func (s *SegmentInfoFormat) Read(dir store.Directory, segmentName string,
-	segmentID []byte, context *store.IOContext) (*index.SegmentInfo, error) {
+func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
+	segmentName string, segmentID []byte, context *store.IOContext) (*index.SegmentInfo, error) {
 
 	scratch := new(bytes.Buffer)
 	segFileName := store.SegmentFileName(segmentName, "", SI_EXTENSION)
@@ -189,8 +190,7 @@ func (s *SegmentInfoFormat) Read(dir store.Directory, segmentName string,
 			return nil, err
 		}
 
-		_, err = r.ReadLabel(SI_SORT_TYPE)
-		if err != nil {
+		if _, err = r.ReadLabel(SI_SORT_TYPE); err != nil {
 			return nil, err
 		}
 
@@ -203,7 +203,7 @@ func (s *SegmentInfoFormat) Read(dir store.Directory, segmentName string,
 			return nil, err
 		}
 		output := store.NewByteArrayDataInput(toBytes)
-		field, err := index.GetSortFieldProviderByName(provider).ReadSortField(output)
+		field, err := index.GetSortFieldProviderByName(provider).ReadSortField(nil, output)
 		if err != nil {
 			return nil, err
 		}
@@ -225,8 +225,7 @@ func (s *SegmentInfoFormat) Read(dir store.Directory, segmentName string,
 	return info, nil
 }
 
-func (s *SegmentInfoFormat) Write(dir store.Directory,
-	si *index.SegmentInfo, ioContext *store.IOContext) error {
+func (s *SegmentInfoFormat) Write(ctx context.Context, dir store.Directory, si *index.SegmentInfo, ioContext *store.IOContext) error {
 
 	segFileName := store.SegmentFileName(si.Name(), "", SI_EXTENSION)
 
@@ -241,83 +240,169 @@ func (s *SegmentInfoFormat) Write(dir store.Directory,
 	if err := si.AddFile(segFileName); err != nil {
 		return err
 	}
-	w.Bytes(SI_VERSION)
-	w.String(si.GetVersion().String())
-	w.NewLine()
+	if err := w.Bytes(SI_VERSION); err != nil {
+		return err
+	}
+	if err := w.String(si.GetVersion().String()); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
-	w.Bytes(SI_MIN_VERSION)
+	if err := w.Bytes(SI_MIN_VERSION); err != nil {
+		return err
+	}
 	minVersion := si.GetMinVersion()
 	if minVersion == nil {
-		w.String("null")
+		if err := w.String("null"); err != nil {
+			return err
+		}
 	} else {
-		w.String(minVersion.String())
+		if err := w.String(minVersion.String()); err != nil {
+			return err
+		}
 	}
-	w.NewLine()
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
-	w.Bytes(SI_DOCCOUNT)
+	if err := w.Bytes(SI_DOCCOUNT); err != nil {
+		return err
+	}
 	maxDoc, _ := si.MaxDoc()
-	w.String(strconv.Itoa(maxDoc))
-	w.NewLine()
+	if err := w.String(strconv.Itoa(maxDoc)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
-	w.Bytes(SI_USECOMPOUND)
-	w.String(strconv.FormatBool(si.GetUseCompoundFile()))
-	w.NewLine()
+	if err := w.Bytes(SI_USECOMPOUND); err != nil {
+		return err
+	}
+	if err := w.String(strconv.FormatBool(si.GetUseCompoundFile())); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
 	diagnostics := si.GetDiagnostics()
 	numDiagnostics := len(diagnostics)
-	w.Bytes(SI_NUM_DIAG)
-	w.String(strconv.Itoa(numDiagnostics))
-	w.NewLine()
+	if err := w.Bytes(SI_NUM_DIAG); err != nil {
+		return err
+	}
+	if err := w.String(strconv.Itoa(numDiagnostics)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
 	for k, v := range diagnostics {
-		w.Bytes(SI_DIAG_KEY)
-		w.String(k)
-		w.NewLine()
+		if err := w.Bytes(SI_DIAG_KEY); err != nil {
+			return err
+		}
+		if err := w.String(k); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
 
-		w.Bytes(SI_DIAG_VALUE)
-		w.String(v)
-		w.NewLine()
+		if err := w.Bytes(SI_DIAG_VALUE); err != nil {
+			return err
+		}
+		if err := w.String(v); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
 	}
 
 	attributes := si.GetAttributes()
-	w.Bytes(SI_NUM_ATT)
-	w.String(strconv.Itoa(len(attributes)))
-	w.NewLine()
+	if err := w.Bytes(SI_NUM_ATT); err != nil {
+		return err
+	}
+	if err := w.String(strconv.Itoa(len(attributes))); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
 	for k, v := range attributes {
-		w.Bytes(SI_ATT_KEY)
-		w.String(k)
-		w.NewLine()
+		if err := w.Bytes(SI_ATT_KEY); err != nil {
+			return err
+		}
+		if err := w.String(k); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
 
-		w.Bytes(SI_ATT_VALUE)
-		w.String(v)
-		w.NewLine()
+		if err := w.Bytes(SI_ATT_VALUE); err != nil {
+			return err
+		}
+		if err := w.String(v); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
 	}
 
 	files := si.Files()
-	w.Bytes(SI_NUM_FILES)
-	w.String(strconv.Itoa(len(files)))
-	w.NewLine()
-
-	for fileName := range files {
-		w.Bytes(SI_FILE)
-		w.String(fileName)
-		w.NewLine()
+	if err := w.Bytes(SI_NUM_FILES); err != nil {
+		return err
+	}
+	if err := w.String(strconv.Itoa(len(files))); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
 	}
 
-	w.Bytes(SI_ID)
-	w.Bytes(si.GetID())
-	w.NewLine()
+	for fileName := range files {
+		if err := w.Bytes(SI_FILE); err != nil {
+			return err
+		}
+		if err := w.String(fileName); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
+	}
+
+	if err := w.Bytes(SI_ID); err != nil {
+		return err
+	}
+	if err := w.Bytes(si.GetID()); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
 	indexSort := si.GetIndexSort()
-	w.Bytes(SI_SORT)
+	if err := w.Bytes(SI_SORT); err != nil {
+		return err
+	}
 	numSortFields := 0
 	if indexSort != nil {
 		sortFields := indexSort.GetSort()
 		numSortFields = len(sortFields)
 	}
-	w.String(strconv.Itoa(numSortFields))
-	w.NewLine()
+	if err := w.String(strconv.Itoa(numSortFields)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
 	if numSortFields > 0 {
 		for _, sortField := range indexSort.GetSort() {
@@ -326,19 +411,39 @@ func (s *SegmentInfoFormat) Write(dir store.Directory,
 				return errors.New("cannot serialize sort")
 			}
 
-			w.Bytes(SI_SORT_NAME)
-			w.String(sorter.GetProviderName())
-			w.NewLine()
+			if err := w.Bytes(SI_SORT_NAME); err != nil {
+				return err
+			}
+			if err := w.String(sorter.GetProviderName()); err != nil {
+				return err
+			}
+			if err := w.NewLine(); err != nil {
+				return err
+			}
 
-			w.Bytes(SI_SORT_TYPE)
-			w.String(sortField.String())
-			w.NewLine()
+			if err := w.Bytes(SI_SORT_TYPE); err != nil {
+				return err
+			}
+			if err := w.String(sortField.String()); err != nil {
+				return err
+			}
+			if err := w.NewLine(); err != nil {
+				return err
+			}
 
-			w.Bytes(SI_SORT_BYTES)
+			if err := w.Bytes(SI_SORT_BYTES); err != nil {
+				return err
+			}
 			buf := NewBytesOutput()
-			index.WriteSortField(sortField, buf)
-			w.Bytes(buf.bytes.Bytes())
-			w.NewLine()
+			if err := index.WriteSortField(sortField, buf); err != nil {
+				return err
+			}
+			if err := w.Bytes(buf.bytes.Bytes()); err != nil {
+				return err
+			}
+			if err := w.NewLine(); err != nil {
+				return err
+			}
 		}
 	}
 

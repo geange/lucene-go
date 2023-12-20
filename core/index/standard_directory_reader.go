@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -107,7 +108,7 @@ func (s *StandardDirectoryReader) GetVersion() int64 {
 	return s.segmentInfos.GetVersion()
 }
 
-func (s *StandardDirectoryReader) IsCurrent() (bool, error) {
+func (s *StandardDirectoryReader) IsCurrent(ctx context.Context) (bool, error) {
 	//ensureOpen();
 	if s.writer == nil || s.writer.IsClosed() {
 		// Fully read the segments file: this ensures that it's
@@ -115,7 +116,7 @@ func (s *StandardDirectoryReader) IsCurrent() (bool, error) {
 		// IndexWriter.prepareCommit has been called (but not
 		// yet commit), then the reader will still see itself as
 		// current:
-		sis, err := ReadLatestCommit(s.directory)
+		sis, err := ReadLatestCommit(ctx, s.directory)
 		if err != nil {
 			return false, err
 		}

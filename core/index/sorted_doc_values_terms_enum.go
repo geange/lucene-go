@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/tokenattr"
 )
 
@@ -12,7 +13,7 @@ func NewSortedDocValuesTermsEnum(values SortedDocValues) *SortedDocValuesTermsEn
 	return &SortedDocValuesTermsEnum{}
 }
 
-func (s *SortedDocValuesTermsEnum) Next() ([]byte, error) {
+func (s *SortedDocValuesTermsEnum) Next(context.Context) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -22,22 +23,22 @@ func (s *SortedDocValuesTermsEnum) Attributes() *tokenattr.AttributeSource {
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) SeekExact(text []byte) (bool, error) {
+func (s *SortedDocValuesTermsEnum) SeekExact(ctx context.Context, text []byte) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) SeekCeil(text []byte) (SeekStatus, error) {
+func (s *SortedDocValuesTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) SeekExactByOrd(ord int64) error {
+func (s *SortedDocValuesTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) SeekExactExpert(term []byte, state TermState) error {
+func (s *SortedDocValuesTermsEnum) SeekExactExpert(ctx context.Context, term []byte, state TermState) error {
 	//TODO implement me
 	panic("implement me")
 }

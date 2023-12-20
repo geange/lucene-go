@@ -2,6 +2,7 @@ package search
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 
@@ -19,7 +20,7 @@ type PointInSetQuery struct {
 	bytesPerDim                int
 }
 
-func NewPointInSetQuery(field string, numDims int, bytesPerDim int, packedPoints [][]byte) (*PointInSetQuery, error) {
+func NewPointInSetQuery(ctx context.Context, field string, numDims int, bytesPerDim int, packedPoints [][]byte) (*PointInSetQuery, error) {
 	builder := index.NewPrefixCodedTermsBuilder()
 	for i := 1; i < len(packedPoints); i++ {
 		previous := packedPoints[i-1]
@@ -32,12 +33,12 @@ func NewPointInSetQuery(field string, numDims int, bytesPerDim int, packedPoints
 		}
 
 		if i == 1 {
-			err := builder.AddBytes(field, previous)
+			err := builder.AddBytes(ctx, field, previous)
 			if err != nil {
 				return nil, err
 			}
 		}
-		err := builder.AddBytes(field, current)
+		err := builder.AddBytes(ctx, field, current)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +96,7 @@ func (r *pisQueryWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = values.Intersect(visitor)
+		err = values.Intersect(nil, visitor)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +113,7 @@ func (r *pisQueryWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
 		}
 
 		for {
-			point, err := iterator.Next()
+			point, err := iterator.Next(nil)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
@@ -120,7 +121,7 @@ func (r *pisQueryWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
 				return nil, err
 			}
 			visitor.SetPoint(point)
-			err = values.Intersect(visitor)
+			err = values.Intersect(nil, visitor)
 			if err != nil {
 				return nil, err
 			}
@@ -162,7 +163,7 @@ func (p *PointInSetQuery) NewMergePointVisitor(sortedPackedPoints *index.PrefixC
 		return nil, err
 	}
 
-	next, err := iterator.Next()
+	next, err := iterator.Next(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +216,7 @@ func (m *MergePointVisitor) matches(packedValue []byte) bool {
 		case cmp == 0:
 			return true
 		case cmp < 0:
-			next, err := m.iterator.Next()
+			next, err := m.iterator.Next(nil)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
@@ -236,7 +237,7 @@ func (m *MergePointVisitor) Compare(minPackedValue, maxPackedValue []byte) types
 		cmpMin := bytes.Compare(m.nextQueryPoint, minPackedValue)
 		if cmpMin < 0 {
 			// query point is before the start of this cell
-			m.nextQueryPoint, err = m.iterator.Next()
+			m.nextQueryPoint, err = m.iterator.Next(nil)
 			if err != nil {
 				break
 			}

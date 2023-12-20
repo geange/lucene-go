@@ -2,6 +2,7 @@ package bkd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 
 	"slices"
@@ -168,7 +169,7 @@ func (w *Writer) Add(packedValue []byte, docID int) error {
 		}
 	}
 
-	if err := w.pointWriter.Append(packedValue, docID); err != nil {
+	if err := w.pointWriter.Append(nil, packedValue, docID); err != nil {
 		return err
 	}
 	w.pointCount++
@@ -205,19 +206,18 @@ type LeafNodes interface {
 	GetSplitDimension(index int) int
 }
 
-type Runnable func() error
+type Runnable func(ctx context.Context) error
 
 var (
-	emptyRunnable = func() error { return nil }
+	emptyRunnable = func(_ context.Context) error { return nil }
 )
 
 // WriteField Write a field from a MutablePointValues. This way of writing points is faster than regular writes with add since there is opportunity for reordering points before writing them to disk. This method does not use transient disk in order to reorder points.
-func (w *Writer) WriteField(metaOut, indexOut, dataOut store.IndexOutput,
-	fieldName string, reader types.MutablePointValues) (Runnable, error) {
+func (w *Writer) WriteField(ctx context.Context, metaOut, indexOut, dataOut store.IndexOutput, fieldName string, reader types.MutablePointValues) (Runnable, error) {
 	if w.config.NumDims() == 1 {
 		return w.writeField1Dim(metaOut, indexOut, dataOut, fieldName, reader)
 	} else {
-		return w.writeFieldNDims(metaOut, indexOut, dataOut, fieldName, reader)
+		return w.writeFieldNDims(ctx, metaOut, indexOut, dataOut, fieldName, reader)
 	}
 }
 
@@ -258,8 +258,7 @@ func (w *Writer) computePackedValueBoundsV1(values types.MutablePointValues, fro
 
 // In the 2+D case, we recursively pick the split dimension, compute the
 // median value and partition other values around it.
-func (w *Writer) writeFieldNDims(metaOut, indexOut, dataOut store.IndexOutput,
-	fieldName string, values types.MutablePointValues) (Runnable, error) {
+func (w *Writer) writeFieldNDims(ctx context.Context, metaOut, indexOut, dataOut store.IndexOutput, fieldName string, values types.MutablePointValues) (Runnable, error) {
 
 	config := w.config
 
@@ -302,11 +301,7 @@ func (w *Writer) writeFieldNDims(metaOut, indexOut, dataOut store.IndexOutput,
 	maxPackedValueCopy := make([]byte, len(w.maxPackedValue))
 	copy(maxPackedValueCopy, w.maxPackedValue)
 
-	if err := w.build(0, numLeaves, values, 0, w.pointCount, dataOut,
-		minPackedValueCopy, maxPackedValueCopy, parentSplits,
-		splitPackedValues, splitDimensionValues, leafBlockFPs,
-		make([]int, config.MaxPointsInLeafNode()),
-	); err != nil {
+	if err := w.build(ctx, 0, numLeaves, values, 0, w.pointCount, dataOut, minPackedValueCopy, maxPackedValueCopy, parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs, make([]int, config.MaxPointsInLeafNode())); err != nil {
 		return nil, err
 	}
 
@@ -316,8 +311,8 @@ func (w *Writer) writeFieldNDims(metaOut, indexOut, dataOut store.IndexOutput,
 		splitDimensionValues: splitDimensionValues,
 	}
 
-	return func() error {
-		return w.writeIndex(metaOut, indexOut, config.MaxPointsInLeafNode(), leafNodes, dataStartFP)
+	return func(ctx context.Context) error {
+		return w.writeIndex(ctx, metaOut, indexOut, config.MaxPointsInLeafNode(), leafNodes, dataStartFP)
 	}, nil
 }
 
@@ -359,7 +354,7 @@ func (w *Writer) writeField1Dim(metaOut, indexOut, dataOut store.IndexOutput,
 		return nil, err
 	}
 
-	err = reader.Intersect(&writeField1DimVisitor{oneDimWriter: oneDimWriter})
+	err = reader.Intersect(nil, &writeField1DimVisitor{oneDimWriter: oneDimWriter})
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +410,7 @@ func (w *Writer) getNumLeftLeafNodes(numLeaves int) int {
 
 // Finish Writes the BKD tree to the provided IndexOutputs and returns a Runnable that writes the index of the tree
 // if at least one point has been added, or null otherwise.
-func (w *Writer) Finish(metaOut, indexOut, dataOut store.IndexOutput) (Runnable, error) {
+func (w *Writer) Finish(ctx context.Context, metaOut, indexOut, dataOut store.IndexOutput) (Runnable, error) {
 	config := w.config
 	bytesPerDim := config.BytesPerDim()
 
@@ -460,10 +455,7 @@ func (w *Writer) Finish(metaOut, indexOut, dataOut store.IndexOutput) (Runnable,
 
 	parentSplits := make([]int, config.NumIndexDims())
 
-	err = w.buildMerging(0, numLeaves, pathSlice, dataOut, selector,
-		slices.Clone(w.minPackedValue), slices.Clone(w.maxPackedValue),
-		parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs,
-		make([]int, config.MaxPointsInLeafNode()))
+	err = w.buildMerging(ctx, 0, numLeaves, pathSlice, dataOut, selector, slices.Clone(w.minPackedValue), slices.Clone(w.maxPackedValue), parentSplits, splitPackedValues, splitDimensionValues, leafBlockFPs, make([]int, config.MaxPointsInLeafNode()))
 	if err != nil {
 		return nil, err
 	}
@@ -475,8 +467,8 @@ func (w *Writer) Finish(metaOut, indexOut, dataOut store.IndexOutput) (Runnable,
 		splitDimensionValues: splitDimensionValues,
 	}
 
-	return func() error {
-		return w.writeIndex(metaOut, indexOut, config.MaxPointsInLeafNode(), leafNodes, dataStartFP)
+	return func(ctx context.Context) error {
+		return w.writeIndex(ctx, metaOut, indexOut, config.MaxPointsInLeafNode(), leafNodes, dataStartFP)
 	}, nil
 }
 

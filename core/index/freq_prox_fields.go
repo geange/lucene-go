@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
@@ -140,7 +141,7 @@ func (f *FreqProxTermsEnum) reset() {
 	f.ord = -1
 }
 
-func (f *FreqProxTermsEnum) Next() ([]byte, error) {
+func (f *FreqProxTermsEnum) Next(context.Context) ([]byte, error) {
 	f.ord++
 	if f.ord >= f.numTerms {
 		return nil, io.EOF
@@ -151,7 +152,7 @@ func (f *FreqProxTermsEnum) Next() ([]byte, error) {
 	return f.scratch, err
 }
 
-func (f *FreqProxTermsEnum) SeekCeil(text []byte) (SeekStatus, error) {
+func (f *FreqProxTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
 	// binary search:
 	lo := 0
 	hi := f.numTerms - 1
@@ -188,7 +189,7 @@ func (f *FreqProxTermsEnum) SeekCeil(text []byte) (SeekStatus, error) {
 	}
 }
 
-func (f *FreqProxTermsEnum) SeekExactByOrd(ord int64) error {
+func (f *FreqProxTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
 	f.ord = int(ord)
 	textStart := f.postingsArray.textStarts[f.sortedTermIDs[f.ord]]
 	var err error

@@ -1,6 +1,8 @@
 package packed
 
 import (
+	"context"
+
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -75,15 +77,15 @@ func (g *GrowableWriter) ensureCapacity(value uint64) {
 }
 
 func (g *GrowableWriter) SetBulk(index int, arr []uint64) int {
-	max := uint64(0)
+	maxCap := uint64(0)
 	for i := 0; i < len(arr); i++ {
 		// bitwise or is nice because either all values are positive and the
 		// or-ed result will require as many bits per value as the max of the
 		// values, or one of them is negative and the result will be negative,
 		// forcing GrowableWriter to use 64 bits per value
-		max |= arr[i]
+		maxCap |= arr[i]
 	}
-	g.ensureCapacity(max)
+	g.ensureCapacity(maxCap)
 	return g.current.SetBulk(index, arr)
 }
 
@@ -96,8 +98,8 @@ func (g *GrowableWriter) Clear() {
 	g.current.Clear()
 }
 
-func (g *GrowableWriter) Save(out store.DataOutput) error {
-	return g.current.Save(out)
+func (g *GrowableWriter) Save(ctx context.Context, out store.DataOutput) error {
+	return g.current.Save(ctx, out)
 }
 
 func (g *GrowableWriter) GetFormat() Format {

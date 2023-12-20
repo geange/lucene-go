@@ -3,11 +3,11 @@ module github.com/geange/lucene-go
 go 1.21.1
 
 require (
-	github.com/bits-and-blooms/bitset v1.10.0
-	github.com/geange/gods-generic v0.0.0-20230720125024-cbabf0c9c91a
+	github.com/bits-and-blooms/bitset v1.11.0
+	github.com/geange/gods-generic v0.0.0-20231208095814-39acc2de5ce6
 	github.com/google/uuid v1.4.0
 	github.com/pkg/errors v0.9.1
-	github.com/samber/lo v1.38.1
+	github.com/samber/lo v1.39.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.8.4
 )

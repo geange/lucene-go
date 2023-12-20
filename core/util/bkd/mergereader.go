@@ -1,6 +1,7 @@
 package bkd
 
 import (
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/core/types"
 )
@@ -25,7 +26,7 @@ type MergeReader struct {
 	packedValues []byte
 }
 
-func (m *MergeReader) Next() (bool, error) {
+func (m *MergeReader) Next(ctx context.Context) (bool, error) {
 	for {
 		if m.docBlockUpto == m.docsInBlock {
 			if m.blockID == m.bkd.leafNodeOffset {
@@ -34,16 +35,14 @@ func (m *MergeReader) Next() (bool, error) {
 			}
 			//System.out.println("  new block @ fp=" + state.in.getFilePointer());
 			var err error
-			m.docsInBlock, err = m.bkd.readDocIDs(m.state.in, m.state.in.GetFilePointer(), m.state.scratchIterator)
+			m.docsInBlock, err = m.bkd.readDocIDs(ctx, m.state.in, m.state.in.GetFilePointer(), m.state.scratchIterator)
 			if err != nil {
 				return false, err
 			}
 			//assert docsInBlock > 0;
 			m.docBlockUpto = 0
 
-			err = m.bkd.visitDocValues(m.state.commonPrefixLengths, m.state.scratchDataPackedValue,
-				m.state.scratchMinIndexPackedValue, m.state.scratchMaxIndexPackedValue,
-				m.state.in, m.state.scratchIterator, m.docsInBlock, &mergeReaderVisitor{i: 0, p: m})
+			err = m.bkd.visitDocValues(ctx, m.state.commonPrefixLengths, m.state.scratchDataPackedValue, m.state.scratchMinIndexPackedValue, m.state.scratchMaxIndexPackedValue, m.state.in, m.state.scratchIterator, m.docsInBlock, &mergeReaderVisitor{i: 0, p: m})
 			if err != nil {
 				return false, err
 			}

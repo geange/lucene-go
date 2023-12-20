@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
@@ -11,11 +12,11 @@ type SortFieldProvider interface {
 	NamedSPI
 
 	// ReadSortField Reads a SortField from serialized bytes
-	ReadSortField(in store.DataInput) (SortField, error)
+	ReadSortField(ctx context.Context, in store.DataInput) (SortField, error)
 
 	// WriteSortField Writes a SortField to a DataOutput This is used to record index
 	// ort information in segment headers
-	WriteSortField(sf SortField, out store.DataOutput) error
+	WriteSortField(ctx context.Context, sf SortField, out store.DataOutput) error
 }
 
 func RegisterSortFieldProvider(provider SortFieldProvider) {
@@ -33,7 +34,7 @@ func WriteSortField(sf SortField, output store.DataOutput) error {
 	}
 	provider := GetSortFieldProviderByName(sorter.GetProviderName())
 	if provider != nil {
-		return provider.WriteSortField(sf, output)
+		return provider.WriteSortField(nil, sf, output)
 	}
 	return fmt.Errorf("SortFieldProvider: %s not found", sorter.GetProviderName())
 }

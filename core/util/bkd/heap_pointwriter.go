@@ -1,6 +1,7 @@
 package bkd
 
 import (
+	"context"
 	"encoding/binary"
 )
 
@@ -90,7 +91,7 @@ func (h *HeapPointWriter) GetPackedValueSlice(index int) PointValue {
 	}
 }
 
-func (h *HeapPointWriter) Append(packedValue []byte, docID int) error {
+func (h *HeapPointWriter) Append(ctx context.Context, packedValue []byte, docID int) error {
 	//assert closed == false : "point writer is already closed";
 	//assert packedValue.length == config.packedBytesLength : "[packedValue] must have length [" + config.packedBytesLength + "] but was [" + packedValue.length + "]";
 	//assert nextWrite < size : "nextWrite=" + (nextWrite + 1) + " vs size=" + size;

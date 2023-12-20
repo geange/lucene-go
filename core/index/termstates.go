@@ -140,7 +140,7 @@ func loadTermsEnum(ctx *LeafReaderContext, term *Term) (TermsEnum, error) {
 		if err != nil {
 			return nil, err
 		}
-		ok, err := termsEnum.SeekExact(term.Bytes())
+		ok, err := termsEnum.SeekExact(nil, term.Bytes())
 		if err != nil {
 			return nil, err
 		}

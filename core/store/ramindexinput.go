@@ -6,14 +6,14 @@ import (
 	"math"
 )
 
-var _ IndexInput = &RAMInputStream{}
+var _ IndexInput = &RAMIndexInput{}
 
-// RAMInputStream A memory-resident IndexInput implementation.
-// Deprecated
+// RAMIndexInput
+// A memory-resident IndexInput implementation.
 // This class uses inefficient synchronization and is discouraged in favor of MMapDirectory.
 // It will be removed in future versions of Lucene.
 // lucene.internal
-type RAMInputStream struct {
+type RAMIndexInput struct {
 	*IndexInputBase
 
 	bufferSize         int
@@ -25,12 +25,12 @@ type RAMInputStream struct {
 	bufferLength       int
 }
 
-func NewRAMInputStream(name string, f *RAMFile) (*RAMInputStream, error) {
-	return NewRAMInputStreamV2(name, f, f.length)
+func NewRAMIndexInput(name string, f *RAMFile) (*RAMIndexInput, error) {
+	return newRAMIndexInput(name, f, f.length)
 }
 
-func NewRAMInputStreamV2(name string, f *RAMFile, length int64) (*RAMInputStream, error) {
-	input := &RAMInputStream{
+func newRAMIndexInput(name string, f *RAMFile, length int64) (*RAMIndexInput, error) {
+	input := &RAMIndexInput{
 		bufferSize:         1024,
 		file:               f,
 		length:             length,
@@ -53,7 +53,7 @@ func NewRAMInputStreamV2(name string, f *RAMFile, length int64) (*RAMInputStream
 	return input, nil
 }
 
-func (r *RAMInputStream) ReadByte() (byte, error) {
+func (r *RAMIndexInput) ReadByte() (byte, error) {
 	if r.bufferPosition == r.bufferLength {
 		err := r.nextBuffer()
 		if err != nil {
@@ -70,7 +70,7 @@ func (r *RAMInputStream) ReadByte() (byte, error) {
 	return b, nil
 }
 
-func (r *RAMInputStream) Read(b []byte) (int, error) {
+func (r *RAMIndexInput) Read(b []byte) (int, error) {
 	offset, size := 0, len(b)
 
 	for size > 0 {
@@ -99,11 +99,11 @@ func (r *RAMInputStream) Read(b []byte) (int, error) {
 	return size, nil
 }
 
-func (r *RAMInputStream) GetFilePointer() int64 {
+func (r *RAMIndexInput) GetFilePointer() int64 {
 	return int64(r.currentBufferIndex*r.bufferSize + r.bufferPosition)
 }
 
-func (r *RAMInputStream) Seek(pos int64, whence int) (int64, error) {
+func (r *RAMIndexInput) Seek(pos int64, whence int) (int64, error) {
 	newBufferIndex := int(pos) / r.bufferSize
 
 	if newBufferIndex != r.currentBufferIndex {
@@ -125,11 +125,11 @@ func (r *RAMInputStream) Seek(pos int64, whence int) (int64, error) {
 	return 0, nil
 }
 
-func (r *RAMInputStream) Clone() IndexInput {
+func (r *RAMIndexInput) Clone() IndexInput {
 	return r
 }
 
-func (r *RAMInputStream) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
+func (r *RAMIndexInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
 	//if offset < 0 || length < 0 || offset+length > r.length {
 	//	return nil, errors.New("out of bounds")
 	//}
@@ -137,11 +137,11 @@ func (r *RAMInputStream) Slice(sliceDescription string, offset, length int64) (I
 	panic("")
 }
 
-func (r *RAMInputStream) Length() int64 {
+func (r *RAMIndexInput) Length() int64 {
 	return r.length
 }
 
-func (r *RAMInputStream) nextBuffer() error {
+func (r *RAMIndexInput) nextBuffer() error {
 	// This is >= because we are called when there is at least 1 more byte to read:
 	if r.GetFilePointer() >= r.Length() {
 		return errors.New("cannot read another byte at isEof")
@@ -156,7 +156,7 @@ func (r *RAMInputStream) nextBuffer() error {
 	return nil
 }
 
-func (r *RAMInputStream) setCurrentBuffer() error {
+func (r *RAMIndexInput) setCurrentBuffer() error {
 
 	if r.currentBufferIndex < r.file.numBuffers() {
 		r.currentBuffer = r.file.getBuffer(r.currentBufferIndex)

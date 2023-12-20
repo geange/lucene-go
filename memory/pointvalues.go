@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -14,7 +15,7 @@ func newMemoryIndexPointValues(info *info) *memPointValues {
 	return &memPointValues{info: info}
 }
 
-func (m *memPointValues) Intersect(visitor types.IntersectVisitor) error {
+func (m *memPointValues) Intersect(ctx context.Context, visitor types.IntersectVisitor) error {
 	values := m.info.pointValues
 	visitor.Grow(m.info.pointValuesCount)
 	for i := 0; i < m.info.pointValuesCount; i++ {
@@ -26,7 +27,7 @@ func (m *memPointValues) Intersect(visitor types.IntersectVisitor) error {
 	return nil
 }
 
-func (m *memPointValues) EstimatePointCount(visitor types.IntersectVisitor) (int, error) {
+func (m *memPointValues) EstimatePointCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
 	return 1, nil
 }
 

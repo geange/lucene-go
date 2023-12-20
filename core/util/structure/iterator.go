@@ -1,8 +1,10 @@
 package structure
 
+import "context"
+
 type Iterator[T any] interface {
 	HasNext() bool
-	Next() (T, error)
+	Next(context.Context) (T, error)
 }
 
 type Iterable[T any] interface {

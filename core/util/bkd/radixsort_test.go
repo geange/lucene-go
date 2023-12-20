@@ -20,7 +20,7 @@ func TestRandom(t *testing.T) {
 	value := make([]byte, config.packedBytesLength)
 	for i := 0; i < numPoints; i++ {
 		nextBytes(source, value)
-		err := points.Append(value, i)
+		err := points.Append(nil, value, i)
 		assert.Nil(t, err)
 	}
 	verifySort(t, config, points, 0, numPoints)
@@ -37,7 +37,7 @@ func TestRandomAllEquals(t *testing.T) {
 	nextBytes(source, value)
 
 	for i := 0; i < numPoints; i++ {
-		err := points.Append(value, rand.New(source).Intn(numPoints))
+		err := points.Append(nil, value, rand.New(source).Intn(numPoints))
 		assert.Nil(t, err)
 	}
 	verifySort(t, config, points, 0, numPoints)
@@ -55,10 +55,10 @@ func TestRandomLastByteTwoValues(t *testing.T) {
 
 	for i := 0; i < numPoints; i++ {
 		if rand.New(source).Intn(100)%2 == 0 {
-			err := points.Append(value, 1)
+			err := points.Append(nil, value, 1)
 			assert.Nil(t, err)
 		} else {
-			err := points.Append(value, 2)
+			err := points.Append(nil, value, 2)
 			assert.Nil(t, err)
 		}
 	}
@@ -81,7 +81,7 @@ func TestRandomFewDifferentValues(t *testing.T) {
 	}
 
 	for i := 0; i < numPoints; i++ {
-		err := points.Append(values[rand.Intn(numberValues)], i)
+		err := points.Append(nil, values[rand.Intn(numberValues)], i)
 		assert.Nil(t, err)
 	}
 	verifySort(t, config, points, 0, numPoints)
@@ -106,7 +106,7 @@ func TestRandomDataDimDifferent(t *testing.T) {
 		from := config.PackedIndexBytesLength()
 		to := from + dataSize
 		copy(value[from:to], dataDimensionValues)
-		err := points.Append(value, rand.New(source).Intn(numPoints))
+		err := points.Append(nil, value, rand.New(source).Intn(numPoints))
 		assert.Nil(t, err)
 	}
 	verifySort(t, config, points, 0, numPoints)

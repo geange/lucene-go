@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"io"
 	"math"
@@ -266,7 +267,7 @@ func (m *MultiLevelSkipListReaderDefault) loadSkipLevels() error {
 // level – the level skip data shall be read from
 // skipStream – the skip stream to read from
 func (m *MultiLevelSkipListReaderDefault) readSkipData(level int, skipStream store.IndexInput) (int64, error) {
-	num, err := skipStream.ReadUvarint()
+	num, err := skipStream.ReadUvarint(context.Background())
 	return int64(num), err
 }
 
@@ -274,7 +275,7 @@ func (m *MultiLevelSkipListReaderDefault) readSkipData(level int, skipStream sto
 // Params: skipStream – the IndexInput the length shall be read from
 // Returns: level length
 func (m *MultiLevelSkipListReaderDefault) readLevelLength(skipStream store.IndexInput) (int64, error) {
-	num, err := skipStream.ReadUvarint()
+	num, err := skipStream.ReadUvarint(context.Background())
 	return int64(num), err
 }
 
@@ -282,7 +283,7 @@ func (m *MultiLevelSkipListReaderDefault) readLevelLength(skipStream store.Index
 // Params: skipStream – the IndexInput the child pointer shall be read from
 // Returns: child pointer
 func (m *MultiLevelSkipListReaderDefault) readChildPointer(skipStream store.IndexInput) (int64, error) {
-	num, err := skipStream.ReadUvarint()
+	num, err := skipStream.ReadUvarint(context.Background())
 	return int64(num), err
 }
 

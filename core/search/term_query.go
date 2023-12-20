@@ -190,7 +190,7 @@ func (t *TermWeight) getTermsEnum(context *index.LeafReaderContext) (index.Terms
 		return nil, err
 	}
 
-	err = termsEnum.SeekExactExpert(t.term.Bytes(), state)
+	err = termsEnum.SeekExactExpert(nil, t.term.Bytes(), state)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/tokenattr"
 )
 
@@ -11,7 +12,7 @@ import (
 // The TermsEnum is unpositioned when you first obtain it and you must first successfully call next or one
 // of the seek methods.
 type TermsEnum interface {
-	Next() ([]byte, error)
+	Next(context.Context) ([]byte, error)
 
 	// Attributes Returns the related attributes.
 	Attributes() *tokenattr.AttributeSource
@@ -19,16 +20,16 @@ type TermsEnum interface {
 	// SeekExact Attempts to seek to the exact term, returning true if the term is found. If this returns false,
 	// the enum is unpositioned. For some codecs, seekExact may be substantially faster than seekCeil.
 	// Returns: true if the term is found; return false if the enum is unpositioned.
-	SeekExact(text []byte) (bool, error)
+	SeekExact(ctx context.Context, text []byte) (bool, error)
 
 	// SeekCeil eeks to the specified term, if it exists, or to the next (ceiling) term. Returns SeekStatus to
 	// indicate whether exact term was found, a different term was found, or isEof was hit. The target term may be
 	// before or after the current term. If this returns SeekStatus.END, the enum is unpositioned.
-	SeekCeil(text []byte) (SeekStatus, error)
+	SeekCeil(ctx context.Context, text []byte) (SeekStatus, error)
 
 	// SeekExactByOrd Seeks to the specified term by ordinal (position) as previously returned by ord. The
 	// target ord may be before or after the current ord, and must be within bounds.
-	SeekExactByOrd(ord int64) error
+	SeekExactByOrd(ctx context.Context, ord int64) error
 
 	// SeekExactExpert Expert: Seeks a specific position by TermState previously obtained from termState().
 	// Callers should maintain the TermState to use this method. Low-level implementations may position the
@@ -41,7 +42,7 @@ type TermsEnum interface {
 	// maintained separately if this method is used.
 	// Params: 	term – the term the TermState corresponds to
 	//			state – the TermState
-	SeekExactExpert(term []byte, state TermState) error
+	SeekExactExpert(ctx context.Context, term []byte, state TermState) error
 
 	// Term Returns current term. Do not call this when the enum is unpositioned.
 	Term() ([]byte, error)
@@ -107,7 +108,7 @@ type emptyTermsEnum struct {
 	atts *tokenattr.AttributeSource
 }
 
-func (e *emptyTermsEnum) Next() ([]byte, error) {
+func (e *emptyTermsEnum) Next(context.Context) ([]byte, error) {
 	return []byte{}, nil
 }
 
@@ -118,20 +119,20 @@ func (e *emptyTermsEnum) Attributes() *tokenattr.AttributeSource {
 	return e.atts
 }
 
-func (e *emptyTermsEnum) SeekExact(text []byte) (bool, error) {
+func (e *emptyTermsEnum) SeekExact(ctx context.Context, text []byte) (bool, error) {
 	return false, nil
 }
 
-func (e *emptyTermsEnum) SeekCeil(text []byte) (SeekStatus, error) {
+func (e *emptyTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
 	return SEEK_STATUS_END, nil
 }
 
-func (e *emptyTermsEnum) SeekExactByOrd(ord int64) error {
+func (e *emptyTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (e *emptyTermsEnum) SeekExactExpert(term []byte, state TermState) error {
+func (e *emptyTermsEnum) SeekExactExpert(ctx context.Context, term []byte, state TermState) error {
 	//TODO implement me
 	panic("implement me")
 }

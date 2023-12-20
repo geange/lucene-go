@@ -1,6 +1,7 @@
 package bkd
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
-func WriteDocIds(docIds []int, out store.DataOutput) error {
+func WriteDocIds(ctx context.Context, docIds []int, out store.DataOutput) error {
 	// docs can be sorted either when all docs in a block have the same value
 	// or when a segment is sorted
 	// 已经排序的使用varint写入
@@ -18,7 +19,7 @@ func WriteDocIds(docIds []int, out store.DataOutput) error {
 		}
 		previous := 0
 		for _, doc := range docIds {
-			if err := out.WriteUvarint(uint64(doc - previous)); err != nil {
+			if err := out.WriteUvarint(ctx, uint64(doc-previous)); err != nil {
 				return err
 			}
 			previous = doc
@@ -38,7 +39,7 @@ func WriteDocIds(docIds []int, out store.DataOutput) error {
 		}
 
 		for _, docId := range docIds {
-			if err := out.WriteUint16(uint16(docId >> 8)); err != nil {
+			if err := out.WriteUint16(ctx, uint16(docId>>8)); err != nil {
 				return err
 			}
 			if err := out.WriteByte(byte(docId)); err != nil {
@@ -53,7 +54,7 @@ func WriteDocIds(docIds []int, out store.DataOutput) error {
 		return err
 	}
 	for _, docId := range docIds {
-		if err := out.WriteUint32(uint32(docId)); err != nil {
+		if err := out.WriteUint32(ctx, uint32(docId)); err != nil {
 			return err
 		}
 	}
@@ -81,7 +82,7 @@ func ReadInts(in store.DataInput, count int, docIDs []int) error {
 func readDeltaVInts(in store.DataInput, count int, docIDs []int) error {
 	doc := 0
 	for i := 0; i < count; i++ {
-		value, err := in.ReadUvarint()
+		value, err := in.ReadUvarint(nil)
 		if err != nil {
 			return err
 		}
@@ -93,7 +94,7 @@ func readDeltaVInts(in store.DataInput, count int, docIDs []int) error {
 
 func readInts32(in store.DataInput, count int, docIDs []int) error {
 	for i := 0; i < count; i++ {
-		v, err := in.ReadUint32()
+		v, err := in.ReadUint32(nil)
 		if err != nil {
 			return err
 		}
@@ -148,14 +149,14 @@ func putUint24(num int) []byte {
 
 // ReadIntsVisitor
 // Read count integers and feed the result directly to org.apache.lucene.index.PointValues.IntersectVisitor.visit(int).
-func ReadIntsVisitor(in store.IndexInput, count int, visitor types.IntersectVisitor) error {
+func ReadIntsVisitor(ctx context.Context, in store.IndexInput, count int, visitor types.IntersectVisitor) error {
 	bpv, err := in.ReadByte()
 	if err != nil {
 		return err
 	}
 	switch bpv {
 	case 0:
-		return readDeltaVIntsVisitor(in, count, visitor)
+		return readDeltaVIntsVisitor(ctx, in, count, visitor)
 	case 32:
 		return readInts32Visitor(in, count, visitor)
 	case 24:
@@ -165,10 +166,10 @@ func ReadIntsVisitor(in store.IndexInput, count int, visitor types.IntersectVisi
 	}
 }
 
-func readDeltaVIntsVisitor(in store.IndexInput, count int, visitor types.IntersectVisitor) error {
+func readDeltaVIntsVisitor(ctx context.Context, in store.IndexInput, count int, visitor types.IntersectVisitor) error {
 	doc := 0
 	for i := 0; i < count; i++ {
-		v, err := in.ReadUvarint()
+		v, err := in.ReadUvarint(ctx)
 		if err != nil {
 			return err
 		}
@@ -185,7 +186,7 @@ func readDeltaVIntsVisitor(in store.IndexInput, count int, visitor types.Interse
 
 func readInts32Visitor(in store.IndexInput, count int, visitor types.IntersectVisitor) error {
 	for i := 0; i < count; i++ {
-		v, err := in.ReadUint32()
+		v, err := in.ReadUint32(nil)
 		if err != nil {
 			return err
 		}

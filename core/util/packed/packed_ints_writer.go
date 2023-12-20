@@ -1,6 +1,7 @@
 package packed
 
 import (
+	"context"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -8,7 +9,7 @@ import (
 // PackIntsWriter A write-once PackIntsWriter.
 // lucene.internal
 type PackIntsWriter interface {
-	WriteHeader() error
+	WriteHeader(ctx context.Context) error
 
 	// GetFormat The format used to serialize values.
 	GetFormat() Format
@@ -62,23 +63,23 @@ func newWriter(out store.DataOutput, valueCount int, bitsPerValue int) *PackInts
 	}
 }
 
-func (w *PackIntsWriterDefault) WriteHeader() error {
+func (w *PackIntsWriterDefault) WriteHeader(ctx context.Context) error {
 	err := utils.WriteHeader(w.out, CODEC_NAME, VERSION_CURRENT)
 	if err != nil {
 		return err
 	}
 
-	err = w.out.WriteUvarint(uint64(w.bitsPerValue))
+	err = w.out.WriteUvarint(ctx, uint64(w.bitsPerValue))
 	if err != nil {
 		return err
 	}
 
-	err = w.out.WriteUvarint(uint64(w.valueCount))
+	err = w.out.WriteUvarint(ctx, uint64(w.valueCount))
 	if err != nil {
 		return err
 	}
 
-	return w.out.WriteUvarint(uint64(w.FnGetFormat().GetId()))
+	return w.out.WriteUvarint(ctx, uint64(w.FnGetFormat().GetId()))
 }
 
 func (w *PackIntsWriterDefault) BitsPerValue() int {

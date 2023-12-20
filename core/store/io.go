@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -28,25 +29,25 @@ type DataInput interface {
 
 	// ReadUint16 Reads two bytes and returns a short.
 	// See Also: DataOutput.writeByte(byte)
-	ReadUint16() (uint16, error)
+	ReadUint16(ctx context.Context) (uint16, error)
 
 	// ReadUint32 Reads four bytes and returns an int.
 	// See Also: DataOutput.writeInt(int)
-	ReadUint32() (uint32, error)
+	ReadUint32(ctx context.Context) (uint32, error)
 
 	// ReadUvarint Reads an int stored in variable-length format. Reads between one and five bytes.
 	// Smaller values take fewer bytes. Negative numbers are supported, but should be avoided.
 	// The format is described further in DataOutput.writeVInt(int).
 	// See Also: DataOutput.writeVInt(int)
-	ReadUvarint() (uint64, error)
+	ReadUvarint(ctx context.Context) (uint64, error)
 
 	// ReadZInt32 Read a zig-zag-encoded variable-length integer.
 	// See Also: DataOutput.writeZInt(int)
-	ReadZInt32() (int64, error)
+	ReadZInt32(ctx context.Context) (int64, error)
 
 	// ReadUint64 Reads eight bytes and returns a long.
 	// See Also: DataOutput.writeLong(long)
-	ReadUint64() (uint64, error)
+	ReadUint64(ctx context.Context) (uint64, error)
 
 	// TODO: LUCENE-9047: Make the entire DataInput/DataOutput API little endian
 	// Then this would just be `readLongs`?
@@ -58,21 +59,21 @@ type DataInput interface {
 
 	// ReadZInt64 Read a zig-zag-encoded variable-length integer. Reads between one and ten bytes.
 	// See Also: DataOutput.writeZLong(long)
-	ReadZInt64() (int64, error)
+	ReadZInt64(ctx context.Context) (int64, error)
 
 	// ReadString Reads a string.
 	// See Also: DataOutput.writeString(String)
-	ReadString() (string, error)
+	ReadString(ctx context.Context) (string, error)
 
 	// ReadMapOfStrings Reads a Map<String,String> previously written with DataOutput.writeMapOfStrings(Map).
 	// Returns: An immutable map containing the written contents.
-	ReadMapOfStrings() (map[string]string, error)
+	ReadMapOfStrings(ctx context.Context) (map[string]string, error)
 
 	// ReadSetOfStrings Reads a Set<String> previously written with DataOutput.writeSetOfStrings(Set).
 	// Returns: An immutable set containing the written contents.
-	ReadSetOfStrings() (map[string]struct{}, error)
+	ReadSetOfStrings(ctx context.Context) (map[string]struct{}, error)
 
-	SkipBytes(numBytes int) error
+	SkipBytes(ctx context.Context, numBytes int) error
 }
 
 func NewReader(reader io.Reader) *Reader {
@@ -115,7 +116,7 @@ func (d *Reader) ReadByte() (byte, error) {
 	return d.buff[0], nil
 }
 
-func (d *Reader) ReadUint16() (uint16, error) {
+func (d *Reader) ReadUint16(ctx context.Context) (uint16, error) {
 	_, err := d.reader.Read(d.buff[:2])
 	if err != nil {
 		return 0, err
@@ -123,7 +124,7 @@ func (d *Reader) ReadUint16() (uint16, error) {
 	return d.endian.Uint16(d.buff), nil
 }
 
-func (d *Reader) ReadUint32() (uint32, error) {
+func (d *Reader) ReadUint32(context.Context) (uint32, error) {
 	_, err := d.reader.Read(d.buff[:4])
 	if err != nil {
 		return 0, err
@@ -131,7 +132,7 @@ func (d *Reader) ReadUint32() (uint32, error) {
 	return d.endian.Uint32(d.buff), nil
 }
 
-func (d *Reader) ReadUvarint() (uint64, error) {
+func (d *Reader) ReadUvarint(context.Context) (uint64, error) {
 	num, err := binary.ReadUvarint(d)
 	if err != nil {
 		return 0, err
@@ -139,12 +140,12 @@ func (d *Reader) ReadUvarint() (uint64, error) {
 	return num, err
 }
 
-func (d *Reader) ReadZInt32() (int64, error) {
+func (d *Reader) ReadZInt32(context.Context) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *Reader) ReadUint64() (uint64, error) {
+func (d *Reader) ReadUint64(context.Context) (uint64, error) {
 	_, err := d.reader.Read(d.buff[:8])
 	if err != nil {
 		return 0, err
@@ -152,13 +153,13 @@ func (d *Reader) ReadUint64() (uint64, error) {
 	return d.endian.Uint64(d.buff), nil
 }
 
-func (d *Reader) ReadZInt64() (int64, error) {
+func (d *Reader) ReadZInt64(context.Context) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *Reader) ReadString() (string, error) {
-	num, err := d.ReadUvarint()
+func (d *Reader) ReadString(ctx context.Context) (string, error) {
+	num, err := d.ReadUvarint(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -179,8 +180,8 @@ func (d *Reader) ReadString() (string, error) {
 	return string(d.buff[:length]), nil
 }
 
-func (d *Reader) ReadMapOfStrings() (map[string]string, error) {
-	count, err := d.ReadUvarint()
+func (d *Reader) ReadMapOfStrings(ctx context.Context) (map[string]string, error) {
+	count, err := d.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -191,12 +192,12 @@ func (d *Reader) ReadMapOfStrings() (map[string]string, error) {
 	values := make(map[string]string, int(count))
 
 	for i := 0; i < int(count); i++ {
-		k, err := d.ReadString()
+		k, err := d.ReadString(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		v, err := d.ReadString()
+		v, err := d.ReadString(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -206,8 +207,8 @@ func (d *Reader) ReadMapOfStrings() (map[string]string, error) {
 	return values, nil
 }
 
-func (d *Reader) ReadSetOfStrings() (map[string]struct{}, error) {
-	count, err := d.ReadUvarint()
+func (d *Reader) ReadSetOfStrings(ctx context.Context) (map[string]struct{}, error) {
+	count, err := d.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +219,7 @@ func (d *Reader) ReadSetOfStrings() (map[string]struct{}, error) {
 	values := make(map[string]struct{}, int(count))
 
 	for i := 0; i < int(count); i++ {
-		k, err := d.ReadString()
+		k, err := d.ReadString(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +231,7 @@ func (d *Reader) ReadSetOfStrings() (map[string]struct{}, error) {
 // SkipBytes Closer Skip over numBytes bytes. The contract on this method is that it should have the
 // same behavior as reading the same number of bytes into a buffer and discarding its content.
 // Negative values of numBytes are not supported.
-func (d *Reader) SkipBytes(numBytes int) error {
+func (d *Reader) SkipBytes(ctx context.Context, numBytes int) error {
 	if numBytes < 0 {
 		return fmt.Errorf("numBytes must be >= 0, got %d", numBytes)
 	}
@@ -266,11 +267,11 @@ type DataOutput interface {
 	// WriteUint32 Writes an int as four bytes.
 	// 32-bit unsigned integer written as four bytes, high-order bytes first.
 	// See Also: DataInput.readInt()
-	WriteUint32(i uint32) error
+	WriteUint32(ctx context.Context, i uint32) error
 
 	// WriteUint16 Writes a short as two bytes.
 	// See Also: DataInput.readShort()
-	WriteUint16(i uint16) error
+	WriteUint16(ctx context.Context, i uint16) error
 
 	// WriteUvarint Writes an int in a variable-length format. Writes between one and five bytes. Smaller
 	// values take fewer bytes. Negative numbers are supported, but should be avoided.
@@ -278,17 +279,17 @@ type DataOutput interface {
 	// byte indicates whether more bytes remain to be read. The low-order seven bits are appended as
 	// increasingly more significant bits in the resulting integer value. Thus values from zero to 127 may
 	// be stored in a single byte, values from 128 to 16,383 may be stored in two bytes, and so on.
-	WriteUvarint(i uint64) error
+	WriteUvarint(ctx context.Context, i uint64) error
 
 	// WriteZInt32 Write a zig-zag-encoded variable-length integer. This is typically useful to write small
 	// signed ints and is equivalent to calling writeVInt(BitUtil.zigZagEncode(i)).
 	// See Also: DataInput.readZInt()
-	WriteZInt32(i int32) error
+	WriteZInt32(ctx context.Context, i int32) error
 
 	// WriteUint64 Writes a long as eight bytes.
 	// 64-bit unsigned integer written as eight bytes, high-order bytes first.
 	// See Also: DataInput.readLong()
-	WriteUint64(i uint64) error
+	WriteUint64(ctx context.Context, i uint64) error
 
 	// WriteVInt64 Writes an long in a variable-length format. Writes between one and nine bytes.
 	// Smaller values take fewer bytes. Negative numbers are not supported.
@@ -299,23 +300,23 @@ type DataOutput interface {
 	// WriteZInt64 Write a zig-zag-encoded variable-length long. Writes between one and ten bytes. This is typically
 	// useful to write small signed ints.
 	// See Also: DataInput.readZLong()
-	WriteZInt64(i int64) error
+	WriteZInt64(ctx context.Context, i int64) error
 
 	// WriteString Writes a string.
 	// Writes strings as UTF-8 encoded bytes. First the length, in bytes, is written as a VInt, followed by the bytes.
 	// See Also: DataInput.readString()
-	WriteString(s string) error
+	WriteString(ctx context.Context, s string) error
 
 	// CopyBytes Copy numBytes bytes from input to ourself.
-	CopyBytes(input DataInput, numBytes int) error
+	CopyBytes(ctx context.Context, input DataInput, numBytes int) error
 
 	// WriteMapOfStrings Writes a String map.
 	// First the size is written as an vInt, followed by each key-value pair written as two consecutive Strings.
-	WriteMapOfStrings(values map[string]string) error
+	WriteMapOfStrings(ctx context.Context, values map[string]string) error
 
 	// WriteSetOfStrings Writes a String set.
 	//First the size is written as an vInt, followed by each value written as a String.
-	WriteSetOfStrings(values map[string]struct{}) error
+	WriteSetOfStrings(ctx context.Context, values map[string]struct{}) error
 }
 
 type Writer struct {
@@ -341,42 +342,42 @@ func (d *Writer) WriteByte(c byte) error {
 	return err
 }
 
-func (d *Writer) WriteUint32(i uint32) error {
+func (d *Writer) WriteUint32(ctx context.Context, i uint32) error {
 	d.endian.PutUint32(d.buffer, i)
 	_, err := d.writer.Write(d.buffer[:4])
 	return err
 }
 
-func (d *Writer) WriteUint16(i uint16) error {
+func (d *Writer) WriteUint16(ctx context.Context, i uint16) error {
 	d.endian.PutUint16(d.buffer, i)
 	_, err := d.writer.Write(d.buffer[:2])
 	return err
 }
 
-func (d *Writer) WriteUvarint(i uint64) error {
+func (d *Writer) WriteUvarint(ctx context.Context, i uint64) error {
 	num := binary.PutUvarint(d.buffer, i)
 	_, err := d.writer.Write(d.buffer[:num])
 	return err
 }
 
-func (d *Writer) WriteZInt32(i int32) error {
+func (d *Writer) WriteZInt32(ctx context.Context, i int32) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *Writer) WriteUint64(i uint64) error {
+func (d *Writer) WriteUint64(ctx context.Context, i uint64) error {
 	d.endian.PutUint64(d.buffer, i)
 	_, err := d.writer.Write(d.buffer[:8])
 	return err
 }
 
-func (d *Writer) WriteZInt64(i int64) error {
+func (d *Writer) WriteZInt64(ctx context.Context, i int64) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *Writer) WriteString(s string) error {
-	err := d.WriteUvarint(uint64(len([]rune(s))))
+func (d *Writer) WriteString(ctx context.Context, s string) error {
+	err := d.WriteUvarint(ctx, uint64(len([]rune(s))))
 	if err != nil {
 		return err
 	}
@@ -388,7 +389,7 @@ const (
 	COPY_BUFFER_SIZE = 16384
 )
 
-func (d *Writer) CopyBytes(input DataInput, numBytes int) error {
+func (d *Writer) CopyBytes(ctx context.Context, input DataInput, numBytes int) error {
 	left := numBytes
 	if len(d.copyBuffer) == 0 {
 		d.copyBuffer = make([]byte, COPY_BUFFER_SIZE)
@@ -414,29 +415,29 @@ func (d *Writer) CopyBytes(input DataInput, numBytes int) error {
 	return nil
 }
 
-func (d *Writer) WriteMapOfStrings(values map[string]string) error {
-	if err := d.WriteUvarint(uint64(len(values))); err != nil {
+func (d *Writer) WriteMapOfStrings(ctx context.Context, values map[string]string) error {
+	if err := d.WriteUvarint(ctx, uint64(len(values))); err != nil {
 		return err
 	}
 
 	for k, v := range values {
-		if err := d.WriteString(k); err != nil {
+		if err := d.WriteString(ctx, k); err != nil {
 			return err
 		}
-		if err := d.WriteString(v); err != nil {
+		if err := d.WriteString(ctx, v); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (d *Writer) WriteSetOfStrings(values map[string]struct{}) error {
-	if err := d.WriteUvarint(uint64(len(values))); err != nil {
+func (d *Writer) WriteSetOfStrings(ctx context.Context, values map[string]struct{}) error {
+	if err := d.WriteUvarint(ctx, uint64(len(values))); err != nil {
 		return err
 	}
 
 	for k := range values {
-		if err := d.WriteString(k); err != nil {
+		if err := d.WriteString(ctx, k); err != nil {
 			return err
 		}
 	}

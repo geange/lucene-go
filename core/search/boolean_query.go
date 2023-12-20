@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/geange/gods-generic/lists/arraylist"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util/structure"
 )
 
 var (
@@ -481,8 +481,8 @@ func (b *BooleanQuery) isPureDisjunction() bool {
 		b.minimumNumberShouldMatch <= 1
 }
 
-func (b *BooleanQuery) Iterator() structure.Iterator[*BooleanClause] {
-	return structure.NewArrayListArray(b.clauses).Iterator()
+func (b *BooleanQuery) Iterator() arraylist.Iterator[*BooleanClause] {
+	return arraylist.New[*BooleanClause](b.clauses...).Iterator()
 }
 
 func (b *BooleanQuery) rewriteNoScoring() (*BooleanQuery, error) {

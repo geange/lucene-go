@@ -1,6 +1,7 @@
 package packed
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -226,9 +227,9 @@ func (p *Packed64) Clear() {
 	}
 }
 
-func (p *Packed64) Save(out store.DataOutput) error {
+func (p *Packed64) Save(ctx context.Context, out store.DataOutput) error {
 	writer := getWriterNoHeader(out, p.GetFormat(), p.Size(), p.GetBitsPerValue(), DEFAULT_BUFFER_SIZE)
-	err := writer.WriteHeader()
+	err := writer.WriteHeader(ctx)
 	if err != nil {
 		return err
 	}

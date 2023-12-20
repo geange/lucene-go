@@ -107,14 +107,14 @@ func FromTermsEnumMatchesIterator(context *index.LeafReaderContext, doc int, que
 	var reuse index.PostingsEnum
 
 	for {
-		term, err := terms.Next()
+		term, err := terms.Next(nil)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, err
 		}
-		ok, _ := te.SeekExact(term)
+		ok, _ := te.SeekExact(nil, term)
 		if ok {
 			pe, err := te.Postings(reuse, index.POSTINGS_ENUM_OFFSETS)
 			if err != nil {
@@ -163,7 +163,7 @@ func (t *termsEnumDisjunctionMatchesIterator) init() error {
 	var reuse index.PostingsEnum
 
 	for {
-		term, err := t.terms.Next()
+		term, err := t.terms.Next(nil)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -171,7 +171,7 @@ func (t *termsEnumDisjunctionMatchesIterator) init() error {
 			return err
 		}
 
-		ok, _ := t.te.SeekExact(term)
+		ok, _ := t.te.SeekExact(nil, term)
 		if ok {
 			pe, err := t.te.Postings(reuse, index.POSTINGS_ENUM_OFFSETS)
 			if err != nil {

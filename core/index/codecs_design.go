@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"io"
 
@@ -125,31 +126,31 @@ type DocValuesConsumer interface {
 	// @param field field information
 	// @param valuesProducer Numeric values to write.
 	// @throws IOException if an I/O error occurred.
-	AddNumericField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
+	AddNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
 
 	// AddBinaryField Writes binary docvalues for a field.
 	// @param field field information
 	// @param valuesProducer Binary values to write.
 	// @throws IOException if an I/O error occurred.
-	AddBinaryField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
+	AddBinaryField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
 
 	// AddSortedField Writes pre-sorted binary docvalues for a field.
 	// @param field field information
 	// @param valuesProducer produces the values and ordinals to write
 	// @throws IOException if an I/O error occurred.
-	AddSortedField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
+	AddSortedField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
 
 	// AddSortedNumericField Writes pre-sorted numeric docvalues for a field
 	// @param field field information
 	// @param valuesProducer produces the values to write
 	// @throws IOException if an I/O error occurred.
-	AddSortedNumericField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
+	AddSortedNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
 
 	// AddSortedSetField Writes pre-sorted set docvalues for a field
 	// @param field field information
 	// @param valuesProducer produces the values to write
 	// @throws IOException if an I/O error occurred.
-	AddSortedSetField(field *document.FieldInfo, valuesProducer DocValuesProducer) error
+	AddSortedSetField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
 }
 
 // Merges in the fields from the readers in mergeState. The default implementation calls mergeNumericField,
@@ -282,12 +283,13 @@ type SegmentInfoFormat interface {
 	// @param segmentID expected identifier for the segment
 	// @return infos instance to be populated with data
 	// @throws IOException If an I/O error occurs
-	Read(dir store.Directory, segmentName string, segmentID []byte, context *store.IOContext) (*SegmentInfo, error)
+	Read(ctx context.Context, dir store.Directory, segmentName string,
+		segmentID []byte, context *store.IOContext) (*SegmentInfo, error)
 
 	// Write {@link SegmentInfo} data.
 	// The codec must add its SegmentInfo filename(s) to {@code info} before doing i/o.
 	// @throws IOException If an I/O error occurs
-	Write(dir store.Directory, info *SegmentInfo, ioContext *store.IOContext) error
+	Write(ctx context.Context, dir store.Directory, info *SegmentInfo, ioContext *store.IOContext) error
 }
 
 type StoredFieldsFormat interface {

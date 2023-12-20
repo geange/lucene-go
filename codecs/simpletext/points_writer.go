@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
@@ -122,7 +123,7 @@ func (s *PointsWriter) Close() error {
 	return indexOut.Close()
 }
 
-func (s *PointsWriter) WriteField(fieldInfo *document.FieldInfo, reader index.PointsReader) error {
+func (s *PointsWriter) WriteField(ctx context.Context, fieldInfo *document.FieldInfo, reader index.PointsReader) error {
 	values, err := reader.GetValues(fieldInfo.Name())
 	if err != nil {
 		return err
@@ -149,7 +150,7 @@ func (s *PointsWriter) WriteField(fieldInfo *document.FieldInfo, reader index.Po
 		DEFAULT_MAX_MB_SORT_IN_HEAP,
 		values.Size())
 
-	err = values.Intersect(&types.BytesVisitor{
+	err = values.Intersect(ctx, &types.BytesVisitor{
 		VisitFn: func(docID int) error {
 			return errors.New("illegal State")
 		},

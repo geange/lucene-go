@@ -16,7 +16,7 @@ func TestNewHeapPointWriter(t *testing.T) {
 	writer := NewHeapPointWriter(config, size)
 	for docId := 0; docId < size; docId++ {
 		packedValue := getPackedValue(config)
-		err := writer.Append(packedValue, docId)
+		err := writer.Append(nil, packedValue, docId)
 		assert.Nil(t, err)
 	}
 }

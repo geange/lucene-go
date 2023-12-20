@@ -89,7 +89,7 @@ func (n *NumericDocValuesWriter) AddValue(docID int, value int64) error {
 func (n *NumericDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
 	n.finalValues = n.pending.Build()
 
-	return consumer.AddNumericField(n.fieldInfo, &EmptyDocValuesProducer{
+	return consumer.AddNumericField(nil, n.fieldInfo, &EmptyDocValuesProducer{
 		FnGetNumeric: func(field *document.FieldInfo) (NumericDocValues, error) {
 			iterator, err := n.docsWithField.Iterator()
 			if err != nil {

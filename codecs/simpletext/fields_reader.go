@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/codecs/utils"
@@ -33,7 +34,7 @@ func (s *FieldsReader) Terms(field string) (index.Terms, error) {
 		if !ok {
 			return nil, nil
 		}
-		terms, err := s.newFieldsReaderTerm(field, fp, s.maxDoc)
+		terms, err := s.newFieldsReaderTerm(context.Background(), field, fp, s.maxDoc)
 		if err != nil {
 			return nil, err
 		}

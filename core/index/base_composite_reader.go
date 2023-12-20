@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -135,11 +136,11 @@ func (b *BaseCompositeReader) DocumentV1(docID int, visitor document.StoredField
 	return b.subReaders[i].DocumentV1(docID-b.starts[i], visitor) // dispatch to subreader
 }
 
-func (b *BaseCompositeReader) DocFreq(term Term) (int, error) {
+func (b *BaseCompositeReader) DocFreq(ctx context.Context, term Term) (int, error) {
 	//ensureOpen();
 	total := 0 // sum freqs in subreaders
 	for i := 0; i < len(b.subReaders); i++ {
-		sub, err := b.subReaders[i].DocFreq(term)
+		sub, err := b.subReaders[i].DocFreq(ctx, term)
 		if err != nil {
 			return 0, err
 		}
@@ -150,11 +151,11 @@ func (b *BaseCompositeReader) DocFreq(term Term) (int, error) {
 	return total, nil
 }
 
-func (b *BaseCompositeReader) TotalTermFreq(term *Term) (int64, error) {
+func (b *BaseCompositeReader) TotalTermFreq(ctx context.Context, term *Term) (int64, error) {
 	//ensureOpen();
 	total := int64(0) // sum freqs in subreaders
 	for i := 0; i < len(b.subReaders); i++ {
-		sub, err := b.subReaders[i].TotalTermFreq(term)
+		sub, err := b.subReaders[i].TotalTermFreq(ctx, term)
 		if err != nil {
 			return 0, err
 		}

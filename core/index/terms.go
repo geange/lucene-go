@@ -104,7 +104,7 @@ func (t *TermsBase) GetMin() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return iterator.Next()
+	return iterator.Next(nil)
 }
 
 func (t *TermsBase) GetMax() ([]byte, error) {
@@ -120,7 +120,7 @@ func (t *TermsBase) GetMax() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := iterator.SeekExactByOrd(int64(size - 1)); err != nil {
+		if err := iterator.SeekExactByOrd(nil, int64(size-1)); err != nil {
 			return nil, err
 		}
 		return iterator.Term()
@@ -131,7 +131,7 @@ func (t *TermsBase) GetMax() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	v, err := iterator.Next()
+	v, err := iterator.Next(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (t *TermsBase) GetMax() ([]byte, error) {
 		for low != high {
 			mid := (low + high) >> 1
 			scratch.SetByteAt(scratch.Length()-1, byte(mid))
-			status, err := iterator.SeekCeil(scratch.Get())
+			status, err := iterator.SeekCeil(nil, scratch.Get())
 			if err != nil {
 				return nil, err
 			}

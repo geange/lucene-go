@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
@@ -66,7 +67,7 @@ type SortField interface {
 
 	GetIndexSorter() IndexSorter
 
-	Serialize(out store.DataOutput) error
+	Serialize(ctx context.Context, out store.DataOutput) error
 	Equals(other SortField) bool
 	String() string
 }
@@ -274,42 +275,54 @@ func (s *SortFieldDefault) GetIndexSorter() IndexSorter {
 	}
 }
 
-func (s *SortFieldDefault) Serialize(out store.DataOutput) error {
-	out.WriteString(s.field)
-	out.WriteString(s._type.String())
+func (s *SortFieldDefault) Serialize(ctx context.Context, out store.DataOutput) error {
+	if err := out.WriteString(ctx, s.field); err != nil {
+		return err
+	}
+	if err := out.WriteString(ctx, s._type.String()); err != nil {
+		return err
+	}
 
-	out.WriteUint32(func() uint32 {
+	if err := out.WriteUint32(ctx, func() uint32 {
 		if s.reverse {
 			return 1
 		}
 		return 0
-	}())
-
-	if s.missingValue == nil {
-		return out.WriteUint32(0)
+	}()); err != nil {
+		return err
 	}
 
-	out.WriteUint32(1)
+	if s.missingValue == nil {
+		return out.WriteUint32(ctx, 0)
+	}
+
+	if err := out.WriteUint32(ctx, 1); err != nil {
+		return err
+	}
 	switch s._type {
 	case SCORE:
 		switch s.missingValue.(string) {
 		case STRING_FIRST:
-			out.WriteUint32(1)
+			if err := out.WriteUint32(ctx, 1); err != nil {
+				return err
+			}
 		case STRING_LAST:
-			out.WriteUint32(0)
+			if err := out.WriteUint32(ctx, 0); err != nil {
+				return err
+			}
 		default:
 			return fmt.Errorf("cannot serialize missing item of %v for type STRING", s.missingValue)
 		}
 
 		return nil
 	case INT:
-		return out.WriteUint32(uint32(s.missingValue.(int32)))
+		return out.WriteUint32(ctx, uint32(s.missingValue.(int32)))
 	case LONG:
-		return out.WriteUint64(uint64(s.missingValue.(int64)))
+		return out.WriteUint64(ctx, uint64(s.missingValue.(int64)))
 	case FLOAT:
-		return out.WriteUint32(math.Float32bits(s.missingValue.(float32)))
+		return out.WriteUint32(ctx, math.Float32bits(s.missingValue.(float32)))
 	case DOUBLE:
-		return out.WriteUint64(math.Float64bits(s.missingValue.(float64)))
+		return out.WriteUint64(ctx, math.Float64bits(s.missingValue.(float64)))
 	default:
 		return fmt.Errorf("cannot serialize SortField of type %s", s._type)
 	}
@@ -418,18 +431,18 @@ func (s *sortFieldProvider) GetName() string {
 	return s.name
 }
 
-func (s *sortFieldProvider) ReadSortField(in store.DataInput) (SortField, error) {
-	field, err := in.ReadString()
+func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInput) (SortField, error) {
+	field, err := in.ReadString(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	fieldType, err := readType(in)
+	fieldType, err := readType(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 
-	num, err := in.ReadUint32()
+	num, err := in.ReadUint32(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -441,7 +454,7 @@ func (s *sortFieldProvider) ReadSortField(in store.DataInput) (SortField, error)
 		return nil, err
 	}
 
-	num1, err := in.ReadUint32()
+	num1, err := in.ReadUint32(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -449,39 +462,51 @@ func (s *sortFieldProvider) ReadSortField(in store.DataInput) (SortField, error)
 	if num1 == 1 {
 		switch sf._type {
 		case STRING:
-			num, err := in.ReadUint32()
+			num, err := in.ReadUint32(ctx)
 			if err != nil {
 				return nil, err
 			}
 			if num == 1 {
-				sf.SetMissingValue(STRING_FIRST)
+				if err := sf.SetMissingValue(STRING_FIRST); err != nil {
+					return nil, err
+				}
 			} else {
-				sf.SetMissingValue(STRING_LAST)
+				if err := sf.SetMissingValue(STRING_LAST); err != nil {
+					return nil, err
+				}
 			}
 		case INT:
-			num, err := in.ReadUint32()
+			num, err := in.ReadUint32(ctx)
 			if err != nil {
 				return nil, err
 			}
-			sf.SetMissingValue(num)
+			if err := sf.SetMissingValue(num); err != nil {
+				return nil, err
+			}
 		case LONG:
-			num, err := in.ReadUint64()
+			num, err := in.ReadUint64(ctx)
 			if err != nil {
 				return nil, err
 			}
-			sf.SetMissingValue(num)
+			if err := sf.SetMissingValue(num); err != nil {
+				return nil, err
+			}
 		case FLOAT:
-			num, err := in.ReadUint32()
+			num, err := in.ReadUint32(ctx)
 			if err != nil {
 				return nil, err
 			}
-			sf.SetMissingValue(math.Float32frombits(num))
+			if err := sf.SetMissingValue(math.Float32frombits(num)); err != nil {
+				return nil, err
+			}
 		case DOUBLE:
-			num, err := in.ReadUint64()
+			num, err := in.ReadUint64(ctx)
 			if err != nil {
 				return nil, err
 			}
-			sf.SetMissingValue(math.Float64frombits(num))
+			if err := sf.SetMissingValue(math.Float64frombits(num)); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("cannot deserialize sort of type %s", sf._type)
 		}
@@ -489,12 +514,12 @@ func (s *sortFieldProvider) ReadSortField(in store.DataInput) (SortField, error)
 	return sf, nil
 }
 
-func (s *sortFieldProvider) WriteSortField(sf SortField, out store.DataOutput) error {
-	return sf.Serialize(out)
+func (s *sortFieldProvider) WriteSortField(ctx context.Context, sf SortField, out store.DataOutput) error {
+	return sf.Serialize(ctx, out)
 }
 
-func readType(in store.DataInput) (SortFieldType, error) {
-	value, err := in.ReadString()
+func readType(ctx context.Context, in store.DataInput) (SortFieldType, error) {
+	value, err := in.ReadString(ctx)
 	if err != nil {
 		return 0, err
 	}

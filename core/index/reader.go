@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -93,10 +94,10 @@ type Reader interface {
 	// DocFreq Returns the number of documents containing the term. This method returns 0 if the term or field
 	// does not exists. This method does not take into account deleted documents that have not yet been merged away.
 	// See Also: TermsEnum.docFreq()
-	DocFreq(term Term) (int, error)
+	DocFreq(ctx context.Context, term Term) (int, error)
 
 	// TotalTermFreq Returns the total number of occurrences of term across all documents (the sum of the freq() for each doc that has this term). Note that, like other term measures, this measure does not take deleted documents into account.
-	TotalTermFreq(term *Term) (int64, error)
+	TotalTermFreq(ctx context.Context, term *Term) (int64, error)
 
 	// GetSumDocFreq Returns the sum of TermsEnum.docFreq() for all terms in this field. Note that, just like
 	// other term measures, this measure does not take deleted documents into account.

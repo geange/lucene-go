@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/core/types"
 	"io"
@@ -48,7 +49,7 @@ func (s *SimpleTVTerms) GetSumTotalTermFreq() (int64, error) {
 	}
 
 	for {
-		next, err := iterator.Next()
+		next, err := iterator.Next(nil)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -133,14 +134,14 @@ type SimpleTVTermsEnum struct {
 	iterator *treemap.Iterator[[]byte, *SimpleTVPostings]
 }
 
-func (s *SimpleTVTermsEnum) Next() ([]byte, error) {
+func (s *SimpleTVTermsEnum) Next(context.Context) ([]byte, error) {
 	if !s.iterator.Next() {
 		return nil, io.EOF
 	}
 	return s.iterator.Key(), nil
 }
 
-func (s *SimpleTVTermsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
+func (s *SimpleTVTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
 	_, _, ok := s.terms.Ceiling(text)
 	if ok {
 		return index.SEEK_STATUS_FOUND, nil
@@ -148,7 +149,7 @@ func (s *SimpleTVTermsEnum) SeekCeil(text []byte) (index.SeekStatus, error) {
 	return index.SEEK_STATUS_NOT_FOUND, nil
 }
 
-func (s *SimpleTVTermsEnum) SeekExactByOrd(ord int64) error {
+func (s *SimpleTVTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
 	return errors.New("unsupported operation exception")
 }
 
