@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/types"
 	"io"
 
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ index.Terms = &SimpleTVTerms{}

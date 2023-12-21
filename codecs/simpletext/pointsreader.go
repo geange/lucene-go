@@ -3,12 +3,13 @@ package simpletext
 import (
 	"bytes"
 	"fmt"
+	"io"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/bytesutils"
-	"io"
 )
 
 var _ index.PointsReader = &PointsReader{}

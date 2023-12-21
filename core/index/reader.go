@@ -121,7 +121,7 @@ type Reader interface {
 	GetMetaData() *LeafMetaData
 }
 
-type ReaderInner interface {
+type ReaderSPI interface {
 	GetTermVectors(docID int) (Fields, error)
 	NumDocs() int
 	MaxDoc() int
@@ -131,16 +131,16 @@ type ReaderInner interface {
 }
 
 type ReaderBase struct {
-	spi ReaderInner
+	sync.Mutex
 
+	spi           ReaderSPI
 	closed        bool
 	closedByChild bool
 	refCount      *atomic.Int64
 	parentReaders map[Reader]struct{}
-	sync.Mutex
 }
 
-func NewIndexReaderBase(spi ReaderInner) *ReaderBase {
+func NewIndexReaderBase(spi ReaderSPI) *ReaderBase {
 	return &ReaderBase{
 		spi:           spi,
 		refCount:      new(atomic.Int64),

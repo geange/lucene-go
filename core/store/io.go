@@ -335,29 +335,38 @@ func NewWriter(writer io.Writer) *Writer {
 }
 
 func (d *Writer) WriteByte(c byte) error {
-	//if w, ok := d.writer.(io.ByteWriter); ok {
-	//	return w.WriteByte(c)
-	//}
-	_, err := d.writer.Write([]byte{c})
-	return err
+	if w, ok := d.writer.(io.ByteWriter); ok {
+		return w.WriteByte(c)
+	}
+
+	if _, err := d.writer.Write([]byte{c}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *Writer) WriteUint32(ctx context.Context, i uint32) error {
 	d.endian.PutUint32(d.buffer, i)
-	_, err := d.writer.Write(d.buffer[:4])
-	return err
+	if _, err := d.writer.Write(d.buffer[:4]); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *Writer) WriteUint16(ctx context.Context, i uint16) error {
 	d.endian.PutUint16(d.buffer, i)
-	_, err := d.writer.Write(d.buffer[:2])
-	return err
+	if _, err := d.writer.Write(d.buffer[:2]); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *Writer) WriteUvarint(ctx context.Context, i uint64) error {
 	num := binary.PutUvarint(d.buffer, i)
-	_, err := d.writer.Write(d.buffer[:num])
-	return err
+	if _, err := d.writer.Write(d.buffer[:num]); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *Writer) WriteZInt32(ctx context.Context, i int32) error {
@@ -367,8 +376,10 @@ func (d *Writer) WriteZInt32(ctx context.Context, i int32) error {
 
 func (d *Writer) WriteUint64(ctx context.Context, i uint64) error {
 	d.endian.PutUint64(d.buffer, i)
-	_, err := d.writer.Write(d.buffer[:8])
-	return err
+	if _, err := d.writer.Write(d.buffer[:8]); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *Writer) WriteZInt64(ctx context.Context, i int64) error {
@@ -377,12 +388,13 @@ func (d *Writer) WriteZInt64(ctx context.Context, i int64) error {
 }
 
 func (d *Writer) WriteString(ctx context.Context, s string) error {
-	err := d.WriteUvarint(ctx, uint64(len([]rune(s))))
-	if err != nil {
+	if err := d.WriteUvarint(ctx, uint64(len([]rune(s)))); err != nil {
 		return err
 	}
-	_, err = d.writer.Write([]byte(s))
-	return err
+	if _, err := d.writer.Write([]byte(s)); err != nil {
+		return err
+	}
+	return nil
 }
 
 const (
@@ -396,18 +408,14 @@ func (d *Writer) CopyBytes(ctx context.Context, input DataInput, numBytes int) e
 	}
 
 	for left > 0 {
-		var toCopy int
+		toCopy := left
 		if left > COPY_BUFFER_SIZE {
 			toCopy = COPY_BUFFER_SIZE
-		} else {
-			toCopy = left
 		}
-		_, err := input.Read(d.copyBuffer[:toCopy])
-		if err != nil {
+		if _, err := input.Read(d.copyBuffer[:toCopy]); err != nil {
 			return err
 		}
-		_, err = d.writer.Write(d.copyBuffer[:toCopy])
-		if err != nil {
+		if _, err := d.writer.Write(d.copyBuffer[:toCopy]); err != nil {
 			return err
 		}
 		left -= toCopy

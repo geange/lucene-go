@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strconv"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/bytesutils"
-	"strconv"
 )
 
 var _ index.SegmentInfoFormat = &SegmentInfoFormat{}

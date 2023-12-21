@@ -439,12 +439,13 @@ func (b *Builder) AddInts(ctx context.Context, input []int, output Output) error
 	// compare shared prefix length
 	pos := 0
 	posStop := min(len(b.lastInput), len(input))
-	b.frontier[pos].InputCount++
-	for pos = 0; pos < posStop; pos++ {
-		if b.lastInput[pos] != input[pos] {
+
+	for {
+		b.frontier[pos].InputCount++
+		if pos >= posStop || b.lastInput[pos] != input[pos] {
 			break
 		}
-		b.frontier[pos].InputCount++
+		pos++
 	}
 
 	// 计算公共前缀的长度

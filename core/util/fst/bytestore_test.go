@@ -81,6 +81,7 @@ func TestByteStoreTruncate(t *testing.T) {
 	}
 
 	{
+		// downTo == 0
 		bstore := NewByteStore(10)
 
 		_, err := bstore.Write(make([]byte, 20))
@@ -154,6 +155,24 @@ func TestByteStoreMoveBytes(t *testing.T) {
 
 		buf := new(bytes.Buffer)
 		err = bstore.CopyTo(context.Background(), 1023, 4, buf)
+		assert.Nil(t, err)
+
+		assert.Equal(t, []byte{1, 2, 3, 4}, buf.Bytes())
+	}
+
+	{
+		bstore := NewByteStore(10)
+
+		data := [2048]byte{1, 2, 3, 4}
+
+		_, err := bstore.Write(data[:])
+		assert.Nil(t, err)
+
+		err = bstore.MoveBytes(context.Background(), 0, 1024, 1024)
+		assert.Nil(t, err)
+
+		buf := new(bytes.Buffer)
+		err = bstore.CopyTo(context.Background(), 1024, 4, buf)
 		assert.Nil(t, err)
 
 		assert.Equal(t, []byte{1, 2, 3, 4}, buf.Bytes())

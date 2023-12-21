@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
+	"sort"
+
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	bkd2 "github.com/geange/lucene-go/core/util/bkd"
+	"github.com/geange/lucene-go/core/util/bkd"
 	"github.com/geange/lucene-go/core/util/bytesutils"
 	"github.com/geange/lucene-go/core/util/numeric"
-	"math"
-	"sort"
 )
 
 const (
@@ -28,7 +29,7 @@ const (
 
 type BKDWriter struct {
 	// How many dimensions we are storing at the leaf (data) nodes
-	config              *bkd2.Config
+	config              *bkd.Config
 	scratch             *bytes.Buffer
 	tempDir             *store.TrackingDirectoryWrapper
 	tempFileNamePrefix  string
@@ -40,7 +41,7 @@ type BKDWriter struct {
 	scratchBytesRef2    *bytes.Buffer
 	commonPrefixLengths []int
 	docsSeen            *bitset.BitSet
-	pointWriter         bkd2.PointWriter
+	pointWriter         bkd.PointWriter
 	finished            bool
 	tempInput           store.IndexOutput
 	maxPointsSortInHeap int
@@ -63,7 +64,7 @@ type BKDWriter struct {
 }
 
 func NewBKDWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string,
-	config *bkd2.Config, maxMBSortInHeap float64, totalPointCount int) *BKDWriter {
+	config *bkd.Config, maxMBSortInHeap float64, totalPointCount int) *BKDWriter {
 	return &BKDWriter{
 		config:              config,
 		scratch:             new(bytes.Buffer),
@@ -108,12 +109,12 @@ func (s *BKDWriter) Add(packedValue []byte, docID int) error {
 
 		//total point count is an estimation but the final point count must be equal or lower to that number.
 		if int(s.totalPointCount) > s.maxPointsSortInHeap {
-			pointWriter := bkd2.NewOfflinePointWriter(s.config, s.tempDir, s.tempFileNamePrefix, "spill", 0)
+			pointWriter := bkd.NewOfflinePointWriter(s.config, s.tempDir, s.tempFileNamePrefix, "spill", 0)
 
 			s.pointWriter = pointWriter
 			s.tempInput = pointWriter.GetIndexOutput()
 		} else {
-			s.pointWriter = bkd2.NewHeapPointWriter(s.config, int(s.totalPointCount))
+			s.pointWriter = bkd.NewHeapPointWriter(s.config, int(s.totalPointCount))
 		}
 
 		copy(s.minPackedValue, packedValue[:s.config.PackedIndexBytesLength()])
@@ -177,7 +178,7 @@ func (s *BKDWriter) Finish(out store.IndexOutput) (int64, error) {
 	if err := s.pointWriter.Close(); err != nil {
 		return 0, err
 	}
-	points := bkd2.NewPathSlice(s.pointWriter, 0, s.pointCount)
+	points := bkd.NewPathSlice(s.pointWriter, 0, s.pointCount)
 	//clean up pointers
 	s.tempInput = nil
 	s.pointWriter = nil
@@ -210,7 +211,7 @@ func (s *BKDWriter) Finish(out store.IndexOutput) (int64, error) {
 	leafBlockFPs := make([]int64, numLeaves)
 
 	//We re-use the selector so we do not need to create an object every time.
-	radixSelector := bkd2.NewRadixSelector(s.config, s.maxPointsSortInHeap, s.tempDir, s.tempFileNamePrefix)
+	radixSelector := bkd.NewRadixSelector(s.config, s.maxPointsSortInHeap, s.tempDir, s.tempFileNamePrefix)
 
 	err := s.buildV2(1, numLeaves, points, out,
 		radixSelector, s.minPackedValue, s.maxPackedValue,
@@ -640,8 +641,8 @@ func (s *BKDWriter) writeLeafBlockDocs(out store.IndexOutput, docIDs []int, star
 	return nil
 }
 
-func (s *BKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd2.PathSlice,
-	out store.IndexOutput, radixSelector *bkd2.RadixSelector,
+func (s *BKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd.PathSlice,
+	out store.IndexOutput, radixSelector *bkd.RadixSelector,
 	minPackedValue, maxPackedValue, splitPackedValues []byte,
 	leafBlockFPs []int64, spareDocIds []int) error {
 
@@ -649,9 +650,9 @@ func (s *BKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd2.PathSlice,
 		// Leaf node: write block
 		// We can write the block in any order so by default we write it sorted by the dimension that has the
 		// least number of unique bytes at commonPrefixLengths[dim], which makes compression more efficient
-		var heapSource *bkd2.HeapPointWriter
+		var heapSource *bkd.HeapPointWriter
 
-		if writer, ok := points.PointWriter().(*bkd2.HeapPointWriter); ok {
+		if writer, ok := points.PointWriter().(*bkd.HeapPointWriter); ok {
 			heapSource = writer
 		} else {
 			var err error
@@ -745,12 +746,12 @@ func (s *BKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd2.PathSlice,
 	// 计算最大和最小的值的前缀
 	fromIndex := splitDim * s.config.BytesPerDim()
 	toIndex := splitDim*s.config.BytesPerDim() + s.config.BytesPerDim()
-	commonPrefixLen := bkd2.Mismatch(minPackedValue[fromIndex:toIndex], maxPackedValue[fromIndex:toIndex])
+	commonPrefixLen := bkd.Mismatch(minPackedValue[fromIndex:toIndex], maxPackedValue[fromIndex:toIndex])
 	if commonPrefixLen == -1 {
 		commonPrefixLen = s.config.BytesPerDim()
 	}
 
-	pathSlices := make([]*bkd2.PathSlice, 2)
+	pathSlices := make([]*bkd.PathSlice, 2)
 
 	splitValue, err := radixSelector.Select(points, pathSlices,
 		points.Start(), points.Start()+points.Count(), points.Start()+leftCount,
@@ -790,7 +791,7 @@ func (s *BKDWriter) buildV2(nodeID, leafNodeOffset int, points *bkd2.PathSlice,
 
 }
 
-func (s *BKDWriter) computeCommonPrefixLength(heapPointWriter *bkd2.HeapPointWriter, commonPrefix []byte) {
+func (s *BKDWriter) computeCommonPrefixLength(heapPointWriter *bkd.HeapPointWriter, commonPrefix []byte) {
 	for i := range s.commonPrefixLengths {
 		s.commonPrefixLengths[i] = s.config.BytesPerDim()
 	}
@@ -810,7 +811,7 @@ func (s *BKDWriter) computeCommonPrefixLength(heapPointWriter *bkd2.HeapPointWri
 			if s.commonPrefixLengths[dim] != 0 {
 				fromIndex := dim * s.config.BytesPerDim()
 				toIndex := dim*s.config.BytesPerDim() + s.commonPrefixLengths[dim]
-				j := bkd2.Mismatch(commonPrefix[fromIndex:toIndex], packedValue[fromIndex:toIndex])
+				j := bkd.Mismatch(commonPrefix[fromIndex:toIndex], packedValue[fromIndex:toIndex])
 				if j != -1 {
 					s.commonPrefixLengths[dim] = j
 				}
@@ -824,7 +825,7 @@ func (s *BKDWriter) computeCommonPrefixLength(heapPointWriter *bkd2.HeapPointWri
 //}
 
 // Pull a partition back into heap once the point count is low enough while recursing.
-func (s *BKDWriter) switchToHeap(source bkd2.PointWriter) (*bkd2.HeapPointWriter, error) {
+func (s *BKDWriter) switchToHeap(source bkd.PointWriter) (*bkd.HeapPointWriter, error) {
 	count := source.Count()
 
 	reader, err := source.GetReader(0, count)
@@ -832,7 +833,7 @@ func (s *BKDWriter) switchToHeap(source bkd2.PointWriter) (*bkd2.HeapPointWriter
 		return nil, err
 	}
 
-	writer := bkd2.NewHeapPointWriter(s.config, int(count))
+	writer := bkd.NewHeapPointWriter(s.config, int(count))
 
 	for i := 0; i < int(count); i++ {
 		if _, err := reader.Next(); err != nil {

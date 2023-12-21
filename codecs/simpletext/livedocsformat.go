@@ -3,12 +3,13 @@ package simpletext
 import (
 	"bytes"
 	"errors"
+	"strconv"
+
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
-	"strconv"
 )
 
 var (

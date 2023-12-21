@@ -38,8 +38,7 @@ type SegmentWriteState struct {
 	Context *store.IOContext
 }
 
-func NewSegmentWriteState(directory store.Directory, segmentInfo *SegmentInfo, fieldInfos *FieldInfos,
-	segUpdates *BufferedUpdates, context *store.IOContext) *SegmentWriteState {
+func NewSegmentWriteState(directory store.Directory, segmentInfo *SegmentInfo, fieldInfos *FieldInfos, segUpdates *BufferedUpdates) *SegmentWriteState {
 
 	return &SegmentWriteState{
 		Directory:           directory,
@@ -50,6 +49,5 @@ func NewSegmentWriteState(directory store.Directory, segmentInfo *SegmentInfo, f
 		SegUpdates:          segUpdates,
 		LiveDocs:            nil,
 		SegmentSuffix:       "",
-		Context:             context,
 	}
 }

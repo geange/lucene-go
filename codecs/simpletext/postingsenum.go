@@ -55,7 +55,7 @@ func (s *PostingsEnum) readDoc() (int, error) {
 		if err := utils.ReadLine(s.in, s.scratch); err != nil {
 			return 0, err
 		}
-		//System.out.println("NEXT DOC: " + scratch.utf8ToString());
+
 		if bytes.HasPrefix(s.scratch.Bytes(), FIELDS_DOC) {
 			if !first {
 				s.nextDocStart = lineStart
