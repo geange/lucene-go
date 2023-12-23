@@ -20,8 +20,8 @@ func TestNewFstV1(t *testing.T) {
 		16, 13, 72, 'p', 16, 9, 91, 'm', 16,
 	}
 
-	metaInput := store.NewByteArrayDataInput(metaBytes)
-	dataInput := store.NewByteArrayDataInput(dataBytes)
+	metaInput := store.NewBytesInput(metaBytes)
+	dataInput := store.NewBytesInput(dataBytes)
 
 	ctx := context.Background()
 	manager := NewBoxManager[int64]()
@@ -41,8 +41,8 @@ func TestReadFirstTarget(t *testing.T) {
 		16, 13, 72, 'p', 16, 9, 91, 'm', 16,
 	}
 
-	metaInput := store.NewByteArrayDataInput(metaBytes)
-	dataInput := store.NewByteArrayDataInput(dataBytes)
+	metaInput := store.NewBytesInput(metaBytes)
+	dataInput := store.NewBytesInput(dataBytes)
 
 	ctx := context.Background()
 	manager := NewBoxManager[int64]()
@@ -80,8 +80,8 @@ func TestReadNextArc(t *testing.T) {
 		16, 13, 72, 'p', 16, 9, 91, 'm', 16,
 	}
 
-	metaInput := store.NewByteArrayDataInput(metaBytes)
-	dataInput := store.NewByteArrayDataInput(dataBytes)
+	metaInput := store.NewBytesInput(metaBytes)
+	dataInput := store.NewBytesInput(dataBytes)
 
 	ctx := context.Background()
 	manager := NewBoxManager[int64]()
@@ -135,8 +135,8 @@ func TestFindTargetArc(t *testing.T) {
 		16, 13, 72, 'p', 16, 9, 91, 'm', 16,
 	}
 
-	metaInput := store.NewByteArrayDataInput(metaBytes)
-	dataInput := store.NewByteArrayDataInput(dataBytes)
+	metaInput := store.NewBytesInput(metaBytes)
+	dataInput := store.NewBytesInput(dataBytes)
 
 	ctx := context.Background()
 	manager := NewBoxManager[int64]()

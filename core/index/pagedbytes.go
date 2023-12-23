@@ -123,8 +123,23 @@ func (r *PagedBytes) Freeze(trim bool) (*PagedBytesReader, error) {
 
 func (r *PagedBytes) GetDataInput() *PagedBytesDataInput {
 	input := NewPagedBytesDataInput(r)
-	input.Reader = store.NewReader(input)
+	input.BaseDataInput = store.NewBaseDataInput(input)
 	return input
+}
+
+func (r *PagedBytes) CloneWithoutBlocks() *PagedBytes {
+	return &PagedBytes{
+		blocks:            r.blocks,
+		numBlocks:         r.numBlocks,
+		blockSize:         r.blockSize,
+		blockBits:         r.blockBits,
+		blockMask:         r.blockMask,
+		didSkipBytes:      r.didSkipBytes,
+		frozen:            r.frozen,
+		upto:              r.upto,
+		currentBlock:      r.currentBlock,
+		bytesUsedPerBlock: r.bytesUsedPerBlock,
+	}
 }
 
 // PagedBytesReader Provides methods to read BytesRefs from a frozen PagedBytes.
@@ -180,9 +195,10 @@ func (p *PagedBytesReader) FillSlice(b *bytes.Buffer, start, length int) {
 }
 
 var _ store.DataInput = &PagedBytesDataInput{}
+var _ store.CloneReader = &PagedBytesDataInput{}
 
 type PagedBytesDataInput struct {
-	*store.Reader
+	*store.BaseDataInput
 	*PagedBytes
 
 	currentBlockIndex int
@@ -195,7 +211,7 @@ func NewPagedBytesDataInput(pageBytes *PagedBytes) *PagedBytesDataInput {
 		PagedBytes:   pageBytes,
 		currentBlock: pageBytes.blocks[0],
 	}
-	input.Reader = store.NewReader(input)
+	input.BaseDataInput = store.NewBaseDataInput(input)
 	return input
 }
 
@@ -228,6 +244,17 @@ func (r *PagedBytesDataInput) Read(bs []byte) (n int, err error) {
 	return len(bs), nil
 }
 
+func (r *PagedBytesDataInput) Clone() store.CloneReader {
+	input := &PagedBytesDataInput{
+		PagedBytes:        r.PagedBytes.CloneWithoutBlocks(),
+		currentBlockIndex: r.currentBlockIndex,
+		currentBlockUpto:  r.currentBlockUpto,
+		currentBlock:      r.currentBlock,
+	}
+	input.BaseDataInput = store.NewBaseDataInput(input)
+	return input
+}
+
 func (r *PagedBytesDataInput) nextBlock() {
 	r.currentBlockIndex++
 	r.currentBlockUpto = 0
@@ -242,13 +269,13 @@ func (r *PagedBytesDataInput) getPosition() int64 {
 var _ store.DataOutput = &PagedBytesDataOutput{}
 
 type PagedBytesDataOutput struct {
-	*store.Writer
+	*store.BaseDataOutput
 	*PagedBytes
 }
 
 func (r *PagedBytes) GetDataOutput() *PagedBytesDataOutput {
 	output := &PagedBytesDataOutput{PagedBytes: r}
-	output.Writer = store.NewWriter(output)
+	output.BaseDataOutput = store.NewBaseDataOutput(output)
 	return output
 }
 

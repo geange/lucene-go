@@ -51,7 +51,7 @@ func NewSimpleTextFieldInfosFormat() *FieldInfosFormat {
 
 func (s *FieldInfosFormat) Read(directory store.Directory, segmentInfo *index.SegmentInfo, segmentSuffix string, ctx *store.IOContext) (*index.FieldInfos, error) {
 	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
-	input, err := store.OpenChecksumInput(directory, fileName, ctx)
+	input, err := store.OpenChecksumInput(directory, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func (s *FieldInfosFormat) Read(directory store.Directory, segmentInfo *index.Se
 func (s *FieldInfosFormat) Write(directory store.Directory, segmentInfo *index.SegmentInfo,
 	segmentSuffix string, infos *index.FieldInfos, context *store.IOContext) error {
 	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
-	out, err := directory.CreateOutput(fileName, context)
+	out, err := directory.CreateOutput(nil, fileName)
 	if err != nil {
 		return err
 	}

@@ -50,7 +50,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 	scratch := new(bytes.Buffer)
 	segFileName := store.SegmentFileName(segmentName, "", SI_EXTENSION)
 
-	input, err := store.OpenChecksumInput(dir, segFileName, context)
+	input, err := store.OpenChecksumInput(dir, segFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		if err != nil {
 			return nil, err
 		}
-		output := store.NewByteArrayDataInput(toBytes)
+		output := store.NewBytesInput(toBytes)
 		field, err := index.GetSortFieldProviderByName(provider).ReadSortField(nil, output)
 		if err != nil {
 			return nil, err
@@ -230,7 +230,7 @@ func (s *SegmentInfoFormat) Write(ctx context.Context, dir store.Directory, si *
 
 	segFileName := store.SegmentFileName(si.Name(), "", SI_EXTENSION)
 
-	output, err := dir.CreateOutput(segFileName, ioContext)
+	output, err := dir.CreateOutput(nil, segFileName)
 	if err != nil {
 		return err
 	}
@@ -454,14 +454,14 @@ func (s *SegmentInfoFormat) Write(ctx context.Context, dir store.Directory, si *
 var _ store.DataOutput = &BytesOutput{}
 
 type BytesOutput struct {
-	*store.Writer
+	*store.BaseDataOutput
 
 	bytes *bytes.Buffer
 }
 
 func NewBytesOutput() *BytesOutput {
 	output := &BytesOutput{bytes: new(bytes.Buffer)}
-	output.Writer = store.NewWriter(output)
+	output.BaseDataOutput = store.NewBaseDataOutput(output)
 	return output
 }
 

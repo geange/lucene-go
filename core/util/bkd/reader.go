@@ -186,7 +186,7 @@ func (r *Reader) GetIntersectState(ctx context.Context, visitor types.IntersectV
 	if err != nil {
 		return nil, err
 	}
-	return NewIntersectState(r.in.Clone(), r.config, visitor, index), nil
+	return NewIntersectState(r.in.Clone().(store.IndexInput), r.config, visitor, index), nil
 }
 
 // VisitLeafBlockValues Visits all docIDs and packed values in a single leaf block

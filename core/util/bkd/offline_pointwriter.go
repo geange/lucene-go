@@ -23,7 +23,7 @@ type OfflinePointWriter struct {
 
 func NewOfflinePointWriter(config *Config, tempDir store.Directory,
 	tempFileNamePrefix, desc string, expectedCount int) *OfflinePointWriter {
-	out, err := tempDir.CreateTempOutput(tempFileNamePrefix, "bkd_"+desc, nil)
+	out, err := tempDir.CreateTempOutput(nil, tempFileNamePrefix, "bkd_"+desc)
 	if err != nil {
 		return nil
 	}
@@ -100,7 +100,7 @@ func (w *OfflinePointWriter) Count() int {
 }
 
 func (w *OfflinePointWriter) Destroy() error {
-	return w.tempDir.DeleteFile(w.name)
+	return w.tempDir.DeleteFile(nil, w.name)
 }
 
 func (w *OfflinePointWriter) GetIndexOutput() store.IndexOutput {

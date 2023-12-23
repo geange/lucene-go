@@ -61,7 +61,7 @@ func NewSimpleTextFieldsReader(state *index.SegmentReadState) (*FieldsReader, er
 	}
 
 	name := getPostingsFileName(state.SegmentInfo.Name(), state.SegmentSuffix)
-	input, err := state.Directory.OpenInput(name, state.Context)
+	input, err := state.Directory.OpenInput(nil, name)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func NewSimpleTextFieldsReader(state *index.SegmentReadState) (*FieldsReader, er
 		termsCache: make(map[string]*simpleTextTerms),
 	}
 
-	fields, err := reader.readFields(reader.in.Clone())
+	fields, err := reader.readFields(reader.in.Clone().(store.IndexInput))
 	if err != nil {
 		_ = input.Close()
 		return nil, err
@@ -157,7 +157,7 @@ func (s *FieldsReader) loadTerms(ctx context.Context, term *simpleTextTerms) err
 		return err
 	}
 
-	in := s.in.Clone()
+	in := s.in.Clone().(store.IndexInput)
 	if _, err := in.Seek(term.termsStart, io.SeekStart); err != nil {
 		return err
 	}
@@ -283,11 +283,11 @@ type simpleTextTermsEnum struct {
 	docsStart     int64
 	skipPointer   int64
 	ended         bool
-	fstEnum       *fst.EnumWrap[byte]
+	fstEnum       *fst.Enum[byte]
 }
 
 func (s *FieldsReader) newSimpleTextTermsEnum(fstInstance *fst.FST, indexOptions document.IndexOptions) (*simpleTextTermsEnum, error) {
-	fstEnum, err := fst.NewEnumWrap[byte](fstInstance)
+	fstEnum, err := fst.NewEnum[byte](fstInstance)
 	if err != nil {
 		return nil, err
 	}
@@ -558,12 +558,12 @@ type simpleTextDocsEnum struct {
 func (s *FieldsReader) newSimpleTextDocsEnum() *simpleTextDocsEnum {
 	return &simpleTextDocsEnum{
 		inStart:     s.in,
-		in:          s.in.Clone(),
+		in:          s.in.Clone().(store.IndexInput),
 		omitTF:      false,
 		docID:       -1,
 		tf:          0,
 		cost:        0,
-		skipReader:  NewSkipReader(s.in.Clone()),
+		skipReader:  NewSkipReader(s.in.Clone().(store.IndexInput)),
 		nextSkipDoc: 0,
 		seekTo:      -1,
 	}
@@ -735,8 +735,7 @@ func (s *simpleTextDocsEnum) readDoc() (int, error) {
 
 func (s *simpleTextDocsEnum) advanceTarget(target int) (int, error) {
 	if s.seekTo > 0 {
-		_, err := s.in.Seek(s.seekTo, 0)
-		if err != nil {
+		if _, err := s.in.Seek(s.seekTo, io.SeekStart); err != nil {
 			return 0, err
 		}
 		s.seekTo = -1

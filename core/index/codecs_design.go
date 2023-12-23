@@ -30,28 +30,27 @@ var (
 	ErrUnsupportedOperation = errors.New("unsupported operation exception")
 )
 
-func (*CompoundDirectoryDefault) DeleteFile(name string) error {
+func (*CompoundDirectoryDefault) DeleteFile(ctx context.Context, name string) error {
 	return ErrUnsupportedOperation
 }
 
-func (*CompoundDirectoryDefault) Rename(source, dest string) error {
+func (*CompoundDirectoryDefault) Rename(ctx context.Context, source, dest string) error {
 	return ErrUnsupportedOperation
 }
 
-func (*CompoundDirectoryDefault) SyncMetaData() error {
+func (*CompoundDirectoryDefault) SyncMetaData(ctx context.Context) error {
 	return nil
 }
 
-func (*CompoundDirectoryDefault) CreateOutput(name string, context *store.IOContext) (store.IndexOutput, error) {
+func (*CompoundDirectoryDefault) CreateOutput(ctx context.Context, name string) (store.IndexOutput, error) {
 	return nil, ErrUnsupportedOperation
 }
 
-func (*CompoundDirectoryDefault) CreateTempOutput(prefix, suffix string,
-	context *store.IOContext) (store.IndexOutput, error) {
+func (*CompoundDirectoryDefault) CreateTempOutput(ctx context.Context, prefix, suffix string) (store.IndexOutput, error) {
 	return nil, ErrUnsupportedOperation
 }
 
-func (*CompoundDirectoryDefault) Sync(names []string) error {
+func (*CompoundDirectoryDefault) Sync(ctx context.Context, names []string) error {
 	return ErrUnsupportedOperation
 }
 

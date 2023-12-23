@@ -30,14 +30,14 @@ type DocsEnum struct {
 func (s *FieldsReader) NewSimpleTextDocsEnum() *DocsEnum {
 	return &DocsEnum{
 		inStart:      s.in,
-		in:           s.in.Clone(),
+		in:           s.in.Clone().(store.IndexInput),
 		omitTF:       false,
 		docID:        -1,
 		tf:           0,
 		scratch:      nil,
 		scratchUTF16: nil,
 		cost:         0,
-		skipReader:   NewSkipReader(s.in.Clone()),
+		skipReader:   NewSkipReader(s.in.Clone().(store.IndexInput)),
 		nextSkipDoc:  0,
 		seekTo:       -1,
 	}

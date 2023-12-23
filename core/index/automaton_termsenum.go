@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 

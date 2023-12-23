@@ -49,7 +49,7 @@ type IndexTree struct {
 }
 
 func (r *Reader) newIndexTree(ctx context.Context) (*IndexTree, error) {
-	in := r.packedIndex.Clone()
+	in := r.packedIndex.Clone().(store.IndexInput)
 	index := r.newIndexTreeV1(in, 1, 1)
 	err := index.readNodeData(ctx, false)
 	if err != nil {
@@ -90,7 +90,7 @@ func (t *IndexTree) PushLeft(ctx context.Context) error {
 }
 
 func (t *IndexTree) Clone() *IndexTree {
-	clone := t.in.Clone()
+	clone := t.in.Clone().(store.IndexInput)
 	config := t.reader.config
 
 	index := t.reader.newIndexTreeV1(clone, t.nodeID, t.level)

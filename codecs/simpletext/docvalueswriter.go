@@ -42,7 +42,7 @@ type DocValuesWriter struct {
 
 func NewDocValuesWriter(state *index.SegmentWriteState, ext string) (*DocValuesWriter, error) {
 	fileName := store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, ext)
-	output, err := state.Directory.CreateOutput(fileName, state.Context)
+	output, err := state.Directory.CreateOutput(nil, fileName)
 	if err != nil {
 		return nil, err
 	}

@@ -1,23 +1,17 @@
 package index
 
-import (
-	"bytes"
-	"context"
-	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
-	"github.com/geange/lucene-go/core/util/array"
-)
-
 // PrefixCodedTerms
 // Prefix codes term instances (prefixes are shared).
 // This is expected to be faster to build than a FST and might also be more compact
 // if there are no common suffixes.
 // lucene.internal
 type PrefixCodedTerms struct {
-	buffer *store.RAMFile
+	//buffer *store.RAMFile
 	size   int64
 	delGen int64
 }
+
+/*
 
 func NewPrefixCodedTerms(buffer *store.RAMFile, size int64) *PrefixCodedTerms {
 	return &PrefixCodedTerms{buffer: buffer, size: size}
@@ -97,11 +91,12 @@ func (p *PrefixCodedTermsBuilder) AddBytes(ctx context.Context, field string, bs
 }
 
 func (p *PrefixCodedTermsBuilder) Finish() *PrefixCodedTerms {
-	err := p.output.Close()
-	if err != nil {
-		return nil
-	}
-	return NewPrefixCodedTerms(p.buffer, p.size)
+	//err := p.output.Close()
+	//if err != nil {
+	//	return nil
+	//}
+	//return NewPrefixCodedTerms(p.buffer, p.size)
+	// TODO: fix
 }
 
 var _ FieldTermIterator = &TermIterator{}
@@ -170,3 +165,6 @@ func (t *TermIterator) Field() string {
 func (t *TermIterator) DelGen() int64 {
 	return t.delGen
 }
+
+
+*/

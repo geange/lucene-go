@@ -1,11 +1,11 @@
 package store
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
-	"slices"
 )
 
 const (
@@ -23,9 +23,11 @@ type DataInput interface {
 	//ReadByte() (byte, error)
 	io.ByteReader
 
-	// Reader Reads a specified number of bytes into an array.
+	// Reads a specified number of bytes into an array.
 	//ReadBytes(b []byte) error
-	io.Reader
+	//io.Reader
+
+	CloneReader
 
 	// ReadUint16 Reads two bytes and returns a short.
 	// See Also: DataOutput.writeByte(byte)
@@ -76,16 +78,36 @@ type DataInput interface {
 	SkipBytes(ctx context.Context, numBytes int) error
 }
 
-func NewReader(reader io.Reader) *Reader {
-	return &Reader{
-		reader: reader,
+type CloneReader interface {
+	io.Reader
+
+	Clone() CloneReader
+}
+
+type Buffer struct {
+	*bytes.Buffer
+}
+
+func NewBuffer() *Buffer {
+	return &Buffer{new(bytes.Buffer)}
+}
+
+func (b *Buffer) Clone() CloneReader {
+	clone := new(bytes.Buffer)
+	clone.Write(b.Bytes())
+	return &Buffer{clone}
+}
+
+func NewBaseDataInput(r CloneReader) *BaseDataInput {
+	return &BaseDataInput{
+		reader: r,
 		endian: binary.BigEndian,
 		buff:   make([]byte, 48),
 	}
 }
 
-type Reader struct {
-	reader io.Reader
+type BaseDataInput struct {
+	reader CloneReader
 	endian binary.ByteOrder
 	buff   []byte
 
@@ -93,22 +115,13 @@ type Reader struct {
 	// skipBytes. The reason why we reader to use an instance member instead of
 	// sharing a single instance across threads is that some delegating
 	// implementations of DataInput might want to reuse the provided buffer in
-	// order to eg. update the checksum. If we shared the same buffer across
-	// threads, then another thread might update the buffer while the checksum is
+	// order to eg. update the crc32Hash. If we shared the same buffer across
+	// threads, then another thread might update the buffer while the crc32Hash is
 	// being computed, making it invalid. See LUCENE-5583 for more information.
 	skipBuffer []byte
 }
 
-func (d *Reader) Clone(reader io.Reader) *Reader {
-	return &Reader{
-		reader:     reader,
-		endian:     d.endian,
-		buff:       slices.Clone(d.buff),
-		skipBuffer: slices.Clone(d.skipBuffer),
-	}
-}
-
-func (d *Reader) ReadByte() (byte, error) {
+func (d *BaseDataInput) ReadByte() (byte, error) {
 	_, err := d.reader.Read(d.buff[:1])
 	if err != nil {
 		return 0, err
@@ -116,23 +129,21 @@ func (d *Reader) ReadByte() (byte, error) {
 	return d.buff[0], nil
 }
 
-func (d *Reader) ReadUint16(ctx context.Context) (uint16, error) {
-	_, err := d.reader.Read(d.buff[:2])
-	if err != nil {
+func (d *BaseDataInput) ReadUint16(ctx context.Context) (uint16, error) {
+	if _, err := d.reader.Read(d.buff[:2]); err != nil {
 		return 0, err
 	}
 	return d.endian.Uint16(d.buff), nil
 }
 
-func (d *Reader) ReadUint32(context.Context) (uint32, error) {
-	_, err := d.reader.Read(d.buff[:4])
-	if err != nil {
+func (d *BaseDataInput) ReadUint32(context.Context) (uint32, error) {
+	if _, err := d.reader.Read(d.buff[:4]); err != nil {
 		return 0, err
 	}
 	return d.endian.Uint32(d.buff), nil
 }
 
-func (d *Reader) ReadUvarint(context.Context) (uint64, error) {
+func (d *BaseDataInput) ReadUvarint(context.Context) (uint64, error) {
 	num, err := binary.ReadUvarint(d)
 	if err != nil {
 		return 0, err
@@ -140,25 +151,24 @@ func (d *Reader) ReadUvarint(context.Context) (uint64, error) {
 	return num, err
 }
 
-func (d *Reader) ReadZInt32(context.Context) (int64, error) {
+func (d *BaseDataInput) ReadZInt32(context.Context) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *Reader) ReadUint64(context.Context) (uint64, error) {
-	_, err := d.reader.Read(d.buff[:8])
-	if err != nil {
+func (d *BaseDataInput) ReadUint64(context.Context) (uint64, error) {
+	if _, err := d.reader.Read(d.buff[:8]); err != nil {
 		return 0, err
 	}
 	return d.endian.Uint64(d.buff), nil
 }
 
-func (d *Reader) ReadZInt64(context.Context) (int64, error) {
+func (d *BaseDataInput) ReadZInt64(context.Context) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *Reader) ReadString(ctx context.Context) (string, error) {
+func (d *BaseDataInput) ReadString(ctx context.Context) (string, error) {
 	num, err := d.ReadUvarint(ctx)
 	if err != nil {
 		return "", err
@@ -180,7 +190,7 @@ func (d *Reader) ReadString(ctx context.Context) (string, error) {
 	return string(d.buff[:length]), nil
 }
 
-func (d *Reader) ReadMapOfStrings(ctx context.Context) (map[string]string, error) {
+func (d *BaseDataInput) ReadMapOfStrings(ctx context.Context) (map[string]string, error) {
 	count, err := d.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
@@ -207,7 +217,7 @@ func (d *Reader) ReadMapOfStrings(ctx context.Context) (map[string]string, error
 	return values, nil
 }
 
-func (d *Reader) ReadSetOfStrings(ctx context.Context) (map[string]struct{}, error) {
+func (d *BaseDataInput) ReadSetOfStrings(ctx context.Context) (map[string]struct{}, error) {
 	count, err := d.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
@@ -231,7 +241,7 @@ func (d *Reader) ReadSetOfStrings(ctx context.Context) (map[string]struct{}, err
 // SkipBytes Closer Skip over numBytes bytes. The contract on this method is that it should have the
 // same behavior as reading the same number of bytes into a buffer and discarding its content.
 // Negative values of numBytes are not supported.
-func (d *Reader) SkipBytes(ctx context.Context, numBytes int) error {
+func (d *BaseDataInput) SkipBytes(ctx context.Context, numBytes int) error {
 	if numBytes < 0 {
 		return fmt.Errorf("numBytes must be >= 0, got %d", numBytes)
 	}
@@ -248,7 +258,7 @@ func (d *Reader) SkipBytes(ctx context.Context, numBytes int) error {
 	return nil
 }
 
-func (d *Reader) Close() error {
+func (d *BaseDataInput) Close() error {
 	return nil
 }
 
@@ -261,7 +271,7 @@ type DataOutput interface {
 	// See Also: IndexInput.readByte()
 	io.ByteWriter
 
-	// Writer Writes an array of bytes.
+	// BaseDataOutput Writes an array of bytes.
 	io.Writer
 
 	// WriteUint32 Writes an int as four bytes.
@@ -319,33 +329,29 @@ type DataOutput interface {
 	WriteSetOfStrings(ctx context.Context, values map[string]struct{}) error
 }
 
-type Writer struct {
+type BaseDataOutput struct {
 	writer     io.Writer
 	endian     binary.ByteOrder
 	buffer     []byte
 	copyBuffer []byte
 }
 
-func NewWriter(writer io.Writer) *Writer {
-	return &Writer{
+func NewBaseDataOutput(writer io.Writer) *BaseDataOutput {
+	return &BaseDataOutput{
 		writer: writer,
 		endian: binary.BigEndian,
 		buffer: make([]byte, 48),
 	}
 }
 
-func (d *Writer) WriteByte(c byte) error {
-	if w, ok := d.writer.(io.ByteWriter); ok {
-		return w.WriteByte(c)
-	}
-
+func (d *BaseDataOutput) WriteByte(c byte) error {
 	if _, err := d.writer.Write([]byte{c}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *Writer) WriteUint32(ctx context.Context, i uint32) error {
+func (d *BaseDataOutput) WriteUint32(ctx context.Context, i uint32) error {
 	d.endian.PutUint32(d.buffer, i)
 	if _, err := d.writer.Write(d.buffer[:4]); err != nil {
 		return err
@@ -353,7 +359,7 @@ func (d *Writer) WriteUint32(ctx context.Context, i uint32) error {
 	return nil
 }
 
-func (d *Writer) WriteUint16(ctx context.Context, i uint16) error {
+func (d *BaseDataOutput) WriteUint16(ctx context.Context, i uint16) error {
 	d.endian.PutUint16(d.buffer, i)
 	if _, err := d.writer.Write(d.buffer[:2]); err != nil {
 		return err
@@ -361,7 +367,7 @@ func (d *Writer) WriteUint16(ctx context.Context, i uint16) error {
 	return nil
 }
 
-func (d *Writer) WriteUvarint(ctx context.Context, i uint64) error {
+func (d *BaseDataOutput) WriteUvarint(ctx context.Context, i uint64) error {
 	num := binary.PutUvarint(d.buffer, i)
 	if _, err := d.writer.Write(d.buffer[:num]); err != nil {
 		return err
@@ -369,12 +375,12 @@ func (d *Writer) WriteUvarint(ctx context.Context, i uint64) error {
 	return nil
 }
 
-func (d *Writer) WriteZInt32(ctx context.Context, i int32) error {
+func (d *BaseDataOutput) WriteZInt32(ctx context.Context, i int32) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *Writer) WriteUint64(ctx context.Context, i uint64) error {
+func (d *BaseDataOutput) WriteUint64(ctx context.Context, i uint64) error {
 	d.endian.PutUint64(d.buffer, i)
 	if _, err := d.writer.Write(d.buffer[:8]); err != nil {
 		return err
@@ -382,12 +388,12 @@ func (d *Writer) WriteUint64(ctx context.Context, i uint64) error {
 	return nil
 }
 
-func (d *Writer) WriteZInt64(ctx context.Context, i int64) error {
+func (d *BaseDataOutput) WriteZInt64(ctx context.Context, i int64) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *Writer) WriteString(ctx context.Context, s string) error {
+func (d *BaseDataOutput) WriteString(ctx context.Context, s string) error {
 	if err := d.WriteUvarint(ctx, uint64(len([]rune(s)))); err != nil {
 		return err
 	}
@@ -401,7 +407,7 @@ const (
 	COPY_BUFFER_SIZE = 16384
 )
 
-func (d *Writer) CopyBytes(ctx context.Context, input DataInput, numBytes int) error {
+func (d *BaseDataOutput) CopyBytes(ctx context.Context, input DataInput, numBytes int) error {
 	left := numBytes
 	if len(d.copyBuffer) == 0 {
 		d.copyBuffer = make([]byte, COPY_BUFFER_SIZE)
@@ -423,7 +429,7 @@ func (d *Writer) CopyBytes(ctx context.Context, input DataInput, numBytes int) e
 	return nil
 }
 
-func (d *Writer) WriteMapOfStrings(ctx context.Context, values map[string]string) error {
+func (d *BaseDataOutput) WriteMapOfStrings(ctx context.Context, values map[string]string) error {
 	if err := d.WriteUvarint(ctx, uint64(len(values))); err != nil {
 		return err
 	}
@@ -439,7 +445,7 @@ func (d *Writer) WriteMapOfStrings(ctx context.Context, values map[string]string
 	return nil
 }
 
-func (d *Writer) WriteSetOfStrings(ctx context.Context, values map[string]struct{}) error {
+func (d *BaseDataOutput) WriteSetOfStrings(ctx context.Context, values map[string]struct{}) error {
 	if err := d.WriteUvarint(ctx, uint64(len(values))); err != nil {
 		return err
 	}

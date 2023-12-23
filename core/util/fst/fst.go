@@ -173,17 +173,14 @@ func (f *FST) Save(ctx context.Context, metaOut store.DataOutput, out store.Data
 		}
 
 		// Serialize empty-string output:
-		ros := store.NewRAMOutputStream()
+		ros := store.NewBufferDataOutput()
 		if err := f.manager.WriteFinalOutput(ctx, ros, f.emptyOutput); err != nil {
 			return err
 		}
 
 		pointer := ros.GetFilePointer()
 		emptyOutputBytes := make([]byte, pointer)
-
-		if err := ros.WriteToV1(emptyOutputBytes); err != nil {
-			return err
-		}
+		copy(emptyOutputBytes, ros.Bytes())
 		emptyLen := len(emptyOutputBytes)
 
 		// reverse
@@ -243,7 +240,7 @@ func (f *FST) SaveToFile(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
-	out := store.NewOutputStreamDataOutput(file)
+	out := store.NewOutputStream("", file)
 	return f.Save(ctx, out, out)
 }
 
@@ -253,7 +250,7 @@ func NewFSTFromFile(ctx context.Context, path string, outputs OutputManager) (*F
 	if err != nil {
 		return nil, err
 	}
-	in := store.NewInputStreamDataInput(file)
+	in := store.NewInputStream(file)
 	fstStore, err := NewOnHeapStore(DEFAULT_MAX_BLOCK_BITS)
 	if err != nil {
 		return nil, err

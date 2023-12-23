@@ -91,7 +91,7 @@ func (s *BKDReader) addAll(state *IntersectState, nodeID int) error {
 
 // Create a new SimpleTextBKDReader.IntersectState
 func (s *BKDReader) getIntersectState(visitor types.IntersectVisitor) *IntersectState {
-	return s.NewIntersectState(s.in.Clone(), s.numDims,
+	return s.NewIntersectState(s.in.Clone().(store.IndexInput), s.numDims,
 		s.packedBytesLength, s.maxPointsInLeafNode, visitor)
 }
 

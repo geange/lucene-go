@@ -39,7 +39,7 @@ type TextFieldsWriter struct {
 
 func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, error) {
 	fileName := getPostingsFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix)
-	out, err := writeState.Directory.CreateOutput(fileName, writeState.Context)
+	out, err := writeState.Directory.CreateOutput(nil, fileName)
 	if err != nil {
 		return nil, err
 	}

@@ -260,7 +260,7 @@ func (s *SegmentCommitInfo) SizeInBytes() (int64, error) {
 
 		files, _ := s.Files()
 		for fileName := range files {
-			fileLength, err := s.info.dir.FileLength(fileName)
+			fileLength, err := s.info.dir.FileLength(nil, fileName)
 			if err != nil {
 				return 0, err
 			}

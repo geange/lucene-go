@@ -191,13 +191,13 @@ func NewIndexFileDeleter(ctx context.Context, files []string, directoryOrig, dir
 	for k := range fd.refCounts {
 		relevantFiles[k] = struct{}{}
 	}
-	pendingDeletions, err := directoryOrig.GetPendingDeletions()
-	if err != nil {
-		return nil, err
-	}
-	for k := range pendingDeletions {
-		relevantFiles[k] = struct{}{}
-	}
+	//pendingDeletions, err := directoryOrig.GetPendingDeletions()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//for k := range pendingDeletions {
+	//	relevantFiles[k] = struct{}{}
+	//}
 
 	// refCounts only includes "normal" filenames (does not include write.lock)
 	inflateGens(segmentInfos, relevantFiles)
@@ -483,7 +483,7 @@ func (r *IndexFileDeleter) deleteFiles(names map[string]struct{}) error {
 }
 
 func (r *IndexFileDeleter) deleteFile(name string) error {
-	return r.directory.DeleteFile(name)
+	return r.directory.DeleteFile(nil, name)
 }
 
 type RefCount struct {

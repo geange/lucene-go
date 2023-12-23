@@ -31,7 +31,7 @@ type BKDWriter struct {
 	// How many dimensions we are storing at the leaf (data) nodes
 	config              *bkd.Config
 	scratch             *bytes.Buffer
-	tempDir             *store.TrackingDirectoryWrapper
+	tempDir             store.Directory
 	tempFileNamePrefix  string
 	maxMBSortInHeap     float64
 	scratchDiff         []byte
@@ -68,7 +68,7 @@ func NewBKDWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string
 	return &BKDWriter{
 		config:              config,
 		scratch:             new(bytes.Buffer),
-		tempDir:             store.NewTrackingDirectoryWrapper(tempDir),
+		tempDir:             tempDir,
 		tempFileNamePrefix:  tempFileNamePrefix,
 		maxMBSortInHeap:     maxMBSortInHeap,
 		scratchDiff:         make([]byte, config.BytesPerDim()),

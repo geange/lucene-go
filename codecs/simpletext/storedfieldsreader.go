@@ -31,7 +31,7 @@ func NewStoredFieldsReader(
 	fn *index.FieldInfos, context *store.IOContext) (*StoredFieldsReader, error) {
 
 	fname := store.SegmentFileName(si.Name(), "", FIELDS_EXTENSION)
-	input, err := directory.OpenInput(fname, context)
+	input, err := directory.OpenInput(nil, fname)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func (s *StoredFieldsReader) Clone() index.StoredFieldsReader {
 	if s.in == nil {
 		panic("closed!")
 	}
-	return newSimpleTextStoredFieldsReader(s.offsets, s.in.Clone(), s.fieldInfos)
+	return newSimpleTextStoredFieldsReader(s.offsets, s.in.Clone().(store.IndexInput), s.fieldInfos)
 }
 
 func (s *StoredFieldsReader) CheckIntegrity() error {

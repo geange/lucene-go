@@ -9,7 +9,7 @@ import (
 )
 
 func TestWriteDocIdsSorted(t *testing.T) {
-	output := store.NewByteBuffersDataOutput()
+	output := store.NewBufferDataOutput()
 	docIds := make([]int, 100)
 	for i := range docIds {
 		docIds[i] = i
@@ -17,7 +17,7 @@ func TestWriteDocIdsSorted(t *testing.T) {
 	err := WriteDocIds(nil, docIds, output)
 	assert.Nil(t, err)
 
-	input := store.NewByteArrayDataInput(output.Bytes())
+	input := store.NewBytesInput(output.Bytes())
 
 	newDocIds := make([]int, 100)
 	err = ReadInts(input, 100, newDocIds)
@@ -27,7 +27,7 @@ func TestWriteDocIdsSorted(t *testing.T) {
 }
 
 func TestWriteDocIdsInt24(t *testing.T) {
-	output := store.NewByteBuffersDataOutput()
+	output := store.NewBufferDataOutput()
 	docIds := make([]int, 100)
 	for i := range docIds {
 		docIds[i] = rand.Intn(0xFFFFFF)
@@ -35,7 +35,7 @@ func TestWriteDocIdsInt24(t *testing.T) {
 	err := WriteDocIds(nil, docIds, output)
 	assert.Nil(t, err)
 
-	input := store.NewByteArrayDataInput(output.Bytes())
+	input := store.NewBytesInput(output.Bytes())
 
 	newDocIds := make([]int, 100)
 	err = ReadInts(input, 100, newDocIds)
@@ -45,7 +45,7 @@ func TestWriteDocIdsInt24(t *testing.T) {
 }
 
 func TestWriteDocIdsInt32(t *testing.T) {
-	output := store.NewByteBuffersDataOutput()
+	output := store.NewBufferDataOutput()
 	docIds := make([]int, 100)
 	for i := range docIds {
 		docIds[i] = rand.Intn(0xFFFFFF) + 0xFFFFFF
@@ -53,7 +53,7 @@ func TestWriteDocIdsInt32(t *testing.T) {
 	err := WriteDocIds(nil, docIds, output)
 	assert.Nil(t, err)
 
-	input := store.NewByteArrayDataInput(output.Bytes())
+	input := store.NewBytesInput(output.Bytes())
 
 	newDocIds := make([]int, 100)
 	err = ReadInts(input, 100, newDocIds)

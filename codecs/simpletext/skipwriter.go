@@ -29,7 +29,8 @@ var (
 	CHILD_POINTER = []byte("        childPointer ")
 )
 
-var _ index.MultiLevelSkipListWriter = &SkipWriter{}
+// TODO: fix
+//var _ index.MultiLevelSkipListWriter = &SkipWriter{}
 
 type SkipWriter struct {
 	*index.MultiLevelSkipListWriterDefault
@@ -43,6 +44,8 @@ type SkipWriter struct {
 func NewSkipWriter(writeState *index.SegmentWriteState) (*SkipWriter, error) {
 	maxDoc, err := writeState.SegmentInfo.MaxDoc()
 	if err != nil {
+		// TODO: remove
+		fmt.Println(maxDoc)
 		return nil, err
 	}
 
@@ -57,15 +60,19 @@ func NewSkipWriter(writeState *index.SegmentWriteState) (*SkipWriter, error) {
 		writer.curCompetitiveFreqNorms[i] = index.NewCompetitiveImpactAccumulator()
 	}
 
-	writer.MultiLevelSkipListWriterDefault = index.NewMultiLevelSkipListWriterDefault(&index.MultiLevelSkipListWriterDefaultConfig{
-		SkipInterval:      BLOCK_SIZE,
-		SkipMultiplier:    skipMultiplier,
-		MaxSkipLevels:     maxSkipLevels,
-		DF:                maxDoc,
-		WriteSkipData:     writer.WriteSkipData,
-		WriteLevelLength:  writer.WriteLevelLength,
-		WriteChildPointer: writer.WriteChildPointer,
-	})
+	// TODO: fix
+	/*
+		writer.MultiLevelSkipListWriterDefault = index.NewMultiLevelSkipListWriterDefault(&index.MultiLevelSkipListWriterDefaultConfig{
+			SkipInterval:      BLOCK_SIZE,
+			SkipMultiplier:    skipMultiplier,
+			MaxSkipLevels:     maxSkipLevels,
+			DF:                maxDoc,
+			WriteSkipData:     writer.WriteSkipData,
+			WriteLevelLength:  writer.WriteLevelLength,
+			WriteChildPointer: writer.WriteChildPointer,
+		})
+
+	*/
 	writer.ResetSkip()
 	return writer, nil
 }
@@ -76,19 +83,37 @@ func (s *SkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) erro
 	w := utils.NewTextWriter(skipBuffer)
 
 	if !wroteHeader {
-		w.Bytes(LEVEL)
-		w.String(fmt.Sprintf("%d", level))
-		w.NewLine()
+		if err := w.Bytes(LEVEL); err != nil {
+			return err
+		}
+		if err := w.String(fmt.Sprintf("%d", level)); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
 
 		s.wroteHeaderPerLevelMap[level] = true
 	}
-	w.Bytes(SKIP_DOC)
-	w.String(fmt.Sprintf("%d", s.curDoc))
-	w.NewLine()
+	if err := w.Bytes(SKIP_DOC); err != nil {
+		return err
+	}
+	if err := w.String(fmt.Sprintf("%d", s.curDoc)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
-	w.Bytes(SKIP_DOC_FP)
-	w.String(fmt.Sprintf("%d", s.curDocFilePointer))
-	w.NewLine()
+	if err := w.Bytes(SKIP_DOC_FP); err != nil {
+		return err
+	}
+	if err := w.String(fmt.Sprintf("%d", s.curDocFilePointer)); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 
 	competitiveFreqNorms := s.curCompetitiveFreqNorms[level]
 	impacts := competitiveFreqNorms.GetCompetitiveFreqNormPairs()
@@ -96,29 +121,54 @@ func (s *SkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) erro
 	if level+1 < s.NumberOfSkipLevels {
 		s.curCompetitiveFreqNorms[level+1].AddAll(competitiveFreqNorms)
 	}
-	w.Bytes(IMPACTS)
-	w.NewLine()
-	for _, impact := range impacts {
-		w.Bytes(IMPACT)
-		w.NewLine()
-
-		w.Bytes(FREQ)
-		w.String(fmt.Sprintf("%d", impact.Freq))
-		w.NewLine()
-
-		w.Bytes(NORM)
-		w.String(fmt.Sprintf("%d", impact.Norm))
-		w.NewLine()
+	if err := w.Bytes(IMPACTS); err != nil {
+		return err
 	}
-	w.Bytes(IMPACTS_END)
-	w.NewLine()
+	if err := w.NewLine(); err != nil {
+		return err
+	}
+	for _, impact := range impacts {
+		if err := w.Bytes(IMPACT); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
+
+		if err := w.Bytes(FREQ); err != nil {
+			return err
+		}
+		if err := w.String(fmt.Sprintf("%d", impact.Freq)); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
+
+		if err := w.Bytes(NORM); err != nil {
+			return err
+		}
+		if err := w.String(fmt.Sprintf("%d", impact.Norm)); err != nil {
+			return err
+		}
+		if err := w.NewLine(); err != nil {
+			return err
+		}
+	}
+	if err := w.Bytes(IMPACTS_END); err != nil {
+		return err
+	}
+	if err := w.NewLine(); err != nil {
+		return err
+	}
 	competitiveFreqNorms.Clear()
 
 	return nil
 }
 
 func (s *SkipWriter) ResetSkip() {
-	s.MultiLevelSkipListWriterDefault.ResetSkip()
+	// TODO: fix
+	//s.MultiLevelSkipListWriterDefault.ResetSkip()
 	s.wroteHeaderPerLevelMap = map[int]bool{}
 	s.curDoc = -1
 	s.curDocFilePointer = -1
@@ -138,9 +188,14 @@ func (s *SkipWriter) WriteSkip(output store.IndexOutput) (int64, error) {
 	if err := w.NewLine(); err != nil {
 		return 0, err
 	}
-	if _, err := s.MultiLevelSkipListWriterDefault.WriteSkip(output); err != nil {
-		return 0, err
-	}
+
+	// TODO: fix
+	/*
+		if _, err := s.MultiLevelSkipListWriterDefault.WriteSkip(output); err != nil {
+			return 0, err
+		}
+
+	*/
 	return skipOffset, nil
 }
 
@@ -153,16 +208,28 @@ func (s *SkipWriter) WriteSkip(output store.IndexOutput) (int64, error) {
 //}
 
 func (s *SkipWriter) WriteLevelLength(levelLength int64, output store.IndexOutput) error {
-	utils.WriteBytes(output, LEVEL_LENGTH)
-	utils.WriteString(output, fmt.Sprintf("%d", levelLength))
-	utils.NewLine(output)
+	if err := utils.WriteBytes(output, LEVEL_LENGTH); err != nil {
+		return err
+	}
+	if err := utils.WriteString(output, fmt.Sprintf("%d", levelLength)); err != nil {
+		return err
+	}
+	if err := utils.NewLine(output); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *SkipWriter) WriteChildPointer(childPointer int64, skipBuffer store.DataOutput) error {
-	utils.WriteBytes(skipBuffer, CHILD_POINTER)
-	utils.WriteString(skipBuffer, fmt.Sprintf("%d", childPointer))
-	utils.NewLine(skipBuffer)
+	if err := utils.WriteBytes(skipBuffer, CHILD_POINTER); err != nil {
+		return err
+	}
+	if err := utils.WriteString(skipBuffer, fmt.Sprintf("%d", childPointer)); err != nil {
+		return err
+	}
+	if err := utils.NewLine(skipBuffer); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -170,5 +237,10 @@ func (s *SkipWriter) bufferSkip(doc int, docFilePointer int64, numDocs int, accu
 	s.curDoc = doc
 	s.curDocFilePointer = docFilePointer
 	s.curCompetitiveFreqNorms[0].AddAll(accumulator)
-	return s.BufferSkip(numDocs)
+	return nil
+	// TODO: fix
+	/*
+		return s.BufferSkip(numDocs)
+
+	*/
 }

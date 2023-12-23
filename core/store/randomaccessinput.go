@@ -83,19 +83,18 @@ type BytesRandomAccessInput struct {
 }
 
 func (b *BytesRandomAccessInput) ReadAt(p []byte, off int64) (int, error) {
-	iSize := len(p)
-
 	if off >= int64(len(b.bs)) {
 		return 0, io.ErrUnexpectedEOF
 	}
 
+	copySize := len(p)
 	n := len(b.bs[off:])
-	if n > iSize {
-		copy(p, b.bs[off:off+int64(iSize)])
-		return n, nil
+	if n < copySize {
+		copySize = n
 	}
-	copy(p, b.bs[off:off+int64(n)])
-	return n, nil
+
+	copy(p, b.bs[off:off+int64(copySize)])
+	return copySize, nil
 }
 
 func (b *BytesRandomAccessInput) RUint8(pos int64) (byte, error) {

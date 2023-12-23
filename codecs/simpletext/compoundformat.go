@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"sort"
@@ -51,7 +52,7 @@ func (s *CompoundFormat) Write(dir store.Directory, si *index.SegmentInfo, conte
 	}
 	sort.Strings(names)
 
-	out, err := dir.CreateOutput(dataFile, context)
+	out, err := dir.CreateOutput(nil, dataFile)
 	if err != nil {
 		return err
 	}
@@ -71,7 +72,7 @@ func (s *CompoundFormat) Write(dir store.Directory, si *index.SegmentInfo, conte
 		// write bytes for file
 		startOffsets[i] = out.GetFilePointer()
 
-		in, err := dir.OpenInput(name, nil)
+		in, err := dir.OpenInput(nil, name)
 		if err != nil {
 			return err
 		}
@@ -138,7 +139,7 @@ func (s *CompoundFormat) Write(dir store.Directory, si *index.SegmentInfo, conte
 func (s *CompoundFormat) GetCompoundReader(dir store.Directory, si *index.SegmentInfo, context *store.IOContext) (index.CompoundDirectory, error) {
 
 	dataFile := store.SegmentFileName(si.Name(), "", DATA_EXTENSION)
-	in, err := dir.OpenInput(dataFile, context)
+	in, err := dir.OpenInput(nil, dataFile)
 	if err != nil {
 		return nil, err
 	}
@@ -232,13 +233,13 @@ type innerCompoundDirectory struct {
 	endOffsets   []int64
 }
 
-func (i *innerCompoundDirectory) ListAll() ([]string, error) {
+func (i *innerCompoundDirectory) ListAll(ctx context.Context) ([]string, error) {
 	names := make([]string, len(i.fileNames))
 	copy(names, i.fileNames)
 	return names, nil
 }
 
-func (i *innerCompoundDirectory) FileLength(name string) (int64, error) {
+func (i *innerCompoundDirectory) FileLength(ctx context.Context, name string) (int64, error) {
 	idx, err := i.getIndex(name)
 	if err != nil {
 		return 0, err
@@ -246,7 +247,7 @@ func (i *innerCompoundDirectory) FileLength(name string) (int64, error) {
 	return i.endOffsets[idx] - i.startOffsets[idx], nil
 }
 
-func (i *innerCompoundDirectory) OpenInput(name string, context *store.IOContext) (store.IndexInput, error) {
+func (i *innerCompoundDirectory) OpenInput(ctx context.Context, name string) (store.IndexInput, error) {
 	idx, err := i.getIndex(name)
 	if err != nil {
 		return nil, err
@@ -260,10 +261,6 @@ func (i *innerCompoundDirectory) Close() error {
 
 func (i *innerCompoundDirectory) EnsureOpen() error {
 	return nil
-}
-
-func (i *innerCompoundDirectory) GetPendingDeletions() (map[string]struct{}, error) {
-	return map[string]struct{}{}, nil
 }
 
 func (i *innerCompoundDirectory) CheckIntegrity() error {
