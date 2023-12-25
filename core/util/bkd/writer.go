@@ -54,7 +54,7 @@ const (
 // lucene.experimental
 type Writer struct {
 	config              *Config
-	tempDir             *store.TrackingDirectoryWrapper
+	tempDir             store.Directory
 	tempFileNamePrefix  string
 	maxMBSortInHeap     float64
 	scratchDiff         []byte
@@ -75,7 +75,7 @@ type Writer struct {
 	maxDoc              int
 
 	// Reused when writing leaf blocks
-	scratchOut *store.ByteBuffersDataOutput
+	scratchOut *store.BufferOutput
 }
 
 func NewWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string,
@@ -83,7 +83,7 @@ func NewWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string,
 
 	writer := &Writer{
 		config:              config,
-		tempDir:             store.NewTrackingDirectoryWrapper(tempDir),
+		tempDir:             tempDir,
 		tempFileNamePrefix:  tempFileNamePrefix,
 		maxMBSortInHeap:     maxMBSortInHeap,
 		scratchDiff:         make([]byte, config.BytesPerDim()),
@@ -505,7 +505,7 @@ func (w *Writer) Close() error {
 		if err := w.tempInput.Close(); err != nil {
 			return err
 		}
-		if err := w.tempDir.DeleteFile(w.tempInput.GetName()); err != nil {
+		if err := w.tempDir.DeleteFile(nil, w.tempInput.GetName()); err != nil {
 			return err
 		}
 		w.tempInput = nil

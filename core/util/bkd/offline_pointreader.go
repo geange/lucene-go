@@ -49,7 +49,7 @@ func NewOfflinePointReader(config *Config, tempDir store.Directory,
 	//      throw new IllegalArgumentException("Len of [reusableBuffer] must be bigger than " + config.BytesPerDoc());
 	//    }
 	// Best-effort checksumming:
-	fileLength, err := tempDir.FileLength(tempFileName)
+	fileLength, err := tempDir.FileLength(nil, tempFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func NewOfflinePointReader(config *Config, tempDir store.Directory,
 
 		// If we are going to read the entire file, e.g. because BKDWriter is now
 		// partitioning it, we open with checksums:
-		reader.in, err = store.OpenChecksumInput(tempDir, tempFileName, nil)
+		reader.in, err = store.OpenChecksumInput(tempDir, tempFileName)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +67,7 @@ func NewOfflinePointReader(config *Config, tempDir store.Directory,
 		// file, and not read all bytes from there, don't use ChecksumIndexInput here.
 		// This is typically fine, because this same file will later be read fully,
 		// at another level of the BKDWriter recursion
-		reader.in, err = tempDir.OpenInput(tempFileName, nil)
+		reader.in, err = tempDir.OpenInput(nil, tempFileName)
 		if err != nil {
 			return nil, err
 		}

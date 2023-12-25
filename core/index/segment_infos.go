@@ -264,7 +264,7 @@ func ReadCommit(ctx context.Context, directory store.Directory, segmentFileName 
 		return nil, err
 	}
 
-	input, err := store.OpenChecksumInput(directory, segmentFileName, nil)
+	input, err := store.OpenChecksumInput(directory, segmentFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -603,7 +603,7 @@ func (f *FindSegmentsFile) RunV1(commit IndexCommit) (any, error) {
 
 	for {
 		lastGen = gen
-		files, err := f.directory.ListAll()
+		files, err := f.directory.ListAll(nil)
 		if err != nil {
 			return nil, err
 		}

@@ -95,7 +95,7 @@ func IndexExists(dir store.Directory) (bool, error) {
 	// corrupt indices.  This means that IndexWriter will
 	// throw an exception on such indices and the app must
 	// resolve the situation manually:
-	files, err := dir.ListAll()
+	files, err := dir.ListAll(nil)
 	if err != nil {
 		return false, err
 	}

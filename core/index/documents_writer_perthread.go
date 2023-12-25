@@ -18,7 +18,7 @@ const (
 
 type DocumentsWriterPerThread struct {
 	codec     Codec
-	directory *store.TrackingDirectoryWrapper
+	directory store.Directory
 	consumer  DocConsumer
 
 	// Updates for our still-in-RAM (to be flushed next) segment
@@ -53,7 +53,7 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 		map[string]string{}, indexWriterConfig.GetIndexSort())
 
 	perThread := &DocumentsWriterPerThread{
-		directory:         store.NewTrackingDirectoryWrapper(directory),
+		directory:         directory,
 		fieldInfos:        fieldInfos,
 		indexWriterConfig: indexWriterConfig,
 		codec:             codec,
@@ -138,8 +138,10 @@ func (d *DocumentsWriterPerThread) Flush(ctx context.Context) error {
 	}
 
 	flushState := NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(), d.pendingUpdates)
-	_, err := d.consumer.Flush(ctx, flushState)
-	return err
+	if _, err := d.consumer.Flush(ctx, flushState); err != nil {
+		return err
+	}
+	return nil
 }
 
 type IndexingChain interface {

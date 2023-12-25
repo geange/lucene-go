@@ -49,7 +49,7 @@ type PointsWriter struct {
 
 func NewSimpleTextPointsWriter(writeState *index.SegmentWriteState) (*PointsWriter, error) {
 	fileName := store.SegmentFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix, POINT_EXTENSION)
-	out, err := writeState.Directory.CreateOutput(fileName, writeState.Context)
+	out, err := writeState.Directory.CreateOutput(nil, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (s *PointsWriter) Close() error {
 	fileName := store.SegmentFileName(s.writeState.SegmentInfo.Name(),
 		s.writeState.SegmentSuffix, POINT_INDEX_EXTENSION)
 
-	indexOut, err := s.writeState.Directory.CreateOutput(fileName, s.writeState.Context)
+	indexOut, err := s.writeState.Directory.CreateOutput(nil, fileName)
 	if err != nil {
 		return err
 	}

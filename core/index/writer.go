@@ -132,7 +132,7 @@ func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Wri
 
 	// If index is too old, reading the segments will throw
 	// IndexFormatTooOldException.
-	files, err := writer.directory.ListAll()
+	files, err := writer.directory.ListAll(nil)
 	if err != nil {
 		return nil, err
 	}

@@ -57,8 +57,8 @@ func TestNewBuilderWriteDiffDataOutput(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	metaOutput := store.NewByteBuffersDataOutput()
-	dataOutput := store.NewByteBuffersDataOutput()
+	metaOutput := store.NewBufferDataOutput()
+	dataOutput := store.NewBufferDataOutput()
 
 	err = fst.Save(ctx, metaOutput, dataOutput)
 	assert.Nil(t, err)
@@ -133,8 +133,8 @@ func TestNewBuilderWithOptions(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	metaOutput := store.NewByteBuffersDataOutput()
-	dataOutput := store.NewByteBuffersDataOutput()
+	metaOutput := store.NewBufferDataOutput()
+	dataOutput := store.NewBufferDataOutput()
 
 	err = fst.Save(ctx, metaOutput, dataOutput)
 	assert.Nil(t, err)
@@ -199,7 +199,7 @@ func TestNewBuilderWriteSameDataOutput(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	output := store.NewByteBuffersDataOutput()
+	output := store.NewBufferDataOutput()
 
 	err = fst.Save(ctx, output, output)
 	assert.Nil(t, err)
@@ -259,12 +259,12 @@ func TestNewBuilderWithBYTE1(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	output := store.NewByteBuffersDataOutput()
+	output := store.NewBufferDataOutput()
 
 	err = fst.Save(ctx, output, output)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnumWrap[int](fst)
+	fstEnum, err := NewEnum[int](fst)
 	assert.Nil(t, err)
 
 	next, ok, err := fstEnum.SeekExact(context.TODO(), str2Ints("top"))
@@ -317,8 +317,8 @@ func TestNewBuilderAddWithString(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	metaOutput := store.NewByteBuffersDataOutput()
-	dataOutput := store.NewByteBuffersDataOutput()
+	metaOutput := store.NewBufferDataOutput()
+	dataOutput := store.NewBufferDataOutput()
 
 	err = fst.Save(ctx, metaOutput, dataOutput)
 	assert.Nil(t, err)

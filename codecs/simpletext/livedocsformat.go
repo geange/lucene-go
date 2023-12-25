@@ -40,7 +40,7 @@ func (s *LiveDocsFormat) ReadLiveDocs(dir store.Directory, info *index.SegmentCo
 	fileName := index.FileNameFromGeneration(info.Info().Name(), LIVEDOCS_EXTENSION, info.GetDelGen())
 
 	scratch := new(bytes.Buffer)
-	in, err := store.OpenChecksumInput(dir, fileName, context)
+	in, err := store.OpenChecksumInput(dir, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (s *LiveDocsFormat) WriteLiveDocs(bits util.Bits, dir store.Directory, info
 
 	fileName := index.FileNameFromGeneration(info.Info().Name(), LIVEDOCS_EXTENSION, info.GetNextDelGen())
 
-	out, err := dir.CreateOutput(fileName, context)
+	out, err := dir.CreateOutput(nil, fileName)
 	if err != nil {
 		return err
 	}

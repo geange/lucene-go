@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util/bytesutils"
+	"slices"
 )
 
 var _ store.DataInput = &ByteSliceReader{}
@@ -15,7 +16,7 @@ var _ store.DataInput = &ByteSliceReader{}
 // point we read the forwarding address of the next slice
 // and then jump to it.
 type ByteSliceReader struct {
-	store.Reader
+	*store.BaseDataInput
 
 	pool         *bytesutils.BlockPool
 	bufferUpto   int
@@ -25,6 +26,21 @@ type ByteSliceReader struct {
 	level        int
 	bufferOffset int
 	endIndex     int
+}
+
+func (b *ByteSliceReader) Clone() store.CloneReader {
+	input := &ByteSliceReader{
+		pool:         b.pool,
+		bufferUpto:   b.bufferUpto,
+		buffer:       slices.Clone(b.buffer),
+		upto:         b.upto,
+		limit:        b.limit,
+		level:        b.level,
+		bufferOffset: b.bufferOffset,
+		endIndex:     b.endIndex,
+	}
+	input.BaseDataInput = store.NewBaseDataInput(input)
+	return input
 }
 
 func NewByteSliceReader() *ByteSliceReader {

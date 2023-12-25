@@ -46,7 +46,7 @@ func NewTermVectorsWriter(dir store.Directory,
 	segment string, context *store.IOContext) (*TermVectorsWriter, error) {
 
 	fileName := store.SegmentFileName(segment, "", VECTORS_EXTENSION)
-	out, err := dir.CreateOutput(fileName, context)
+	out, err := dir.CreateOutput(nil, fileName)
 	if err != nil {
 		return nil, err
 	}

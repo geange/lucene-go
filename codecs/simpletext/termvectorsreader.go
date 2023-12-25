@@ -26,7 +26,7 @@ func NewTermVectorsReader(directory store.Directory, si *index.SegmentInfo,
 	context *store.IOContext) (*TermVectorsReader, error) {
 
 	fileName := store.SegmentFileName(si.Name(), "", VECTORS_EXTENSION)
-	in, err := directory.OpenInput(fileName, context)
+	in, err := directory.OpenInput(nil, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +231,7 @@ func (s *TermVectorsReader) CheckIntegrity() error {
 func (s *TermVectorsReader) Clone() index.TermVectorsReader {
 	return &TermVectorsReader{
 		offsets: s.offsets,
-		in:      s.in.Clone(),
+		in:      s.in.Clone().(store.IndexInput),
 		scratch: bytes.NewBuffer(s.scratch.Bytes()),
 	}
 }

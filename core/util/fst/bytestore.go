@@ -10,7 +10,7 @@ import (
 )
 
 type ByteStore struct {
-	*store.Writer
+	*store.BaseDataOutput
 
 	blocks    *arraylist.List[[]byte]
 	blockSize int64
@@ -31,7 +31,7 @@ func NewByteStore(blockBits int) *ByteStore {
 		nextWrite: 0,
 	}
 	//byteStore.blocks.Add(byteStore.current)
-	byteStore.Writer = store.NewWriter(byteStore)
+	byteStore.BaseDataOutput = store.NewBaseDataOutput(byteStore)
 	return byteStore
 }
 

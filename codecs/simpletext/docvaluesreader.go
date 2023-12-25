@@ -45,8 +45,7 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 	}
 
 	var err error
-	r.data, err = state.Directory.OpenInput(
-		store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, ext), state.Context)
+	r.data, err = state.Directory.OpenInput(nil, store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, ext))
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +228,7 @@ func (s *DocValuesReader) getNumericNonIterator(fieldInfo *document.FieldInfo) (
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
 	}
 
-	in := s.data.Clone()
+	in := s.data.Clone().(store.IndexInput)
 	scratch := new(bytes.Buffer)
 
 	return func(docID int) (int64, error) {
@@ -258,7 +257,7 @@ func (s *DocValuesReader) getNumericNonIterator(fieldInfo *document.FieldInfo) (
 func (s *DocValuesReader) getNumericDocsWithField(fieldInfo *document.FieldInfo) (DocValuesIterator, error) {
 	return &innerDocValuesIterator1{
 		field:  s.fields[fieldInfo.Name()],
-		in:     s.data.Clone(),
+		in:     s.data.Clone().(store.IndexInput),
 		buf:    new(bytes.Buffer),
 		reader: s,
 		doc:    -1,
@@ -328,7 +327,7 @@ func (s *DocValuesReader) GetBinary(fieldInfo *document.FieldInfo) (index.Binary
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
 	}
 
-	in := s.data.Clone()
+	in := s.data.Clone().(store.IndexInput)
 	scratch := new(bytes.Buffer)
 
 	docsWithField, err := s.getBinaryDocsWithField(fieldInfo)
@@ -381,7 +380,7 @@ func (s *DocValuesReader) getBinaryDocsWithField(fieldInfo *document.FieldInfo) 
 
 	return &innerDocValuesIterator2{
 		field:   field,
-		in:      s.data.Clone(),
+		in:      s.data.Clone().(store.IndexInput),
 		scratch: new(bytes.Buffer),
 		doc:     -1,
 		reader:  s,
@@ -473,7 +472,7 @@ func (s *DocValuesReader) GetSorted(fieldInfo *document.FieldInfo) (index.Sorted
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
 	}
 
-	return newInnerSortedDocValues(field, s.data.Clone(), s), nil
+	return newInnerSortedDocValues(field, s.data.Clone().(store.IndexInput), s), nil
 }
 
 var _ index.SortedDocValues = &innerSortedDocValues{}
@@ -724,7 +723,7 @@ func (s *DocValuesReader) GetSortedSet(fieldInfo *document.FieldInfo) (index.Sor
 	}
 	return &innerSortedSetDocValues{
 		field:        field,
-		in:           s.data.Clone(),
+		in:           s.data.Clone().(store.IndexInput),
 		reader:       s,
 		currentOrds:  []string{},
 		currentIndex: 0,
@@ -861,7 +860,7 @@ func (i *innerSortedSetDocValues) GetValueCount() int64 {
 
 func (s *DocValuesReader) CheckIntegrity() error {
 	scratch := new(bytes.Buffer)
-	clone := s.data.Clone()
+	clone := s.data.Clone().(store.IndexInput)
 	clone.Seek(0, io.SeekStart)
 	// checksum is fixed-width encoded with 20 bytes, plus 1 byte for newline (the space is included in SimpleTextUtil.CHECKSUM):
 	footerStartPos := s.data.Length() - int64(len(utils.CHECKSUM)+21)

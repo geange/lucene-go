@@ -27,18 +27,11 @@ import (
 //	While this class takes care of writing the different skip levels,
 //	subclasses must define the actual format of the skip data.
 type MultiLevelSkipListWriter interface {
-	MultiLevelSkipListWriterBase
-	MultiLevelSkipListWriterExt
-}
-
-type MultiLevelSkipListWriterBase interface {
 	// WriteSkipData Subclasses must implement the actual skip data encoding in this method.
 	// Params: 	level – the level skip data shall be writing for
 	//			skipBuffer – the skip buffer to write to
 	WriteSkipData(level int, skipBuffer store.IndexOutput) error
-}
 
-type MultiLevelSkipListWriterExt interface {
 	// Init Allocates internal skip buffers.
 	Init()
 
@@ -92,7 +85,8 @@ type MultiLevelSkipListWriterDefault struct {
 	skipMultiplier int
 
 	// for every skip level a different buffer is used
-	skipBuffer []*store.RAMOutputStream
+	// TODO: fix
+	//skipBuffer []*store.RAMOutputStream
 
 	// Subclasses must implement the actual skip data encoding in this method.
 	// level – the level skip data shall be writing for
@@ -125,6 +119,7 @@ func NewMultiLevelSkipListWriterDefault(cfg *MultiLevelSkipListWriterDefaultConf
 	return this
 }
 
+/*
 func (m *MultiLevelSkipListWriterDefault) Init() {
 	m.skipBuffer = make([]*store.RAMOutputStream, 0, m.NumberOfSkipLevels)
 	for i := 0; i < m.NumberOfSkipLevels; i++ {
@@ -220,3 +215,5 @@ func (m *MultiLevelSkipListWriterDefault) writeChildPointer(childPointer int64, 
 	}
 	return skipBuffer.WriteUvarint(nil, uint64(childPointer))
 }
+
+*/

@@ -1,16 +1,11 @@
 package search
 
 import (
-	"bytes"
-	"context"
-	"errors"
-	"io"
-
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/types"
 )
 
-var _ Query = &PointInSetQuery{}
+// TODO: fix
+//var _ Query = &PointInSetQuery{}
 
 type PointInSetQuery struct {
 	sortedPackedPoints         *index.PrefixCodedTerms
@@ -19,6 +14,8 @@ type PointInSetQuery struct {
 	numDims                    int
 	bytesPerDim                int
 }
+
+/*
 
 func NewPointInSetQuery(ctx context.Context, field string, numDims int, bytesPerDim int, packedPoints [][]byte) (*PointInSetQuery, error) {
 	builder := index.NewPrefixCodedTermsBuilder()
@@ -335,3 +332,6 @@ func (s *SinglePointVisitor) Compare(minPackedValue, maxPackedValue []byte) type
 func (s *SinglePointVisitor) Grow(count int) {
 	s.adder = s.result.Grow(count)
 }
+
+
+*/

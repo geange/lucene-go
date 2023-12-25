@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"context"
+	"github.com/geange/lucene-go/core/store"
 	"io"
 	"strconv"
 
@@ -52,7 +53,7 @@ func (s *textTerms) loadTerms(ctx context.Context) error {
 		return err
 	}
 
-	in := s.reader.in.Clone()
+	in := s.reader.in.Clone().(store.IndexInput)
 	if _, err := in.Seek(s.termsStart, io.SeekStart); err != nil {
 		return err
 	}

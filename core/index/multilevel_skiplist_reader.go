@@ -82,9 +82,9 @@ func NewMultiLevelSkipListReaderDefault(skipStream store.IndexInput, maxSkipLeve
 	}
 	reader.skipStream[0] = skipStream
 	reader.skipInterval[0] = skipInterval
-	if _, ok := skipStream.(store.BufferedIndexInput); ok {
-		reader.inputIsBuffered = true
-	}
+	//if _, ok := skipStream.(store.BufferedIndexInput); ok {
+	//	reader.inputIsBuffered = true
+	//}
 
 	for i := 1; i < maxSkipLevels; i++ {
 		reader.skipInterval[i] = reader.skipInterval[i-1] * skipMultiplier
@@ -252,13 +252,13 @@ func (m *MultiLevelSkipListReaderDefault) loadSkipLevels() error {
 			toBuffer--
 		} else {
 			// clone this stream, it is already at the start of the current level
-			m.skipStream[i] = m.skipStream[0].Clone()
-			if m.inputIsBuffered && length < store.BUFFER_SIZE {
-				input, ok := m.skipStream[i].(store.BufferedIndexInput)
-				if ok {
-					input.SetBufferSize(max(store.MIN_BUFFER_SIZE, int(length)))
-				}
-			}
+			m.skipStream[i] = m.skipStream[0].Clone().(store.IndexInput)
+			//if m.inputIsBuffered && length < store.BUFFER_SIZE {
+			//	input, ok := m.skipStream[i].(store.BufferedIndexInput)
+			//	if ok {
+			//		input.SetBufferSize(max(store.MIN_BUFFER_SIZE, int(length)))
+			//	}
+			//}
 
 			// move base stream beyond the current level
 			if _, err := m.skipStream[0].Seek(m.skipStream[0].GetFilePointer()+length, io.SeekStart); err != nil {
@@ -307,14 +307,14 @@ var _ store.IndexInput = &SkipBuffer{}
 
 // SkipBuffer used to buffer the top skip levels
 type SkipBuffer struct {
-	*store.IndexInputBase
+	*store.BaseIndexInput
 
 	data    []byte
 	pointer int64
 	pos     int
 }
 
-func (s *SkipBuffer) Clone() store.IndexInput {
+func (s *SkipBuffer) Clone() store.CloneReader {
 	//TODO implement me
 	panic("implement me")
 }
@@ -324,7 +324,7 @@ func NewSkipBuffer(in store.IndexInput, length int) (*SkipBuffer, error) {
 		data:    make([]byte, length),
 		pointer: in.GetFilePointer(),
 	}
-	input.IndexInputBase = store.NewIndexInputBase(input)
+	input.BaseIndexInput = store.NewBaseIndexInput(input)
 
 	if _, err := in.Read(input.data); err != nil {
 		return nil, err

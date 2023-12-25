@@ -2,92 +2,49 @@ package store
 
 import (
 	"bufio"
-	"hash"
-	"hash/crc32"
 	"io"
 )
 
-var (
-	_ DataOutput = &OutputStreamDataOutput{}
-	_ io.Closer  = &OutputStreamDataOutput{}
-)
+var _ IndexOutput = &OutputStream{}
 
-type OutputStreamDataOutput struct {
-	*Writer
+// OutputStream Implementation class for buffered IndexOutput that writes to an OutputStream.
+type OutputStream struct {
+	*BaseIndexOutput
 
-	os io.WriteCloser
+	out          *bufio.Writer
+	closer       io.Closer
+	bytesWritten int64
+	crc          Hash
 }
 
-func NewOutputStreamDataOutput(os io.WriteCloser) *OutputStreamDataOutput {
-	output := &OutputStreamDataOutput{os: os}
-	output.Writer = NewWriter(output)
-	return output
+func (o *OutputStream) GetChecksum() (uint32, error) {
+	return o.crc.Sum(), nil
 }
 
-func (o *OutputStreamDataOutput) Close() error {
-	return o.os.Close()
-}
-
-func (o *OutputStreamDataOutput) Write(b []byte) (int, error) {
-	return o.os.Write(b)
-}
-
-var _ IndexOutput = &OutputStreamIndexOutput{}
-
-// OutputStreamIndexOutput Implementation class for buffered IndexOutput that writes to an OutputStream.
-type OutputStreamIndexOutput struct {
-	*IndexOutputBase
-	out    *bufio.Writer
-	closer io.Closer
-
-	bytesWritten   int64
-	flushedOnClose bool
-	crc            hash.Hash32
-}
-
-func (o *OutputStreamIndexOutput) GetChecksum() (uint32, error) {
-	if err := o.out.Flush(); err != nil {
-		return 0, err
-	}
-	return o.crc.Sum32(), nil
-}
-
-func NewOutputStreamIndexOutput(name string, out io.WriteCloser) *OutputStreamIndexOutput {
-	output := &OutputStreamIndexOutput{
+func NewOutputStream(name string, out io.WriteCloser) *OutputStream {
+	output := &OutputStream{
 		out:    bufio.NewWriter(out),
 		closer: out,
-		crc:    crc32.NewIEEE(),
+		crc:    NewHash(),
 	}
-	output.IndexOutputBase = NewIndexOutputBase(name, output)
+	output.BaseIndexOutput = NewBaseIndexOutput(name, output)
 	return output
 }
 
-func (o *OutputStreamIndexOutput) WriteByte(b byte) error {
-	if _, err := o.crc.Write([]byte{b}); err != nil {
-		return err
-	}
-
-	o.bytesWritten++
-	_, err := o.out.Write([]byte{b})
-	return err
-}
-
-func (o *OutputStreamIndexOutput) Write(b []byte) (int, error) {
-	if _, err := o.crc.Write(b); err != nil {
-		return 0, err
-	}
+func (o *OutputStream) Write(b []byte) (int, error) {
+	o.crc.Write(b)
 
 	o.bytesWritten += int64(len(b))
 	return o.out.Write(b)
 }
 
-func (o *OutputStreamIndexOutput) Close() error {
+func (o *OutputStream) Close() error {
 	if err := o.out.Flush(); err != nil {
 		return err
 	}
 	return o.closer.Close()
 }
 
-func (o *OutputStreamIndexOutput) GetFilePointer() int64 {
+func (o *OutputStream) GetFilePointer() int64 {
 	return o.bytesWritten
 }

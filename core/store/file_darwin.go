@@ -9,10 +9,10 @@ import (
 )
 
 func FileTime(info os.FileInfo) (access, create, modify time.Time) {
-	stat_t := info.Sys().(*syscall.Stat_t)
-	return timespecToTime(stat_t.Atimespec),
-		timespecToTime(stat_t.Ctimespec),
-		timespecToTime(stat_t.Mtimespec)
+	statT := info.Sys().(*syscall.Stat_t)
+	return timespecToTime(statT.Atimespec),
+		timespecToTime(statT.Ctimespec),
+		timespecToTime(statT.Mtimespec)
 }
 
 func timespecToTime(ts syscall.Timespec) time.Time {

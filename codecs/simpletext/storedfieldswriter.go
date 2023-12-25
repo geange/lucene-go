@@ -43,7 +43,7 @@ func newStoredFieldsWriter() *StoredFieldsWriter {
 func NewStoredFieldsWriter(dir store.Directory,
 	segment string, context *store.IOContext) (*StoredFieldsWriter, error) {
 	writer := newStoredFieldsWriter()
-	out, err := dir.CreateOutput(store.SegmentFileName(segment, "", FIELDS_EXTENSION), context)
+	out, err := dir.CreateOutput(nil, store.SegmentFileName(segment, "", FIELDS_EXTENSION))
 	if err != nil {
 		return nil, err
 	}

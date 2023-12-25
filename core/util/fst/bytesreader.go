@@ -25,10 +25,19 @@ type BytesReader interface {
 var _ BytesReader = &ReverseBytesReader{}
 
 type ReverseBytesReader struct {
-	*store.Reader
+	*store.BaseDataInput
 
 	bytes []byte
 	pos   int64
+}
+
+func (r *ReverseBytesReader) Clone() store.CloneReader {
+	reader := &ReverseBytesReader{
+		bytes: r.bytes,
+		pos:   r.pos,
+	}
+	reader.BaseDataInput = store.NewBaseDataInput(reader)
+	return reader
 }
 
 func newReverseBytesReader(bytes []byte) *ReverseBytesReader {
@@ -36,7 +45,7 @@ func newReverseBytesReader(bytes []byte) *ReverseBytesReader {
 		bytes: bytes,
 		pos:   int64(len(bytes) - 1),
 	}
-	reader.Reader = store.NewReader(reader)
+	reader.BaseDataInput = store.NewBaseDataInput(reader)
 	return reader
 }
 
@@ -73,17 +82,26 @@ func (r *ReverseBytesReader) Reversed() bool {
 }
 
 type ReverseRandomAccessReader struct {
-	*store.Reader
+	*store.BaseDataInput
 
 	in  store.RandomAccessInput
 	pos int64
+}
+
+func (r *ReverseRandomAccessReader) Clone() store.CloneReader {
+	reader := &ReverseRandomAccessReader{
+		in:  r.in,
+		pos: r.pos,
+	}
+	reader.BaseDataInput = store.NewBaseDataInput(reader)
+	return reader
 }
 
 func newReverseRandomAccessReader(in store.RandomAccessInput) *ReverseRandomAccessReader {
 	reader := &ReverseRandomAccessReader{
 		in: in,
 	}
-	reader.Reader = store.NewReader(reader)
+	reader.BaseDataInput = store.NewBaseDataInput(reader)
 	return reader
 }
 
@@ -124,12 +142,24 @@ func (r *ReverseRandomAccessReader) Reversed() bool {
 var _ BytesReader = &builderBytesReader{}
 
 type builderBytesReader struct {
-	*store.Reader
+	*store.BaseDataInput
 
 	bs         *ByteStore
 	current    []byte
 	nextBuffer int
 	nextRead   int
+}
+
+func (b *builderBytesReader) Clone() store.CloneReader {
+	reader := &builderBytesReader{
+		current:    b.current,
+		bs:         b.bs,
+		nextBuffer: b.nextBuffer,
+		nextRead:   b.nextRead,
+	}
+
+	reader.BaseDataInput = store.NewBaseDataInput(reader)
+	return reader
 }
 
 func newBuilderBytesReader(bs *ByteStore) (*builderBytesReader, error) {
@@ -149,7 +179,7 @@ func newBuilderBytesReader(bs *ByteStore) (*builderBytesReader, error) {
 		nextRead:   0,
 	}
 
-	reader.Reader = store.NewReader(reader)
+	reader.BaseDataInput = store.NewBaseDataInput(reader)
 	return reader, nil
 }
 

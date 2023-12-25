@@ -25,12 +25,12 @@ type IndexInput interface {
 	//Seek(pos int64, whence int) (int64, error)
 	io.Seeker
 
-	IndexInputInner
+	IndexInputSPI
 
-	Clone() IndexInput
+	//Clone() IndexInput
 }
 
-type IndexInputInner interface {
+type IndexInputSPI interface {
 	// GetFilePointer Returns the current pos in this file, where the next read will occur.
 	// See Also: seek(long)
 	GetFilePointer() int64
@@ -48,14 +48,14 @@ type IndexInputInner interface {
 	RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error)
 }
 
-type IndexInputBase struct {
-	*Reader
+type BaseIndexInput struct {
+	*BaseDataInput
 
-	inner IndexInputInner
+	spi IndexInputSPI
 }
 
-func (i *IndexInputBase) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
-	slice, err := i.inner.Slice("randomaccess", offset, length)
+func (i *BaseIndexInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
+	slice, err := i.spi.Slice("randomaccess", offset, length)
 	if err != nil {
 		return nil, err
 	}
@@ -66,21 +66,43 @@ func (i *IndexInputBase) RandomAccessSlice(offset int64, length int64) (RandomAc
 	return &randomAccessIndexInput{in: slice}, nil
 }
 
-func NewIndexInputBase(input IndexInput) *IndexInputBase {
-	return &IndexInputBase{
-		Reader: NewReader(input),
-		inner:  input,
+func NewBaseIndexInput(input IndexInput) *BaseIndexInput {
+	return &BaseIndexInput{
+		BaseDataInput: NewBaseDataInput(input),
+		spi:           input,
 	}
 }
 
-func (i *IndexInputBase) Clone(inner IndexInput) *IndexInputBase {
-	reader, ok := inner.(io.Reader)
-	if !ok {
-		return nil
-	}
+// IndexOutput A DataOutput for appending data to a file in a Directory.
+// Instances of this class are not thread-safe.
+// See Also: Directory, IndexInput
+type IndexOutput interface {
+	io.Closer
 
-	return &IndexInputBase{
-		Reader: i.Reader.Clone(reader),
-		inner:  inner,
+	DataOutput
+
+	GetName() string
+
+	// GetFilePointer Returns the current pos in this file,
+	// where the next write will occur.
+	GetFilePointer() int64
+
+	GetChecksum() (uint32, error)
+}
+
+type BaseIndexOutput struct {
+	*BaseDataOutput
+
+	name string
+}
+
+func NewBaseIndexOutput(name string, writer io.Writer) *BaseIndexOutput {
+	return &BaseIndexOutput{
+		BaseDataOutput: NewBaseDataOutput(writer),
+		name:           name,
 	}
+}
+
+func (r *BaseIndexOutput) GetName() string {
+	return r.name
 }

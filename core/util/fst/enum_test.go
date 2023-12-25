@@ -49,7 +49,7 @@ func TestBytesEnumDoNext(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnumWrap[byte](fst)
+	fstEnum, err := NewEnum[byte](fst)
 	assert.Nil(t, err)
 
 	for _, item := range writeItems {
@@ -102,7 +102,7 @@ func TestBytesEnumSeekExact(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnumWrap[byte](fst)
+	fstEnum, err := NewEnum[byte](fst)
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -214,7 +214,7 @@ func TestBytesEnumSeekExactArcsForBinarySearch(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnumWrap[byte](fst)
+	fstEnum, err := NewEnum[byte](fst)
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -286,7 +286,7 @@ func TestBytesEnumSeekCeil(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnumWrap[byte](fst)
+	fstEnum, err := NewEnum[byte](fst)
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -361,7 +361,7 @@ func TestBytesEnumSeekFloor(t *testing.T) {
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnumWrap[byte](fst)
+	fstEnum, err := NewEnum[byte](fst)
 	assert.Nil(t, err)
 
 	items := []struct {
