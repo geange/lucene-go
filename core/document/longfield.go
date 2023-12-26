@@ -44,9 +44,9 @@ func (r *LongPoint) SetLongValue(value int64) error {
 // SetLongValues
 // Change the values of this field
 func (r *LongPoint) SetLongValues(points ...int64) error {
-	if r.iType.PointIndexDimensionCount() != len(points) {
+	if r.fieldType.PointIndexDimensionCount() != len(points) {
 		format := "this field(%s) uses %d dimensions; cannot change to (incoming) %d dimensions"
-		return fmt.Errorf(format, r.name, r.iType.PointIndexDimensionCount(), len(points))
+		return fmt.Errorf(format, r.name, r.fieldType.PointIndexDimensionCount(), len(points))
 	}
 
 	packed, err := packLongs(points...)
@@ -95,4 +95,12 @@ func encodeDimension(value int64, dest []byte) {
 // Decode single long dimension
 func decodeDimension(value []byte) int64 {
 	return numeric.SortableBytesToLong(value)
+}
+
+type LongRange struct {
+	*Field
+}
+
+type LongRangeDocValuesField struct {
+	*Field
 }

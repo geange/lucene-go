@@ -14,8 +14,8 @@ type FieldType struct {
 	storeTermVectorPositions bool
 	storeTermVectorPayloads  bool
 	omitNorms                bool
-	indexOptions             IndexOptions
 	frozen                   bool
+	indexOptions             IndexOptions
 	docValuesType            DocValuesType
 	dimensionCount           int
 	indexDimensionCount      int
@@ -214,8 +214,8 @@ func (f *FieldType) SetDimensionsV1(dimensionCount, indexDimensionCount, dimensi
 	if dimensionCount < 0 {
 		return errors.New("dimensionCount must be >= 0")
 	}
-	if dimensionCount > MAX_DIMENSIONS {
-		return fmt.Errorf("dimensionCount must be <= %d", MAX_DIMENSIONS)
+	if dimensionCount > MaxDimensions {
+		return fmt.Errorf("dimensionCount must be <= %d", MaxDimensions)
 	}
 	if indexDimensionCount < 0 {
 		return errors.New("indexDimensionCount must be >= 0")
@@ -223,14 +223,14 @@ func (f *FieldType) SetDimensionsV1(dimensionCount, indexDimensionCount, dimensi
 	if indexDimensionCount > dimensionCount {
 		return errors.New("indexDimensionCount must be <= dimensionCount")
 	}
-	if indexDimensionCount < MAX_INDEX_DIMENSIONS {
-		return fmt.Errorf("indexDimensionCount must be <= %d", MAX_INDEX_DIMENSIONS)
+	if indexDimensionCount < MaxIndexDimensions {
+		return fmt.Errorf("indexDimensionCount must be <= %d", MaxIndexDimensions)
 	}
 	if dimensionNumBytes < 0 {
 		return errors.New("dimensionNumBytes must be >= 0")
 	}
-	if dimensionNumBytes > MAX_NUM_BYTES {
-		return fmt.Errorf("dimensionNumBytes must be <= %d", MAX_NUM_BYTES)
+	if dimensionNumBytes > MaxNumBytes {
+		return fmt.Errorf("dimensionNumBytes must be <= %d", MaxNumBytes)
 	}
 	if dimensionCount == 0 {
 		if indexDimensionCount != 0 {

@@ -6,9 +6,6 @@ import (
 
 type AttributeFactory interface {
 	// CreateAttributeInstance Returns an AttributeImpl for the supplied Attribute interface class.
-	// Throws:  UndeclaredThrowableException – A wrapper runtime exception thrown if the constructor of the
-	// 		    attribute class throws a checked exception. Note that attributes should not throw or declare checked
-	// 			exceptions; this may be verified and fail early in the future.
 	CreateAttributeInstance(class string) (Attribute, error)
 }
 
@@ -22,7 +19,7 @@ type DefaultAttributeFactory struct {
 func (d DefaultAttributeFactory) CreateAttributeInstance(class string) (Attribute, error) {
 	switch class {
 	case ClassBytesTerm:
-		return NewBytesTermAttr(), nil
+		return newBytesTermAttr(), nil
 	case ClassCharTerm:
 		return NewPackedTokenAttr(), nil
 	case ClassOffset:
@@ -36,7 +33,7 @@ func (d DefaultAttributeFactory) CreateAttributeInstance(class string) (Attribut
 	case ClassTermToBytesRef:
 		return NewPackedTokenAttr(), nil
 	case ClassPayload:
-		return NewPayloadAttr(), nil
+		return newPayloadAttr(), nil
 	default:
 		return nil, errors.New("attribute not exist")
 	}

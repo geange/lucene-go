@@ -9,36 +9,36 @@ import (
 // See Also: TokenStream
 type TokenFilter interface {
 	TokenStream
+
+	End() error
+	Reset() error
+	Close() error
 }
 
-type DefTokenFilter struct {
+type BaseTokenFilter struct {
 	source *tokenattr.AttributeSource
 	input  TokenStream
 }
 
-func NewTokenFilter(input TokenStream) *DefTokenFilter {
-	return &DefTokenFilter{
+func NewBaseTokenFilter(input TokenStream) *BaseTokenFilter {
+	return &BaseTokenFilter{
 		source: input.AttributeSource(),
 		input:  input,
 	}
 }
 
-func (t *DefTokenFilter) AttributeSource() *tokenattr.AttributeSource {
+func (t *BaseTokenFilter) AttributeSource() *tokenattr.AttributeSource {
 	return t.input.AttributeSource()
 }
 
-//func (t *TokenFilterImp) IncrementToken() (bool, error) {
-//	return t.input.IncrementToken()
-//}
-
-func (t *DefTokenFilter) End() error {
+func (t *BaseTokenFilter) End() error {
 	return t.input.End()
 }
 
-func (t *DefTokenFilter) Reset() error {
+func (t *BaseTokenFilter) Reset() error {
 	return t.input.Reset()
 }
 
-func (t *DefTokenFilter) Close() error {
+func (t *BaseTokenFilter) Close() error {
 	return t.input.Close()
 }

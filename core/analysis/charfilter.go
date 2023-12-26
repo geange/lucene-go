@@ -18,31 +18,31 @@ type CharFilterExt interface {
 	Correct(currentOff int) int
 }
 
-func NewCharFilterImpl(ext CharFilterExt, input io.ReadCloser) *CharFilterImpl {
-	return &CharFilterImpl{
+func NewBaseCharFilter(ext CharFilterExt, input io.ReadCloser) *BaseCharFilter {
+	return &BaseCharFilter{
 		ext:   ext,
 		input: input,
 	}
 }
 
-type CharFilterImpl struct {
+type BaseCharFilter struct {
 	ext   CharFilterExt
 	input io.ReadCloser
 }
 
-func (c *CharFilterImpl) Correct(currentOff int) int {
+func (c *BaseCharFilter) Correct(currentOff int) int {
 	return c.ext.Correct(currentOff)
 }
 
-func (c *CharFilterImpl) Close() error {
+func (c *BaseCharFilter) Close() error {
 	return c.input.Close()
 }
 
-func (c *CharFilterImpl) Read(p []byte) (n int, err error) {
+func (c *BaseCharFilter) Read(p []byte) (n int, err error) {
 	return c.input.Read(p)
 }
 
-func (c *CharFilterImpl) CorrectOffset(currentOff int) int {
+func (c *BaseCharFilter) CorrectOffset(currentOff int) int {
 	corrected := c.ext.Correct(currentOff)
 	if charFilter, ok := c.input.(CharFilter); ok {
 		return charFilter.CorrectOffset(corrected)

@@ -7,7 +7,6 @@ import (
 
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/tokenattr"
 	"github.com/geange/lucene-go/core/util/array"
 	"github.com/geange/lucene-go/core/util/bytesutils"
 )
@@ -91,7 +90,7 @@ func (r *Index) storeTerms(info *info, tokenStream analysis.TokenStream, positio
 		}
 
 		pos += posIncr
-		ord, err := info.terms.Add([]byte(string(termAtt.Buffer())))
+		ord, err := info.terms.Add(termAtt.GetBytes())
 		if err != nil {
 			return err
 		}
@@ -111,7 +110,7 @@ func (r *Index) storeTerms(info *info, tokenStream analysis.TokenStream, positio
 		}
 
 		if r.storePayloads {
-			payload := payloadAtt.(tokenattr.PayloadAttr).GetPayload()
+			payload := payloadAtt.GetPayload()
 			pIndex := 0
 			if payload == nil || len(payload) == 0 {
 				pIndex = -1
@@ -275,8 +274,7 @@ func (r *Index) newInfo(docFieldInfo *document.FieldInfo, pool *bytesutils.Block
 		sortedTerms:     make([]int, 0),
 		binaryProducer:  newBinaryDocValuesProducer(),
 		numericProducer: newNumericDocValuesProducer(),
-		//pointValues:     make([][]byte, 0),
-		minPackedValue: make([]byte, 0),
-		maxPackedValue: make([]byte, 0),
+		minPackedValue:  make([]byte, 0),
+		maxPackedValue:  make([]byte, 0),
 	}
 }

@@ -20,10 +20,10 @@ import (
 // * SortedNumericDocValuesField: SortedSet<long> indexed column-wise for sorting/faceting
 // * StoredField: Stored-only value for retrieving in summary results
 type Field struct {
-	iType      IndexableFieldType
-	vType      FieldValueType
-	name       string
-	fieldsData any
+	fieldType      IndexableFieldType
+	fieldValueType FieldValueType
+	name           string
+	fieldsData     any
 
 	// Pre-analyzed tokenStream for indexed fields; this is separate from fieldsData because
 	// you are allowed to have both; eg maybe field has a String value but you customize how it's tokenized
@@ -35,10 +35,10 @@ type Field struct {
 // name: field name
 // types: field types
 // Throws: 	IllegalArgumentException – if either the name or types is null.
-func NewFieldV1(name string, _type IndexableFieldType) *Field {
+func NewFieldV1(name string, fieldType IndexableFieldType) *Field {
 	return &Field{
-		iType: _type,
-		name:  name,
+		name:      name,
+		fieldType: fieldType,
 	}
 }
 
@@ -52,18 +52,18 @@ func NewFieldV1(name string, _type IndexableFieldType) *Field {
 // or if the field's types is stored(), or if tokenized() is false.
 //
 // NullPointerException – if the reader is null
-func NewFieldV2(name string, reader io.Reader, _type IndexableFieldType) *Field {
+func NewFieldV2(name string, reader io.Reader, fieldType IndexableFieldType) *Field {
 	return &Field{
-		iType:       _type,
+		fieldType:   fieldType,
 		name:        name,
 		fieldsData:  reader,
 		tokenStream: nil,
 	}
 }
 
-func NewFieldV3(name string, tokenStream analysis.TokenStream, _type IndexableFieldType) *Field {
+func NewFieldV3(name string, tokenStream analysis.TokenStream, fieldType IndexableFieldType) *Field {
 	return &Field{
-		iType:       _type,
+		fieldType:   fieldType,
 		name:        name,
 		fieldsData:  nil,
 		tokenStream: tokenStream,
@@ -80,9 +80,9 @@ func NewFieldV3(name string, tokenStream analysis.TokenStream, _type IndexableFi
 // Throws: 	IllegalArgumentException – if the field name, value or types is null, or the field's types is indexed().
 
 // NewField Create field with []byte or string
-func NewField[T Value](name string, value T, _type IndexableFieldType) *Field {
+func NewField(name string, value any, fieldType IndexableFieldType) *Field {
 	return &Field{
-		iType:       _type,
+		fieldType:   fieldType,
 		name:        name,
 		fieldsData:  value,
 		tokenStream: nil,
@@ -97,10 +97,12 @@ func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 	if !r.FieldType().Tokenized() {
 		switch r.ValueType() {
 		case FieldValueString:
-			stringValue, _ := r.StringValue()
+			stringValue, err := r.StringValue()
+			if err != nil {
+				return nil, err
+			}
 			stream, ok := reuse.(*StringTokenStream)
 			if !ok {
-				var err error
 				stream, err = NewStringTokenStream(tokenattr.NewAttributeSource())
 				if err != nil {
 					return nil, err
@@ -109,10 +111,13 @@ func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 			stream.SetValue(stringValue)
 			return stream, nil
 		case FieldValueBytes:
-			bytesValue, _ := r.BytesValue()
+			bytesValue, err := r.BytesValue()
+			if err != nil {
+				return nil, err
+			}
+
 			stream, ok := reuse.(*BinaryTokenStream)
 			if !ok {
-				var err error
 				stream, err = NewBinaryTokenStream(tokenattr.NewAttributeSource())
 				if err != nil {
 					return nil, err
@@ -131,10 +136,18 @@ func (r *Field) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenStre
 
 	switch r.ValueType() {
 	case FieldValueString:
-		value, _ := r.StringValue()
+		value, err := r.StringValue()
+		if err != nil {
+			return nil, err
+		}
+
 		return analyzer.GetTokenStreamFromText(r.name, value)
 	case FieldValueReader:
-		reader, _ := r.ReaderValue()
+		reader, err := r.ReaderValue()
+		if err != nil {
+			return nil, err
+		}
+
 		return analyzer.GetTokenStreamFromReader(r.name, reader)
 	default:
 		return nil, errors.New("field must have either TokenStream, String, Reader or Number value")
@@ -146,7 +159,7 @@ func (r *Field) Name() string {
 }
 
 func (r *Field) FieldType() IndexableFieldType {
-	return r.iType
+	return r.fieldType
 }
 
 func (r *Field) I32Value() (int32, error) {
@@ -273,8 +286,8 @@ type StringTokenStream struct {
 	value           string
 }
 
-func (t *StringTokenStream) AttributeSource() *tokenattr.AttributeSource {
-	return t.source
+func (s *StringTokenStream) AttributeSource() *tokenattr.AttributeSource {
+	return s.source
 }
 
 func (s *StringTokenStream) IncrementToken() (bool, error) {
@@ -282,12 +295,11 @@ func (s *StringTokenStream) IncrementToken() (bool, error) {
 		return false, nil
 	}
 
-	err := s.source.Clear()
-	if err != nil {
+	if err := s.source.Reset(); err != nil {
 		return false, err
 	}
 
-	s.termAttribute.Append(s.value)
+	s.termAttribute.AppendString(s.value)
 	if err := s.offsetAttribute.SetOffset(0, len(s.value)); err != nil {
 		return false, err
 	}
@@ -343,7 +355,7 @@ func (r *BinaryTokenStream) IncrementToken() (bool, error) {
 		return false, nil
 	}
 
-	err := r.source.Clear()
+	err := r.source.Reset()
 	if err != nil {
 		return false, err
 	}
@@ -356,7 +368,7 @@ func (r *BinaryTokenStream) IncrementToken() (bool, error) {
 }
 
 func (r *BinaryTokenStream) End() error {
-	return r.source.Clear()
+	return r.source.Reset()
 }
 
 func (r *BinaryTokenStream) Reset() error {

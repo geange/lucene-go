@@ -5,7 +5,8 @@ import (
 	"github.com/geange/lucene-go/core/tokenattr"
 )
 
-// FieldInvertState This class tracks the number and position / offset parameters of terms being added to the index.
+// FieldInvertState
+// This class tracks the number and position / offset parameters of terms being added to the index.
 // The information collected in this class is also used to calculate the normalization factor for a field.
 type FieldInvertState struct {
 	indexCreatedVersionMajor int
@@ -66,7 +67,7 @@ func (f *FieldInvertState) Reset() {
 func (f *FieldInvertState) SetAttributeSource(attributeSource *tokenattr.AttributeSource) {
 	if f.attributeSource != attributeSource {
 		f.attributeSource = attributeSource
-		f.termAttribute = attributeSource.TermToBytesRef()
+		f.termAttribute = attributeSource.Term2Bytes()
 		f.termFreqAttribute = attributeSource.TermFrequency()
 		f.posIncrAttribute = attributeSource.PositionIncrement()
 		f.offsetAttribute = attributeSource.Offset()

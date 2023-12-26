@@ -59,26 +59,26 @@ type ComponentsBuilder interface {
 	CreateComponents(fieldName string) *TokenStreamComponents
 }
 
-type DefAnalyzer struct {
+type BaseAnalyzer struct {
 	builder       ComponentsBuilder
 	reuseStrategy ReuseStrategy
 	version       *util.Version
 	storedValue   any
 }
 
-func NewAnalyzer(builder ComponentsBuilder) *DefAnalyzer {
-	return &DefAnalyzer{
+func NewBaseAnalyzer(builder ComponentsBuilder) *BaseAnalyzer {
+	return &BaseAnalyzer{
 		builder:       builder,
 		reuseStrategy: &GlobalReuseStrategy{},
 		version:       util.VersionLast,
 	}
 }
 
-func (r *DefAnalyzer) Close() error {
+func (r *BaseAnalyzer) Close() error {
 	return nil
 }
 
-func (r *DefAnalyzer) GetTokenStreamFromText(fieldName string, text string) (TokenStream, error) {
+func (r *BaseAnalyzer) GetTokenStreamFromText(fieldName string, text string) (TokenStream, error) {
 	components := r.reuseStrategy.GetReusableComponents(r, fieldName)
 
 	if components == nil {
@@ -98,11 +98,11 @@ func (r *DefAnalyzer) GetTokenStreamFromText(fieldName string, text string) (Tok
 	return components.GetTokenStream(), nil
 }
 
-func (r *DefAnalyzer) initReader(fieldName string, reader io.Reader) io.Reader {
+func (r *BaseAnalyzer) initReader(fieldName string, reader io.Reader) io.Reader {
 	return reader
 }
 
-func (r *DefAnalyzer) GetTokenStreamFromReader(fieldName string, reader io.Reader) (TokenStream, error) {
+func (r *BaseAnalyzer) GetTokenStreamFromReader(fieldName string, reader io.Reader) (TokenStream, error) {
 	components := r.reuseStrategy.GetReusableComponents(r, fieldName)
 	if components == nil {
 		components = r.builder.CreateComponents(fieldName)
@@ -112,23 +112,23 @@ func (r *DefAnalyzer) GetTokenStreamFromReader(fieldName string, reader io.Reade
 	return components.GetTokenStream(), nil
 }
 
-func (r *DefAnalyzer) GetPositionIncrementGap(fieldName string) int {
+func (r *BaseAnalyzer) GetPositionIncrementGap(fieldName string) int {
 	return 0
 }
 
-func (r *DefAnalyzer) GetOffsetGap(fieldName string) int {
+func (r *BaseAnalyzer) GetOffsetGap(fieldName string) int {
 	return 1
 }
 
-func (r *DefAnalyzer) GetReuseStrategy() ReuseStrategy {
+func (r *BaseAnalyzer) GetReuseStrategy() ReuseStrategy {
 	return r.reuseStrategy
 }
 
-func (r *DefAnalyzer) SetVersion(v *util.Version) {
+func (r *BaseAnalyzer) SetVersion(v *util.Version) {
 	r.version = v
 }
 
-func (r *DefAnalyzer) GetVersion() *util.Version {
+func (r *BaseAnalyzer) GetVersion() *util.Version {
 	return r.version
 }
 
@@ -149,8 +149,8 @@ type GlobalReuseStrategy struct {
 
 func (g *GlobalReuseStrategy) GetReusableComponents(analyzer Analyzer, fieldName string) *TokenStreamComponents {
 	switch analyzer.(type) {
-	case *DefAnalyzer:
-		if components, ok := analyzer.(*DefAnalyzer).storedValue.(*TokenStreamComponents); ok {
+	case *BaseAnalyzer:
+		if components, ok := analyzer.(*BaseAnalyzer).storedValue.(*TokenStreamComponents); ok {
 			return components
 		}
 	}
@@ -159,8 +159,8 @@ func (g *GlobalReuseStrategy) GetReusableComponents(analyzer Analyzer, fieldName
 
 func (g *GlobalReuseStrategy) SetReusableComponents(analyzer Analyzer, fieldName string, components *TokenStreamComponents) {
 	switch analyzer.(type) {
-	case *DefAnalyzer:
-		analyzer.(*DefAnalyzer).storedValue = components
+	case *BaseAnalyzer:
+		analyzer.(*BaseAnalyzer).storedValue = components
 	}
 }
 

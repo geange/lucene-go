@@ -15,26 +15,26 @@ func TestCharTokenizerImpl_IncrementToken(t *testing.T) {
 	ok, err := tokenizer.IncrementToken()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ok, true)
-	assert.Equal(t, []rune("a"), tokenizer.termAtt.Buffer())
-	tokenizer.termAtt.SetEmpty()
+	assert.Equal(t, "a", tokenizer.termAtt.GetString())
+	tokenizer.termAtt.Reset()
 
 	ok, err = tokenizer.IncrementToken()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ok, true)
-	assert.Equal(t, []rune("b"), tokenizer.termAtt.Buffer())
-	tokenizer.termAtt.SetEmpty()
+	assert.Equal(t, "b", tokenizer.termAtt.GetString())
+	tokenizer.termAtt.Reset()
 
 	ok, err = tokenizer.IncrementToken()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ok, true)
-	assert.Equal(t, []rune("ccc"), tokenizer.termAtt.Buffer())
-	tokenizer.termAtt.SetEmpty()
+	assert.Equal(t, "ccc", tokenizer.termAtt.GetString())
+	tokenizer.termAtt.Reset()
 
 	ok, err = tokenizer.IncrementToken()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ok, true)
-	assert.Equal(t, []rune("dddd"), tokenizer.termAtt.Buffer())
-	tokenizer.termAtt.SetEmpty()
+	assert.Equal(t, "dddd", tokenizer.termAtt.GetString())
+	tokenizer.termAtt.Reset()
 }
 
 type ext struct {

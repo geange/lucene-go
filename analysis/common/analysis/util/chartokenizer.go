@@ -23,7 +23,7 @@ type CharTokenizerInner interface {
 }
 
 func NewCharTokenizerImpl(ext CharTokenizerInner, input io.Reader) *CharTokenizerBase {
-	tokenizer := analysis.NewTokenizer()
+	tokenizer := analysis.NewBaseTokenizer()
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 
@@ -31,7 +31,7 @@ func NewCharTokenizerImpl(ext CharTokenizerInner, input io.Reader) *CharTokenize
 
 	return &CharTokenizerBase{
 		inner:         ext,
-		TokenizerBase: tokenizer,
+		BaseTokenizer: tokenizer,
 		offset:        0,
 		finalOffset:   0,
 		maxTokenLen:   86400,
@@ -44,7 +44,7 @@ func NewCharTokenizerImpl(ext CharTokenizerInner, input io.Reader) *CharTokenize
 type CharTokenizerBase struct {
 	inner CharTokenizerInner
 
-	*analysis.TokenizerBase
+	*analysis.BaseTokenizer
 
 	offset      int //
 	finalOffset int
@@ -106,7 +106,7 @@ func (c *CharTokenizerBase) End() error {
 }
 
 func (c *CharTokenizerBase) Reset() error {
-	err := c.TokenizerBase.Reset()
+	err := c.BaseTokenizer.Reset()
 	if err != nil {
 		return err
 	}

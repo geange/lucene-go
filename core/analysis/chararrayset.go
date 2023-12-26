@@ -15,6 +15,7 @@ import (
 // The iterator() returns an Iterator .
 type CharArraySet struct {
 	sync.RWMutex
+
 	values map[string]struct{}
 }
 
@@ -26,7 +27,7 @@ func NewCharArraySet() *CharArraySet {
 }
 
 var (
-	EMPTY_SET = &CharArraySet{
+	EmptySet = &CharArraySet{
 		RWMutex: sync.RWMutex{},
 		values: map[string]struct{}{
 			" ":  {},
@@ -40,14 +41,12 @@ func (r *CharArraySet) Add(key any) {
 	r.RLock()
 	defer r.RUnlock()
 
-	switch key.(type) {
+	switch v := key.(type) {
 	case []byte:
-		newKey := base64.StdEncoding.EncodeToString(key.([]byte))
+		newKey := base64.StdEncoding.EncodeToString(v)
 		r.values[newKey] = struct{}{}
 	case string:
-		obj := key.(string)
-
-		newKey := base64.StdEncoding.EncodeToString([]byte(obj))
+		newKey := base64.StdEncoding.EncodeToString([]byte(v))
 		r.values[newKey] = struct{}{}
 	default:
 		return
@@ -58,14 +57,16 @@ func (r *CharArraySet) Contain(key []byte) bool {
 	r.RLock()
 	defer r.RUnlock()
 
-	newKey := base64.StdEncoding.EncodeToString(key)
-	_, ok := r.values[newKey]
-	return ok
+	b64Key := base64.StdEncoding.EncodeToString(key)
+	if _, ok := r.values[b64Key]; ok {
+		return true
+	}
+	return false
 }
 
 func (r *CharArraySet) Clear() {
 	r.Lock()
 	defer r.Unlock()
 
-	r.values = make(map[string]struct{})
+	clear(r.values)
 }

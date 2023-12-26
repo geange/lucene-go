@@ -15,24 +15,24 @@ type Acceptable interface {
 	Accept() (bool, error)
 }
 
-type DefFilteringTokenFilter struct {
-	*DefTokenFilter
+type BaseFilteringTokenFilter struct {
+	*BaseTokenFilter
 
 	acceptable       Acceptable
 	posIncrAtt       tokenattr.PositionIncrAttr
 	skippedPositions int
 }
 
-func NewFilteringTokenFilter(acceptable Acceptable, in TokenStream) *DefFilteringTokenFilter {
-	return &DefFilteringTokenFilter{
+func NewFilteringTokenFilter(acceptable Acceptable, in TokenStream) *BaseFilteringTokenFilter {
+	return &BaseFilteringTokenFilter{
 		acceptable:       acceptable,
-		DefTokenFilter:   NewTokenFilter(in),
+		BaseTokenFilter:  NewBaseTokenFilter(in),
 		posIncrAtt:       in.AttributeSource().PositionIncrement(),
 		skippedPositions: 0,
 	}
 }
 
-func (r *DefFilteringTokenFilter) IncrementToken() (bool, error) {
+func (r *BaseFilteringTokenFilter) IncrementToken() (bool, error) {
 
 	r.skippedPositions = 0
 	for {
@@ -63,7 +63,7 @@ func (r *DefFilteringTokenFilter) IncrementToken() (bool, error) {
 	return false, nil
 }
 
-func (r *DefFilteringTokenFilter) Reset() error {
+func (r *BaseFilteringTokenFilter) Reset() error {
 	err := r.input.Reset()
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (r *DefFilteringTokenFilter) Reset() error {
 	return nil
 }
 
-func (r *DefFilteringTokenFilter) End() error {
+func (r *BaseFilteringTokenFilter) End() error {
 	err := r.input.End()
 	if err != nil {
 		return err

@@ -9,35 +9,21 @@ import (
 // Each segment has a separate Field Info file. Objects of this class are thread-safe for multiple readers,
 // but only one thread can be adding documents at a time, with no other reader or writer threads accessing this object.
 type FieldInfo struct {
-	// Field's name
-	name string
-
-	// Internal field number
-	number        int
-	docValuesType DocValuesType
-
-	// True if any document indexed term vectors
-	storeTermVector bool
-
-	// omit norms associated with indexed fields
-	omitNorms bool
-
-	indexOptions IndexOptions
-
-	// whether this field stores payloads together with term positions
-	storePayloads bool
-
-	attributes map[string]string
-
-	dvGen int64
+	name             string // Field's name
+	number           int    // Internal field number
+	docValuesType    DocValuesType
+	storeTermVector  bool // True if any document indexed term vectors
+	omitNorms        bool // omit norms associated with indexed fields
+	indexOptions     IndexOptions
+	storePayloads    bool // whether this field stores payloads together with term positions
+	attributes       map[string]string
+	dvGen            int64
+	softDeletesField bool // whether this field is used as the soft-deletes field
 
 	// If both of these are positive it means this field indexed points (see org.apache.lucene.codecs.PointsFormat).
 	pointDimensionCount      int
 	pointIndexDimensionCount int
 	pointNumBytes            int
-
-	// whether this field is used as the soft-deletes field
-	softDeletesField bool
 }
 
 func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayloads bool,
@@ -217,7 +203,7 @@ func (f *FieldInfo) IsSoftDeletesField() bool {
 	return f.softDeletesField
 }
 
-// should only be called by FieldInfos#addOrUpdate
+// Update should only be called by FieldInfos#addOrUpdate
 func (f *FieldInfo) Update(storeTermVector, omitNorms, storePayloads bool, indexOptions IndexOptions,
 	attributes map[string]string, dimensionCount, indexDimensionCount, dimensionNumBytes int) error {
 

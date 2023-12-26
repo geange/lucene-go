@@ -1,5 +1,9 @@
 package document
 
+type LatLonPoint struct {
+	*Field
+}
+
 // LatLonDocValuesField An per-document location field.
 // Sorting by distance is efficient. Multiple values for the same field in one document is allowed.
 // This field defines static factory methods for common operations:
@@ -11,4 +15,10 @@ package document
 // See Also: LatLonPoint
 type LatLonDocValuesField struct {
 	*Field
+}
+
+type LatLonPointSortField struct {
+}
+
+type LatLonShape struct {
 }

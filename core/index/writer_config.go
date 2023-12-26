@@ -21,7 +21,7 @@ type WriterConfig struct {
 
 func NewWriterConfig(codec Codec, similarity Similarity) *WriterConfig {
 	cfg := &WriterConfig{}
-	analyzer := standard.NewAnalyzer(analysis.EMPTY_SET)
+	analyzer := standard.NewAnalyzer(analysis.EmptySet)
 	cfg.liveIndexWriterConfig = newLiveIndexWriterConfig(analyzer, codec, similarity)
 	return cfg
 }

@@ -118,7 +118,7 @@ func (d *Document) GetField(name string) (IndexableField, error) {
 // Params: name – the name of the field
 // Returns: a Field[] array
 func (d *Document) GetFields(name string) []IndexableField {
-	ret := make([]IndexableField, 0)
+	ret := make([]IndexableField, 0, 1)
 	for i, field := range d.fields {
 		if field.Name() == name {
 			_, err := field.StringValue()
@@ -142,10 +142,11 @@ func (d *Document) GetValues(name string) []string {
 		if field.Name() == name {
 			switch field.ValueType() {
 			case FieldValueBytes, FieldValueString:
-				value, _ := field.StringValue()
-				ret = append(ret, value)
+				value, err := field.StringValue()
+				if err == nil {
+					ret = append(ret, value)
+				}
 			}
-
 		}
 	}
 	return ret
