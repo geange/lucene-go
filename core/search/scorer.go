@@ -48,24 +48,24 @@ type Scorer interface {
 	GetMaxScore(upTo int) (float64, error)
 }
 
-type ScorerDefault struct {
-	*ScorableBase
+type BaseScorer struct {
+	*BaseScorable
 
 	weight Weight
 }
 
-func NewScorer(weight Weight) *ScorerDefault {
-	return &ScorerDefault{weight: weight}
+func NewScorer(weight Weight) *BaseScorer {
+	return &BaseScorer{weight: weight}
 }
 
-func (s *ScorerDefault) GetWeight() Weight {
+func (s *BaseScorer) GetWeight() Weight {
 	return s.weight
 }
 
-func (s *ScorerDefault) TwoPhaseIterator() TwoPhaseIterator {
+func (s *BaseScorer) TwoPhaseIterator() TwoPhaseIterator {
 	return nil
 }
 
-func (s *ScorerDefault) AdvanceShallow(target int) (int, error) {
+func (s *BaseScorer) AdvanceShallow(target int) (int, error) {
 	return types.NO_MORE_DOCS, nil
 }

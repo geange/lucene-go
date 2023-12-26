@@ -9,7 +9,7 @@ import (
 var _ Scorer = &BlockMaxConjunctionScorer{}
 
 type BlockMaxConjunctionScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	scorers            []Scorer
 	approximations     []types.DocIdSetIterator
@@ -20,7 +20,7 @@ type BlockMaxConjunctionScorer struct {
 
 func NewBlockMaxConjunctionScorer(weight Weight, scorersList []Scorer) (*BlockMaxConjunctionScorer, error) {
 	res := &BlockMaxConjunctionScorer{
-		ScorerDefault:      NewScorer(weight),
+		BaseScorer:         NewScorer(weight),
 		scorers:            scorersList,
 		approximations:     make([]types.DocIdSetIterator, len(scorersList)),
 		twoPhases:          nil,

@@ -7,7 +7,7 @@ import (
 var _ Scorer = &ConstantScoreScorer{}
 
 type ConstantScoreScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	score            float64
 	scoreMode        ScoreMode
@@ -56,7 +56,7 @@ func NewConstantScoreScorer(weight Weight, score float64,
 		twoPhaseIterator: nil,
 		disi:             disi,
 	}
-	scorer.ScorerDefault = NewScorer(weight)
+	scorer.BaseScorer = NewScorer(weight)
 
 	return scorer, nil
 }
@@ -79,7 +79,7 @@ func NewConstantScoreScorerV1(weight Weight, score float64,
 		scorer.approximation = twoPhaseIterator.Approximation()
 		scorer.twoPhaseIterator = twoPhaseIterator
 	}
-	scorer.ScorerDefault = NewScorer(weight)
+	scorer.BaseScorer = NewScorer(weight)
 	scorer.disi = AsDocIdSetIterator(twoPhaseIterator)
 	return scorer, nil
 }

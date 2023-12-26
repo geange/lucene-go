@@ -9,7 +9,7 @@ var _ Scorer = &ReqExclScorer{}
 // ReqExclScorer
 // A Scorer for queries with a required subscorer and an excluding (prohibited) sub Scorer.
 type ReqExclScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	reqScorer Scorer
 
@@ -26,7 +26,7 @@ type ReqExclScorer struct {
 
 func NewReqExclScorer(reqScorer, exclScorer Scorer) *ReqExclScorer {
 	scorer := &ReqExclScorer{
-		ScorerDefault:       NewScorer(reqScorer.GetWeight()),
+		BaseScorer:          NewScorer(reqScorer.GetWeight()),
 		reqScorer:           reqScorer,
 		reqTwoPhaseIterator: reqScorer.TwoPhaseIterator(),
 	}

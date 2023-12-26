@@ -14,7 +14,7 @@ var _ Scorer = &ConjunctionScorer{}
 // ConjunctionScorer
 // Create a new ConjunctionScorer, note that scorers must be a subset of required.
 type ConjunctionScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	disi     types.DocIdSetIterator
 	scorers  []Scorer
@@ -27,10 +27,10 @@ func NewConjunctionScorer(weight Weight, scorers []Scorer, required []Scorer) (*
 		return nil, err
 	}
 	return &ConjunctionScorer{
-		ScorerDefault: NewScorer(weight),
-		disi:          disi,
-		scorers:       scorers,
-		required:      required,
+		BaseScorer: NewScorer(weight),
+		disi:       disi,
+		scorers:    scorers,
+		required:   required,
 	}, nil
 }
 

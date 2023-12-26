@@ -9,7 +9,7 @@ var _ Scorer = &TermScorer{}
 
 // TermScorer Expert: A Scorer for documents matching a Term.
 type TermScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	//weight       Weight
 	postingsEnum index.PostingsEnum
@@ -26,7 +26,7 @@ func NewTermScorerWithPostings(weight Weight, postingsEnum index.PostingsEnum, d
 		impactsEnum:  index.NewSlowImpactsEnum(postingsEnum),
 		docScorer:    docScorer,
 	}
-	this.ScorerDefault = NewScorer(weight)
+	this.BaseScorer = NewScorer(weight)
 
 	this.impactsDISI = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
 	return this
@@ -38,7 +38,7 @@ func NewTermScorerWithImpacts(weight Weight, impactsEnum index.ImpactsEnum, docS
 		impactsEnum:  impactsEnum,
 		docScorer:    docScorer,
 	}
-	this.ScorerDefault = NewScorer(weight)
+	this.BaseScorer = NewScorer(weight)
 
 	this.impactsDISI = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
 	this.iterator = this.impactsDISI
