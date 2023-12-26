@@ -121,8 +121,10 @@ func (b *BoxManager[T]) Read(ctx context.Context, in store.DataInput, v any) err
 }
 
 func (b *BoxManager[T]) SkipOutput(ctx context.Context, in store.DataInput) error {
-	_, err := in.ReadUvarint(nil)
-	return err
+	if _, err := in.ReadUvarint(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *BoxManager[T]) ReadFinalOutput(ctx context.Context, in store.DataInput, v any) error {

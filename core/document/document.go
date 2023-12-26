@@ -27,6 +27,10 @@ func (d *Document) Iterator() func() IndexableField {
 	}
 }
 
+func (d *Document) Fields() []IndexableField {
+	return d.fields
+}
+
 // Add a field to a document. Several fields may be added with the same name. In this case,
 // if the fields are indexed, their text is treated as though appended for the purposes of search.
 // Note that add like the removeField(s) methods only makes sense prior to adding a document to an index.
@@ -74,17 +78,19 @@ func (d *Document) GetBinaryValues(name string) [][]byte {
 	ret := make([][]byte, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
-			switch field.ValueType() {
-			case FieldValueBytes, FieldValueString:
-				data, _ := field.BytesValue()
-				ret = append(ret, data)
+			switch v := field.Get().(type) {
+			case string:
+				ret = append(ret, []byte(v))
+			case []byte:
+				ret = append(ret, v)
 			}
 		}
 	}
 	return ret
 }
 
-// GetBinaryValue Returns an array of bytes for the first (or only) field that has the name specified as the method
+// GetBinaryValue
+// Returns an array of bytes for the first (or only) field that has the name specified as the method
 // parameter. This method will return null if no binary fields with the specified name are available.
 // There may be non-binary fields with the same name.
 // Params: name – the name of the field.
@@ -92,10 +98,11 @@ func (d *Document) GetBinaryValues(name string) [][]byte {
 func (d *Document) GetBinaryValue(name string) ([]byte, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			switch field.ValueType() {
-			case FieldValueBytes, FieldValueString:
-				data, _ := field.BytesValue()
-				return data, nil
+			switch v := field.Get().(type) {
+			case string:
+				return []byte(v), nil
+			case []byte:
+				return v, nil
 			}
 		}
 	}
@@ -113,18 +120,14 @@ func (d *Document) GetField(name string) (IndexableField, error) {
 	return nil, FrrFieldNotFound
 }
 
-// GetFields Returns an array of IndexAbleFields with the given name. This method returns an empty array when
+// GetFields
+// Returns an array of IndexAbleFields with the given name. This method returns an empty array when
 // there are no matching fields. It never returns null.
-// Params: name – the name of the field
-// Returns: a Field[] array
+// name: the name of the field
 func (d *Document) GetFields(name string) []IndexableField {
-	ret := make([]IndexableField, 0)
+	ret := make([]IndexableField, 0, 1)
 	for i, field := range d.fields {
 		if field.Name() == name {
-			_, err := field.StringValue()
-			if err != nil {
-				continue
-			}
 			ret = append(ret, d.fields[i])
 		}
 	}
@@ -140,27 +143,30 @@ func (d *Document) GetValues(name string) []string {
 	ret := make([]string, 0, len(d.fields))
 	for _, field := range d.fields {
 		if field.Name() == name {
-			switch field.ValueType() {
-			case FieldValueBytes, FieldValueString:
-				value, _ := field.StringValue()
-				ret = append(ret, value)
+			switch v := field.Get().(type) {
+			case string:
+				ret = append(ret, v)
+			case []byte:
+				ret = append(ret, string(v))
 			}
-
 		}
 	}
 	return ret
 }
 
-// Get Returns the string value of the field with the given name if any exist in this document, or null.
+// Get
+// Returns the string value of the field with the given name if any exist in this document, or null.
 // If multiple fields exist with this name, this method returns the first value added. If only binary
 // fields with this name exist, returns null. For a numeric StoredField it returns the string value of
 // the number. If you want the actual numeric field instance back, use getField.
 func (d *Document) Get(name string) (string, error) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			value, err := field.StringValue()
-			if err == nil {
-				return value, nil
+			switch v := field.Get().(type) {
+			case string:
+				return v, nil
+			case []byte:
+				return string(v), nil
 			}
 		}
 	}

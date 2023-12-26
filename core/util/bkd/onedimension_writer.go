@@ -58,7 +58,7 @@ func (w *Writer) NewOneDimensionBKDWriter(metaOut, indexOut, dataOut store.Index
 	return writer, nil
 }
 
-func (r *OneDimensionBKDWriter) Add(packedValue []byte, docID int) error {
+func (r *OneDimensionBKDWriter) Add(ctx context.Context, packedValue []byte, docID int) error {
 	w := r.p
 	config := w.config
 
@@ -87,7 +87,7 @@ func (r *OneDimensionBKDWriter) Add(packedValue []byte, docID int) error {
 	if r.leafCount == config.maxPointsInLeafNode {
 		// We write a block once we hit exactly the max count ... this is different from
 		// when we write N > 1 dimensional points where we write between max/2 and max per leaf block
-		if err := r.writeLeafBlock(r.leafCardinality); err != nil {
+		if err := r.writeLeafBlock(nil, r.leafCardinality); err != nil {
 			return err
 		}
 		r.leafCardinality = 0
@@ -101,7 +101,7 @@ func (r *OneDimensionBKDWriter) Finish() (Runnable, error) {
 	config := w.config
 
 	if r.leafCount > 0 {
-		if err := r.writeLeafBlock(r.leafCardinality); err != nil {
+		if err := r.writeLeafBlock(nil, r.leafCardinality); err != nil {
 			return nil, err
 		}
 		r.leafCardinality = 0
@@ -141,7 +141,7 @@ func (r *oneDimBKDTreeLeafNodes) GetSplitDimension(index int) int {
 	return 0
 }
 
-func (r *OneDimensionBKDWriter) writeLeafBlock(leafCardinality int) error {
+func (r *OneDimensionBKDWriter) writeLeafBlock(ctx context.Context, leafCardinality int) error {
 	w := r.p
 	conf := w.config
 
@@ -177,7 +177,7 @@ func (r *OneDimensionBKDWriter) writeLeafBlock(leafCardinality int) error {
 	if err != nil {
 		return err
 	}
-	err = w.writeCommonPrefixes(w.scratchOut, w.commonPrefixLengths, r.leafValues)
+	err = w.writeCommonPrefixes(ctx, w.scratchOut, w.commonPrefixLengths, r.leafValues)
 	if err != nil {
 		return err
 	}

@@ -257,13 +257,13 @@ func (w *Writer) writeLeafBlockPackedValuesRange(out store.DataOutput, commonPre
 	return nil
 }
 
-func (w *Writer) writeCommonPrefixes(out store.DataOutput, commonPrefixes []int, packedValue []byte) error {
+func (w *Writer) writeCommonPrefixes(ctx context.Context, out store.DataOutput, commonPrefixes []int, packedValue []byte) error {
 	config := w.config
 	numDims := config.NumDims()
 	bytesPerDim := config.BytesPerDim()
 
 	for dim := 0; dim < numDims; dim++ {
-		if err := out.WriteUvarint(nil, uint64(commonPrefixes[dim])); err != nil {
+		if err := out.WriteUvarint(ctx, uint64(commonPrefixes[dim])); err != nil {
 			return err
 		}
 		start := dim * bytesPerDim

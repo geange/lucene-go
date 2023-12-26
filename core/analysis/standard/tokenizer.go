@@ -2,23 +2,24 @@ package standard
 
 import (
 	"bufio"
-	"github.com/geange/lucene-go/core/analysis"
+	"errors"
 	"io"
 	"unicode"
+
+	"github.com/geange/lucene-go/core/analysis"
 )
 
 type Tokenizer struct {
-	*analysis.TokenizerBase
+	*analysis.BaseTokenizer
 
-	scanner *stdTokenizer
-
+	scanner          *stdTokenizer
 	skippedPositions int
 	maxTokenLength   int
 }
 
 func NewTokenizer() *Tokenizer {
 	tokenizer := &Tokenizer{
-		TokenizerBase:    analysis.NewTokenizer(),
+		BaseTokenizer:    analysis.NewBaseTokenizer(),
 		scanner:          newStdTokenizer(),
 		skippedPositions: 0,
 		maxTokenLength:   0,
@@ -27,23 +28,31 @@ func NewTokenizer() *Tokenizer {
 }
 
 func (r *Tokenizer) IncrementToken() (bool, error) {
-	r.AttributeSource().Clear()
+	if err := r.AttributeSource().Reset(); err != nil {
+		return false, err
+	}
 	r.skippedPositions = 0
 
 	text, err := r.scanner.GetNextToken()
 	if err != nil {
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			r.AttributeSource().Type().SetType("ALPHANUM")
-			r.AttributeSource().CharTerm().Append(text)
-			r.AttributeSource().Offset().SetOffset(r.scanner.Slow, r.scanner.Slow+len(text))
+			r.AttributeSource().CharTerm().AppendString(text)
+			if err := r.AttributeSource().Offset().
+				SetOffset(r.scanner.slow, r.scanner.slow+len(text)); err != nil {
+				return false, err
+			}
 			return false, nil
 		}
 		return false, err
 	}
 
 	r.AttributeSource().Type().SetType("ALPHANUM")
-	r.AttributeSource().CharTerm().Append(text)
-	r.AttributeSource().Offset().SetOffset(r.scanner.Slow, r.scanner.Slow+len(text))
+	r.AttributeSource().CharTerm().AppendString(text)
+	if err := r.AttributeSource().Offset().
+		SetOffset(r.scanner.slow, r.scanner.slow+len(text)); err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -55,6 +64,19 @@ func (r *Tokenizer) SetReader(reader io.Reader) error {
 func (r *Tokenizer) setMaxTokenLength(length int) {
 	r.maxTokenLength = length
 }
+
+type TokenType int
+
+const (
+	ALPHANUM = TokenType(iota)
+	NUM
+	SOUTHEAST_ASIAN
+	IDEOGRAPHIC
+	HIRAGANA
+	KATAKANA
+	HANGUL
+	EMOJI
+)
 
 // stdTokenizer This class implements Word Break rules from the Unicode Text Segmentation algorithm, as
 // specified in Unicode Standard Annex #29 .
@@ -69,37 +91,35 @@ func (r *Tokenizer) setMaxTokenLength(length int) {
 // * <EMOJI>: A sequence of Emoji characters
 type stdTokenizer struct {
 	reader io.RuneReader
-	Slow   int
-	Fast   int
-
-	buff []rune
-
-	EOF bool
+	slow   int
+	fast   int
+	buff   []rune
+	eof    bool
 }
 
 func newStdTokenizer() *stdTokenizer {
 	return &stdTokenizer{
 		reader: nil,
-		Slow:   0,
-		Fast:   0,
+		slow:   0,
+		fast:   0,
 		buff:   make([]rune, 0),
 	}
 }
 
 func (r *stdTokenizer) SetReader(reader io.Reader) {
 	r.reader = bufio.NewReader(reader)
-	r.Slow, r.Fast = 0, 0
+	r.slow, r.fast = 0, 0
 	r.buff = r.buff[:0]
-	r.EOF = false
+	r.eof = false
 }
 
 func (r *stdTokenizer) GetNextToken() (string, error) {
-	if r.EOF {
+	if r.eof {
 		return "", io.EOF
 	}
 
-	if r.Slow < r.Fast {
-		r.Slow = r.Fast
+	if r.slow < r.fast {
+		r.slow = r.fast
 		r.buff = r.buff[:0]
 	}
 
@@ -107,18 +127,18 @@ func (r *stdTokenizer) GetNextToken() (string, error) {
 		char, n, err := r.reader.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				r.EOF = true
+				r.eof = true
 				return string(r.buff), nil
 			}
 			return "", err
 		}
 
 		if !unicode.IsSpace(char) {
-			r.Fast += n
+			r.fast += n
 			r.buff = append(r.buff, char)
 		} else {
-			r.Fast += n
-			r.Fast++
+			r.fast += n
+			r.fast++
 			break
 		}
 	}

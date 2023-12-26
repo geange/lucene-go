@@ -8,9 +8,9 @@ import (
 var _ analysis.Analyzer = &Analyzer{}
 
 type Analyzer struct {
-	*analysis.DefAnalyzer
+	*analysis.BaseAnalyzer
 
-	stopWord       *analysis.DefStopWordAnalyzer
+	stopWord       *analysis.BaseStopWordAnalyzer
 	maxTokenLength int
 }
 
@@ -19,7 +19,7 @@ func NewAnalyzer(set *analysis.CharArraySet) *Analyzer {
 		stopWord:       analysis.NewStopWordAnalyzer(set),
 		maxTokenLength: 255,
 	}
-	analyzer.DefAnalyzer = analysis.NewAnalyzer(analyzer)
+	analyzer.BaseAnalyzer = analysis.NewBaseAnalyzer(analyzer)
 	return analyzer
 }
 
@@ -43,6 +43,6 @@ func (r *Analyzer) CreateComponents(_ string) *analysis.TokenStreamComponents {
 	tok2 := analysis.NewStopFilter(tok1, r.stopWord.GetStopWordSet())
 	return analysis.NewTokenStreamComponents(func(reader io.Reader) {
 		src.setMaxTokenLength(r.maxTokenLength)
-		src.SetReader(reader)
+		_ = src.SetReader(reader)
 	}, tok2)
 }

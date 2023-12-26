@@ -368,12 +368,12 @@ type writeField1DimVisitor struct {
 	oneDimWriter *OneDimensionBKDWriter
 }
 
-func (w *writeField1DimVisitor) Visit(docID int) error {
+func (w *writeField1DimVisitor) Visit(ctx context.Context, docID int) error {
 	return errors.New("IllegalStateException")
 }
 
-func (w *writeField1DimVisitor) VisitLeaf(docID int, packedValue []byte) error {
-	return w.oneDimWriter.Add(packedValue, docID)
+func (w *writeField1DimVisitor) VisitLeaf(ctx context.Context, docID int, packedValue []byte) error {
+	return w.oneDimWriter.Add(nil, packedValue, docID)
 }
 
 func (w *writeField1DimVisitor) Compare(minPackedValue, maxPackedValue []byte) types.Relation {

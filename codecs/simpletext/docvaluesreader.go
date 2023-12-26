@@ -84,14 +84,11 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 		}
 		switch dvType {
 		case document.DOC_VALUES_TYPE_NUMERIC:
-			value, err := reader.ReadLabel(DOC_VALUES_MINVALUE)
+			minValue, err := reader.ParseInt64(DOC_VALUES_MINVALUE)
 			if err != nil {
 				return nil, err
 			}
-			field.minValue, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, err
-			}
+			field.minValue = minValue
 
 			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
 			if err != nil {
@@ -105,20 +102,17 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 				return nil, err
 			}
 		case document.DOC_VALUES_TYPE_BINARY:
-			value, err := reader.ReadLabel(DOC_VALUES_MAXLENGTH)
+			maxLength, err := reader.ParseInt(DOC_VALUES_MAXLENGTH)
 			if err != nil {
 				return nil, err
 			}
-			field.maxLength, err = strconv.Atoi(value)
-			if err != nil {
-				return nil, err
-			}
+			field.maxLength = maxLength
 
-			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
+			pattern, err := reader.ReadLabel(DOC_VALUES_PATTERN)
 			if err != nil {
 				return nil, err
 			}
-			field.pattern = value
+			field.pattern = pattern
 
 			field.dataStartFilePointer = r.data.GetFilePointer()
 
@@ -129,23 +123,17 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 			}
 
 		case document.DOC_VALUES_TYPE_SORTED, document.DOC_VALUES_TYPE_SORTED_SET:
-			value, err := reader.ReadLabel(DOC_VALUES_NUMVALUES)
+			numValues, err := reader.ParseInt64(DOC_VALUES_NUMVALUES)
 			if err != nil {
 				return nil, err
 			}
-			field.numValues, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, err
-			}
+			field.numValues = numValues
 
-			value, err = reader.ReadLabel(DOC_VALUES_MAXLENGTH)
+			maxLength, err := reader.ParseInt(DOC_VALUES_MAXLENGTH)
 			if err != nil {
 				return nil, err
 			}
-			field.maxLength, err = strconv.Atoi(value)
-			if err != nil {
-				return nil, err
-			}
+			field.maxLength = maxLength
 
 			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
 			if err != nil {
@@ -174,6 +162,10 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 		}
 	}
 	return r, nil
+}
+
+func (s *DocValuesReader) GetMergeInstance() index.DocValuesProducer {
+	return s
 }
 
 func (s *DocValuesReader) Close() error {
@@ -288,8 +280,15 @@ func (i *innerDocValuesIterator1) Advance(target int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		utils.ReadLine(i.in, i.buf) // data
-		utils.ReadLine(i.in, i.buf) // 'T' or 'F'
+
+		// data
+		if err := utils.ReadLine(i.in, i.buf); err != nil {
+			return 0, err
+		}
+		// 'T' or 'F'
+		if err := utils.ReadLine(i.in, i.buf); err != nil {
+			return 0, err
+		}
 
 		if i.buf.Bytes()[0] == 'T' {
 			i.doc = idx
@@ -314,8 +313,15 @@ func (i *innerDocValuesIterator1) AdvanceExact(target int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	utils.ReadLine(i.in, i.buf) // data
-	utils.ReadLine(i.in, i.buf) // 'T' or 'F'
+
+	// data
+	if err := utils.ReadLine(i.in, i.buf); err != nil {
+		return false, err
+	}
+	// 'T' or 'F'
+	if err := utils.ReadLine(i.in, i.buf); err != nil {
+		return false, err
+	}
 
 	return i.buf.Bytes()[0] == 'T', nil
 
@@ -339,11 +345,14 @@ func (s *DocValuesReader) GetBinary(fieldInfo *document.FieldInfo) (index.Binary
 		if docID < 0 || docID >= s.maxDoc {
 			return nil, fmt.Errorf("docID must be 0 .. %d; got %d", s.maxDoc-1, docID)
 		}
-		_, err := in.Seek(field.dataStartFilePointer+int64((9+len(field.pattern)+field.maxLength+2)*docID), io.SeekStart)
-		if err != nil {
+
+		offset := field.dataStartFilePointer + int64((9+len(field.pattern)+field.maxLength+2)*docID)
+		if _, err := in.Seek(offset, io.SeekStart); err != nil {
 			return nil, err
 		}
-		utils.ReadLine(in, scratch)
+		if err := utils.ReadLine(in, scratch); err != nil {
+			return nil, err
+		}
 		if !bytes.HasPrefix(scratch.Bytes(), DOC_VALUES_LENGTH) {
 			return nil, fmt.Errorf("%s", scratch.String())
 		}
@@ -355,8 +364,7 @@ func (s *DocValuesReader) GetBinary(fieldInfo *document.FieldInfo) (index.Binary
 		}
 
 		bs := make([]byte, size)
-		_, err = in.Read(bs)
-		if err != nil {
+		if _, err = in.Read(bs); err != nil {
 			return nil, err
 		}
 		return bs, nil
@@ -407,8 +415,13 @@ func (i *innerDocValuesIterator2) NextDoc() (int, error) {
 
 func (i *innerDocValuesIterator2) Advance(target int) (int, error) {
 	for idx := target; idx < i.reader.maxDoc; idx++ {
-		i.in.Seek(i.field.dataStartFilePointer+int64((9+len(i.field.pattern)+i.field.maxLength+2)*idx), io.SeekStart)
-		utils.ReadLine(i.in, i.scratch)
+		position := i.field.dataStartFilePointer + int64((9+len(i.field.pattern)+i.field.maxLength+2)*idx)
+		if _, err := i.in.Seek(position, io.SeekStart); err != nil {
+			return 0, err
+		}
+		if err := utils.ReadLine(i.in, i.scratch); err != nil {
+			return 0, err
+		}
 
 		if bytes.HasPrefix(i.scratch.Bytes(), DOC_VALUES_LENGTH) {
 			i.scratch.Next(len(DOC_VALUES_LENGTH))
@@ -426,8 +439,14 @@ func (i *innerDocValuesIterator2) Advance(target int) (int, error) {
 			return 0, err
 		}
 
-		utils.ReadLine(i.in, i.scratch) // newline
-		utils.ReadLine(i.in, i.scratch) // 'T' or 'F'
+		// newline
+		if err := utils.ReadLine(i.in, i.scratch); err != nil {
+			return 0, err
+		}
+		// 'T' or 'F'
+		if err := utils.ReadLine(i.in, i.scratch); err != nil {
+			return 0, err
+		}
 
 		if i.scratch.Bytes()[0] == 'T' {
 			i.doc = idx
@@ -448,7 +467,10 @@ func (i *innerDocValuesIterator2) Cost() int64 {
 
 func (i *innerDocValuesIterator2) AdvanceExact(target int) (bool, error) {
 	i.doc = target
-	i.in.Seek(i.field.dataStartFilePointer+int64((9+len(i.field.pattern)+i.field.maxLength+2)*target), io.SeekStart)
+	offset := i.field.dataStartFilePointer + int64((9+len(i.field.pattern)+i.field.maxLength+2)*target)
+	if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
+		return false, err
+	}
 	value, err := utils.ReadValue(i.in, DOC_VALUES_LENGTH, i.scratch)
 	if err != nil {
 		return false, err
@@ -461,8 +483,12 @@ func (i *innerDocValuesIterator2) AdvanceExact(target int) (bool, error) {
 	if err := i.in.SkipBytes(nil, size); err != nil {
 		return false, err
 	}
-	utils.ReadLine(i.in, i.scratch)
-	utils.ReadLine(i.in, i.scratch)
+	if err := utils.ReadLine(i.in, i.scratch); err != nil {
+		return false, err
+	}
+	if err := utils.ReadLine(i.in, i.scratch); err != nil {
+		return false, err
+	}
 	return i.scratch.Bytes()[0] == 'T', nil
 }
 
@@ -478,7 +504,7 @@ func (s *DocValuesReader) GetSorted(fieldInfo *document.FieldInfo) (index.Sorted
 var _ index.SortedDocValues = &innerSortedDocValues{}
 
 type innerSortedDocValues struct {
-	*index.SortedDocValuesDefault
+	*index.BaseSortedDocValues
 
 	field   *OneField
 	in      store.IndexInput
@@ -491,17 +517,17 @@ type innerSortedDocValues struct {
 
 func newInnerSortedDocValues(field *OneField, in store.IndexInput, reader *DocValuesReader) *innerSortedDocValues {
 	values := &innerSortedDocValues{
-		SortedDocValuesDefault: nil,
-		field:                  field,
-		in:                     in,
-		doc:                    -1,
-		ord:                    0,
-		reader:                 reader,
-		term:                   new(bytes.Buffer),
-		scratch:                new(bytes.Buffer),
+		BaseSortedDocValues: nil,
+		field:               field,
+		in:                  in,
+		doc:                 -1,
+		ord:                 0,
+		reader:              reader,
+		term:                new(bytes.Buffer),
+		scratch:             new(bytes.Buffer),
 	}
 
-	values.SortedDocValuesDefault = index.NewSortedDocValuesDefault(&index.SortedDocValuesDefaultConfig{
+	values.BaseSortedDocValues = index.NewBaseSortedDocValues(&index.SortedDocValuesDefaultConfig{
 		OrdValue:      values.OrdValue,
 		LookupOrd:     values.LookupOrd,
 		GetValueCount: values.GetValueCount,
@@ -560,8 +586,12 @@ func (i *innerSortedDocValues) Advance(target int) (int, error) {
 		offset := i.field.dataStartFilePointer +
 			i.field.numValues*int64(9+len(i.field.pattern)+i.field.maxLength) +
 			int64(idx*(1+len(i.field.ordPattern)))
-		i.in.Seek(offset, io.SeekStart)
-		utils.ReadLine(i.in, i.scratch)
+		if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
+			return 0, err
+		}
+		if err := utils.ReadLine(i.in, i.scratch); err != nil {
+			return 0, err
+		}
 
 		ord, err := strconv.Atoi(i.scratch.String())
 		if err != nil {
@@ -590,8 +620,12 @@ func (i *innerSortedDocValues) AdvanceExact(target int) (bool, error) {
 	offset := i.field.dataStartFilePointer +
 		i.field.numValues*int64(9+len(i.field.pattern)+i.field.maxLength) +
 		int64(target*(1+len(i.field.ordPattern)))
-	i.in.Seek(offset, io.SeekStart)
-	utils.ReadLine(i.in, i.scratch)
+	if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
+		return false, err
+	}
+	if err := utils.ReadLine(i.in, i.scratch); err != nil {
+		return false, err
+	}
 
 	ord, err := strconv.Atoi(i.scratch.String())
 	if err != nil {
@@ -760,8 +794,7 @@ func (i *innerSortedSetDocValues) Advance(target int) (int, error) {
 			int64(9+len(i.field.pattern)+i.field.maxLength) +
 			int64(idx*(1+len(i.field.ordPattern)))
 
-		_, err := i.in.Seek(offset, io.SeekStart)
-		if err != nil {
+		if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
 			return 0, err
 		}
 
@@ -795,12 +828,13 @@ func (i *innerSortedSetDocValues) AdvanceExact(target int) (bool, error) {
 		i.field.numValues*int64(9+len(i.field.pattern)+i.field.maxLength) +
 		int64(target*(1+len(i.field.ordPattern)))
 
-	_, err := i.in.Seek(offset, io.SeekStart)
-	if err != nil {
+	if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
 		return false, err
 	}
 
-	utils.ReadLine(i.in, i.scratch)
+	if err := utils.ReadLine(i.in, i.scratch); err != nil {
+		return false, err
+	}
 
 	ordList := strings.Trim(i.scratch.String(), " ")
 	i.doc = target
@@ -833,8 +867,7 @@ func (i *innerSortedSetDocValues) LookupOrd(ord int64) ([]byte, error) {
 	}
 
 	offset := i.field.dataStartFilePointer + ord*int64(9+len(i.field.pattern)+i.field.maxLength)
-	_, err := i.in.Seek(offset, io.SeekStart)
-	if err != nil {
+	if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
 		return nil, err
 	}
 
@@ -847,8 +880,7 @@ func (i *innerSortedSetDocValues) LookupOrd(ord int64) ([]byte, error) {
 		return nil, err
 	}
 	bs := make([]byte, size)
-	_, err = i.in.Read(bs)
-	if err != nil {
+	if _, err = i.in.Read(bs); err != nil {
 		return nil, err
 	}
 	return bs, nil
@@ -861,14 +893,19 @@ func (i *innerSortedSetDocValues) GetValueCount() int64 {
 func (s *DocValuesReader) CheckIntegrity() error {
 	scratch := new(bytes.Buffer)
 	clone := s.data.Clone().(store.IndexInput)
-	clone.Seek(0, io.SeekStart)
-	// checksum is fixed-width encoded with 20 bytes, plus 1 byte for newline (the space is included in SimpleTextUtil.CHECKSUM):
+	if _, err := clone.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	// checksum is fixed-width encoded with 20 bytes,
+	// plus 1 byte for newline (the space is included in SimpleTextUtil.CHECKSUM):
 	footerStartPos := s.data.Length() - int64(len(utils.CHECKSUM)+21)
 
 	input := store.NewBufferedChecksumIndexInput(clone)
 
 	for {
-		utils.ReadLine(input, scratch)
+		if err := utils.ReadLine(input, scratch); err != nil {
+			return err
+		}
 		if input.GetFilePointer() >= footerStartPos {
 			// Make sure we landed at precisely the right location:
 			if input.GetFilePointer() != footerStartPos {
@@ -876,7 +913,9 @@ func (s *DocValuesReader) CheckIntegrity() error {
 					"footer does not start at expected position current=%d vs expected=%d",
 					input.GetFilePointer(), footerStartPos)
 			}
-			utils.CheckFooter(input)
+			if err := utils.CheckFooter(input); err != nil {
+				return err
+			}
 			break
 		}
 	}

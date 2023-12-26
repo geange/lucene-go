@@ -73,7 +73,7 @@ func NewBKDReader(in store.IndexInput, numDims, numIndexDims, maxPointsInLeafNod
 }
 
 func (s *BKDReader) Intersect(ctx context.Context, visitor types.IntersectVisitor) error {
-	return s.intersect(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue)
+	return s.intersect(nil, s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue)
 }
 
 // Fast path: this is called when the query box fully encompasses all cells under this node.
@@ -95,7 +95,7 @@ func (s *BKDReader) getIntersectState(visitor types.IntersectVisitor) *Intersect
 		s.packedBytesLength, s.maxPointsInLeafNode, visitor)
 }
 
-func (s *BKDReader) intersect(state *IntersectState, nodeID int, cellMinPacked, cellMaxPacked []byte) error {
+func (s *BKDReader) intersect(ctx context.Context, state *IntersectState, nodeID int, cellMinPacked, cellMaxPacked []byte) error {
 
 	r := state.visitor.Compare(cellMinPacked, cellMaxPacked)
 	switch r {
@@ -124,8 +124,7 @@ func (s *BKDReader) intersect(state *IntersectState, nodeID int, cellMinPacked, 
 			}
 
 			// Again, this time reading values and checking with the visitor
-			if err := s.visitDocValues(state.commonPrefixLengths, state.scratchPackedValue,
-				state.in, state.scratchDocIDs, count, state.visitor); err != nil {
+			if err := s.visitDocValues(nil, state.commonPrefixLengths, state.scratchPackedValue, state.in, state.scratchDocIDs, count, state.visitor); err != nil {
 				return err
 			}
 		}
@@ -155,7 +154,7 @@ func (s *BKDReader) intersect(state *IntersectState, nodeID int, cellMinPacked, 
 	copy(splitPackedValue[splitDim*bytesPerDim:],
 		s.splitPackedValues[address:address+bytesPerDim])
 
-	if err := s.intersect(state, 2*nodeID, cellMinPacked, splitPackedValue); err != nil {
+	if err := s.intersect(nil, state, 2*nodeID, cellMinPacked, splitPackedValue); err != nil {
 		return err
 	}
 
@@ -163,7 +162,7 @@ func (s *BKDReader) intersect(state *IntersectState, nodeID int, cellMinPacked, 
 	copy(splitPackedValue, cellMinPacked)
 	copy(splitPackedValue[splitDim*bytesPerDim:],
 		s.splitPackedValues[address:address+bytesPerDim])
-	if err := s.intersect(state, 2*nodeID+1, splitPackedValue, cellMaxPacked); err != nil {
+	if err := s.intersect(nil, state, 2*nodeID+1, splitPackedValue, cellMaxPacked); err != nil {
 		return err
 	}
 	return nil
@@ -194,7 +193,7 @@ func (s *BKDReader) visitDocIDs(in store.IndexInput, blockFP int64, visitor type
 			return err
 		}
 
-		if err := visitor.Visit(docID); err != nil {
+		if err := visitor.Visit(nil, docID); err != nil {
 			return err
 		}
 	}
@@ -229,8 +228,7 @@ func (s *BKDReader) readDocIDs(in store.IndexInput, blockFP int64, docIDs []int)
 	return count, nil
 }
 
-func (s *BKDReader) visitDocValues(commonPrefixLengths []int, scratchPackedValue []byte,
-	in store.IndexInput, docIDs []int, count int, visitor types.IntersectVisitor) error {
+func (s *BKDReader) visitDocValues(ctx context.Context, commonPrefixLengths []int, scratchPackedValue []byte, in store.IndexInput, docIDs []int, count int, visitor types.IntersectVisitor) error {
 
 	visitor.Grow(count)
 	// NOTE: we don't do prefix coding, so we ignore commonPrefixLengths
@@ -262,7 +260,7 @@ func (s *BKDReader) visitDocValues(commonPrefixLengths []int, scratchPackedValue
 		}
 
 		copy(scratchPackedValue, br)
-		if err := visitor.VisitLeaf(docIDs[idx], scratchPackedValue); err != nil {
+		if err := visitor.VisitLeaf(ctx, docIDs[idx], scratchPackedValue); err != nil {
 			return err
 		}
 	}

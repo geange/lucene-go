@@ -1,7 +1,7 @@
 package store
 
-// A MergeInfo provides information required for a MERGE context. It is used as part of an IOContext
-// in case of MERGE context.
+// A MergeInfo provides information required for a CONTEXT_MERGE context. It is used as part of an IOContext
+// in case of CONTEXT_MERGE context.
 type MergeInfo struct {
 	TotalMaxDoc         int
 	EstimatedMergeBytes int

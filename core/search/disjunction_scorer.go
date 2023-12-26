@@ -7,7 +7,7 @@ import (
 // DisjunctionScorer
 // Base class for Scorers that score disjunctions.
 type DisjunctionScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	needsScores bool
 

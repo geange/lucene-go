@@ -14,7 +14,7 @@ const (
 var _ Mutable = &Packed64{}
 
 type Packed64 struct {
-	*MutableImpl
+	*BaseMutable
 
 	// Values are stores contiguously in the blocks array.
 	blocks []uint64
@@ -26,7 +26,8 @@ type Packed64 struct {
 	bpvMinusBlockSize int
 }
 
-// NewPacked64 Creates an array with the internal structures adjusted for the given limits and initialized to 0.
+// NewPacked64
+// Creates an array with the internal structures adjusted for the given limits and initialized to 0.
 // Params: 	valueCount – the number of elements.
 //
 //	bitsPerValue – the number of bits available for any given value.
@@ -38,7 +39,7 @@ func NewPacked64(valueCount, bitsPerValue int) *Packed64 {
 	packed64.maskRight = ^uint64(0) << (Packed64BlockSize - bitsPerValue) >> (Packed64BlockSize - bitsPerValue)
 	packed64.bpvMinusBlockSize = bitsPerValue - Packed64BlockSize
 
-	packed64.MutableImpl = newMutableImpl(packed64, valueCount, bitsPerValue)
+	packed64.BaseMutable = newBaseMutable(packed64, valueCount, bitsPerValue)
 	return packed64
 }
 
@@ -93,7 +94,7 @@ func (p *Packed64) GetBulk(index int, arr []uint64) int {
 	blockIndex := (index * p.bitsPerValue) >> Packed64BlockBits
 
 	iterations := length / decoder.LongValueCount()
-	decoder.DecodeLongToLong(p.blocks[blockIndex:], arr[off:], iterations)
+	decoder.DecodeUint64(p.blocks[blockIndex:], arr[off:], iterations)
 	gotValues := iterations * decoder.LongValueCount()
 	index += gotValues
 	length -= gotValues
@@ -152,7 +153,7 @@ func (p *Packed64) SetBulk(index int, arr []uint64) int {
 	blockIndex := (int)((index * p.bitsPerValue) >> Packed64BlockBits)
 
 	iterations := size / encoder.LongValueCount()
-	encoder.EncodeLongToLong(arr[off:], p.blocks[blockIndex:], iterations)
+	encoder.EncodeUint64(arr[off:], p.blocks[blockIndex:], iterations)
 	setValues := iterations * encoder.LongValueCount()
 	index += setValues
 	size -= setValues
@@ -190,7 +191,7 @@ func (p *Packed64) Fill(fromIndex, toIndex int, value uint64) {
 	// use them to set as many values as possible without applying any mask
 	// or shift
 	nAlignedBlocks := (nAlignedValues * p.bitsPerValue) >> 6
-	nAlignedValuesBlocks := make([]uint64, 0)
+	var nAlignedValuesBlocks []uint64
 	{
 		values := NewPacked64(nAlignedValues, p.bitsPerValue)
 		for i := 0; i < nAlignedValues; i++ {
@@ -234,8 +235,7 @@ func (p *Packed64) Save(ctx context.Context, out store.DataOutput) error {
 		return err
 	}
 	for i := 0; i < p.Size(); i++ {
-		err := writer.Add(p.Get(i))
-		if err != nil {
+		if err := writer.Add(p.Get(i)); err != nil {
 			return err
 		}
 	}

@@ -38,7 +38,7 @@ func NewMutablePointValuesSorter(config *Config, maxDoc int, reader types.Mutabl
 
 	bitsPerDocId := 0
 	if !sortedByDocID {
-		bitsPerDocId = packed.PackedIntsBitsRequired(uint64(maxDoc - 1))
+		bitsPerDocId, _ = packed.BitsRequired(int64(maxDoc - 1))
 	}
 
 	return &MutablePointValuesSorter{
