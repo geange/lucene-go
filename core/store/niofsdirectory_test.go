@@ -20,7 +20,12 @@ func TestNIOFSDirectory(t *testing.T) {
 	dirPath, err := dir.GetDirectory()
 	assert.Nil(t, err)
 
-	assert.Equal(t, os.TempDir(), dirPath+"/")
+	tempPath, err := filepath.Abs(os.TempDir())
+	assert.Nil(t, err)
+	curDirPath, err := filepath.Abs(dirPath)
+	assert.Nil(t, err)
+
+	assert.Equal(t, tempPath, curDirPath)
 }
 
 func TestNIOFSDirectory_ObtainLock(t *testing.T) {
