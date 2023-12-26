@@ -1,8 +1,9 @@
 package tokenattr
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBytesAttr_CopyTo(t *testing.T) {
