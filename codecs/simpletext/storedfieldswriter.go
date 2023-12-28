@@ -96,29 +96,23 @@ func (s *StoredFieldsWriter) WriteField(info *document.FieldInfo, field document
 	if err := s.write(STORED_FIELD_TYPE); err != nil {
 		return err
 	}
-	//n := field.Value()
 
-	switch field.ValueType() {
-	case document.FieldValueI32:
-		n, _ := field.I32Value()
-		return s.writeValue(STORED_FIELD_TYPE_INT, fmt.Sprintf("%d", n))
-	case document.FieldValueI64:
-		n, _ := field.I64Value()
-		return s.writeValue(STORED_FIELD_TYPE_LONG, fmt.Sprintf("%d", n))
-	case document.FieldValueF32:
-		n, _ := field.F32Value()
-		value := strconv.FormatFloat(float64(n), 'f', -1, 32)
+	obj := field.Get()
+	switch v := obj.(type) {
+	case int32:
+		return s.writeValue(STORED_FIELD_TYPE_INT, fmt.Sprintf("%d", v))
+	case int64:
+		return s.writeValue(STORED_FIELD_TYPE_LONG, fmt.Sprintf("%d", v))
+	case float32:
+		value := strconv.FormatFloat(float64(v), 'f', -1, 32)
 		return s.writeValue(STORED_FIELD_TYPE_FLOAT, value)
-	case document.FieldValueF64:
-		n, _ := field.F64Value()
-		value := strconv.FormatFloat(n, 'f', -1, 64)
+	case float64:
+		value := strconv.FormatFloat(v, 'f', -1, 64)
 		return s.writeValue(STORED_FIELD_TYPE_DOUBLE, value)
-	case document.FieldValueString:
-		n, _ := field.StringValue()
-		return s.writeValue(STORED_FIELD_TYPE_STRING, n)
-	case document.FieldValueBytes:
-		n, _ := field.BytesValue()
-		return s.writeValueBytes(STORED_FIELD_TYPE_BINARY, n)
+	case string:
+		return s.writeValue(STORED_FIELD_TYPE_STRING, v)
+	case []byte:
+		return s.writeValueBytes(STORED_FIELD_TYPE_BINARY, v)
 	default:
 		return errors.New("cannot store numeric type")
 	}
@@ -141,9 +135,11 @@ func (s *StoredFieldsWriter) writeValue(valueType []byte, value string) error {
 	if err := utils.WriteBytes(s.out, valueType); err != nil {
 		return err
 	}
+
 	if err := utils.NewLine(s.out); err != nil {
 		return err
 	}
+
 	if err := utils.WriteBytes(s.out, STORED_FIELD_VALUE); err != nil {
 		return err
 	}
@@ -151,6 +147,7 @@ func (s *StoredFieldsWriter) writeValue(valueType []byte, value string) error {
 	if err := utils.WriteString(s.out, value); err != nil {
 		return err
 	}
+
 	return utils.NewLine(s.out)
 }
 
@@ -158,9 +155,11 @@ func (s *StoredFieldsWriter) writeValueBytes(valueType []byte, value []byte) err
 	if err := utils.WriteBytes(s.out, valueType); err != nil {
 		return err
 	}
+
 	if err := utils.NewLine(s.out); err != nil {
 		return err
 	}
+
 	if err := utils.WriteBytes(s.out, STORED_FIELD_VALUE); err != nil {
 		return err
 	}
@@ -168,6 +167,7 @@ func (s *StoredFieldsWriter) writeValueBytes(valueType []byte, value []byte) err
 	if err := utils.WriteBytes(s.out, value); err != nil {
 		return err
 	}
+
 	return utils.NewLine(s.out)
 }
 

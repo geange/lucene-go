@@ -79,12 +79,13 @@ func (r *DocStoredFieldVisitor) GetDocument() *Document {
 }
 
 func (r *DocStoredFieldVisitor) BinaryField(fieldInfo *FieldInfo, value []byte) error {
-	r.doc.Add(NewStoredField(fieldInfo.Name(), value))
+	field := NewStoredField[[]byte](fieldInfo.Name(), value)
+	r.doc.Add(&field)
 	return nil
 }
 
 func (r *DocStoredFieldVisitor) StringField(fieldInfo *FieldInfo, value []byte) error {
-	ft := NewFieldTypeV1(TextFieldStored)
+	ft := NewFieldTypeFrom(textFieldStored)
 	if err := ft.SetStoreTermVectors(fieldInfo.HasVectors()); err != nil {
 		return err
 	}
@@ -94,7 +95,9 @@ func (r *DocStoredFieldVisitor) StringField(fieldInfo *FieldInfo, value []byte) 
 	if err := ft.SetIndexOptions(fieldInfo.GetIndexOptions()); err != nil {
 		return err
 	}
-	r.doc.Add(NewStoredFieldWithType(fieldInfo.Name(), string(value), ft))
+
+	field := NewStoredFieldWithType(fieldInfo.Name(), string(value), ft)
+	r.doc.Add(&field)
 	return nil
 }
 

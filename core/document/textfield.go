@@ -1,39 +1,31 @@
 package document
 
-import (
-	"io"
-)
-
 var (
-	TextFieldStored    *FieldType
-	TextFieldNotStored *FieldType
+	textFieldStored    *FieldType
+	textFieldNotStored *FieldType
 )
 
 func init() {
-	TextFieldStored = NewFieldType()
-	_ = TextFieldStored.SetIndexOptions(INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
-	_ = TextFieldStored.SetTokenized(true)
-	_ = TextFieldStored.SetStored(true)
-	TextFieldStored.Freeze()
+	textFieldStored = NewFieldType()
+	_ = textFieldStored.SetIndexOptions(INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	_ = textFieldStored.SetTokenized(true)
+	_ = textFieldStored.SetStored(true)
+	textFieldStored.Freeze()
 
-	TextFieldNotStored = NewFieldType()
-	_ = TextFieldNotStored.SetIndexOptions(INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
-	_ = TextFieldNotStored.SetTokenized(true)
-	TextFieldNotStored.Freeze()
+	textFieldNotStored = NewFieldType()
+	_ = textFieldNotStored.SetIndexOptions(INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
+	_ = textFieldNotStored.SetTokenized(true)
+	textFieldNotStored.Freeze()
 }
 
 type TextField struct {
-	*Field
+	*Field[string]
 }
 
-func NewTextFieldByReader(name string, reader io.Reader) *TextField {
-	return &TextField{NewFieldV2(name, reader, TextFieldNotStored)}
-}
-
-func NewTextField[T Value](name string, value T, stored bool) *TextField {
-	_type := TextFieldStored
+func NewTextField(name string, value string, stored bool) *TextField {
+	fieldType := textFieldStored
 	if !stored {
-		_type = TextFieldNotStored
+		fieldType = textFieldNotStored
 	}
-	return &TextField{NewField(name, value, _type)}
+	return &TextField{NewField(name, value, fieldType)}
 }

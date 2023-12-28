@@ -285,7 +285,7 @@ func (r *Index) AddIndexAbleField(field document.IndexableField, analyzer analys
 	}
 
 	if field.FieldType().PointIndexDimensionCount() > 0 {
-		bytes, err := field.BytesValue()
+		bytes, err := document.Bytes(field.Get())
 		if err != nil {
 			return err
 		}

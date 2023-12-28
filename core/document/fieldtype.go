@@ -27,24 +27,24 @@ func NewFieldType() *FieldType {
 	return defaultFieldType()
 }
 
-func NewFieldTypeV1(ref IndexableFieldType) *FieldType {
-	fieldType := defaultFieldType()
-	fieldType.stored = ref.Stored()
-	fieldType.tokenized = ref.Tokenized()
-	fieldType.storeTermVectors = ref.StoreTermVectors()
-	fieldType.storeTermVectorOffsets = ref.StoreTermVectorOffsets()
-	fieldType.storeTermVectorPositions = ref.StoreTermVectorPositions()
-	fieldType.storeTermVectorPayloads = ref.StoreTermVectorPayloads()
-	fieldType.omitNorms = ref.OmitNorms()
-	fieldType.indexOptions = ref.IndexOptions()
-	fieldType.docValuesType = ref.DocValuesType()
-	fieldType.dimensionCount = ref.PointDimensionCount()
-	fieldType.indexDimensionCount = ref.PointIndexDimensionCount()
-	fieldType.dimensionNumBytes = ref.PointNumBytes()
-	for k, v := range ref.GetAttributes() {
-		fieldType.attributes[k] = v
+func NewFieldTypeFrom(fieldType IndexableFieldType) *FieldType {
+	t := defaultFieldType()
+	t.stored = fieldType.Stored()
+	t.tokenized = fieldType.Tokenized()
+	t.storeTermVectors = fieldType.StoreTermVectors()
+	t.storeTermVectorOffsets = fieldType.StoreTermVectorOffsets()
+	t.storeTermVectorPositions = fieldType.StoreTermVectorPositions()
+	t.storeTermVectorPayloads = fieldType.StoreTermVectorPayloads()
+	t.omitNorms = fieldType.OmitNorms()
+	t.indexOptions = fieldType.IndexOptions()
+	t.docValuesType = fieldType.DocValuesType()
+	t.dimensionCount = fieldType.PointDimensionCount()
+	t.indexDimensionCount = fieldType.PointIndexDimensionCount()
+	t.dimensionNumBytes = fieldType.PointNumBytes()
+	for k, v := range fieldType.GetAttributes() {
+		t.attributes[k] = v
 	}
-	return fieldType
+	return t
 }
 
 func defaultFieldType() *FieldType {
@@ -82,8 +82,7 @@ func (f *FieldType) Stored() bool {
 }
 
 func (f *FieldType) SetStored(value bool) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 
@@ -110,8 +109,7 @@ func (f *FieldType) StoreTermVectors() bool {
 }
 
 func (f *FieldType) SetStoreTermVectors(value bool) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 	f.storeTermVectors = value
@@ -123,8 +121,7 @@ func (f *FieldType) StoreTermVectorOffsets() bool {
 }
 
 func (f *FieldType) SetStoreTermVectorOffsets(value bool) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 	f.storeTermVectorOffsets = value
@@ -142,8 +139,7 @@ func (f *FieldType) StoreTermVectorPositions() bool {
 //	IllegalStateException – if this FieldType is frozen against future modifications.
 //	storeTermVectorPositions()
 func (f *FieldType) SetStoreTermVectorPositions(value bool) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 	f.storeTermVectorPositions = value
@@ -160,8 +156,7 @@ func (f *FieldType) StoreTermVectorPayloads() bool {
 // 抛出: IllegalStateException – if this FieldType is frozen against future modifications.
 // 请参阅: storeTermVectorPayloads()
 func (f *FieldType) SetStoreTermVectorPayloads(value bool) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 	f.storeTermVectorPayloads = value
@@ -182,8 +177,7 @@ func (f *FieldType) IndexOptions() IndexOptions {
 }
 
 func (f *FieldType) SetIndexOptions(value IndexOptions) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 
@@ -196,8 +190,7 @@ func (f *FieldType) DocValuesType() DocValuesType {
 }
 
 func (f *FieldType) SetDocValuesType(value DocValuesType) error {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return err
 	}
 

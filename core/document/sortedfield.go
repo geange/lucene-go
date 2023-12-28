@@ -1,13 +1,7 @@
 package document
 
-type SortedSetDocValuesField struct {
-	*Field
-}
+type SortedSetDocValuesField Field[[]byte]
 
-type SortedNumericDocValuesField struct {
-	*Field
-}
+type SortedNumericDocValuesField Field[[]byte]
 
-type SortedDocValuesField struct {
-	*Field
-}
+type SortedDocValuesField Field[[]byte]

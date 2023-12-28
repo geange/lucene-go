@@ -438,12 +438,12 @@ func (d *DefaultIndexingChain) processField(docID int,
 		}
 
 		if fieldType.Stored() {
-			str, err := field.StringValue()
-			if err == nil {
-				if len(str) > MAX_STORED_STRING_LENGTH {
-					return 0, errors.New("stored field too large")
-				}
-			}
+			//str, err := document.Str(field.Get())
+			//if err == nil {
+			//	if len(str) > MAX_STORED_STRING_LENGTH {
+			//		return 0, errors.New("stored field too large")
+			//	}
+			//}
 
 			if err := d.storedFieldsConsumer.writeField(fp.fieldInfo, field); err != nil {
 				return 0, err
@@ -505,7 +505,7 @@ func (d *DefaultIndexingChain) indexPoint(docID int, fp *PerField, field documen
 	if fp.pointValuesWriter == nil {
 		fp.pointValuesWriter = NewPointValuesWriter(fp.fieldInfo)
 	}
-	bs, err := field.BytesValue()
+	bs, err := document.Bytes(field.Get())
 	if err != nil {
 		return err
 	}
@@ -528,19 +528,18 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 		// the DV type of this field, will throw an IllegalArgExc:
 		if d.indexWriterConfig.GetIndexSort() != nil {
 			indexSort := d.indexWriterConfig.GetIndexSort()
-			err := d.validateIndexSortDVType(indexSort, fp.fieldInfo.Name(), dvType)
-			if err != nil {
+			if err := d.validateIndexSortDVType(indexSort, fp.fieldInfo.Name(), dvType); err != nil {
 				return err
 			}
 		}
-		err := d.fieldInfos.globalFieldNumbers.setDocValuesType(fp.fieldInfo.Number(), fp.fieldInfo.Name(), dvType)
-		if err != nil {
+
+		if err := d.fieldInfos.globalFieldNumbers.
+			setDocValuesType(fp.fieldInfo.Number(), fp.fieldInfo.Name(), dvType); err != nil {
 			return err
 		}
 	}
 
-	err := fp.fieldInfo.SetDocValuesType(dvType)
-	if err != nil {
+	if err := fp.fieldInfo.SetDocValuesType(dvType); err != nil {
 		return err
 	}
 
@@ -550,16 +549,17 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 			fp.docValuesWriter = NewNumericDocValuesWriter(fp.fieldInfo)
 		}
 
-		num, err := field.I64Value()
+		// TODO: 需要设计如何返回具体的数据类型
+		obj, ok := field.Number()
+		if !ok {
+			return errors.New("field value is not number")
+		}
+		num, err := document.Int64(obj)
 		if err != nil {
 			return err
 		}
-		//if !ok {
-		//	return fmt.Errorf("field=%s : null item not allowed", field.Name())
-		//}
 
-		err = fp.docValuesWriter.(*NumericDocValuesWriter).AddValue(docID, num)
-		if err != nil {
+		if err := fp.docValuesWriter.(*NumericDocValuesWriter).AddValue(docID, num); err != nil {
 			return err
 		}
 
@@ -568,13 +568,12 @@ func (d *DefaultIndexingChain) indexDocValue(docID int,
 			fp.docValuesWriter = NewBinaryDocValuesWriter(fp.fieldInfo)
 		}
 
-		bs, err := field.BytesValue()
+		bs, err := document.Bytes(field.Get())
 		if err != nil {
-			//return fmt.Errorf("field=%s : item not allow", field.Name())
 			return err
 		}
-		err = fp.docValuesWriter.(*BinaryDocValuesWriter).AddValue(docID, bs)
-		if err != nil {
+
+		if err := fp.docValuesWriter.(*BinaryDocValuesWriter).AddValue(docID, bs); err != nil {
 			return err
 		}
 

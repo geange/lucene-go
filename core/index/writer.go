@@ -395,7 +395,7 @@ func (w *Writer) UpdateDocument(term *Term, doc *document.Document) (int64, erro
 // Returns: The sequence number for this operation
 // Throws: CorruptIndexException: if the index is corrupt
 // IOException: if there is a low-level IO error
-func (w *Writer) SoftUpdateDocument(term *Term, doc *document.Document, softDeletes ...*document.Field) (int64, error) {
+func (w *Writer) SoftUpdateDocument(term *Term, doc *document.Document, softDeletes ...document.IndexableField) (int64, error) {
 	updates, err := w.buildDocValuesUpdate(term, softDeletes)
 	if err != nil {
 		return 0, err
@@ -407,7 +407,7 @@ func (w *Writer) SoftUpdateDocument(term *Term, doc *document.Document, softDele
 	return w.updateDocuments(delNode, []*document.Document{doc})
 }
 
-func (w *Writer) buildDocValuesUpdate(term *Term, updates []*document.Field) ([]DocValuesUpdate, error) {
+func (w *Writer) buildDocValuesUpdate(term *Term, updates []document.IndexableField) ([]DocValuesUpdate, error) {
 	dvUpdates := make([]DocValuesUpdate, 0, len(updates))
 
 	for _, field := range updates {
@@ -429,13 +429,17 @@ func (w *Writer) buildDocValuesUpdate(term *Term, updates []*document.Field) ([]
 
 		switch dvType {
 		case document.DOC_VALUES_TYPE_NUMERIC:
-			value, err := field.I64Value()
-			if err != nil {
-				return nil, err
+			switch v := field.Get().(type) {
+			case int32:
+				dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), int64(v)))
+			case int64:
+				dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), v))
+			default:
+				panic("TODO")
 			}
-			dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), value))
+
 		case document.DOC_VALUES_TYPE_BINARY:
-			value, err := field.BytesValue()
+			value, err := document.Bytes(field.Get())
 			if err != nil {
 				return nil, err
 			}

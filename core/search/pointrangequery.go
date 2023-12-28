@@ -2,6 +2,7 @@ package search
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/types"
@@ -20,11 +21,9 @@ type PointRangeQuery struct {
 	bytesPerDim int
 	lowerPoint  []byte
 	upperPoint  []byte
-	fn          func(dimension int, value []byte) string
 }
 
-func NewPointRangeQuery(field string, lowerPoint []byte, upperPoint []byte, numDims int,
-	fn func(dimension int, value []byte) string) (*PointRangeQuery, error) {
+func NewPointRangeQuery(field string, lowerPoint []byte, upperPoint []byte, numDims int) (*PointRangeQuery, error) {
 
 	if numDims <= 0 {
 		return nil, errors.New("numDims must be positive")
@@ -48,7 +47,6 @@ func NewPointRangeQuery(field string, lowerPoint []byte, upperPoint []byte, numD
 		bytesPerDim: len(lowerPoint) / numDims,
 		lowerPoint:  lowerPoint,
 		upperPoint:  upperPoint,
-		fn:          fn,
 	}, nil
 }
 
@@ -68,9 +66,13 @@ func (p *PointRangeQuery) String(field string) string {
 
 		startOffset := p.bytesPerDim * i
 		sb.WriteString("[")
-		sb.WriteString(p.fn(i, copyOfSubArray(p.lowerPoint, startOffset, startOffset+p.bytesPerDim)))
+		fromDimData := p.lowerPoint[startOffset : startOffset+p.bytesPerDim]
+		from := fmt.Sprintf("idx=%d value=%s", i, base64.StdEncoding.EncodeToString(fromDimData))
+		sb.WriteString(from)
 		sb.WriteString(" TO ")
-		sb.WriteString(p.fn(i, copyOfSubArray(p.upperPoint, startOffset, startOffset+p.bytesPerDim)))
+		toDimData := p.upperPoint[startOffset : startOffset+p.bytesPerDim]
+		to := fmt.Sprintf("idx=%d value=%s", i, base64.StdEncoding.EncodeToString(toDimData))
+		sb.WriteString(to)
 		sb.WriteString("]")
 	}
 	return sb.String()

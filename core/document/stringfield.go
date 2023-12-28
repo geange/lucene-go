@@ -1,57 +1,41 @@
 package document
 
+import "sync"
+
 var (
-	StringFieldTypeNotStored *FieldType
-	StringFieldTypeStored    *FieldType
+	stringFieldTypeOnce      sync.Once
+	stringFieldTypeNotStored *FieldType
+	stringFieldTypeStored    *FieldType
 )
 
-func init() {
-	StringFieldTypeNotStored = NewFieldType()
-	StringFieldTypeNotStored.SetOmitNorms(true)
-	StringFieldTypeNotStored.SetIndexOptions(INDEX_OPTIONS_DOCS)
-	StringFieldTypeNotStored.SetTokenized(false)
-	StringFieldTypeNotStored.Freeze()
-
-	StringFieldTypeStored = NewFieldType()
-	StringFieldTypeStored.SetOmitNorms(true)
-	StringFieldTypeStored.SetIndexOptions(INDEX_OPTIONS_DOCS)
-	StringFieldTypeStored.SetStored(true)
-	StringFieldTypeStored.SetTokenized(false)
-	StringFieldTypeStored.Freeze()
-}
-
 type StringField struct {
-	*Field
+	*Field[string]
 }
 
-// NewStringFieldByString Creates a new textual StringField, indexing the provided String value as a single token.
-// Params: 	name – field name
-//
-//	value – String value
-//	stored – Store.YES if the content should also be stored
-//
-// Throws: 	IllegalArgumentException – if the field name or value is null.
-func NewStringFieldByString(name string, value string, stored bool) *StringField {
-	_type := StringFieldTypeStored
-	if !stored {
-		_type = StringFieldTypeNotStored
-	}
-	return &StringField{NewField(name, value, _type)}
-}
+// NewStringField
+// Creates a new textual StringField, indexing the provided String value as a single token.
+// name: field name
+// value: String value
+// stored: true if the content should also be stored
+func NewStringField(name string, value string, stored bool) *StringField {
+	stringFieldTypeOnce.Do(func() {
+		stringFieldTypeNotStored = NewFieldType()
+		_ = stringFieldTypeNotStored.SetOmitNorms(true)
+		_ = stringFieldTypeNotStored.SetIndexOptions(INDEX_OPTIONS_DOCS)
+		_ = stringFieldTypeNotStored.SetTokenized(false)
+		stringFieldTypeNotStored.Freeze()
 
-// NewStringFieldByBytes Creates a new binary StringField, indexing the provided binary (BytesRef) value as a
-// single token.
-// Params: 	name – field name
-//
-//			value – BytesRef value. The provided value is not cloned so you must not change it until the
-//	 		document(s) holding it have been indexed.
-//			stored – Store.YES if the content should also be stored
-//
-// Throws: 	IllegalArgumentException – if the field name or value is null.
-func NewStringFieldByBytes(name string, value []byte, stored bool) *StringField {
-	_type := StringFieldTypeStored
+		stringFieldTypeStored = NewFieldType()
+		_ = stringFieldTypeStored.SetOmitNorms(true)
+		_ = stringFieldTypeStored.SetIndexOptions(INDEX_OPTIONS_DOCS)
+		_ = stringFieldTypeStored.SetStored(true)
+		_ = stringFieldTypeStored.SetTokenized(false)
+		stringFieldTypeStored.Freeze()
+	})
+
+	fieldType := stringFieldTypeStored
 	if !stored {
-		_type = StringFieldTypeNotStored
+		fieldType = stringFieldTypeNotStored
 	}
-	return &StringField{NewField(name, value, _type)}
+	return &StringField{NewField(name, value, fieldType)}
 }

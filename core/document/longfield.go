@@ -1,13 +1,9 @@
 package document
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
 	"github.com/geange/lucene-go/core/util/numeric"
-)
-
-const (
-	LONG_BYTES = 8
 )
 
 // LongPoint
@@ -20,87 +16,58 @@ const (
 // newRangeQuery(String, long[], long[]) for matching points/ranges in n-dimensional space.
 // See Also: PointValues
 type LongPoint struct {
-	*Field
+	*Field[[]byte]
 }
 
 // NewLongPoint
 // Creates a new LongPoint, indexing the provided N-dimensional long point.
 // Params: name – field name point – long[] value
 // Throws: IllegalArgumentException – if the field name or value is null.
-func NewLongPoint(name string, point ...int64) (*LongPoint, error) {
-	packed, err := packLongs(point...)
-	if err != nil {
-		return nil, err
+func NewLongPoint(name string, points ...int64) LongPoint {
+	packed := packLongPoint(points)
+	return LongPoint{NewField(name, packed, genLongPointType(len(points)))}
+}
+
+func (r *LongPoint) String() string {
+	result := new(bytes.Buffer)
+	result.WriteString("LongPoint")
+	result.WriteString(" <")
+	result.WriteString(r.name)
+	result.WriteString(":")
+
+	packed := r.fieldsData
+	count := r.fieldType.PointDimensionCount()
+	for dim := 0; dim < count; dim++ {
+		if dim > 0 {
+			result.WriteString(",")
+		}
+		offset := dim * LONG_BYTES
+		num := fmt.Sprintf("%d", numeric.SortableBytesToLong(packed[offset:]))
+		result.WriteString(num)
 	}
-	return &LongPoint{
-		NewField(name, packed, LongPointGetType(len(point))),
-	}, nil
+	result.WriteString(">")
+	return result.String()
 }
 
-func (r *LongPoint) SetLongValue(value int64) error {
-	return r.SetLongValues(value)
-}
-
-// SetLongValues
-// Change the values of this field
-func (r *LongPoint) SetLongValues(points ...int64) error {
-	if r.fieldType.PointIndexDimensionCount() != len(points) {
-		format := "this field(%s) uses %d dimensions; cannot change to (incoming) %d dimensions"
-		return fmt.Errorf(format, r.name, r.fieldType.PointIndexDimensionCount(), len(points))
+func (r *LongPoint) Number() (any, bool) {
+	if r.fieldType.PointDimensionCount() > 1 {
+		return int64(0), false
 	}
-
-	packed, err := packLongs(points...)
-	if err != nil {
-		return err
-	}
-	r.fieldsData = packed
-	return nil
+	return numeric.SortableBytesToLong(r.fieldsData), true
 }
 
-func (r *LongPoint) SetBytesValue(bs []byte) error {
-	return errors.New("cannot change value type from int64 to bytes")
-}
-
-func (r *LongPoint) NumericValue() {
-
-}
-
-// Pack a long point into a BytesRef
-// point: long[] value
-// Throws: IllegalArgumentException – is the value is null or of zero length
-func packLongs(points ...int64) ([]byte, error) {
-	if len(points) == 0 {
-		return nil, errors.New("points must not be 0 dimensions")
-	}
-
+func packLongPoint(points []int64) []byte {
 	packed := make([]byte, len(points)*LONG_BYTES)
-
-	for dim := 0; dim < len(points); dim++ {
-		encodeDimension(points[dim], packed[dim*LONG_BYTES:])
+	for i, point := range points {
+		offset := i * LONG_BYTES
+		numeric.LongToSortableBytes(uint64(point), packed[offset:])
 	}
-	return packed, nil
+	return packed
 }
 
-func LongPointGetType(numDims int) *FieldType {
+func genLongPointType(numDims int) *FieldType {
 	fieldType := NewFieldType()
 	_ = fieldType.SetDimensions(numDims, LONG_BYTES)
 	fieldType.Freeze()
 	return fieldType
-}
-
-func encodeDimension(value int64, dest []byte) {
-	numeric.LongToSortableBytes(value, dest)
-}
-
-// Decode single long dimension
-func decodeDimension(value []byte) int64 {
-	return numeric.SortableBytesToLong(value)
-}
-
-type LongRange struct {
-	*Field
-}
-
-type LongRangeDocValuesField struct {
-	*Field
 }

@@ -152,23 +152,34 @@ func (r *Index) storeDocValues(info *info, docValuesType document.DocValuesType,
 	}
 	switch docValuesType {
 	case document.DOC_VALUES_TYPE_NUMERIC:
-		value, err := field.I64Value()
-		if err != nil {
-			return err
+		switch v := field.Get().(type) {
+		case int32:
+			info.numericProducer.dvLongValues = []int{int(v)}
+			info.numericProducer.count++
+		case int64:
+			info.numericProducer.dvLongValues = []int{int(v)}
+			info.numericProducer.count++
+		default:
+			panic("TODO")
 		}
-		info.numericProducer.dvLongValues = []int{int(value)}
-		info.numericProducer.count++
+
 	case document.DOC_VALUES_TYPE_SORTED_NUMERIC:
 		if info.numericProducer.dvLongValues == nil {
 			info.numericProducer.dvLongValues = make([]int, 4)
 		}
 
-		value, err := field.I64Value()
-		if err != nil {
-			return err
+		var value int
+		switch v := field.Get().(type) {
+		case int32:
+			value = int(v)
+		case int64:
+			value = int(v)
+		default:
+			panic("TODO")
 		}
+
 		info.numericProducer.dvLongValues = array.Grow(info.numericProducer.dvLongValues, info.numericProducer.count+10)
-		info.numericProducer.dvLongValues[info.numericProducer.count] = int(value)
+		info.numericProducer.dvLongValues[info.numericProducer.count] = value
 		info.numericProducer.count++
 	case document.DOC_VALUES_TYPE_BINARY:
 		if info.binaryProducer.dvBytesValuesSet != nil {
@@ -180,7 +191,7 @@ func (r *Index) storeDocValues(info *info, docValuesType document.DocValuesType,
 		}
 		info.binaryProducer.dvBytesValuesSet = bytesHash
 
-		value, err := field.BytesValue()
+		value, err := document.Bytes(field.Get())
 		if err != nil {
 			return err
 		}
@@ -199,7 +210,7 @@ func (r *Index) storeDocValues(info *info, docValuesType document.DocValuesType,
 		}
 		info.binaryProducer.dvBytesValuesSet = bytesHash
 
-		value, err := field.BytesValue()
+		value, err := document.Bytes(field.Get())
 		if err != nil {
 			return err
 		}
@@ -217,7 +228,7 @@ func (r *Index) storeDocValues(info *info, docValuesType document.DocValuesType,
 			info.binaryProducer.dvBytesValuesSet = bytesHash
 		}
 
-		value, err := field.BytesValue()
+		value, err := document.Bytes(field.Get())
 		if err != nil {
 			return err
 		}

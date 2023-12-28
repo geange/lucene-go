@@ -33,7 +33,8 @@ import (
 type TokenStream interface {
 	AttributeSource() *tokenattr.AttributeSource
 
-	// IncrementToken Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
+	// IncrementToken
+	// Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
 	// Implementing classes must implement this method and update the appropriate AttributeImpls with the
 	// attributes of the next token.
 	//
@@ -52,7 +53,8 @@ type TokenStream interface {
 	// Returns: false for end of stream; true otherwise
 	IncrementToken() (bool, error)
 
-	// End This method is called by the consumer after the last token has been consumed, after incrementToken()
+	// End
+	// This method is called by the consumer after the last token has been consumed, after incrementToken()
 	// returned false (using the new TokenStream API). Streams implementing the old API should upgrade to use
 	// this feature.
 	//
