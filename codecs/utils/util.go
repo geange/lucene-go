@@ -27,8 +27,30 @@ func NewTextReader(in store.IndexInput, buf *bytes.Buffer) *TextReader {
 	}
 }
 
+type Buffer struct {
+	*bytes.Buffer
+}
+
 func (t *TextReader) ReadLine() error {
 	return ReadLine(t.in, t.buf)
+}
+
+func (t *TextReader) ParseString(label []byte) (string, error) {
+	return t.ReadLabel(label)
+}
+
+func (t *TextReader) ParseBytes(label []byte) ([]byte, error) {
+	t.buf.Reset()
+	if err := ReadLine(t.in, t.buf); err != nil {
+		return nil, err
+	}
+
+	if !bytes.HasPrefix(t.buf.Bytes(), label) {
+		return nil, fmt.Errorf("label not found:%s", string(label))
+	}
+
+	t.buf.Next(len(label))
+	return t.buf.Bytes(), nil
 }
 
 func (t *TextReader) ReadLabel(label []byte) (string, error) {
@@ -59,6 +81,14 @@ func (t *TextReader) ParseInt(prefix []byte) (int, error) {
 		return 0, err
 	}
 	return strconv.Atoi(v)
+}
+
+func (t *TextReader) ParseBoolPrefix(prefix []byte) (bool, error) {
+	v, err := t.ReadLabel(prefix)
+	if err != nil {
+		return false, err
+	}
+	return strconv.ParseBool(v)
 }
 
 func (t *TextReader) ParseInt64(prefix []byte) (int64, error) {

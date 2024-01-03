@@ -90,10 +90,10 @@ func (d *DocumentsWriter) preUpdate() (bool, error) {
 }
 
 // TODO: fix it
-func (d *DocumentsWriter) updateDocuments(docs []*document.Document, delNode *Node) (int64, error) {
+func (d *DocumentsWriter) updateDocuments(ctx context.Context, docs []*document.Document, delNode *Node) (int64, error) {
 	dwpt := d.flushControl.ObtainAndLock()
 	dwptNumDocs := dwpt.GetNumDocsInRAM()
-	seqNo, err := dwpt.updateDocuments(docs, delNode)
+	seqNo, err := dwpt.updateDocuments(ctx, docs, delNode)
 	if err != nil {
 		return 0, err
 	}

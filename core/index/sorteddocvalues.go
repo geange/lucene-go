@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
@@ -46,7 +47,7 @@ type SortedDocValuesDefaultConfig struct {
 	GetValueCount func() int
 }
 
-type SortedDocValuesDefault struct {
+type BaseSortedDocValues struct {
 	BinaryDocValuesDefault
 
 	FnOrdValue      func() (int, error)
@@ -54,15 +55,15 @@ type SortedDocValuesDefault struct {
 	FnGetValueCount func() int
 }
 
-func NewSortedDocValuesDefault(cfg *SortedDocValuesDefaultConfig) *SortedDocValuesDefault {
-	return &SortedDocValuesDefault{
+func NewBaseSortedDocValues(cfg *SortedDocValuesDefaultConfig) *BaseSortedDocValues {
+	return &BaseSortedDocValues{
 		FnOrdValue:      cfg.OrdValue,
 		FnLookupOrd:     cfg.LookupOrd,
 		FnGetValueCount: cfg.GetValueCount,
 	}
 }
 
-func (r *SortedDocValuesDefault) BinaryValue() ([]byte, error) {
+func (r *BaseSortedDocValues) BinaryValue() ([]byte, error) {
 	ord, err := r.FnOrdValue()
 	if err != nil {
 		return nil, err
@@ -74,7 +75,7 @@ func (r *SortedDocValuesDefault) BinaryValue() ([]byte, error) {
 	return r.FnLookupOrd(ord)
 }
 
-func (r *SortedDocValuesDefault) LookupTerm(key []byte) (int, error) {
+func (r *BaseSortedDocValues) LookupTerm(key []byte) (int, error) {
 	low := 0
 	high := r.FnGetValueCount() - 1
 
@@ -99,7 +100,22 @@ func (r *SortedDocValuesDefault) LookupTerm(key []byte) (int, error) {
 	return -(low + 1), nil // key not found.
 }
 
-func (r *SortedDocValuesDefault) Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error) {
+func (r *BaseSortedDocValues) Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+var _ DocValuesWriter = &SortedDocValuesWriter{}
+
+type SortedDocValuesWriter struct {
+}
+
+func (s *SortedDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *SortedDocValuesWriter) GetDocValues() types.DocIdSetIterator {
 	//TODO implement me
 	panic("implement me")
 }

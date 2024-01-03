@@ -6,13 +6,13 @@ import (
 	"github.com/geange/lucene-go/core/util/ints"
 )
 
-// TermsHash This class is passed each token produced by the analyzer on each field during indexing,
+// TermsHash
+// This class is passed each token produced by the analyzer on each field during indexing,
 // and it stores these tokens in a hash table, and allocates separate byte streams per token.
 // Consumers of this class, eg FreqProxTermsWriter and TermVectorsConsumer, write their own byte
 // streams under each term.
 type TermsHash interface {
-	Flush(fieldsToFlush map[string]TermsHashPerField, state *SegmentWriteState,
-		sortMap *DocMap, norms NormsProducer) error
+	Flush(fieldsToFlush map[string]TermsHashPerField, state *SegmentWriteState, sortMap *DocMap, norms NormsProducer) error
 
 	AddField(fieldInvertState *FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error)
 
@@ -31,7 +31,7 @@ type TermsHash interface {
 	GetTermBytePool() *bytesutils.BlockPool
 }
 
-type TermsHashDefault struct {
+type BaseTermsHash struct {
 	nextTermsHash TermsHash
 	intPool       *ints.BlockPool
 	bytePool      *bytesutils.BlockPool
@@ -39,8 +39,8 @@ type TermsHashDefault struct {
 }
 
 func NewTermsHashDefault(intBlockAllocator ints.IntsAllocator, byteBlockAllocator bytesutils.Allocator,
-	nextTermsHash TermsHash) *TermsHashDefault {
-	termHash := &TermsHashDefault{
+	nextTermsHash TermsHash) *BaseTermsHash {
+	termHash := &BaseTermsHash{
 		nextTermsHash: nextTermsHash,
 		intPool:       ints.NewBlockPool(intBlockAllocator),
 		bytePool:      bytesutils.NewBlockPool(byteBlockAllocator),
@@ -53,19 +53,19 @@ func NewTermsHashDefault(intBlockAllocator ints.IntsAllocator, byteBlockAllocato
 	return termHash
 }
 
-func (h *TermsHashDefault) GetIntPool() *ints.BlockPool {
+func (h *BaseTermsHash) GetIntPool() *ints.BlockPool {
 	return h.intPool
 }
 
-func (h *TermsHashDefault) GetBytePool() *bytesutils.BlockPool {
+func (h *BaseTermsHash) GetBytePool() *bytesutils.BlockPool {
 	return h.bytePool
 }
 
-func (h *TermsHashDefault) GetTermBytePool() *bytesutils.BlockPool {
+func (h *BaseTermsHash) GetTermBytePool() *bytesutils.BlockPool {
 	return h.termBytePool
 }
 
-func (h *TermsHashDefault) Flush(fieldsToFlush map[string]TermsHashPerField,
+func (h *BaseTermsHash) Flush(fieldsToFlush map[string]TermsHashPerField,
 	state *SegmentWriteState, sortMap *DocMap, norms NormsProducer) error {
 
 	if h.nextTermsHash != nil {
@@ -80,28 +80,30 @@ func (h *TermsHashDefault) Flush(fieldsToFlush map[string]TermsHashPerField,
 	return nil
 }
 
-func (h *TermsHashDefault) Abort() error {
-	h.Reset()
+func (h *BaseTermsHash) Abort() error {
+	if err := h.Reset(); err != nil {
+		return err
+	}
 	if h.nextTermsHash != nil {
 		return h.nextTermsHash.Abort()
 	}
 	return nil
 }
 
-func (h *TermsHashDefault) Reset() error {
+func (h *BaseTermsHash) Reset() error {
 	h.intPool.Reset(false, false)
 	h.bytePool.Reset(false, false)
 	return nil
 }
 
-func (h *TermsHashDefault) FinishDocument(docID int) error {
+func (h *BaseTermsHash) FinishDocument(docID int) error {
 	if h.nextTermsHash != nil {
 		return h.nextTermsHash.FinishDocument(docID)
 	}
 	return nil
 }
 
-func (h *TermsHashDefault) StartDocument() error {
+func (h *BaseTermsHash) StartDocument() error {
 	if h.nextTermsHash != nil {
 		return h.nextTermsHash.StartDocument()
 	}

@@ -10,7 +10,7 @@ import (
 var _ TermsHash = &TermVectorsConsumer{}
 
 type TermVectorsConsumer struct {
-	*TermsHashDefault
+	*BaseTermsHash
 
 	directory       store.Directory
 	info            *SegmentInfo
@@ -28,10 +28,10 @@ func NewTermVectorsConsumer(intBlockAllocator ints.IntsAllocator,
 
 	termsHashDefault := NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nil)
 	return &TermVectorsConsumer{
-		TermsHashDefault: termsHashDefault,
-		directory:        directory,
-		info:             info,
-		codec:            codec,
+		BaseTermsHash: termsHashDefault,
+		directory:     directory,
+		info:          info,
+		codec:         codec,
 	}
 }
 

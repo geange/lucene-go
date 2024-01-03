@@ -1,7 +1,6 @@
 package index
 
 import (
-	"io"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -18,8 +17,15 @@ import (
 // document are relevant. The global pool instead starts maintaining the head once this instance is
 // created by taking the sentinel instance as its initial head.
 //
-// Since each DocumentsWriterDeleteQueue.DeleteSlice maintains its own head and the list is only single linked the garbage collector takes care of pruning the list for us. All nodes in the list that are still relevant should be either directly or indirectly referenced by one of the DWPT's private DocumentsWriterDeleteQueue.DeleteSlice or by the global BufferedUpdates slice.
-// Each DWPT as well as the global delete pool maintain their private DeleteSlice instance. In the DWPT case updating a slice is equivalent to atomically finishing the document. The slice update guarantees a "happens before" relationship to all other updates in the same indexing session. When a DWPT updates a document it:
+// Since each DocumentsWriterDeleteQueue.DeleteSlice maintains its own head and the list is only single
+// linked the garbage collector takes care of pruning the list for us. All nodes in the list that are
+// still relevant should be either directly or indirectly referenced by one of the DWPT's private
+// DocumentsWriterDeleteQueue.DeleteSlice or by the global BufferedUpdates slice.
+// Each DWPT as well as the global delete pool maintain their private DeleteSlice instance.
+// In the DWPT case updating a slice is equivalent to atomically finishing the document.
+// The slice update guarantees a "happens before" relationship to all other updates in the
+// same indexing session. When a DWPT updates a document it:
+//
 // 1. consumes a document and finishes its processing
 // 2. updates its private DocumentsWriterDeleteQueue.DeleteSlice either by calling updateSlice(DocumentsWriterDeleteQueue.DeleteSlice) or add(DocumentsWriterDeleteQueue.Node, DocumentsWriterDeleteQueue.DeleteSlice) (if the document has a delTerm)
 // 3. applies all deletes in the slice to its private BufferedUpdates and resets it
@@ -31,7 +37,9 @@ type DocumentsWriterDeleteQueue struct {
 	tail   *Node
 	closed bool
 
-	// Used to record deletes against all prior (already written to disk) segments. Whenever any segment flushes, we bundle up this set of deletes and insert into the buffered updates stream before the newly flushed segment(s).
+	// Used to record deletes against all prior (already written to disk) segments.
+	// Whenever any segment flushes, we bundle up this set of deletes and insert into
+	// the buffered updates stream before the newly flushed segment(s).
 	globalSlice           *DeleteSlice
 	globalBufferedUpdates *BufferedUpdates
 
@@ -40,9 +48,9 @@ type DocumentsWriterDeleteQueue struct {
 
 	generation int64
 
-	// Generates the sequence number that IW returns to callers changing the index, showing the effective serialization of all operations.
+	// Generates the sequence number that IW returns to callers changing the index,
+	// showing the effective serialization of all operations.
 	nextSeqNo        *atomic.Int64
-	infoStream       io.Writer
 	maxSeqNo         int64
 	startSeqNo       int64
 	previousMaxSeqId func() int64
@@ -71,7 +79,6 @@ func newDocumentsWriterDeleteQueue(generation, startSeqNo int64,
 		globalBufferLock:      &sync.Mutex{},
 		generation:            generation,
 		nextSeqNo:             nextSeqNo,
-		infoStream:            nil,
 		maxSeqNo:              math.MaxInt64,
 		startSeqNo:            startSeqNo,
 		previousMaxSeqId:      previousMaxSeqId,

@@ -17,10 +17,10 @@ func newStoreFieldType() *FieldType {
 	return fieldType
 }
 
-func NewStoredField[T StoredFieldType](name string, value T) StoredField[T] {
-	return StoredField[T]{NewField(name, value, STORED_ONLY)}
+func NewStoredField[T StoredFieldType](name string, value T) *StoredField[T] {
+	return &StoredField[T]{NewField(name, value, STORED_ONLY)}
 }
 
-func NewStoredFieldWithType[T StoredFieldType](name string, value T, fieldType IndexableFieldType) StoredField[T] {
-	return StoredField[T]{NewField(name, value, fieldType)}
+func NewStoredFieldWithType[T StoredFieldType](name string, value T, fieldType IndexableFieldType) *StoredField[T] {
+	return &StoredField[T]{NewField(name, value, fieldType)}
 }

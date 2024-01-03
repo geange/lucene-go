@@ -13,7 +13,7 @@ var _ CodecReader = &SegmentReader{}
 // Instances pointing to the same segment (but with different deletes, etc) may share the same core data.
 // lucene.experimental
 type SegmentReader struct {
-	*CodecReaderDefault
+	*BaseCodecReader
 
 	si *SegmentCommitInfo
 
@@ -66,7 +66,7 @@ func NewSegmentReader(si *SegmentCommitInfo,
 		fieldInfos:        nil,
 	}
 
-	reader.CodecReaderDefault = NewCodecReaderDefault(reader)
+	reader.BaseCodecReader = NewBaseCodecReader(reader)
 
 	codec := si.info.GetCodec()
 	if si.HasDeletions() {

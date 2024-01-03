@@ -8,6 +8,8 @@ import (
 )
 
 type FieldNumbers struct {
+	sync.Mutex
+
 	numberToName map[int]string
 	nameToNumber map[string]int
 	indexOptions map[string]document.IndexOptions
@@ -24,8 +26,6 @@ type FieldNumbers struct {
 	lowestUnassignedFieldNumber int
 
 	softDeletesFieldName string
-
-	sync.Mutex
 }
 
 func NewFieldNumbers(softDeletesFieldName string) *FieldNumbers {
@@ -55,10 +55,8 @@ func (f *FieldNumbers) AddOrGet(fieldName string, preferredFieldNumber int,
 		if !ok {
 			f.indexOptions[fieldName] = indexOptions
 		} else if currentOpts != document.INDEX_OPTIONS_NONE && currentOpts != indexOptions {
-			return 0, fmt.Errorf(
-				`cannot change field %s from index options=%s to inconsistent index options=%s`,
-				fieldName, currentOpts, indexOptions,
-			)
+			err := fmt.Errorf(`cannot change field %s from index options=%s to inconsistent index options=%s`, fieldName, currentOpts, indexOptions)
+			return 0, err
 		}
 	}
 

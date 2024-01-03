@@ -2,14 +2,13 @@ package index
 
 import (
 	"context"
-	"io"
+	"errors"
 	"sync"
 	"sync/atomic"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -17,26 +16,24 @@ const (
 )
 
 type DocumentsWriterPerThread struct {
-	codec     Codec
-	directory store.Directory
-	consumer  DocConsumer
+	lock sync.RWMutex
 
-	// Updates for our still-in-RAM (to be flushed next) segment
-	pendingUpdates         *BufferedUpdates
-	segmentInfo            *SegmentInfo // Current segment we are working on
+	codec                  Codec
+	directory              store.Directory
+	consumer               DocConsumer
+	pendingUpdates         *BufferedUpdates // updates for our still-in-RAM (to be flushed next) segment
+	segmentInfo            *SegmentInfo     // current segment we are working on
 	aborted                bool
 	flushPending           bool
 	lastCommittedBytesUsed int64
 	hasFlushed             bool
 	fieldInfos             *FieldInfosBuilder
-	infoStream             io.Writer
 	numDocsInRAM           int
 	deleteQueue            *DocumentsWriterDeleteQueue
 	deleteSlice            *DeleteSlice
 	pendingNumDocs         *atomic.Int64
 	indexWriterConfig      *liveIndexWriterConfig
 	enableTestPoints       bool
-	lock                   sync.RWMutex
 	deleteDocIDs           []int
 	numDeletedDocIds       int
 }
@@ -81,7 +78,7 @@ func (d *DocumentsWriterPerThread) reserveOneDoc() error {
 	return nil
 }
 
-func (d *DocumentsWriterPerThread) updateDocuments(docs []*document.Document, deleteNode *Node) (int64, error) {
+func (d *DocumentsWriterPerThread) updateDocuments(ctx context.Context, docs []*document.Document, deleteNode *Node) (int64, error) {
 	docsInRamBefore := d.numDocsInRAM
 
 	for _, doc := range docs {
@@ -94,7 +91,7 @@ func (d *DocumentsWriterPerThread) updateDocuments(docs []*document.Document, de
 		if err := d.reserveOneDoc(); err != nil {
 			return 0, err
 		}
-		if err := d.consumer.ProcessDocument(d.numDocsInRAM, doc); err != nil {
+		if err := d.consumer.ProcessDocument(ctx, d.numDocsInRAM, doc); err != nil {
 			return 0, err
 		}
 		d.numDocsInRAM++

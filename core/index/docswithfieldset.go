@@ -29,7 +29,7 @@ func (d *DocsWithFieldSet) Iterator() (types.DocIdSetIterator, error) {
 }
 
 func (d *DocsWithFieldSet) Bits() (util.Bits, error) {
-	return nil, nil
+	return d.set, nil
 }
 
 func (d *DocsWithFieldSet) Add(docID int) error {

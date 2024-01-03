@@ -463,7 +463,7 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) updateDocuments(delNode *Node, docs []*document.Document) (int64, error) {
-	seqNo, err := w.docWriter.updateDocuments(docs, delNode)
+	seqNo, err := w.docWriter.updateDocuments(nil, docs, delNode)
 	if err != nil {
 		return 0, err
 	}

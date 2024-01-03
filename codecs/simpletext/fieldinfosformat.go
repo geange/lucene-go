@@ -63,53 +63,45 @@ func (s *FieldInfosFormat) Read(directory store.Directory, segmentInfo *index.Se
 
 	r := utils.NewTextReader(input, scratch)
 
-	value, err := r.ReadLabel(NUMFIELDS)
+	size, err := r.ParseInt(NUMFIELDS)
 	if err != nil {
 		return nil, err
 	}
-	size, err := strconv.Atoi(value)
-	if err != nil {
-		return nil, err
-	}
+
 	infos := make([]*document.FieldInfo, 0, size)
 
 	for i := 0; i < size; i++ {
-		value, err := r.ReadLabel(NAME)
+		name, err := r.ReadLabel(NAME)
 		if err != nil {
 			return nil, err
 		}
-		name := value
 
-		value, err = r.ReadLabel(NUMBER)
+		fieldNumber, err := r.ParseInt(NUMBER)
 		if err != nil {
 			return nil, err
 		}
-		fieldNumber, _ := strconv.Atoi(value)
 
-		value, err = r.ReadLabel(INDEXOPTIONS)
+		value, err := r.ParseString(INDEXOPTIONS)
 		if err != nil {
 			return nil, err
 		}
 		indexOptions := document.StringToIndexOptions(value)
 
-		value, err = r.ReadLabel(STORETV)
+		storeTermVector, err := r.ParseBoolPrefix(STORETV)
 		if err != nil {
 			return nil, err
 		}
-		storeTermVector, _ := strconv.ParseBool(value)
 
-		value, err = r.ReadLabel(PAYLOADS)
+		storePayloads, err := r.ParseBoolPrefix(PAYLOADS)
 		if err != nil {
 			return nil, err
 		}
-		storePayloads, _ := strconv.ParseBool(value)
 
-		value, err = r.ReadLabel(NORMS)
+		norms, err := r.ParseBoolPrefix(NORMS)
 		if err != nil {
 			return nil, err
 		}
-		v, _ := strconv.ParseBool(value)
-		omitNorms := !v
+		omitNorms := !norms
 
 		value, err = r.ReadLabel(DOCVALUES)
 		if err != nil {
@@ -117,57 +109,51 @@ func (s *FieldInfosFormat) Read(directory store.Directory, segmentInfo *index.Se
 		}
 		docValuesType := document.StringToDocValuesType(value)
 
-		value, err = r.ReadLabel(DOCVALUES_GEN)
+		dvGen, err := r.ParseInt(DOCVALUES_GEN)
 		if err != nil {
 			return nil, err
 		}
-		dvGen, _ := strconv.Atoi(value)
 
-		value, err = r.ReadLabel(NUM_ATTS)
+		numAtts, err := r.ParseInt(NUM_ATTS)
 		if err != nil {
 			return nil, err
 		}
-		numAtts, _ := strconv.Atoi(value)
 
 		atts := make(map[string]string, numAtts)
 
 		for j := 0; j < numAtts; j++ {
-			key, err := r.ReadLabel(ATT_KEY)
+			attKey, err := r.ReadLabel(ATT_KEY)
 			if err != nil {
 				return nil, err
 			}
 
-			value, err := r.ReadLabel(ATT_VALUE)
+			attValue, err := r.ReadLabel(ATT_VALUE)
 			if err != nil {
 				return nil, err
 			}
 
-			atts[key] = value
+			atts[attKey] = attValue
 		}
 
-		value, err = r.ReadLabel(DATA_DIM_COUNT)
+		dimensionalCount, err := r.ParseInt(DATA_DIM_COUNT)
 		if err != nil {
 			return nil, err
 		}
-		dimensionalCount, _ := strconv.Atoi(value)
 
-		value, err = r.ReadLabel(INDEX_DIM_COUNT)
+		indexDimensionalCount, err := r.ParseInt(INDEX_DIM_COUNT)
 		if err != nil {
 			return nil, err
 		}
-		indexDimensionalCount, _ := strconv.Atoi(value)
 
-		value, err = r.ReadLabel(DIM_NUM_BYTES)
+		dimensionalNumBytes, err := r.ParseInt(DIM_NUM_BYTES)
 		if err != nil {
 			return nil, err
 		}
-		dimensionalNumBytes, _ := strconv.Atoi(value)
 
-		value, err = r.ReadLabel(SOFT_DELETES)
+		isSoftDeletesField, err := r.ParseBoolPrefix(SOFT_DELETES)
 		if err != nil {
 			return nil, err
 		}
-		isSoftDeletesField, _ := strconv.ParseBool(value)
 
 		info := document.NewFieldInfo(name, fieldNumber, storeTermVector,
 			omitNorms, storePayloads, indexOptions, docValuesType, int64(dvGen), atts,

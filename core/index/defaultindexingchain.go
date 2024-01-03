@@ -15,16 +15,14 @@ import (
 
 var _ DocConsumer = &DefaultIndexingChain{}
 
+// DefaultIndexingChain
+// Default general purpose indexing chain, which handles indexing all types of fields.
 type DefaultIndexingChain struct {
 	fieldInfos           *FieldInfosBuilder
 	termsHash            TermsHash
 	docValuesBytePool    *bytesutils.BlockPool
 	storedFieldsConsumer *StoredFieldsConsumer
 	termVectorsWriter    *TermVectorsConsumer
-
-	// NOTE: I tried using Hash Map<String,PerField>
-	// but it was ~2% slower on Wiki and Geonames with Java
-	// 1.7.0_25:
 
 	// 使用map简化理解
 	fieldHash map[string]*PerField
@@ -271,8 +269,12 @@ func (d *DefaultIndexingChain) writePoints(state *SegmentWriteState, sortMap *Do
 	}
 
 	if pointsWriter != nil {
-		pointsWriter.Finish()
-		pointsWriter.Close()
+		if err := pointsWriter.Finish(); err != nil {
+			return err
+		}
+		if err := pointsWriter.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -306,7 +308,9 @@ func (d *DefaultIndexingChain) writeDocValues(state *SegmentWriteState, sortMap 
 	}
 
 	if dvConsumer != nil {
-		dvConsumer.Close()
+		if err := dvConsumer.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -340,12 +344,14 @@ func (d *DefaultIndexingChain) writeNorms(state *SegmentWriteState, sortMap *Doc
 	}
 
 	if normsConsumer != nil {
-		normsConsumer.Close()
+		if err := normsConsumer.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (d *DefaultIndexingChain) ProcessDocument(docID int, doc *document.Document) error {
+func (d *DefaultIndexingChain) ProcessDocument(ctx context.Context, docId int, doc *document.Document) error {
 	// How many indexed field names we've seen (collapses
 	// multiple field instances by the same name):
 	fieldCount := 0
@@ -362,11 +368,13 @@ func (d *DefaultIndexingChain) ProcessDocument(docID int, doc *document.Document
 	if err := d.termsHash.StartDocument(); err != nil {
 		return err
 	}
-	if err := d.startStoredFields(docID); err != nil {
+	if err := d.startStoredFields(docId); err != nil {
 		return err
 	}
 
 	iterator := doc.Iterator()
+
+	var err error
 
 	for {
 		field := iterator()
@@ -374,13 +382,13 @@ func (d *DefaultIndexingChain) ProcessDocument(docID int, doc *document.Document
 			break
 		}
 
-		fieldCount, err := d.processField(docID, field, fieldGen, fieldCount)
+		fieldCount, err = d.processField(docId, field, fieldGen, fieldCount)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < fieldCount; i++ {
-			if err := d.fields[i].Finish(docID); err != nil {
+			if err := d.fields[i].Finish(docId); err != nil {
 				return err
 			}
 		}
@@ -389,10 +397,10 @@ func (d *DefaultIndexingChain) ProcessDocument(docID int, doc *document.Document
 		}
 	}
 
-	return d.termsHash.FinishDocument(docID)
+	return d.termsHash.FinishDocument(docId)
 }
 
-func (d *DefaultIndexingChain) processField(docID int,
+func (d *DefaultIndexingChain) processField(docId int,
 	field document.IndexableField, fieldGen int64, fieldCount int) (int, error) {
 
 	fieldName := field.Name()
@@ -413,7 +421,7 @@ func (d *DefaultIndexingChain) processField(docID int,
 			return 0, err
 		}
 		first := fp.fieldGen != fieldGen
-		if err := fp.invert(docID, field, first); err != nil {
+		if err := fp.invert(docId, field, first); err != nil {
 			return 0, err
 		}
 
@@ -463,7 +471,7 @@ func (d *DefaultIndexingChain) processField(docID int,
 				return 0, err
 			}
 		}
-		if err := d.indexDocValue(docID, fp, dvType, field); err != nil {
+		if err := d.indexDocValue(docId, fp, dvType, field); err != nil {
 			return 0, err
 		}
 	}
@@ -475,7 +483,7 @@ func (d *DefaultIndexingChain) processField(docID int,
 				return 0, err
 			}
 		}
-		if err := d.indexPoint(docID, fp, field); err != nil {
+		if err := d.indexPoint(docId, fp, field); err != nil {
 			return 0, err
 		}
 	}

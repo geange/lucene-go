@@ -93,10 +93,9 @@ func NewTermsHashPerFieldDefault(streamCount int,
 	nextPerField TermsHashPerField, fieldName string, indexOptions document.IndexOptions, perField TermsHashPerField) *TermsHashPerFieldDefault {
 
 	res := &TermsHashPerFieldDefault{
-		nextPerField: nextPerField,
-		intPool:      intPool,
-		bytePool:     bytePool,
-
+		nextPerField:  nextPerField,
+		intPool:       intPool,
+		bytePool:      bytePool,
 		streamCount:   streamCount,
 		fieldName:     fieldName,
 		indexOptions:  indexOptions,
@@ -129,13 +128,15 @@ func (t *TermsHashPerFieldDefault) Reset() error {
 	return nil
 }
 
-func (t *TermsHashPerFieldDefault) initReader(reader ByteSliceReader, termID, stream int) error {
+func (t *TermsHashPerFieldDefault) initReader(reader *ByteSliceReader, termID, stream int) error {
 	streamStartOffset := t.postingsArray.GetAddressOffset(termID)
 	streamAddressBuffer := t.intPool.Get(streamStartOffset >> ints.INT_BLOCK_SHIFT)
 	offsetInAddressBuffer := streamStartOffset & ints.INT_BLOCK_MASK
-	return reader.init(t.bytePool,
-		t.postingsArray.GetByteStarts(termID)+stream*bytesutils.ByteFirstLevelSize,
-		streamAddressBuffer[offsetInAddressBuffer+stream])
+
+	startIndex := t.postingsArray.GetByteStarts(termID) + stream*bytesutils.ByteFirstLevelSize
+	endIndex := streamAddressBuffer[offsetInAddressBuffer+stream]
+
+	return reader.init(t.bytePool, startIndex, endIndex)
 }
 
 // Collapse the hash table and sort in-place; also sets this.sortedTermIDs to the results This method must not be called twice unless reset() or reinitHash() was called.

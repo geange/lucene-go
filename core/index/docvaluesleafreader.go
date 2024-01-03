@@ -9,13 +9,13 @@ import (
 var _ LeafReader = &DocValuesLeafReader{}
 
 type DocValuesLeafReader struct {
-	*LeafReaderBase
+	*BaseLeafReader
 }
 
 func NewDocValuesLeafReader() *DocValuesLeafReader {
 	reader := &DocValuesLeafReader{}
 
-	reader.LeafReaderBase = NewLeafReaderBase(reader)
+	reader.BaseLeafReader = NewBaseLeafReader(reader)
 	return reader
 }
 

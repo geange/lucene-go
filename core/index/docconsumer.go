@@ -7,7 +7,7 @@ import (
 )
 
 type DocConsumer interface {
-	ProcessDocument(docId int, document *document.Document) error
+	ProcessDocument(ctx context.Context, docId int, document *document.Document) error
 
 	Flush(ctx context.Context, state *SegmentWriteState) (*DocMap, error)
 

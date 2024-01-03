@@ -16,7 +16,7 @@ var _ index.LeafReader = &IndexReader{}
 // IndexReader Search support for Lucene framework integration; implements all methods required by the Lucene
 // Reader contracts.
 type IndexReader struct {
-	*index.LeafReaderBase
+	*index.BaseLeafReader
 	memoryFields *Fields
 	fieldInfos   *index.FieldInfos
 	fields       *treemap.Map[string, *info]
@@ -31,8 +31,8 @@ func newIndexReader(memoryFields *Fields, fieldInfos *index.FieldInfos,
 		fields:       fields,
 	}
 
-	leafReader := index.NewLeafReaderBase(newReader)
-	newReader.LeafReaderBase = leafReader
+	leafReader := index.NewBaseLeafReader(newReader)
+	newReader.BaseLeafReader = leafReader
 	return newReader
 }
 

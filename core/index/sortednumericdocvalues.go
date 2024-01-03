@@ -14,3 +14,18 @@ type SortedNumericDocValues interface {
 	// than zero. It is illegal to call this method after advanceExact(int) returned false.
 	DocValueCount() int
 }
+
+var _ DocValuesWriter = &SortedNumericDocValuesWriter{}
+
+type SortedNumericDocValuesWriter struct {
+}
+
+func (s *SortedNumericDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *SortedNumericDocValuesWriter) GetDocValues() types.DocIdSetIterator {
+	//TODO implement me
+	panic("implement me")
+}

@@ -17,7 +17,7 @@ var _ SortField = &SortedSetSortField{}
 // Like sorting by string, this also supports sorting missing values as first or last, via setMissingValue(Object).
 // See Also: SortedSetSelector
 type SortedSetSortField struct {
-	*SortFieldDefault
+	*BaseSortField
 
 	selector SortedSetSelectorType
 }
@@ -54,8 +54,8 @@ func NewSortedSetSortFieldV1(field string, reverse bool,
 	selector SortedSetSelectorType) *SortedSetSortField {
 
 	return &SortedSetSortField{
-		SortFieldDefault: NewSortFieldV1(field, CUSTOM, reverse),
-		selector:         selector,
+		BaseSortField: NewSortFieldV1(field, CUSTOM, reverse),
+		selector:      selector,
 	}
 }
 
@@ -83,24 +83,28 @@ func (s *SortedSetSortFieldProvider) ReadSortField(ctx context.Context, in store
 		return nil, err
 	}
 
-	_type, err := readSelectorType(ctx, in)
+	sType, err := readSelectorType(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 
-	sf := NewSortedSetSortFieldV1(field, num == 1, _type)
+	sf := NewSortedSetSortFieldV1(field, num == 1, sType)
 	missingValue, err := in.ReadUint32(ctx)
-	if missingValue == 1 {
-		err := sf.SetMissingValue(STRING_FIRST)
-		if err != nil {
+	if err != nil {
+		return nil, err
+	}
+
+	switch missingValue {
+	case 1:
+		if err := sf.SetMissingValue(STRING_FIRST); err != nil {
 			return nil, err
 		}
-	} else if missingValue == 2 {
-		err := sf.SetMissingValue(STRING_LAST)
-		if err != nil {
+	case 2:
+		if err := sf.SetMissingValue(STRING_LAST); err != nil {
 			return nil, err
 		}
 	}
+
 	return sf, nil
 }
 

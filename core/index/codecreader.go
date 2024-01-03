@@ -46,26 +46,26 @@ type CodecReaderDefaultSPI interface {
 	GetPointsReader() PointsReader
 }
 
-type CodecReaderDefault struct {
-	*LeafReaderBase
+type BaseCodecReader struct {
+	*BaseLeafReader
 
 	CodecReaderDefaultSPI
 }
 
-func NewCodecReaderDefault(reader CodecReader) *CodecReaderDefault {
-	codec := &CodecReaderDefault{
+func NewBaseCodecReader(reader CodecReader) *BaseCodecReader {
+	codec := &BaseCodecReader{
 		CodecReaderDefaultSPI: reader,
 	}
 
-	codec.LeafReaderBase = NewLeafReaderBase(reader)
+	codec.BaseLeafReader = NewBaseLeafReader(reader)
 	return codec
 }
 
-func (c *CodecReaderDefault) DocumentV1(docID int, visitor document.StoredFieldVisitor) error {
+func (c *BaseCodecReader) DocumentV1(docID int, visitor document.StoredFieldVisitor) error {
 	return c.GetFieldsReader().VisitDocument(docID, visitor)
 }
 
-func (c *CodecReaderDefault) GetTermVectors(docID int) (Fields, error) {
+func (c *BaseCodecReader) GetTermVectors(docID int) (Fields, error) {
 	termVectorsReader := c.GetTermVectorsReader()
 	if termVectorsReader == nil {
 		return nil, nil
@@ -76,21 +76,21 @@ func (c *CodecReaderDefault) GetTermVectors(docID int) (Fields, error) {
 	return termVectorsReader.Get(docID)
 }
 
-func (c *CodecReaderDefault) checkBounds(docID int) error {
+func (c *BaseCodecReader) checkBounds(docID int) error {
 	if docID < 0 || docID >= c.MaxDoc() {
 		return errors.New("out-of-bounds for length")
 	}
 	return nil
 }
 
-func (c *CodecReaderDefault) Terms(field string) (Terms, error) {
+func (c *BaseCodecReader) Terms(field string) (Terms, error) {
 	return c.GetPostingsReader().Terms(field)
 }
 
 // returns the FieldInfo that corresponds to the given field and type, or
 // null if the field does not exist, or not indexed as the requested
 // DovDocValuesType.
-func (c *CodecReaderDefault) getDVField(field string, _type document.DocValuesType) *document.FieldInfo {
+func (c *BaseCodecReader) getDVField(field string, _type document.DocValuesType) *document.FieldInfo {
 	fi := c.GetFieldInfos().FieldInfo(field)
 	if fi == nil {
 		// Field does not exist
@@ -107,7 +107,7 @@ func (c *CodecReaderDefault) getDVField(field string, _type document.DocValuesTy
 	return fi
 }
 
-func (c *CodecReaderDefault) GetNumericDocValues(field string) (NumericDocValues, error) {
+func (c *BaseCodecReader) GetNumericDocValues(field string) (NumericDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_NUMERIC)
 	if fi == nil {
@@ -116,7 +116,7 @@ func (c *CodecReaderDefault) GetNumericDocValues(field string) (NumericDocValues
 	return c.GetDocValuesReader().GetNumeric(fi)
 }
 
-func (c *CodecReaderDefault) GetBinaryDocValues(field string) (BinaryDocValues, error) {
+func (c *BaseCodecReader) GetBinaryDocValues(field string) (BinaryDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_BINARY)
 	if fi == nil {
@@ -125,7 +125,7 @@ func (c *CodecReaderDefault) GetBinaryDocValues(field string) (BinaryDocValues, 
 	return c.GetDocValuesReader().GetBinary(fi)
 }
 
-func (c *CodecReaderDefault) GetSortedDocValues(field string) (SortedDocValues, error) {
+func (c *BaseCodecReader) GetSortedDocValues(field string) (SortedDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED)
 	if fi == nil {
@@ -134,7 +134,7 @@ func (c *CodecReaderDefault) GetSortedDocValues(field string) (SortedDocValues, 
 	return c.GetDocValuesReader().GetSorted(fi)
 }
 
-func (c *CodecReaderDefault) GetSortedNumericDocValues(field string) (SortedNumericDocValues, error) {
+func (c *BaseCodecReader) GetSortedNumericDocValues(field string) (SortedNumericDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED_NUMERIC)
 	if fi == nil {
@@ -143,7 +143,7 @@ func (c *CodecReaderDefault) GetSortedNumericDocValues(field string) (SortedNume
 	return c.GetDocValuesReader().GetSortedNumeric(fi)
 }
 
-func (c *CodecReaderDefault) GetSortedSetDocValues(field string) (SortedSetDocValues, error) {
+func (c *BaseCodecReader) GetSortedSetDocValues(field string) (SortedSetDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED_SET)
 	if fi == nil {
@@ -152,7 +152,7 @@ func (c *CodecReaderDefault) GetSortedSetDocValues(field string) (SortedSetDocVa
 	return c.GetDocValuesReader().GetSortedSet(fi)
 }
 
-func (c *CodecReaderDefault) GetNormValues(field string) (NumericDocValues, error) {
+func (c *BaseCodecReader) GetNormValues(field string) (NumericDocValues, error) {
 	//ensureOpen();
 	fi := c.GetFieldInfos().FieldInfo(field)
 	if fi == nil || fi.HasNorms() == false {
@@ -162,7 +162,7 @@ func (c *CodecReaderDefault) GetNormValues(field string) (NumericDocValues, erro
 	return c.GetNormsReader().GetNorms(fi)
 }
 
-func (c *CodecReaderDefault) GetPointValues(field string) (types.PointValues, bool) {
+func (c *BaseCodecReader) GetPointValues(field string) (types.PointValues, bool) {
 	//ensureOpen();
 	fi := c.GetFieldInfos().FieldInfo(field)
 	if fi == nil || fi.GetPointDimensionCount() == 0 {
@@ -176,6 +176,6 @@ func (c *CodecReaderDefault) GetPointValues(field string) (types.PointValues, bo
 	return values, true
 }
 
-func (c *CodecReaderDefault) CheckIntegrity() error {
+func (c *BaseCodecReader) CheckIntegrity() error {
 	return nil
 }

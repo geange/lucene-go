@@ -39,7 +39,7 @@ var (
 )
 
 type PointsWriter struct {
-	*index.DefPointsWriter
+	*index.BasePointsWriter
 
 	dataOut    store.IndexOutput
 	scratch    *bytes.Buffer
@@ -54,13 +54,13 @@ func NewSimpleTextPointsWriter(writeState *index.SegmentWriteState) (*PointsWrit
 		return nil, err
 	}
 	writer := &PointsWriter{
-		DefPointsWriter: nil,
-		dataOut:         out,
-		scratch:         new(bytes.Buffer),
-		writeState:      writeState,
-		indexFPs:        make(map[string]int64),
+		BasePointsWriter: nil,
+		dataOut:          out,
+		scratch:          new(bytes.Buffer),
+		writeState:       writeState,
+		indexFPs:         make(map[string]int64),
 	}
-	writer.DefPointsWriter = &index.DefPointsWriter{
+	writer.BasePointsWriter = &index.BasePointsWriter{
 		WriteField: writer.WriteField,
 		Finish:     writer.Finish,
 	}

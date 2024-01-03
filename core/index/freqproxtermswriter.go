@@ -9,7 +9,7 @@ import (
 var _ TermsHash = &FreqProxTermsWriter{}
 
 type FreqProxTermsWriter struct {
-	*TermsHashDefault
+	*BaseTermsHash
 }
 
 func NewFreqProxTermsWriter(intBlockAllocator ints.IntsAllocator,
@@ -22,7 +22,7 @@ func NewFreqProxTermsWriter(intBlockAllocator ints.IntsAllocator,
 func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
 	state *SegmentWriteState, sortMap *DocMap, norms NormsProducer) error {
 
-	err := f.TermsHashDefault.Flush(fieldsToFlush, state, sortMap, norms)
+	err := f.BaseTermsHash.Flush(fieldsToFlush, state, sortMap, norms)
 	if err != nil {
 		return err
 	}

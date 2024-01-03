@@ -26,20 +26,17 @@ func NewFieldData(name string, fieldInfos *FieldInfosBuilder, terms []*TermData,
 	}
 
 	if omitTF {
-		err := fieldInfo.SetIndexOptions(document.INDEX_OPTIONS_DOCS)
-		if err != nil {
+		if err := fieldInfo.SetIndexOptions(document.INDEX_OPTIONS_DOCS); err != nil {
 			return nil, err
 		}
 	} else {
-		err := fieldInfo.SetIndexOptions(document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS)
-		if err != nil {
+		if err := fieldInfo.SetIndexOptions(document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS); err != nil {
 			return nil, err
 		}
 	}
 
 	if storePayloads {
-		err := fieldInfo.SetStorePayloads()
-		if err != nil {
+		if err := fieldInfo.SetStorePayloads(); err != nil {
 			return nil, err
 		}
 	}

@@ -84,14 +84,11 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 		}
 		switch dvType {
 		case document.DOC_VALUES_TYPE_NUMERIC:
-			value, err := reader.ReadLabel(DOC_VALUES_MINVALUE)
+			minValue, err := reader.ParseInt64(DOC_VALUES_MINVALUE)
 			if err != nil {
 				return nil, err
 			}
-			field.minValue, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, err
-			}
+			field.minValue = minValue
 
 			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
 			if err != nil {
@@ -105,20 +102,17 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 				return nil, err
 			}
 		case document.DOC_VALUES_TYPE_BINARY:
-			value, err := reader.ReadLabel(DOC_VALUES_MAXLENGTH)
+			maxLength, err := reader.ParseInt(DOC_VALUES_MAXLENGTH)
 			if err != nil {
 				return nil, err
 			}
-			field.maxLength, err = strconv.Atoi(value)
-			if err != nil {
-				return nil, err
-			}
+			field.maxLength = maxLength
 
-			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
+			pattern, err := reader.ReadLabel(DOC_VALUES_PATTERN)
 			if err != nil {
 				return nil, err
 			}
-			field.pattern = value
+			field.pattern = pattern
 
 			field.dataStartFilePointer = r.data.GetFilePointer()
 
@@ -129,23 +123,17 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 			}
 
 		case document.DOC_VALUES_TYPE_SORTED, document.DOC_VALUES_TYPE_SORTED_SET:
-			value, err := reader.ReadLabel(DOC_VALUES_NUMVALUES)
+			numValues, err := reader.ParseInt64(DOC_VALUES_NUMVALUES)
 			if err != nil {
 				return nil, err
 			}
-			field.numValues, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, err
-			}
+			field.numValues = numValues
 
-			value, err = reader.ReadLabel(DOC_VALUES_MAXLENGTH)
+			maxLength, err := reader.ParseInt(DOC_VALUES_MAXLENGTH)
 			if err != nil {
 				return nil, err
 			}
-			field.maxLength, err = strconv.Atoi(value)
-			if err != nil {
-				return nil, err
-			}
+			field.maxLength = maxLength
 
 			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
 			if err != nil {
@@ -512,7 +500,7 @@ func (s *DocValuesReader) GetSorted(fieldInfo *document.FieldInfo) (index.Sorted
 var _ index.SortedDocValues = &innerSortedDocValues{}
 
 type innerSortedDocValues struct {
-	*index.SortedDocValuesDefault
+	*index.BaseSortedDocValues
 
 	field   *OneField
 	in      store.IndexInput
@@ -525,17 +513,17 @@ type innerSortedDocValues struct {
 
 func newInnerSortedDocValues(field *OneField, in store.IndexInput, reader *DocValuesReader) *innerSortedDocValues {
 	values := &innerSortedDocValues{
-		SortedDocValuesDefault: nil,
-		field:                  field,
-		in:                     in,
-		doc:                    -1,
-		ord:                    0,
-		reader:                 reader,
-		term:                   new(bytes.Buffer),
-		scratch:                new(bytes.Buffer),
+		BaseSortedDocValues: nil,
+		field:               field,
+		in:                  in,
+		doc:                 -1,
+		ord:                 0,
+		reader:              reader,
+		term:                new(bytes.Buffer),
+		scratch:             new(bytes.Buffer),
 	}
 
-	values.SortedDocValuesDefault = index.NewSortedDocValuesDefault(&index.SortedDocValuesDefaultConfig{
+	values.BaseSortedDocValues = index.NewBaseSortedDocValues(&index.SortedDocValuesDefaultConfig{
 		OrdValue:      values.OrdValue,
 		LookupOrd:     values.LookupOrd,
 		GetValueCount: values.GetValueCount,

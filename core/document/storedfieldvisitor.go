@@ -80,7 +80,7 @@ func (r *DocStoredFieldVisitor) GetDocument() *Document {
 
 func (r *DocStoredFieldVisitor) BinaryField(fieldInfo *FieldInfo, value []byte) error {
 	field := NewStoredField[[]byte](fieldInfo.Name(), value)
-	r.doc.Add(&field)
+	r.doc.Add(field)
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (r *DocStoredFieldVisitor) StringField(fieldInfo *FieldInfo, value []byte) 
 	}
 
 	field := NewStoredFieldWithType(fieldInfo.Name(), string(value), ft)
-	r.doc.Add(&field)
+	r.doc.Add(field)
 	return nil
 }
 

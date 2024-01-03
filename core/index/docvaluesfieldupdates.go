@@ -16,8 +16,7 @@ const (
 )
 
 // DocValuesFieldUpdates
-// Holds updates of a single DocValues field, for a set of documents within one segment.
-// lucene.experimental
+// holds updates of a single docvalues field, for a set of documents within one segment.
 type DocValuesFieldUpdates interface {
 	Field() string
 	AddInt64(doc int, value int64) error
@@ -27,7 +26,7 @@ type DocValuesFieldUpdates interface {
 	// Adds the item for the given docID. This method prevents conditional calls to
 	// DocValuesFieldUpdates.Iterator.longValue() or DocValuesFieldUpdates.Iterator.binaryValue()
 	// since the implementation knows if it's a long item iterator or binary item
-	AddIterator(doc int, value DocValuesFieldUpdatesIterator) error
+	AddIterator(doc int, it DocValuesFieldUpdatesIterator) error
 
 	// Iterator
 	// Returns an DocValuesFieldUpdates.Iterator over the updated documents and their values.

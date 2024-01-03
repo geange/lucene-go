@@ -74,19 +74,20 @@ type SortField interface {
 
 type BytesComparator func(a, b []byte) int
 
-var _ SortField = &SortFieldDefault{}
+var _ SortField = &BaseSortField{}
 
 var (
 	FIELD_SCORE = NewSortField("", SCORE)
 	FIELD_DOC   = NewSortField("", DOC)
 )
 
-// SortFieldDefault Stores information about how to sort documents by terms in an individual field.
+// BaseSortField
+// Stores information about how to sort documents by terms in an individual field.
 // Fields must be indexed in order to sort by them.
 // Created: Feb 11, 2004 1:25:29 PM
 // Since: lucene 1.4
 // See Also: Sort
-type SortFieldDefault struct {
+type BaseSortField struct {
 	field            string
 	_type            SortFieldType
 	reverse          bool
@@ -96,35 +97,35 @@ type SortFieldDefault struct {
 	missingValue     any
 }
 
-func NewSortField(field string, _type SortFieldType) *SortFieldDefault {
-	s := &SortFieldDefault{}
+func NewSortField(field string, _type SortFieldType) *BaseSortField {
+	s := &BaseSortField{}
 	s.initFieldType(&field, _type)
 	return s
 }
 
-func NewSortFieldV1(field string, _type SortFieldType, reverse bool) *SortFieldDefault {
+func NewSortFieldV1(field string, _type SortFieldType, reverse bool) *BaseSortField {
 	s := NewSortField(field, _type)
 	s.reverse = reverse
 	return s
 }
 
-func (s *SortFieldDefault) GetComparatorSource() FieldComparatorSource {
+func (s *BaseSortField) GetComparatorSource() FieldComparatorSource {
 	return s.comparatorSource
 }
 
-func (s *SortFieldDefault) GetReverse() bool {
+func (s *BaseSortField) GetReverse() bool {
 	return s.reverse
 }
 
-func (s *SortFieldDefault) SetBytesComparator(fn BytesComparator) {
+func (s *BaseSortField) SetBytesComparator(fn BytesComparator) {
 	s.bytesComparator = fn
 }
 
-func (s *SortFieldDefault) GetBytesComparator() BytesComparator {
+func (s *BaseSortField) GetBytesComparator() BytesComparator {
 	return s.bytesComparator
 }
 
-func (s *SortFieldDefault) GetComparator(numHits, sortPos int) FieldComparator {
+func (s *BaseSortField) GetComparator(numHits, sortPos int) FieldComparator {
 	var fieldComparator FieldComparator
 	switch s._type {
 	// TODO: fix it
@@ -135,8 +136,8 @@ func (s *SortFieldDefault) GetComparator(numHits, sortPos int) FieldComparator {
 	return fieldComparator
 }
 
-func newSortField(field string, _type SortFieldType, reverse bool) (*SortFieldDefault, error) {
-	sortField := &SortFieldDefault{reverse: reverse}
+func newSortField(field string, _type SortFieldType, reverse bool) (*BaseSortField, error) {
+	sortField := &BaseSortField{reverse: reverse}
 	if err := sortField.initFieldType(&field, _type); err != nil {
 		return nil, err
 	}
@@ -145,7 +146,7 @@ func newSortField(field string, _type SortFieldType, reverse bool) (*SortFieldDe
 
 // Sets field & type, and ensures field is not NULL unless
 // type is SCORE or DOC
-func (s *SortFieldDefault) initFieldType(field *string, _type SortFieldType) error {
+func (s *BaseSortField) initFieldType(field *string, _type SortFieldType) error {
 	s._type = _type
 	if field == nil {
 		switch _type {
@@ -158,7 +159,7 @@ func (s *SortFieldDefault) initFieldType(field *string, _type SortFieldType) err
 	return nil
 }
 
-func (s *SortFieldDefault) String() string {
+func (s *BaseSortField) String() string {
 	buffer := new(bytes.Buffer)
 
 	switch s._type {
@@ -200,39 +201,39 @@ func (s *SortFieldDefault) String() string {
 
 // GetField Returns the name of the field. Could return null if the sort is by SCORE or DOC.
 // Returns: Name of field, possibly null.
-func (s *SortFieldDefault) GetField() string {
+func (s *BaseSortField) GetField() string {
 	return s.field
 }
 
 // GetType Returns the type of contents in the field.
 // Returns: One of the constants SCORE, DOC, STRING, INT or FLOAT.
-func (s *SortFieldDefault) GetType() SortFieldType {
+func (s *BaseSortField) GetType() SortFieldType {
 	return s._type
 }
 
 // SetCanUsePoints For numeric sort fields, setting this field, indicates that the same numeric
 // data has been indexed with two fields: doc values and points and that these fields have the
 // same name. This allows to use sort optimization and skip non-competitive documents.
-func (s *SortFieldDefault) SetCanUsePoints() {
+func (s *BaseSortField) SetCanUsePoints() {
 	s.canUsePoints = true
 }
 
-func (s *SortFieldDefault) GetCanUsePoints() bool {
+func (s *BaseSortField) GetCanUsePoints() bool {
 	return s.canUsePoints
 }
 
 // NeedsScores Whether the relevance score is needed to sort documents.
-func (s *SortFieldDefault) NeedsScores() bool {
+func (s *BaseSortField) NeedsScores() bool {
 	return s._type == SCORE
 }
 
 // GetMissingValue Return the item to use for documents that don't have a item. A item of null indicates that default should be used.
-func (s *SortFieldDefault) GetMissingValue() any {
+func (s *BaseSortField) GetMissingValue() any {
 	return s.missingValue
 }
 
 // SetMissingValue Set the item to use for documents that don't have a item.
-func (s *SortFieldDefault) SetMissingValue(missingValue any) error {
+func (s *BaseSortField) SetMissingValue(missingValue any) error {
 	s.missingValue = missingValue
 	return nil
 }
@@ -247,7 +248,7 @@ const (
 // this method should also implement a companion SortFieldProvider to serialize and deserialize
 // the sort in index segment headers
 // lucene.experimental
-func (s *SortFieldDefault) GetIndexSorter() IndexSorter {
+func (s *BaseSortField) GetIndexSorter() IndexSorter {
 	sorter := &EmptyNumericDocValuesProvider{
 		FnGet: func(reader LeafReader) (NumericDocValues, error) {
 			return GetNumeric(reader, s.field)
@@ -275,7 +276,7 @@ func (s *SortFieldDefault) GetIndexSorter() IndexSorter {
 	}
 }
 
-func (s *SortFieldDefault) Serialize(ctx context.Context, out store.DataOutput) error {
+func (s *BaseSortField) Serialize(ctx context.Context, out store.DataOutput) error {
 	if err := out.WriteString(ctx, s.field); err != nil {
 		return err
 	}
@@ -328,7 +329,7 @@ func (s *SortFieldDefault) Serialize(ctx context.Context, out store.DataOutput) 
 	}
 }
 
-func (s *SortFieldDefault) Equals(other SortField) bool {
+func (s *BaseSortField) Equals(other SortField) bool {
 	return s.field == other.GetField() &&
 		s._type == other.GetType() &&
 		s.reverse == other.GetReverse() &&

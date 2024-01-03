@@ -18,12 +18,9 @@ type BaseCompositeReader struct {
 	subReadersSorter func(a, b LeafReader) int
 	starts           []int // 1st docno for each reader
 	maxDoc           int
-	numDocs          int // computed lazily
-
-	// List view solely for getSequentialSubReaders(), for effectiveness the array is used internally.
-	subReadersList []Reader
-
-	readerContext *CompositeReaderContext
+	numDocs          int      // computed lazily
+	subReadersList   []Reader // List view solely for getSequentialSubReaders(), for effectiveness the array is used internally.
+	readerContext    *CompositeReaderContext
 }
 
 func (b *BaseCompositeReader) DoClose() error {
