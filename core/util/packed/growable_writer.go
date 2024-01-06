@@ -23,7 +23,7 @@ type GrowableWriter struct {
 //	valueCount – the number of values
 //	acceptableOverheadRatio – an acceptable overhead ratio
 func NewGrowableWriter(startBitsPerValue, valueCount int, acceptableOverheadRatio float64) *GrowableWriter {
-	current := PackedIntsGetMutable(valueCount, startBitsPerValue, acceptableOverheadRatio)
+	current := GetMutable(valueCount, startBitsPerValue, acceptableOverheadRatio)
 	return &GrowableWriter{
 		currentMask:             mask(current.GetBitsPerValue()),
 		current:                 current,
@@ -38,11 +38,11 @@ func mask(bitsPerValue int) uint64 {
 	return PackedIntsMaxValue(bitsPerValue)
 }
 
-func (g *GrowableWriter) Get(index int) uint64 {
+func (g *GrowableWriter) Get(index int) int64 {
 	return g.current.Get(index)
 }
 
-func (g *GrowableWriter) GetBulk(index int, arr []uint64) int {
+func (g *GrowableWriter) GetBulk(index int, arr []int64) int {
 	return g.current.GetBulk(index, arr)
 }
 
@@ -54,8 +54,8 @@ func (g *GrowableWriter) GetBitsPerValue() int {
 	return g.current.GetBitsPerValue()
 }
 
-func (g *GrowableWriter) Set(index int, value uint64) {
-	g.ensureCapacity(value)
+func (g *GrowableWriter) Set(index int, value int64) {
+	g.ensureCapacity(uint64(value))
 	g.current.Set(index, value)
 }
 
@@ -76,8 +76,8 @@ func (g *GrowableWriter) ensureCapacity(value uint64) {
 	g.currentMask = mask(g.current.GetBitsPerValue())
 }
 
-func (g *GrowableWriter) SetBulk(index int, arr []uint64) int {
-	maxCap := uint64(0)
+func (g *GrowableWriter) SetBulk(index int, arr []int64) int {
+	maxCap := int64(0)
 	for i := 0; i < len(arr); i++ {
 		// bitwise or is nice because either all values are positive and the
 		// or-ed result will require as many bits per value as the max of the
@@ -85,12 +85,12 @@ func (g *GrowableWriter) SetBulk(index int, arr []uint64) int {
 		// forcing GrowableWriter to use 64 bits per value
 		maxCap |= arr[i]
 	}
-	g.ensureCapacity(maxCap)
+	g.ensureCapacity(uint64(maxCap))
 	return g.current.SetBulk(index, arr)
 }
 
-func (g *GrowableWriter) Fill(fromIndex, toIndex int, value uint64) {
-	g.ensureCapacity(value)
+func (g *GrowableWriter) Fill(fromIndex, toIndex int, value int64) {
+	g.ensureCapacity(uint64(value))
 	g.current.Fill(fromIndex, toIndex, value)
 }
 
