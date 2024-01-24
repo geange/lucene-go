@@ -87,9 +87,14 @@ func (d *DocValuesFieldUpdatesDefault) Finish() error {
 		// Another option would be TimSorter, but it needs additional API (copy to
 		// temp storage, compare with item in temp storage, etc.) so we instead
 		// use quicksort and record ords of each update to guarantee stability.
-		ords := packed.PackedIntsGetMutable(d.size, packed.PackedIntsBitsRequired(uint64(d.size-1)), packed.DEFAULT)
+		bitsRequired, err := packed.BitsRequired(int64(d.size - 1))
+		if err != nil {
+			return err
+		}
+
+		ords := packed.GetMutable(d.size, bitsRequired, packed.DEFAULT)
 		for i := 0; i < d.size; i++ {
-			ords.Set(i, uint64(i))
+			ords.Set(i, int64(i))
 		}
 
 	}

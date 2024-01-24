@@ -14,7 +14,7 @@ const (
 var _ Mutable = &Packed64{}
 
 type Packed64 struct {
-	*MutableImpl
+	*BaseMutable
 
 	// Values are stores contiguously in the blocks array.
 	blocks []int64
@@ -26,7 +26,8 @@ type Packed64 struct {
 	bpvMinusBlockSize int
 }
 
-// NewPacked64 Creates an array with the internal structures adjusted for the given limits and initialized to 0.
+// NewPacked64
+// Creates an array with the internal structures adjusted for the given limits and initialized to 0.
 // Params: 	valueCount – the number of elements.
 //
 //	bitsPerValue – the number of bits available for any given value.
@@ -38,7 +39,7 @@ func NewPacked64(valueCount, bitsPerValue int) *Packed64 {
 	packed64.maskRight = ^int64(0) << (Packed64BlockSize - bitsPerValue) >> (Packed64BlockSize - bitsPerValue)
 	packed64.bpvMinusBlockSize = bitsPerValue - Packed64BlockSize
 
-	packed64.MutableImpl = newMutableImpl(packed64, valueCount, bitsPerValue)
+	packed64.BaseMutable = newBaseMutable(packed64, valueCount, bitsPerValue)
 	return packed64
 }
 
@@ -93,7 +94,7 @@ func (p *Packed64) GetBulk(index int, arr []int64) int {
 	blockIndex := (index * p.bitsPerValue) >> Packed64BlockBits
 
 	iterations := length / decoder.LongValueCount()
-	decoder.DecodeLongToLong(p.blocks[blockIndex:], arr[off:], iterations)
+	decoder.DecodeInts(p.blocks[blockIndex:], arr[off:], iterations)
 	gotValues := iterations * decoder.LongValueCount()
 	index += gotValues
 	length -= gotValues
@@ -152,7 +153,7 @@ func (p *Packed64) SetBulk(index int, arr []int64) int {
 	blockIndex := (int)((index * p.bitsPerValue) >> Packed64BlockBits)
 
 	iterations := size / encoder.LongValueCount()
-	encoder.EncodeLongToLong(arr[off:], p.blocks[blockIndex:], iterations)
+	encoder.EncodeLongs(arr[off:], p.blocks[blockIndex:], iterations)
 	setValues := iterations * encoder.LongValueCount()
 	index += setValues
 	size -= setValues

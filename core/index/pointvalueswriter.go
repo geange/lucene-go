@@ -93,6 +93,10 @@ func (i *innerReader) GetValues(field string) (types.PointValues, error) {
 	return i.values, nil
 }
 
+func (i *innerReader) GetMergeInstance() PointsReader {
+	return i
+}
+
 var _ types.MutablePointValues = &innerMutablePointValues{}
 
 type innerMutablePointValues struct {
@@ -111,7 +115,7 @@ func (r *innerMutablePointValues) Intersect(ctx context.Context, visitor types.I
 	for i := 0; i < r.numPoints; i++ {
 		r.GetValue(i, scratch)
 		copy(packedValue, scratch.Bytes())
-		if err := visitor.VisitLeaf(r.GetDocID(i), packedValue); err != nil {
+		if err := visitor.VisitLeaf(ctx, r.GetDocID(i), packedValue); err != nil {
 			return err
 		}
 	}

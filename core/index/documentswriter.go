@@ -59,7 +59,7 @@ type DocumentsWriter struct {
 }
 
 func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int64, enableTestPoints bool,
-	segmentName func() string, config *liveIndexWriterConfig, directoryOrig, directory store.Directory,
+	segmentName string, config *liveIndexWriterConfig, directoryOrig, directory store.Directory,
 	globalFieldNumberMap *FieldNumbers) *DocumentsWriter {
 
 	infos := NewFieldInfosBuilder(globalFieldNumberMap)
@@ -79,7 +79,7 @@ func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int
 		perThreadPool:                    nil,
 		flushControl: &DocumentsWriterFlushControl{
 			perThread: NewDocumentsWriterPerThread(indexCreatedVersionMajor,
-				segmentName(), directoryOrig,
+				segmentName, directoryOrig,
 				directory, config, deleteQueue, infos,
 				pendingNumDocs, enableTestPoints)},
 	}

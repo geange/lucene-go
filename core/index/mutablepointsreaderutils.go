@@ -86,7 +86,7 @@ func Partition(config *bkd.Config, maxDoc, splitDim, commonPrefixLen int,
 	dimOffset := splitDim*config.BytesPerDoc() + commonPrefixLen
 	dimCmpBytes := config.BytesPerDoc() - commonPrefixLen
 	dataCmpBytes := (config.NumDims()-config.NumIndexDims())*config.BytesPerDoc() + dimCmpBytes
-	bitsPerDocId := packed.PackedIntsBitsRequired(uint64(maxDoc - 1))
+	bitsPerDocId, _ := packed.BitsRequired(int64(maxDoc - 1))
 
 	radix := radixselector.NewRadixSelector(&radixselector.RadixSelectorConfig{
 		MaxLength: dataCmpBytes + (bitsPerDocId+7)/8,

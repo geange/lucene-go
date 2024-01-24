@@ -1,8 +1,9 @@
 package packed
 
-// PackedIntsReader A read-only random access array of positive integers.
+// Reader
+// A read-only random access array of positive integers.
 // lucene.internal
-type PackedIntsReader interface {
+type Reader interface {
 	// Get the long at the given index. Behavior is undefined for out-of-range indices.
 	Get(index int) int64
 

@@ -139,7 +139,7 @@ type NormsProducer interface {
 // NormValuesWriter Buffers up pending long per doc, then flushes when segment flushes.
 type NormValuesWriter struct {
 	docsWithField *DocsWithFieldSet
-	pending       *packed.PackedLongValuesBuilder
+	pending       *packed.LongValuesBuilder
 	fieldInfo     *document.FieldInfo
 	lastDocID     int
 }
@@ -163,10 +163,12 @@ func (n *NormValuesWriter) Flush(state *SegmentWriteState, sortMap *DocMap, norm
 }
 
 func NewNormValuesWriter(fieldInfo *document.FieldInfo) *NormValuesWriter {
-	return &NormValuesWriter{
-		docsWithField: NewDocsWithFieldSet(),
-		pending:       packed.NewPackedLongValuesBuilder(make([]uint64, 0)),
-		fieldInfo:     fieldInfo,
-		lastDocID:     -1,
-	}
+	//return &NormValuesWriter{
+	//	docsWithField: NewDocsWithFieldSet(),
+	//	pending:       packed.NewLongValuesBuilder(make([]uint64, 0)...),
+	//	fieldInfo:     fieldInfo,
+	//	lastDocID:     -1,
+	//}
+	// TODO: fix it
+	panic("")
 }

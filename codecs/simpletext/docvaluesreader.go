@@ -164,6 +164,10 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 	return r, nil
 }
 
+func (s *DocValuesReader) GetMergeInstance() index.DocValuesProducer {
+	return s
+}
+
 func (s *DocValuesReader) Close() error {
 	//TODO implement me
 	panic("implement me")

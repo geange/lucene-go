@@ -2,6 +2,7 @@ package search
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -158,14 +159,14 @@ type prQueryVisitor struct {
 	result *DocIdSetBuilder
 }
 
-func (p *prQueryVisitor) Visit(docID int) error {
+func (p *prQueryVisitor) Visit(ctx context.Context, docID int) error {
 	p.addr.Add(docID)
 	return nil
 }
 
-func (p *prQueryVisitor) VisitLeaf(docID int, packedValue []byte) error {
+func (p *prQueryVisitor) VisitLeaf(ctx context.Context, docID int, packedValue []byte) error {
 	if p.weight.matches(packedValue) {
-		return p.Visit(docID)
+		return p.Visit(nil, docID)
 	}
 	return nil
 }
@@ -180,7 +181,7 @@ func (p *prQueryVisitor) VisitIterator(iterator types.DocValuesIterator, packedV
 				}
 				return err
 			}
-			err = p.Visit(doc)
+			err = p.Visit(nil, doc)
 			if err != nil {
 				return err
 			}
@@ -209,15 +210,15 @@ type invPrQueryVisitor struct {
 	weight *prQueryWeight
 }
 
-func (r *invPrQueryVisitor) Visit(docID int) error {
+func (r *invPrQueryVisitor) Visit(ctx context.Context, docID int) error {
 	r.result.Clear(uint(docID))
 	r.cost[0]--
 	return nil
 }
 
-func (r *invPrQueryVisitor) VisitLeaf(docID int, packedValue []byte) error {
+func (r *invPrQueryVisitor) VisitLeaf(ctx context.Context, docID int, packedValue []byte) error {
 	if r.weight.matches(packedValue) == false {
-		return r.Visit(docID)
+		return r.Visit(nil, docID)
 	}
 	return nil
 }
@@ -232,7 +233,7 @@ func (r *invPrQueryVisitor) VisitIterator(iterator types.DocValuesIterator, pack
 				}
 				return err
 			}
-			err = r.Visit(doc)
+			err = r.Visit(nil, doc)
 			if err != nil {
 				return err
 			}

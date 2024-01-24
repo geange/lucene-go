@@ -19,7 +19,7 @@ func (m *memPointValues) Intersect(ctx context.Context, visitor types.IntersectV
 	values := m.info.pointValues
 	visitor.Grow(m.info.pointValuesCount)
 	for i := 0; i < m.info.pointValuesCount; i++ {
-		err := visitor.VisitLeaf(0, values[i])
+		err := visitor.VisitLeaf(nil, 0, values[i])
 		if err != nil {
 			return err
 		}

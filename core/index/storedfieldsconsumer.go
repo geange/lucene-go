@@ -6,20 +6,20 @@ import (
 )
 
 type StoredFieldsConsumer struct {
-	codec     Codec
-	directory store.Directory
-	info      *SegmentInfo
-	writer    StoredFieldsWriter
-	lastDoc   int
+	codec   Codec
+	dir     store.Directory
+	info    *SegmentInfo
+	writer  StoredFieldsWriter
+	lastDoc int
 }
 
-func NewStoredFieldsConsumer(codec Codec, directory store.Directory, info *SegmentInfo) *StoredFieldsConsumer {
+func NewStoredFieldsConsumer(codec Codec, dir store.Directory, info *SegmentInfo) *StoredFieldsConsumer {
 	return &StoredFieldsConsumer{
-		codec:     codec,
-		directory: directory,
-		info:      info,
-		writer:    nil,
-		lastDoc:   -1,
+		codec:   codec,
+		dir:     dir,
+		info:    info,
+		writer:  nil,
+		lastDoc: -1,
 	}
 }
 
@@ -29,7 +29,7 @@ func (s *StoredFieldsConsumer) writeField(info *document.FieldInfo, field docume
 
 func (s *StoredFieldsConsumer) initStoredFieldsWriter() error {
 	if s.writer == nil {
-		writer, err := s.codec.StoredFieldsFormat().FieldsWriter(s.directory, s.info, nil)
+		writer, err := s.codec.StoredFieldsFormat().FieldsWriter(s.dir, s.info, nil)
 		if err != nil {
 			return err
 		}

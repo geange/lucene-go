@@ -38,19 +38,20 @@ type DocumentsWriterPerThread struct {
 	numDeletedDocIds       int
 }
 
-func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, directoryOrig, directory store.Directory,
+func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string,
+	dirOrig, dir store.Directory,
 	indexWriterConfig *liveIndexWriterConfig, deleteQueue *DocumentsWriterDeleteQueue,
 	fieldInfos *FieldInfosBuilder, pendingNumDocs *atomic.Int64, enableTestPoints bool) *DocumentsWriterPerThread {
 
 	codec := indexWriterConfig.GetCodec()
 
-	segmentInfo := NewSegmentInfo(directoryOrig, util.VersionLast,
+	segmentInfo := NewSegmentInfo(dirOrig, util.VersionLast,
 		util.VersionLast, segmentName, -1,
 		false, codec, map[string]string{}, []byte(""),
 		map[string]string{}, indexWriterConfig.GetIndexSort())
 
 	perThread := &DocumentsWriterPerThread{
-		directory:         directory,
+		directory:         dir,
 		fieldInfos:        fieldInfos,
 		indexWriterConfig: indexWriterConfig,
 		codec:             codec,
@@ -100,8 +101,9 @@ func (d *DocumentsWriterPerThread) updateDocuments(ctx context.Context, docs []*
 }
 
 func (d *DocumentsWriterPerThread) finishDocuments(deleteNode *Node, docIdUpTo int) (int64, error) {
-	// here we actually finish the document in two steps 1. push the delete into
-	// the queue and update our slice. 2. increment the DWPT private document id.
+	// here we actually finish the document in two steps
+	// 1. push the delete into the queue and update our slice.
+	// 2. increment the DWPT private document id.
 	//
 	// the updated slice we get from 1. holds all the deletes that have occurred
 	// since we updated the slice the last time.
@@ -153,6 +155,6 @@ type defaultIndexingChain struct {
 }
 
 func (*defaultIndexingChain) GetChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo,
-	directory store.Directory, fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) DocConsumer {
-	return NewDefaultIndexingChain(indexCreatedVersionMajor, segmentInfo, directory, fieldInfos, indexWriterConfig)
+	dir store.Directory, fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) DocConsumer {
+	return NewDefaultIndexingChain(indexCreatedVersionMajor, segmentInfo, dir, fieldInfos, indexWriterConfig)
 }

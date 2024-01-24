@@ -27,6 +27,10 @@ func (d *Document) Iterator() func() IndexableField {
 	}
 }
 
+func (d *Document) Fields() []IndexableField {
+	return d.fields
+}
+
 // Add a field to a document. Several fields may be added with the same name. In this case,
 // if the fields are indexed, their text is treated as though appended for the purposes of search.
 // Note that add like the removeField(s) methods only makes sense prior to adding a document to an index.

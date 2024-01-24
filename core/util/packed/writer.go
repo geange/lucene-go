@@ -27,36 +27,21 @@ type PackIntsWriter interface {
 	Ord() int
 }
 
-type WriterSpi interface {
+type WriterFormat interface {
 	GetFormat() Format
 }
 
 type BasePackIntsWriter struct {
-	FnGetFormat func() Format
-
+	format       WriterFormat
 	out          store.DataOutput
 	valueCount   int
 	bitsPerValue int
 }
 
-type PackIntsWriterDefaultConfig struct {
-	GetFormat    func() Format
-	out          store.DataOutput
-	valueCount   int
-	bitsPerValue int
-}
-
-func NewPackIntsWriterDefault(cfg *PackIntsWriterDefaultConfig) *BasePackIntsWriter {
+func newBasePackIntsWriter(format WriterFormat,
+	out store.DataOutput, valueCount int, bitsPerValue int) *BasePackIntsWriter {
 	return &BasePackIntsWriter{
-		FnGetFormat:  cfg.GetFormat,
-		out:          cfg.out,
-		valueCount:   cfg.valueCount,
-		bitsPerValue: cfg.bitsPerValue,
-	}
-}
-
-func newWriter(out store.DataOutput, valueCount int, bitsPerValue int) *BasePackIntsWriter {
-	return &BasePackIntsWriter{
+		format:       format,
 		out:          out,
 		valueCount:   valueCount,
 		bitsPerValue: bitsPerValue,
@@ -64,22 +49,19 @@ func newWriter(out store.DataOutput, valueCount int, bitsPerValue int) *BasePack
 }
 
 func (w *BasePackIntsWriter) WriteHeader(ctx context.Context) error {
-	err := utils.WriteHeader(w.out, CODEC_NAME, VERSION_CURRENT)
-	if err != nil {
+	if err := utils.WriteHeader(w.out, CODEC_NAME, VERSION_CURRENT); err != nil {
 		return err
 	}
 
-	err = w.out.WriteUvarint(ctx, uint64(w.bitsPerValue))
-	if err != nil {
+	if err := w.out.WriteUvarint(ctx, uint64(w.bitsPerValue)); err != nil {
 		return err
 	}
 
-	err = w.out.WriteUvarint(ctx, uint64(w.valueCount))
-	if err != nil {
+	if err := w.out.WriteUvarint(ctx, uint64(w.valueCount)); err != nil {
 		return err
 	}
 
-	return w.out.WriteUvarint(ctx, uint64(w.FnGetFormat().GetId()))
+	return w.out.WriteUvarint(ctx, uint64(w.format.GetFormat().GetId()))
 }
 
 func (w *BasePackIntsWriter) BitsPerValue() int {

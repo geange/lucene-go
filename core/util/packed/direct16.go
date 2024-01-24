@@ -3,14 +3,14 @@ package packed
 var _ Mutable = &Direct16{}
 
 type Direct16 struct {
-	*MutableImpl
+	*BaseMutable
 
 	values []uint16
 }
 
 func NewDirect16(valueCount int) *Direct16 {
 	direct := &Direct16{values: make([]uint16, valueCount)}
-	direct.MutableImpl = newMutableImpl(direct, valueCount, 16)
+	direct.BaseMutable = newBaseMutable(direct, valueCount, 16)
 	return direct
 }
 

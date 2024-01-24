@@ -89,7 +89,7 @@ func (b *BulkOperationPackedSingleBlock) encodeInt(values []int32, valuesOffset 
 	return block
 }
 
-func (b *BulkOperationPackedSingleBlock) DecodeLongToLong(blocks, values []int64, iterations int) {
+func (b *BulkOperationPackedSingleBlock) DecodeInts(blocks, values []int64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block := blocks[blocksOffset]
@@ -98,7 +98,7 @@ func (b *BulkOperationPackedSingleBlock) DecodeLongToLong(blocks, values []int64
 	}
 }
 
-func (b *BulkOperationPackedSingleBlock) DecodeByteToLong(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPackedSingleBlock) DecodeBytes(blocks []byte, values []int64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block := int64(blocks[blocksOffset])
@@ -119,7 +119,7 @@ func (b *BulkOperationPackedSingleBlock) DecodeByteToInt(blocks []byte, values [
 	}
 }
 
-func (b *BulkOperationPackedSingleBlock) EncodeLongToLong(values, blocks []int64, iterations int) {
+func (b *BulkOperationPackedSingleBlock) EncodeLongs(values, blocks []int64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 
 	for i := 0; i < iterations; i++ {
@@ -129,7 +129,7 @@ func (b *BulkOperationPackedSingleBlock) EncodeLongToLong(values, blocks []int64
 	}
 }
 
-func (b *BulkOperationPackedSingleBlock) EncodeLongToBytes(values []int64, blocks []byte, iterations int) {
+func (b *BulkOperationPackedSingleBlock) EncodeBytes(values []int64, blocks []byte, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block := b.encodeLong(values, valuesOffset)
@@ -138,7 +138,7 @@ func (b *BulkOperationPackedSingleBlock) EncodeLongToBytes(values []int64, block
 	}
 }
 
-func (b *BulkOperationPackedSingleBlock) EncodeIntToBytes(values []int32, blocks []byte, iterations int) {
+func (b *BulkOperationPackedSingleBlock) EncodeI32ToBytes(values []int32, blocks []byte, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block := b.encodeInt(values, valuesOffset)

@@ -81,6 +81,10 @@ func (i innerPointsReader) GetValues(field string) (types.PointValues, error) {
 	}, nil
 }
 
+func (i innerPointsReader) GetMergeInstance() PointsReader {
+	return i
+}
+
 var _ types.PointValues = &innerPointValues{}
 
 type innerPointValues struct {

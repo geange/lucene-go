@@ -63,8 +63,8 @@ func (n *NumericDocValuesDefault) LongValue() (int64, error) {
 var _ DocValuesWriter = &NumericDocValuesWriter{}
 
 type NumericDocValuesWriter struct {
-	pending       *packed.PackedLongValuesBuilder
-	finalValues   *packed.PackedLongValues
+	pending       *packed.LongValuesBuilder
+	finalValues   *packed.LongValues
 	docsWithField *DocsWithFieldSet
 	fieldInfo     *document.FieldInfo
 	lastDocID     int
@@ -87,17 +87,22 @@ func (n *NumericDocValuesWriter) AddValue(docID int, value int64) error {
 }
 
 func (n *NumericDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
-	n.finalValues = n.pending.Build()
+	// TODO: fix it
+	panic("")
+	/*
+		n.finalValues = n.pending.Build()
 
-	return consumer.AddNumericField(nil, n.fieldInfo, &EmptyDocValuesProducer{
-		FnGetNumeric: func(field *document.FieldInfo) (NumericDocValues, error) {
-			iterator, err := n.docsWithField.Iterator()
-			if err != nil {
-				return nil, err
-			}
-			return NewBufferedNumericDocValues(n.finalValues, iterator), nil
-		},
-	})
+		return consumer.AddNumericField(nil, n.fieldInfo, &EmptyDocValuesProducer{
+			FnGetNumeric: func(field *document.FieldInfo) (NumericDocValues, error) {
+				iterator, err := n.docsWithField.Iterator()
+				if err != nil {
+					return nil, err
+				}
+				return NewBufferedNumericDocValues(n.finalValues, iterator), nil
+			},
+		})
+
+	*/
 }
 
 func (n *NumericDocValuesWriter) GetDocValues() types.DocIdSetIterator {
@@ -108,12 +113,12 @@ func (n *NumericDocValuesWriter) GetDocValues() types.DocIdSetIterator {
 var _ NumericDocValues = &BufferedNumericDocValues{}
 
 type BufferedNumericDocValues struct {
-	iter          *packed.PackedLongValuesIterator
+	iter          *packed.LongValuesIterator
 	docsWithField types.DocIdSetIterator
 	value         int64
 }
 
-func NewBufferedNumericDocValues(values *packed.PackedLongValues,
+func NewBufferedNumericDocValues(values *packed.LongValues,
 	docsWithFields types.DocIdSetIterator) *BufferedNumericDocValues {
 
 	docValues := &BufferedNumericDocValues{

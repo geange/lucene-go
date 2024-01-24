@@ -49,3 +49,7 @@ func (e *EmptyDocValuesProducer) CheckIntegrity() error {
 	//TODO implement me
 	panic("implement me")
 }
+
+func (e *EmptyDocValuesProducer) GetMergeInstance() DocValuesProducer {
+	return e
+}

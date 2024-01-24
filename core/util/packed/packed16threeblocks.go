@@ -13,14 +13,14 @@ var _ Mutable = &Packed16ThreeBlocks{}
 // Packed16ThreeBlocks Packs integers into 3 shorts (48 bits per value).
 // lucene.internal
 type Packed16ThreeBlocks struct {
-	*MutableImpl
+	*BaseMutable
 
 	blocks []uint16
 }
 
 func NewPacked16ThreeBlocks(valueCount int) *Packed16ThreeBlocks {
 	blocks := &Packed16ThreeBlocks{blocks: make([]uint16, valueCount*3)}
-	blocks.MutableImpl = newMutableImpl(blocks, valueCount, 48)
+	blocks.BaseMutable = newBaseMutable(blocks, valueCount, 48)
 	return blocks
 }
 

@@ -60,7 +60,7 @@ func (b *BulkOperationPacked) ByteValueCount() int {
 	return b.byteValueCount
 }
 
-func (b *BulkOperationPacked) DecodeLongToLong(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked) DecodeInts(blocks, values []int64, iterations int) {
 	bitsLeft := 64
 	valuesOffset, blocksOffset := 0, 0
 	for i := 0; i < b.longValueCount*iterations; i++ {
@@ -79,7 +79,7 @@ func (b *BulkOperationPacked) DecodeLongToLong(blocks, values []int64, iteration
 	}
 }
 
-func (b *BulkOperationPacked) DecodeByteToLong(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked) DecodeBytes(blocks []byte, values []int64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	nextValue := int64(0)
 	bitsLeft := b.bitsPerValue
@@ -135,7 +135,7 @@ func (b *BulkOperationPacked) DecodeByteToInt(blocks []byte, values []int32, ite
 	}
 }
 
-func (b *BulkOperationPacked) EncodeLongToLong(values, blocks []int64, iterations int) {
+func (b *BulkOperationPacked) EncodeLongs(values, blocks []int64, iterations int) {
 	valuesOffset, blocksOffset := 0, 0
 	nextBlock := int64(0)
 	bitsLeft := 64
@@ -162,7 +162,7 @@ func (b *BulkOperationPacked) EncodeLongToLong(values, blocks []int64, iteration
 	}
 }
 
-func (b *BulkOperationPacked) EncodeLongToBytes(values []int64, blocks []byte, iterations int) {
+func (b *BulkOperationPacked) EncodeBytes(values []int64, blocks []byte, iterations int) {
 	valuesOffset, blocksOffset := 0, 0
 
 	nextBlock := 0
@@ -191,7 +191,7 @@ func (b *BulkOperationPacked) EncodeLongToBytes(values []int64, blocks []byte, i
 	}
 }
 
-func (b *BulkOperationPacked) EncodeIntToBytes(values []int32, blocks []byte, iterations int) {
+func (b *BulkOperationPacked) EncodeI32ToBytes(values []int32, blocks []byte, iterations int) {
 	valuesOffset, blocksOffset := 0, 0
 	nextBlock := 0
 	bitsLeft := 8

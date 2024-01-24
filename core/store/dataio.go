@@ -37,7 +37,8 @@ type DataInput interface {
 	// See Also: DataOutput.writeInt(int)
 	ReadUint32(ctx context.Context) (uint32, error)
 
-	// ReadUvarint Reads an int stored in variable-length format. Reads between one and five bytes.
+	// ReadUvarint
+	// Reads an int stored in variable-length format. Reads between one and five bytes.
 	// Smaller values take fewer bytes. Negative numbers are supported, but should be avoided.
 	// The format is described further in DataOutput.writeVInt(int).
 	// See Also: DataOutput.writeVInt(int)
@@ -271,7 +272,8 @@ type DataOutput interface {
 	// See Also: IndexInput.readByte()
 	io.ByteWriter
 
-	// BaseDataOutput Writes an array of bytes.
+	// Writer
+	// Writes an array of bytes.
 	io.Writer
 
 	// WriteUint32 Writes an int as four bytes.
@@ -283,7 +285,8 @@ type DataOutput interface {
 	// See Also: DataInput.readShort()
 	WriteUint16(ctx context.Context, i uint16) error
 
-	// WriteUvarint Writes an int in a variable-length format. Writes between one and five bytes. Smaller
+	// WriteUvarint
+	// Writes an int in a variable-length format. Writes between one and five bytes. Smaller
 	// values take fewer bytes. Negative numbers are supported, but should be avoided.
 	// VByte is a variable-length format for positive integers is defined where the high-order bit of each
 	// byte indicates whether more bytes remain to be read. The low-order seven bits are appended as
@@ -368,7 +371,7 @@ func (d *BaseDataOutput) WriteUint16(ctx context.Context, i uint16) error {
 }
 
 func (d *BaseDataOutput) WriteUvarint(ctx context.Context, i uint64) error {
-	num := binary.PutUvarint(d.buffer, i)
+	num := binary.PutUvarint(d.buffer, uint64(i))
 	if _, err := d.writer.Write(d.buffer[:num]); err != nil {
 		return err
 	}

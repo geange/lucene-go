@@ -29,7 +29,7 @@ func NewPackedWriter(format Format, out store.DataOutput, valueCount, bitsPerVal
 	}
 
 	op := bulkOperation{decoder: encoder}
-	iterations := op.computeIterations(valueCount, mem)
+	iterations := op.ComputeIterations(valueCount, mem)
 
 	packedWriter := &PackedWriter{
 		BasePackIntsWriter: nil,
@@ -42,12 +42,7 @@ func NewPackedWriter(format Format, out store.DataOutput, valueCount, bitsPerVal
 		off:                0,
 		written:            0,
 	}
-	packedWriter.BasePackIntsWriter = NewPackIntsWriterDefault(&PackIntsWriterDefaultConfig{
-		GetFormat:    packedWriter.GetFormat,
-		out:          out,
-		valueCount:   valueCount,
-		bitsPerValue: bitsPerValue,
-	})
+	packedWriter.BasePackIntsWriter = newBasePackIntsWriter(packedWriter, out, valueCount, bitsPerValue)
 
 	return packedWriter
 }
@@ -90,7 +85,7 @@ func (p *PackedWriter) Finish() error {
 }
 
 func (p *PackedWriter) flush() error {
-	p.encoder.EncodeLongToBytes(p.nextValues[0:], p.nextBlocks[0:], p.iterations)
+	p.encoder.EncodeBytes(p.nextValues[0:], p.nextBlocks[0:], p.iterations)
 	blockCount := p.format.ByteCount(VERSION_CURRENT, p.off, p.bitsPerValue)
 	_, err := p.out.Write(p.nextBlocks[:blockCount])
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 )
 
 type Packed64SingleBlock struct {
-	*MutableImpl
+	*BaseMutable
 	fnGet  func(index int) int64
 	fnSet  func(index int, value int64)
 	blocks []int64
@@ -14,7 +14,7 @@ type Packed64SingleBlock struct {
 func NewPacked64SingleBlock(valueCount, bitsPerValue int) *Packed64SingleBlock {
 	valuesPerBlock := 64 / bitsPerValue
 	block := &Packed64SingleBlock{blocks: make([]int64, requiredCapacity(valueCount, valuesPerBlock))}
-	block.MutableImpl = newMutableImpl(block, valueCount, bitsPerValue)
+	block.BaseMutable = newBaseMutable(block, valueCount, bitsPerValue)
 	return block
 }
 

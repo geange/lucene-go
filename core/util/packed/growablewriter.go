@@ -8,8 +8,10 @@ import (
 
 var _ Mutable = &GrowableWriter{}
 
-// GrowableWriter Implements PackedInts.Mutable, but grows the bit count of the underlying packed ints on-demand.
-// Beware that this class will accept to set negative values but in order to do this, it will grow the number of bits per value to 64.
+// GrowableWriter
+// Implements Mutable, but grows the bit count of the underlying packed ints on-demand.
+// Beware that this class will accept to set negative values but in order to do this,
+// it will grow the number of bits per value to 64.
 // @lucene.internal
 type GrowableWriter struct {
 	currentMask             uint64
@@ -18,10 +20,9 @@ type GrowableWriter struct {
 }
 
 // NewGrowableWriter
-// Params: 	startBitsPerValue – the initial number of bits per value, may grow depending on the data
-//
-//	valueCount – the number of values
-//	acceptableOverheadRatio – an acceptable overhead ratio
+// startBitsPerValue: the initial number of bits per value, may grow depending on the data
+// valueCount: the number of values
+// acceptableOverheadRatio: an acceptable overhead ratio
 func NewGrowableWriter(startBitsPerValue, valueCount int, acceptableOverheadRatio float64) *GrowableWriter {
 	current := GetMutable(valueCount, startBitsPerValue, acceptableOverheadRatio)
 	return &GrowableWriter{
@@ -35,7 +36,7 @@ func mask(bitsPerValue int) uint64 {
 	if bitsPerValue == 64 {
 		return ^uint64(0)
 	}
-	return PackedIntsMaxValue(bitsPerValue)
+	return MaxValue(bitsPerValue)
 }
 
 func (g *GrowableWriter) Get(index int) int64 {

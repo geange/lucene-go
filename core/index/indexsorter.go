@@ -16,11 +16,11 @@ import (
 // registered with SPI via META-INF/services
 type IndexSorter interface {
 
-	// TODO：fix it
-	// GetComparableProviders Get an array of IndexSorter.ComparableProvider, one per segment,
+	// GetComparableProviders
+	// Get an array of IndexSorter.ComparableProvider, one per segment,
 	// for merge sorting documents in different segments
 	// Params: readers – the readers to be merged
-	//GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error)
+	GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error)
 
 	// GetDocComparator Get a comparator that determines the sort order of docs within a single Reader.
 	// NB We cannot simply use the FieldComparator API because it requires docIDs to be sent in-order.
@@ -549,6 +549,24 @@ type StringSorter struct {
 	missingValue   string
 	reverseMul     int
 	valuesProvider SortedDocValuesProvider
+}
+
+func (s *StringSorter) GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error) {
+	//readersNum := len(readers)
+	//
+	//providers := make([]ComparableProvider, readersNum)
+	//values := make([]SortedDocValues, readersNum)
+	//
+	//for i, reader := range readers {
+	//	sorted, err := s.valuesProvider.Get(reader)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	values[i] = sorted
+	//}
+
+	// TODO
+	panic("")
 }
 
 func NewStringSorter(providerName, missingValue string, reverse bool, valuesProvider SortedDocValuesProvider) *StringSorter {

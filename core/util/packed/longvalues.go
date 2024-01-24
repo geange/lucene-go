@@ -8,13 +8,13 @@ var _ types.LongValues = &LongValues{}
 // Utility class to compress integers into a LongValues instance.
 // TODO: need to reduce memory
 type LongValues struct {
-	values    []PackedIntsReader
+	values    []Reader
 	pageShift int
 	pageMask  int64
 	size      int
 }
 
-func NewLongValues(values []PackedIntsReader, pageShift int, pageMask int, size int) *LongValues {
+func NewLongValues(values []Reader, pageShift int, pageMask int, size int) *LongValues {
 	return &LongValues{values: values, pageShift: pageShift, pageMask: int64(pageMask), size: size}
 }
 
@@ -32,17 +32,17 @@ func (p *LongValues) Load(block int, element int) int64 {
 	return int64(p.values[block].Get(element))
 }
 
-type PackedLongValuesIterator struct {
+type LongValuesIterator struct {
 	p   *LongValues
 	pos int
 }
 
 // HasNext Whether or not there are remaining values.
-func (i *PackedLongValuesIterator) HasNext() bool {
+func (i *LongValuesIterator) HasNext() bool {
 	return i.pos < int(i.p.Size())
 }
 
-func (i *PackedLongValuesIterator) Next() int64 {
+func (i *LongValuesIterator) Next() int64 {
 	if i.HasNext() {
 		v := i.p.Get(int64(i.pos))
 		i.pos++
@@ -51,8 +51,8 @@ func (i *PackedLongValuesIterator) Next() int64 {
 	return 0
 }
 
-func (p *LongValues) Iterator() *PackedLongValuesIterator {
-	iterator := &PackedLongValuesIterator{
+func (p *LongValues) Iterator() *LongValuesIterator {
+	iterator := &LongValuesIterator{
 		p:   p,
 		pos: -1,
 	}
@@ -64,7 +64,7 @@ type LongValuesBuilder struct {
 	acceptableOverheadRatio float64
 	pending                 []int64
 	size                    int64
-	values                  []PackedIntsReader
+	values                  []Reader
 	valuesOff               int
 	pendingOff              int
 }
@@ -83,19 +83,19 @@ func NewLongValuesBuilder(pageSize int, acceptableOverheadRatio float64) *LongVa
 		pageShift:               pageShift,
 		pageMask:                pageMask,
 		acceptableOverheadRatio: acceptableOverheadRatio,
-		values:                  make([]PackedIntsReader, INITIAL_PAGE_COUNT),
+		values:                  make([]Reader, INITIAL_PAGE_COUNT),
 		pending:                 make([]int64, pageSize),
 	}
 }
 
-func NewPackedLongValuesBuilderV1() *LongValuesBuilder {
+func NewLongValuesBuilderV1() *LongValuesBuilder {
 	return &LongValuesBuilder{pending: make([]int64, 0)}
 }
 
 // Add a new element to this builder.
 func (p *LongValuesBuilder) Add(value int64) {
 
-	p.pending = append(p.pending, int64(value))
+	p.pending = append(p.pending, value)
 }
 
 func (p *LongValuesBuilder) pack() {
@@ -105,7 +105,7 @@ func (p *LongValuesBuilder) pack() {
 	p.pending = p.pending[:0]
 }
 
-func (p *LongValuesBuilder) packV1(values []int64, numValues, block int, acceptableOverheadRatio float64) {
+func (p *LongValuesBuilder) packV1(values []int64, numValues, block int, acceptableOverheadRatio float64) error {
 	// compute max delta
 	minValue := values[0]
 	maxValue := values[0]
@@ -118,14 +118,18 @@ func (p *LongValuesBuilder) packV1(values []int64, numValues, block int, accepta
 	// build a new packed reader
 	if minValue == 0 && maxValue == 0 {
 		p.values[block] = NewNullReader(numValues)
-		return
+		return nil
 	}
 
+	var err error
 	var bitsRequired int
 	if minValue < 0 {
 		bitsRequired = 64
 	} else {
-		bitsRequired = PackedIntsBitsRequired(uint64(maxValue))
+		bitsRequired, err = BitsRequired(maxValue)
+		if err != nil {
+			return err
+		}
 	}
 
 	m := GetMutable(numValues, bitsRequired, acceptableOverheadRatio)
@@ -133,4 +137,5 @@ func (p *LongValuesBuilder) packV1(values []int64, numValues, block int, accepta
 		i += m.SetBulk(i, values[i:numValues-i])
 	}
 	p.values[block] = m
+	return nil
 }

@@ -137,8 +137,8 @@ func EstimateDocCount(spi EstimateDocCountSPI, visitor IntersectVisitor) (int, e
 }
 
 type IntersectVisitor interface {
-	Visit(docID int) error
-	VisitLeaf(docID int, packedValue []byte) error
+	Visit(ctx context.Context, docID int) error
+	VisitLeaf(ctx context.Context, docID int, packedValue []byte) error
 	Compare(minPackedValue, maxPackedValue []byte) Relation
 	Grow(count int)
 }
@@ -163,11 +163,11 @@ type BytesVisitor struct {
 	GrowFn func(count int)
 }
 
-func (r *BytesVisitor) Visit(docID int) error {
+func (r *BytesVisitor) Visit(ctx context.Context, docID int) error {
 	return r.VisitFn(docID)
 }
 
-func (r *BytesVisitor) VisitLeaf(docID int, packedValue []byte) error {
+func (r *BytesVisitor) VisitLeaf(ctx context.Context, docID int, packedValue []byte) error {
 	return r.VisitLeafFn(docID, packedValue)
 }
 
@@ -179,7 +179,7 @@ func (r *BytesVisitor) Grow(count int) {
 	r.GrowFn(count)
 }
 
-func Visit(visitor IntersectVisitor, iterator DocIdSetIterator, packedValue []byte) error {
+func Visit(ctx context.Context, visitor IntersectVisitor, iterator DocIdSetIterator, packedValue []byte) error {
 	for {
 		docID, err := iterator.NextDoc()
 		if err != nil {
@@ -188,7 +188,7 @@ func Visit(visitor IntersectVisitor, iterator DocIdSetIterator, packedValue []by
 			}
 			return err
 		}
-		if err := visitor.VisitLeaf(docID, packedValue); err != nil {
+		if err := visitor.VisitLeaf(ctx, docID, packedValue); err != nil {
 			return err
 		}
 	}

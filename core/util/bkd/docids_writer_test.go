@@ -20,7 +20,7 @@ func TestWriteDocIdsSorted(t *testing.T) {
 	input := store.NewBytesInput(output.Bytes())
 
 	newDocIds := make([]int, 100)
-	err = ReadInts(input, 100, newDocIds)
+	err = ReadInts(nil, input, 100, newDocIds)
 	assert.Nil(t, err)
 
 	assert.Equal(t, docIds, newDocIds)
@@ -38,7 +38,7 @@ func TestWriteDocIdsInt24(t *testing.T) {
 	input := store.NewBytesInput(output.Bytes())
 
 	newDocIds := make([]int, 100)
-	err = ReadInts(input, 100, newDocIds)
+	err = ReadInts(nil, input, 100, newDocIds)
 	assert.Nil(t, err)
 
 	assert.Equal(t, docIds, newDocIds)
@@ -56,7 +56,7 @@ func TestWriteDocIdsInt32(t *testing.T) {
 	input := store.NewBytesInput(output.Bytes())
 
 	newDocIds := make([]int, 100)
-	err = ReadInts(input, 100, newDocIds)
+	err = ReadInts(nil, input, 100, newDocIds)
 	assert.Nil(t, err)
 
 	assert.Equal(t, docIds, newDocIds)

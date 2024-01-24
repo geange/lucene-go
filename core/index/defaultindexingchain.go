@@ -10,7 +10,6 @@ import (
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/bytesutils"
 	"github.com/geange/lucene-go/core/util/ints"
-	"io"
 )
 
 var _ DocConsumer = &DefaultIndexingChain{}
@@ -42,9 +41,7 @@ type DefaultIndexingChain struct {
 	hasHitAbortingException bool
 }
 
-func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo,
-	directory store.Directory, fieldInfos *FieldInfosBuilder,
-	indexWriterConfig *liveIndexWriterConfig) *DefaultIndexingChain {
+func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo, dir store.Directory, fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) *DefaultIndexingChain {
 
 	byteBlockAllocator := newByteBlockAllocator()
 	intBlockAllocator := newIntBlockAllocator()
@@ -52,8 +49,8 @@ func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentI
 	var storedFieldsConsumer *StoredFieldsConsumer
 	var termVectorsWriter *TermVectorsConsumer
 	if segmentInfo.GetIndexSort() == nil {
-		storedFieldsConsumer = NewStoredFieldsConsumer(indexWriterConfig.GetCodec(), directory, segmentInfo)
-		termVectorsWriter = NewTermVectorsConsumer(intBlockAllocator, byteBlockAllocator, directory, segmentInfo, indexWriterConfig.GetCodec())
+		storedFieldsConsumer = NewStoredFieldsConsumer(indexWriterConfig.GetCodec(), dir, segmentInfo)
+		termVectorsWriter = NewTermVectorsConsumer(intBlockAllocator, byteBlockAllocator, dir, segmentInfo, indexWriterConfig.GetCodec())
 	}
 
 	indexChain := &DefaultIndexingChain{
@@ -372,27 +369,20 @@ func (d *DefaultIndexingChain) ProcessDocument(ctx context.Context, docId int, d
 		return err
 	}
 
-	iterator := doc.Iterator()
-
 	var err error
 
-	for {
-		field := iterator()
-		if field == nil {
-			break
-		}
-
+	for _, field := range doc.Fields() {
 		fieldCount, err = d.processField(docId, field, fieldGen, fieldCount)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < fieldCount; i++ {
-			if err := d.fields[i].Finish(docId); err != nil {
+			if err = d.fields[i].Finish(docId); err != nil {
 				return err
 			}
 		}
-		if err := d.finishStoredFields(); err != nil {
+		if err = d.finishStoredFields(); err != nil {
 			return err
 		}
 	}
@@ -406,13 +396,12 @@ func (d *DefaultIndexingChain) processField(docId int,
 	fieldName := field.Name()
 	fieldType := field.FieldType()
 
-	var fp *PerField
-
 	if fieldType.IndexOptions() == -1 {
 		return 0, errors.New("indexOptions must not be null")
 	}
 
 	var err error
+	var fp *PerField
 
 	// Invert indexed fields:
 	if fieldType.IndexOptions() != document.INDEX_OPTIONS_NONE {
@@ -607,16 +596,18 @@ func (d *DefaultIndexingChain) getOrAddField(name string, fieldType document.Ind
 		if err != nil {
 			return nil, err
 		}
+
 		if err := d.initIndexOptions(fi, fieldType.IndexOptions()); err != nil {
 			return nil, err
 		}
-		attributes := fieldType.GetAttributes()
-		for k, v := range attributes {
+
+		for k, v := range fieldType.GetAttributes() {
 			fi.PutAttribute(k, v)
 		}
 
-		fp, err = d.NewPerField(d.indexCreatedVersionMajor, fi, invert,
-			d.indexWriterConfig.GetSimilarity(), d.indexWriterConfig.GetAnalyzer())
+		similarity := d.indexWriterConfig.GetSimilarity()
+		analyzer := d.indexWriterConfig.GetAnalyzer()
+		fp, err = d.NewPerField(d.indexCreatedVersionMajor, fi, invert, similarity, analyzer)
 		if err != nil {
 			return nil, err
 		}
@@ -681,9 +672,10 @@ func (d *DefaultIndexingChain) finishStoredFields() error {
 	return d.storedFieldsConsumer.FinishDocument()
 }
 
+// PerField
+// NOTE: not static: accesses at least docState, termsHash.
 type PerField struct {
-	chain *DefaultIndexingChain
-
+	chain                    *DefaultIndexingChain
 	indexCreatedVersionMajor int
 	fieldInfo                *document.FieldInfo
 	similarity               Similarity
@@ -698,13 +690,9 @@ type PerField struct {
 	// Used by the hash table
 	//next *PerField
 
-	norms *NormValuesWriter
-
+	norms       *NormValuesWriter
 	tokenStream analysis.TokenStream
-
-	infoStream io.Writer
-
-	analyzer analysis.Analyzer
+	analyzer    analysis.Analyzer
 }
 
 func (d *DefaultIndexingChain) NewPerField(indexCreatedVersionMajor int, fieldInfo *document.FieldInfo,
@@ -719,8 +707,7 @@ func (d *DefaultIndexingChain) NewPerField(indexCreatedVersionMajor int, fieldIn
 	}
 
 	if invert {
-		err := perField.setInvertState()
-		if err != nil {
+		if err := perField.setInvertState(); err != nil {
 			return nil, err
 		}
 	}

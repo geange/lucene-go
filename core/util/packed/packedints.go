@@ -1,6 +1,7 @@
 package packed
 
 import (
+	"fmt"
 	"github.com/geange/lucene-go/core/store"
 
 	"github.com/pkg/errors"
@@ -101,7 +102,7 @@ func fastestFormatAndBits(valueCount, bitsPerValue int, acceptableOverheadRatio 
 	return NewFormatAndBits(format, actualBitsPerValue)
 }
 
-func GetBulk(reader PackedIntsReader, index int, arr []int64) int {
+func GetBulk(reader Reader, index int, arr []int64) int {
 	gets := min(reader.Size()-index, len(arr))
 
 	for i, o, end := index, 0, index+gets; i < end; {
@@ -116,7 +117,7 @@ func GetBulk(reader PackedIntsReader, index int, arr []int64) int {
 type ReaderIterator interface {
 }
 
-var _ PackedIntsReader = &NullReader{}
+var _ Reader = &NullReader{}
 
 // NullReader
 // A PackedInts.PackedIntsReader which has all its values equal to 0 (bitsPerValue = 0).
@@ -158,7 +159,7 @@ func numBlocks(size, blockSize int) (int, error) {
 }
 
 // PackedIntsCopy Copy src[srcPos:srcPos+len] into dest[destPos:destPos+len] using at most mem bytes.
-func PackedIntsCopy(src PackedIntsReader, srcPos int, dest Mutable, destPos, size, mem int) {
+func PackedIntsCopy(src Reader, srcPos int, dest Mutable, destPos, size, mem int) {
 	capacity := mem >> 3
 	if capacity == 0 {
 		for i := 0; i < size; i++ {
@@ -175,7 +176,7 @@ func PackedIntsCopy(src PackedIntsReader, srcPos int, dest Mutable, destPos, siz
 	}
 }
 
-func PackedIntsCopyBuff(src PackedIntsReader, srcPos int, dest Mutable, destPos, size int, buf []int64) {
+func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int, buf []int64) {
 	remaining := 0
 	for size > 0 {
 		read := src.GetBulk(srcPos, buf[0:min(size, len(buf)-remaining)])
@@ -262,26 +263,24 @@ func getWriterNoHeader(out store.DataOutput, format Format, valueCount, bitsPerV
 	return NewPackedWriter(format, out, valueCount, bitsPerValue, mem)
 }
 
-/**
-  public static long maxValue(int bitsPerValue) {
-    return bitsPerValue == 64 ? Long.MAX_VALUE : ~(~0L << bitsPerValue);
-  }
-*/
-
-func PackedIntsMaxValue(bitsPerValue int) uint64 {
+func MaxValue(bitsPerValue int) uint64 {
 	if bitsPerValue == 64 {
 		return math.MaxInt64
 	}
 	return ^(^uint64(0) << bitsPerValue)
 }
 
-// PackedIntsBitsRequired Returns how many bits are required to hold values up to and including maxValue
+// BitsRequired
+// Returns how many bits are required to hold values up to and including maxValue
 // NOTE: This method returns at least 1.
 // Params: maxValue – the maximum value that should be representable.
 // Returns: the amount of bits needed to represent values from 0 to maxValue.
 // lucene.internal
-func PackedIntsBitsRequired(maxValue uint64) int {
-	return unsignedBitsRequired(maxValue)
+func BitsRequired(maxValue int64) (int, error) {
+	if maxValue < 0 {
+		return 0, fmt.Errorf("maxValue must be non-negative (got: %d)", maxValue)
+	}
+	return unsignedBitsRequired(uint64(maxValue)), nil
 }
 
 func unsignedBitsRequired(v uint64) int {
@@ -290,4 +289,76 @@ func unsignedBitsRequired(v uint64) int {
 
 func checkBlockSize(blockSize, minBlockSize, maxBlockSize int) int {
 	return bits.TrailingZeros(uint(blockSize))
+}
+
+// Decoder A decoder for packed integers.
+type Decoder interface {
+
+	// LongBlockCount
+	// The minimum number of long blocks to encode in a single iteration, when using long encoding.
+	LongBlockCount() int
+
+	// LongValueCount
+	// The number of values that can be stored in longBlockCount() long blocks.
+	LongValueCount() int
+
+	// ByteBlockCount
+	// The minimum number of byte blocks to encode in a single iteration, when using byte encoding.
+	ByteBlockCount() int
+
+	// ByteValueCount
+	// The number of values that can be stored in byteBlockCount() byte blocks.
+	ByteValueCount() int
+
+	// DecodeInts
+	// Read iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
+	// blocks: the long blocks that hold packed integer values
+	// values: the values buffer
+	// iterations: controls how much data to decode
+	DecodeInts(blocks []int64, values []int64, iterations int)
+
+	// DecodeBytes
+	// Read 8 * iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
+	// blocks: the long blocks that hold packed integer values
+	// values: the values buffer
+	// iterations: controls how much data to decode
+	DecodeBytes(blocks []byte, values []int64, iterations int)
+
+	// DecodeLongToInt Read iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
+	// Params: 	blocks – the long blocks that hold packed integer values blocksOffset – the offset where to start reading blocks values – the values buffer valuesOffset – the offset where to start writing values iterations – controls how much data to decode
+	//DecodeLongToInt(blocks []int64, values []int, iterations int)
+
+	// DecodeByteToInt
+	// Read 8 * iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
+	// blocks – the long blocks that hold packed integer values
+	// values – the values buffer
+	// iterations – controls how much data to decode
+	//DecodeByteToInt(blocks []byte, values []int32, iterations int)
+}
+
+// Encoder An encoder for packed integers.
+type Encoder interface {
+
+	// EncodeLongs
+	// Read iterations * valueCount() values from values, encode them and write
+	// iterations * blockCount() blocks into blocks.
+	// values: the values buffer
+	// blocks: the long blocks that hold packed integer values
+	// iterations: controls how much data to encode
+	EncodeLongs(values []int64, blocks []int64, iterations int)
+
+	// EncodeBytes
+	// Read iterations * valueCount() values from values,
+	// encode them and write 8 * iterations * blockCount() blocks into blocks.
+	// values: the values buffer
+	// blocks: the long blocks that hold packed integer values
+	// iterations: controls how much data to encode
+	EncodeBytes(values []int64, blocks []byte, iterations int)
+
+	// EncodeI32ToBytes
+	// Read iterations * valueCount() values from values, encode them and write 8 * iterations * blockCount() blocks into blocks.
+	// values: the values buffer
+	// blocks: the long blocks that hold packed integer values
+	// iterations: controls how much data to encode
+	//EncodeI32ToBytes(values []int32, blocks []byte, iterations int)
 }

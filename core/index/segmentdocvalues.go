@@ -125,6 +125,10 @@ func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
 	return p, nil
 }
 
+func (s *SegmentDocValuesProducer) GetMergeInstance() DocValuesProducer {
+	return s
+}
+
 func (s *SegmentDocValuesProducer) Close() error {
 	//TODO implement me
 	panic("implement me")

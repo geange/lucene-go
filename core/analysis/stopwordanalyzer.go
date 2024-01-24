@@ -6,18 +6,18 @@ type StopWordAnalyzer interface {
 	Analyzer
 }
 
-type DefStopWordAnalyzer struct {
+type BaseStopWordAnalyzer struct {
 	stopWords *CharArraySet
 }
 
-func NewStopWordAnalyzer(stopWords *CharArraySet) *DefStopWordAnalyzer {
-	return &DefStopWordAnalyzer{
+func NewStopWordAnalyzer(stopWords *CharArraySet) *BaseStopWordAnalyzer {
+	return &BaseStopWordAnalyzer{
 		stopWords: stopWords,
 	}
 }
 
 // GetStopWordSet Returns the analyzer's stopWord set or an empty set if the analyzer has no stopWords
 // Returns: the analyzer's stopWord set or an empty set if the analyzer has no stopWords
-func (r *DefStopWordAnalyzer) GetStopWordSet() *CharArraySet {
+func (r *BaseStopWordAnalyzer) GetStopWordSet() *CharArraySet {
 	return r.stopWords
 }

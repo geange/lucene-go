@@ -140,8 +140,9 @@ func writeLong(block int64, blocks []byte, blocksOffset int) int {
 	return blocksOffset
 }
 
+// ComputeIterations
 // For every number of bits per value, there is a minimum number of blocks (b) / values (v) you need to write in order to reach the next block boundary: - 16 bits per value -> b=2, v=1 - 24 bits per value -> b=3, v=1 - 50 bits per value -> b=25, v=4 - 63 bits per value -> b=63, v=8 - ... A bulk read consists in copying iterations*v values that are contained in iterations*b blocks into a long[] (higher values of iterations are likely to yield a better throughput): this requires n * (b + 8v) bytes of memory. This method computes iterations as ramBudget / (b + 8v) (since a long is 8 bytes).
-func (b *bulkOperation) computeIterations(valueCount, ramBudget int) int {
+func (b *bulkOperation) ComputeIterations(valueCount, ramBudget int) int {
 	iterations := ramBudget / (b.decoder.ByteBlockCount() + 8*b.decoder.ByteValueCount())
 	if iterations == 0 {
 		// at least 1

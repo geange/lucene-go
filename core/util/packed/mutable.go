@@ -8,7 +8,7 @@ import (
 // Mutable A packed integer array that can be modified.
 // lucene.internal
 type Mutable interface {
-	PackedIntsReader
+	Reader
 
 	// GetBitsPerValue Returns:
 	//the number of bits used to store any given value. Note: This does not imply that memory usage is bitsPerValue * #values as implementations are free to use non-space-optimal packing of bits.
@@ -35,7 +35,7 @@ type Mutable interface {
 	GetFormat() Format
 }
 
-type mutableSpi interface {
+type mutableSPI interface {
 	GetBitsPerValue() int
 	Get(index int) int64
 	Size() int
@@ -43,7 +43,7 @@ type mutableSpi interface {
 }
 
 type mutable struct {
-	spi mutableSpi
+	spi mutableSPI
 }
 
 func (m *mutable) GetBulk(index int, arr []int64) int {
@@ -99,36 +99,36 @@ func (m *mutable) GetFormat() Format {
 	return FormatPacked
 }
 
-type MutableImpl struct {
+type BaseMutable struct {
 	*mutable
 
 	valueCount   int
 	bitsPerValue int
 }
 
-func newMutableImpl(spi mutableSpi, valueCount int, bitsPerValue int) *MutableImpl {
-	return &MutableImpl{
+func newBaseMutable(spi mutableSPI, valueCount int, bitsPerValue int) *BaseMutable {
+	return &BaseMutable{
 		mutable:      &mutable{spi: spi},
 		valueCount:   valueCount,
 		bitsPerValue: bitsPerValue,
 	}
 }
 
-func (m *MutableImpl) GetBitsPerValue() int {
+func (m *BaseMutable) GetBitsPerValue() int {
 	return m.bitsPerValue
 }
 
-func (m *MutableImpl) Size() int {
+func (m *BaseMutable) Size() int {
 	return m.valueCount
 }
 
-func Fill(spi mutableSpi, fromIndex, toIndex int, value int64) {
+func Fill(spi mutableSPI, fromIndex, toIndex int, value int64) {
 	for i := fromIndex; i < toIndex; i++ {
 		spi.Set(i, value)
 	}
 }
 
-func SetBulk(spi mutableSpi, index int, arr []int64) int {
+func SetBulk(spi mutableSPI, index int, arr []int64) int {
 	size := min(len(arr), spi.Size()-index)
 
 	for i, o, end := index, 0, len(arr); i < end; {

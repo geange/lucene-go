@@ -10,7 +10,7 @@ var _ analysis.Analyzer = &Analyzer{}
 type Analyzer struct {
 	*analysis.BaseAnalyzer
 
-	stopWord       *analysis.DefStopWordAnalyzer
+	stopWord       *analysis.BaseStopWordAnalyzer
 	maxTokenLength int
 }
 

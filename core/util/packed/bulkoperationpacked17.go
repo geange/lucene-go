@@ -8,7 +8,7 @@ func NewBulkOperationPacked17() *BulkOperationPacked17 {
 	return &BulkOperationPacked17{NewBulkOperationPacked(17)}
 }
 
-func (b *BulkOperationPacked17) DecodeLongToLong(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked17) DecodeInts(blocks, values []int64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block0 := blocks[blocksOffset]
@@ -176,7 +176,7 @@ func (b *BulkOperationPacked17) DecodeLongToLong(blocks, values []int64, iterati
 	}
 }
 
-func (b *BulkOperationPacked17) DecodeByteToLong(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked17) DecodeBytes(blocks []byte, values []int64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		byte0 := int64(blocks[blocksOffset])

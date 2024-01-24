@@ -2,17 +2,18 @@ package packed
 
 var _ Mutable = &Direct8{}
 
-// Direct8 Direct wrapping of 8-bits values to a backing array.
+// Direct8
+// Direct wrapping of 8-bits values to a backing array.
 // lucene.internal
 type Direct8 struct {
-	*MutableImpl
+	*BaseMutable
 
 	values []byte
 }
 
 func NewDirect8(valueCount int) *Direct8 {
 	direct := &Direct8{values: make([]byte, valueCount)}
-	direct.MutableImpl = newMutableImpl(direct, valueCount, 8)
+	direct.BaseMutable = newBaseMutable(direct, valueCount, 8)
 	return direct
 }
 

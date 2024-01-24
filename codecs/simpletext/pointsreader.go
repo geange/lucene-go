@@ -95,6 +95,10 @@ func (s *PointsReader) GetValues(field string) (types.PointValues, error) {
 	return s.readers[field], nil
 }
 
+func (s *PointsReader) GetMergeInstance() index.PointsReader {
+	return s
+}
+
 func (s *PointsReader) initReader(fp int64) (*BKDReader, error) {
 	// NOTE: matches what writeIndex does in SimpleTextPointsWriter
 	_, err := s.dataIn.Seek(fp, io.SeekStart)
