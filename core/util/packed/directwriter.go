@@ -18,7 +18,7 @@ type DirectWriter struct {
 	// for now, just use the existing writer under the hood
 	//off               int
 	nextBlocks        []byte
-	nextValues        []int64
+	nextValues        []uint64
 	nextValuesMaxSize int
 	encoder           BulkOperation
 	iterations        int
@@ -41,7 +41,7 @@ func NewDirectWriter(output store.DataOutput, numValues, bitsPerValue int) (*Dir
 		numValues:         numValues,
 		output:            output,
 		nextBlocks:        make([]byte, nextValuesMaxSize),
-		nextValues:        make([]int64, 0, nextValuesMaxSize),
+		nextValues:        make([]uint64, nextValuesMaxSize),
 		nextValuesMaxSize: nextValuesMaxSize,
 		encoder:           encoder,
 		iterations:        iterations,
@@ -49,7 +49,7 @@ func NewDirectWriter(output store.DataOutput, numValues, bitsPerValue int) (*Dir
 	return writer, nil
 }
 
-func (d *DirectWriter) Add(v int64) error {
+func (d *DirectWriter) Add(v uint64) error {
 	if d.count >= d.numValues {
 		return errors.New("writing past end of stream")
 	}

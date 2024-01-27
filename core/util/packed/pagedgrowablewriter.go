@@ -8,15 +8,15 @@ var _ AbstractPagedMutableSPI = &PagedGrowableWriter{}
 // write-access. Otherwise this class will likely be slower and less memory-efficient.
 // lucene.internal
 type PagedGrowableWriter struct {
-	*AbstractPagedMutableDefault
+	*BaseAbstractPagedMutable
 
 	acceptableOverheadRatio float64
 }
 
 func NewPagedGrowableWriter(size, pageSize, startBitsPerValue int, acceptableOverheadRatio float64) (*PagedGrowableWriter, error) {
 	writer := &PagedGrowableWriter{
-		AbstractPagedMutableDefault: nil,
-		acceptableOverheadRatio:     acceptableOverheadRatio,
+		BaseAbstractPagedMutable: nil,
+		acceptableOverheadRatio:  acceptableOverheadRatio,
 	}
 	return writer.NewPagedGrowableWriter(size, pageSize, startBitsPerValue, acceptableOverheadRatio, true)
 }
@@ -24,7 +24,7 @@ func NewPagedGrowableWriter(size, pageSize, startBitsPerValue int, acceptableOve
 func (p *PagedGrowableWriter) NewPagedGrowableWriter(size, pageSize, startBitsPerValue int,
 	acceptableOverheadRatio float64, fillPages bool) (*PagedGrowableWriter, error) {
 
-	p.AbstractPagedMutableDefault = newAbstractPagedMutable(p, startBitsPerValue, size, pageSize)
+	p.BaseAbstractPagedMutable = newAbstractPagedMutable(p, startBitsPerValue, size, pageSize)
 	p.acceptableOverheadRatio = acceptableOverheadRatio
 	if fillPages {
 		err := p.fillPages()

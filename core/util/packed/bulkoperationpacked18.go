@@ -8,7 +8,7 @@ func NewBulkOperationPacked18() *BulkOperationPacked18 {
 	return &BulkOperationPacked18{NewBulkOperationPacked(18)}
 }
 
-func (b *BulkOperationPacked18) DecodeInts(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked18) DecodeUint64(blocks []uint64, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block0 := blocks[blocksOffset]
@@ -96,32 +96,32 @@ func (b *BulkOperationPacked18) DecodeInts(blocks, values []int64, iterations in
 	}
 }
 
-func (b *BulkOperationPacked18) DecodeBytes(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked18) DecodeBytes(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := int64(blocks[blocksOffset])
+		byte0 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte1 := int64(blocks[blocksOffset])
+		byte1 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte2 := int64(blocks[blocksOffset])
+		byte2 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (byte0 << 10) | (byte1 << 2) | (byte2 >> 6)
 		valuesOffset++
-		byte3 := int64(blocks[blocksOffset])
+		byte3 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte4 := int64(blocks[blocksOffset])
+		byte4 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte2 & 63) << 12) | (byte3 << 4) | (byte4 >> 4)
 		valuesOffset++
-		byte5 := int64(blocks[blocksOffset])
+		byte5 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte6 := int64(blocks[blocksOffset])
+		byte6 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte4 & 15) << 14) | (byte5 << 6) | (byte6 >> 2)
 		valuesOffset++
-		byte7 := int64(blocks[blocksOffset])
+		byte7 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte8 := int64(blocks[blocksOffset])
+		byte8 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte6 & 3) << 16) | (byte7 << 8) | byte8
 		valuesOffset++

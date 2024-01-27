@@ -8,7 +8,7 @@ func NewBulkOperationPacked22() *BulkOperationPacked22 {
 	return &BulkOperationPacked22{NewBulkOperationPacked(22)}
 }
 
-func (b *BulkOperationPacked22) DecodeInts(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked22) DecodeUint64(blocks []uint64, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block0 := blocks[blocksOffset]
@@ -100,36 +100,36 @@ func (b *BulkOperationPacked22) DecodeInts(blocks, values []int64, iterations in
 	}
 }
 
-func (b *BulkOperationPacked22) DecodeBytes(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked22) DecodeBytes(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := int64(blocks[blocksOffset])
+		byte0 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte1 := int64(blocks[blocksOffset])
+		byte1 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte2 := int64(blocks[blocksOffset])
+		byte2 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (byte0 << 14) | (byte1 << 6) | (byte2 >> 2)
 		valuesOffset++
-		byte3 := int64(blocks[blocksOffset])
+		byte3 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte4 := int64(blocks[blocksOffset])
+		byte4 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte5 := int64(blocks[blocksOffset])
+		byte5 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte2 & 3) << 20) | (byte3 << 12) | (byte4 << 4) | (byte5 >> 4)
 		valuesOffset++
-		byte6 := int64(blocks[blocksOffset])
+		byte6 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte7 := int64(blocks[blocksOffset])
+		byte7 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte8 := int64(blocks[blocksOffset])
+		byte8 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte5 & 15) << 18) | (byte6 << 10) | (byte7 << 2) | (byte8 >> 6)
 		valuesOffset++
-		byte9 := int64(blocks[blocksOffset])
+		byte9 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte10 := int64(blocks[blocksOffset])
+		byte10 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte8 & 63) << 16) | (byte9 << 8) | byte10
 		valuesOffset++

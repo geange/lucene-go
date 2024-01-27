@@ -11,9 +11,10 @@ type AbstractPagedMutable interface {
 	SetSubMutableByIndex(index int, value Mutable)
 }
 
-// AbstractPagedMutableDefault Base implementation for PagedMutable and PagedGrowableWriter.
+// BaseAbstractPagedMutable
+// Base implementation for PagedMutable and PagedGrowableWriter.
 // lucene.internal
-type AbstractPagedMutableDefault struct {
+type BaseAbstractPagedMutable struct {
 	spi          AbstractPagedMutableSPI
 	size         int
 	pageShift    int
@@ -22,20 +23,9 @@ type AbstractPagedMutableDefault struct {
 	bitsPerValue int
 }
 
-/**
-  AbstractPagedMutableDefault(int bitsPerValue, long size, int pageSize) {
-    this.bitsPerValue = bitsPerValue;
-    this.size = size;
-    pageShift = checkBlockSize(pageSize, MIN_BLOCK_SIZE, MAX_BLOCK_SIZE);
-    pageMask = pageSize - 1;
-    final int numPages = numBlocks(size, pageSize);
-    subMutables = new PackedInts.Mutable[numPages];
-  }
-*/
+func newAbstractPagedMutable(spi AbstractPagedMutableSPI, bitsPerValue, size, pageSize int) *BaseAbstractPagedMutable {
 
-func newAbstractPagedMutable(spi AbstractPagedMutableSPI, bitsPerValue, size, pageSize int) *AbstractPagedMutableDefault {
-
-	mutable := &AbstractPagedMutableDefault{
+	m := &BaseAbstractPagedMutable{
 		spi:          spi,
 		bitsPerValue: bitsPerValue,
 		size:         size,
@@ -44,8 +34,8 @@ func newAbstractPagedMutable(spi AbstractPagedMutableSPI, bitsPerValue, size, pa
 	}
 
 	numPages, _ := numBlocks(size, pageSize)
-	mutable.subMutables = make([]Mutable, numPages)
-	return mutable
+	m.subMutables = make([]Mutable, numPages)
+	return m
 }
 
 type AbstractPagedMutableSPI interface {
@@ -58,7 +48,7 @@ const (
 	MAX_BLOCK_SIZE = 1 << 30
 )
 
-func (a *AbstractPagedMutableDefault) fillPages() error {
+func (a *BaseAbstractPagedMutable) fillPages() error {
 	numPages, err := numBlocks(a.size, a.pageSize())
 	if err != nil {
 		return err
@@ -74,7 +64,7 @@ func (a *AbstractPagedMutableDefault) fillPages() error {
 	return nil
 }
 
-func (a *AbstractPagedMutableDefault) lastPageSize(size int) int {
+func (a *BaseAbstractPagedMutable) lastPageSize(size int) int {
 	sz := a.indexInPage(size)
 	if sz == 0 {
 		return a.pageSize()
@@ -82,52 +72,53 @@ func (a *AbstractPagedMutableDefault) lastPageSize(size int) int {
 	return sz
 }
 
-func (a *AbstractPagedMutableDefault) pageSize() int {
+func (a *BaseAbstractPagedMutable) pageSize() int {
 	return a.pageMask + 1
 }
 
-func (a *AbstractPagedMutableDefault) Size() int {
+func (a *BaseAbstractPagedMutable) Size() int {
 	return a.size
 }
 
-func (a *AbstractPagedMutableDefault) pageIndex(index int) int {
+func (a *BaseAbstractPagedMutable) pageIndex(index int) int {
 	return index >> a.pageShift
 }
 
-func (a *AbstractPagedMutableDefault) indexInPage(index int) int {
+func (a *BaseAbstractPagedMutable) indexInPage(index int) int {
 	return index & a.pageMask
 }
 
-func (a *AbstractPagedMutableDefault) Get(index int) uint64 {
+func (a *BaseAbstractPagedMutable) Get(index int) uint64 {
 	pageIndex := a.pageIndex(index)
 	indexInPage := a.indexInPage(index)
 	return uint64(a.subMutables[pageIndex].Get(indexInPage))
 }
 
-func (a *AbstractPagedMutableDefault) Set(index int, value uint64) {
+func (a *BaseAbstractPagedMutable) Set(index int, value uint64) {
 	pageIndex := a.pageIndex(index)
 	indexInPage := a.indexInPage(index)
-	a.subMutables[pageIndex].Set(indexInPage, int64(value))
+	a.subMutables[pageIndex].Set(indexInPage, value)
 }
 
-func (a *AbstractPagedMutableDefault) SubMutables() []Mutable {
+func (a *BaseAbstractPagedMutable) SubMutables() []Mutable {
 	return a.subMutables
 }
 
-func (a *AbstractPagedMutableDefault) GetSubMutableByIndex(index int) Mutable {
+func (a *BaseAbstractPagedMutable) GetSubMutableByIndex(index int) Mutable {
 	return a.subMutables[index]
 }
 
-func (a *AbstractPagedMutableDefault) SetSubMutableByIndex(index int, value Mutable) {
+func (a *BaseAbstractPagedMutable) SetSubMutableByIndex(index int, value Mutable) {
 	a.subMutables[index] = value
 }
 
-// Resize Create a new copy of size newSize based on the content of this buffer.
+// Resize
+// Create a new copy of size newSize based on the content of this buffer.
 // This method is much more efficient than creating a new instance and copying values one by one.
-func (a *AbstractPagedMutableDefault) Resize(newSize int) AbstractPagedMutable {
+func (a *BaseAbstractPagedMutable) Resize(newSize int) AbstractPagedMutable {
 	ucopy := a.spi.NewUnfilledCopy(newSize)
 	numCommonPages := min(len(ucopy.SubMutables()), len(a.subMutables))
-	copyBuffer := make([]int64, 1024)
+	copyBuffer := make([]uint64, 1024)
 
 	size := len(ucopy.SubMutables())
 
@@ -152,7 +143,7 @@ func (a *AbstractPagedMutableDefault) Resize(newSize int) AbstractPagedMutable {
 	return ucopy
 }
 
-func (a *AbstractPagedMutableDefault) Grow(minSize int) AbstractPagedMutable {
+func (a *BaseAbstractPagedMutable) Grow(minSize int) AbstractPagedMutable {
 	if minSize <= a.Size() {
 		return a
 	}
@@ -166,6 +157,6 @@ func (a *AbstractPagedMutableDefault) Grow(minSize int) AbstractPagedMutable {
 }
 
 // GrowOne Similar to ArrayUtil.grow(long[]).
-func (a *AbstractPagedMutableDefault) GrowOne() AbstractPagedMutable {
+func (a *BaseAbstractPagedMutable) GrowOne() AbstractPagedMutable {
 	return a.Grow(a.Size() + 1)
 }

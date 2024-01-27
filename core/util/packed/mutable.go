@@ -17,13 +17,13 @@ type Mutable interface {
 	// Set the value at the given index in the array.
 	// Params:  index – where the value should be positioned.
 	//			value – a value conforming to the constraints set by the array.
-	Set(index int, value int64)
+	Set(index int, value uint64)
 
 	// SetBulk Bulk set: set at least one and at most len longs starting at off in arr into this mutable, starting at index. Returns the actual number of values that have been set.
-	SetBulk(index int, arr []int64) int
+	SetBulk(index int, arr []uint64) int
 
 	// Fill the mutable from fromIndex (inclusive) to toIndex (exclusive) with val.
-	Fill(fromIndex, toIndex int, value int64)
+	Fill(fromIndex, toIndex int, value uint64)
 
 	// Clear Sets all values to 0.
 	Clear()
@@ -37,16 +37,16 @@ type Mutable interface {
 
 type mutableSPI interface {
 	GetBitsPerValue() int
-	Get(index int) int64
+	Get(index int) uint64
 	Size() int
-	Set(index int, value int64)
+	Set(index int, value uint64)
 }
 
 type mutable struct {
 	spi mutableSPI
 }
 
-func (m *mutable) GetBulk(index int, arr []int64) int {
+func (m *mutable) GetBulk(index int, arr []uint64) int {
 	length := len(arr)
 	gets := min(m.spi.Size()-index, length)
 
@@ -59,7 +59,7 @@ func (m *mutable) GetBulk(index int, arr []int64) int {
 	return gets
 }
 
-func (m *mutable) SetBulk(index int, arr []int64) int {
+func (m *mutable) SetBulk(index int, arr []uint64) int {
 	size := min(len(arr), m.spi.Size()-index)
 
 	for i, o, end := index, 0, index+len(arr); i < end; {
@@ -70,7 +70,7 @@ func (m *mutable) SetBulk(index int, arr []int64) int {
 	return size
 }
 
-func (m *mutable) Fill(fromIndex, toIndex int, value int64) {
+func (m *mutable) Fill(fromIndex, toIndex int, value uint64) {
 	for i := fromIndex; i < toIndex; i++ {
 		m.spi.Set(i, value)
 	}
@@ -87,8 +87,7 @@ func (m *mutable) Save(ctx context.Context, out store.DataOutput) error {
 		return err
 	}
 	for i := 0; i < m.spi.Size(); i++ {
-		err := writer.Add(m.spi.Get(i))
-		if err != nil {
+		if err := writer.Add(m.spi.Get(i)); err != nil {
 			return err
 		}
 	}
@@ -122,13 +121,13 @@ func (m *BaseMutable) Size() int {
 	return m.valueCount
 }
 
-func Fill(spi mutableSPI, fromIndex, toIndex int, value int64) {
+func Fill(spi mutableSPI, fromIndex, toIndex int, value uint64) {
 	for i := fromIndex; i < toIndex; i++ {
 		spi.Set(i, value)
 	}
 }
 
-func SetBulk(spi mutableSPI, index int, arr []int64) int {
+func SetBulk(spi mutableSPI, index int, arr []uint64) int {
 	size := min(len(arr), spi.Size()-index)
 
 	for i, o, end := index, 0, len(arr); i < end; {

@@ -8,7 +8,7 @@ func NewBulkOperationPacked1() *BulkOperationPacked1 {
 	return &BulkOperationPacked1{NewBulkOperationPacked(1)}
 }
 
-func (b *BulkOperationPacked1) DecodeInts(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked1) DecodeUint64(blocks []uint64, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block := blocks[blocksOffset]
@@ -20,10 +20,10 @@ func (b *BulkOperationPacked1) DecodeInts(blocks, values []int64, iterations int
 	}
 }
 
-func (b *BulkOperationPacked1) DecodeBytes(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked1) DecodeBytes(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		block := int64(blocks[blocksOffset])
+		block := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (block >> 7) & 1
 		valuesOffset++
@@ -44,26 +44,26 @@ func (b *BulkOperationPacked1) DecodeBytes(blocks []byte, values []int64, iterat
 	}
 }
 
-func (b *BulkOperationPacked1) DecodeByteToInt(blocks []byte, values []int32, iterations int) {
-	blocksOffset, valuesOffset := 0, 0
-	for i := 0; i < iterations; i++ {
-		block := int32(blocks[blocksOffset])
-		blocksOffset++
-		values[valuesOffset] = (block >> 7) & 1
-		valuesOffset++
-		values[valuesOffset] = (block >> 6) & 1
-		valuesOffset++
-		values[valuesOffset] = (block >> 5) & 1
-		valuesOffset++
-		values[valuesOffset] = (block >> 4) & 1
-		valuesOffset++
-		values[valuesOffset] = (block >> 3) & 1
-		valuesOffset++
-		values[valuesOffset] = (block >> 2) & 1
-		valuesOffset++
-		values[valuesOffset] = (block >> 1) & 1
-		valuesOffset++
-		values[valuesOffset] = block & 1
-		valuesOffset++
-	}
-}
+//func (b *BulkOperationPacked1) DecodeByteToInt(blocks []byte, values []int32, iterations int) {
+//	blocksOffset, valuesOffset := 0, 0
+//	for i := 0; i < iterations; i++ {
+//		block := int32(blocks[blocksOffset])
+//		blocksOffset++
+//		values[valuesOffset] = (block >> 7) & 1
+//		valuesOffset++
+//		values[valuesOffset] = (block >> 6) & 1
+//		valuesOffset++
+//		values[valuesOffset] = (block >> 5) & 1
+//		valuesOffset++
+//		values[valuesOffset] = (block >> 4) & 1
+//		valuesOffset++
+//		values[valuesOffset] = (block >> 3) & 1
+//		valuesOffset++
+//		values[valuesOffset] = (block >> 2) & 1
+//		valuesOffset++
+//		values[valuesOffset] = (block >> 1) & 1
+//		valuesOffset++
+//		values[valuesOffset] = block & 1
+//		valuesOffset++
+//	}
+//}

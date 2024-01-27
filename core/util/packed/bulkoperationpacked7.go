@@ -8,118 +8,200 @@ func NewBulkOperationPacked7() *BulkOperationPacked7 {
 	return &BulkOperationPacked7{NewBulkOperationPacked(7)}
 }
 
-func (b *BulkOperationPacked7) DecodeInts(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked7) DecodeUint64(blocks []uint64, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
+
 	for i := 0; i < iterations; i++ {
 		block0 := blocks[blocksOffset]
 		blocksOffset++
-		values[valuesOffset] = block0 >> 58
+		values[valuesOffset] = block0 >> 57
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 52) & 63
+		values[valuesOffset] = (block0 >> 50) & 127
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 46) & 63
+		values[valuesOffset] = (block0 >> 43) & 127
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 40) & 63
+		values[valuesOffset] = (block0 >> 36) & 127
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 34) & 63
+		values[valuesOffset] = (block0 >> 29) & 127
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 28) & 63
+		values[valuesOffset] = (block0 >> 22) & 127
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 22) & 63
+		values[valuesOffset] = (block0 >> 15) & 127
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 16) & 63
+		values[valuesOffset] = (block0 >> 8) & 127
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 10) & 63
+		values[valuesOffset] = (block0 >> 1) & 127
 		valuesOffset++
-		values[valuesOffset] = (block0 >> 4) & 63
-		valuesOffset++
+
 		block1 := blocks[blocksOffset]
 		blocksOffset++
-		values[valuesOffset] = ((block0 & 15) << 2) | (block1 >> 62)
+		values[valuesOffset] = ((block0 & 1) << 6) | (block1 >> 58)
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 56) & 63
+		values[valuesOffset] = (block1 >> 51) & 127
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 50) & 63
+		values[valuesOffset] = (block1 >> 44) & 127
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 44) & 63
+		values[valuesOffset] = (block1 >> 37) & 127
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 38) & 63
+		values[valuesOffset] = (block1 >> 30) & 127
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 32) & 63
+		values[valuesOffset] = (block1 >> 23) & 127
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 26) & 63
+		values[valuesOffset] = (block1 >> 16) & 127
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 20) & 63
+		values[valuesOffset] = (block1 >> 9) & 127
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 14) & 63
+		values[valuesOffset] = (block1 >> 2) & 127
 		valuesOffset++
-		values[valuesOffset] = (block1 >> 8) & 63
-		valuesOffset++
-		values[valuesOffset] = (block1 >> 2) & 63
-		valuesOffset++
+
 		block2 := blocks[blocksOffset]
 		blocksOffset++
-		values[valuesOffset] = ((block1 & 3) << 4) | (block2 >> 60)
+		values[valuesOffset] = ((block1 & 3) << 5) | (block2 >> 59)
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 54) & 63
+		values[valuesOffset] = (block2 >> 52) & 127
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 48) & 63
+		values[valuesOffset] = (block2 >> 45) & 127
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 42) & 63
+		values[valuesOffset] = (block2 >> 38) & 127
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 36) & 63
+		values[valuesOffset] = (block2 >> 31) & 127
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 30) & 63
+		values[valuesOffset] = (block2 >> 24) & 127
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 24) & 63
+		values[valuesOffset] = (block2 >> 17) & 127
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 18) & 63
+		values[valuesOffset] = (block2 >> 10) & 127
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 12) & 63
+		values[valuesOffset] = (block2 >> 3) & 127
 		valuesOffset++
-		values[valuesOffset] = (block2 >> 6) & 63
+
+		block3 := blocks[blocksOffset]
+		blocksOffset++
+		values[valuesOffset] = ((block2 & 7) << 4) | (block3 >> 60)
 		valuesOffset++
-		values[valuesOffset] = block2 & 63
+		values[valuesOffset] = (block3 >> 53) & 127
+		valuesOffset++
+		values[valuesOffset] = (block3 >> 46) & 127
+		valuesOffset++
+		values[valuesOffset] = (block3 >> 39) & 127
+		valuesOffset++
+		values[valuesOffset] = (block3 >> 32) & 127
+		valuesOffset++
+		values[valuesOffset] = (block3 >> 25) & 127
+		valuesOffset++
+		values[valuesOffset] = (block3 >> 18) & 127
+		valuesOffset++
+		values[valuesOffset] = (block3 >> 11) & 127
+		valuesOffset++
+		values[valuesOffset] = (block3 >> 4) & 127
+		valuesOffset++
+
+		block4 := blocks[blocksOffset]
+		blocksOffset++
+		values[valuesOffset] = ((block3 & 15) << 3) | (block4 >> 61)
+		valuesOffset++
+		values[valuesOffset] = (block4 >> 54) & 127
+		valuesOffset++
+		values[valuesOffset] = (block4 >> 47) & 127
+		valuesOffset++
+		values[valuesOffset] = (block4 >> 40) & 127
+		valuesOffset++
+		values[valuesOffset] = (block4 >> 33) & 127
+		valuesOffset++
+		values[valuesOffset] = (block4 >> 26) & 127
+		valuesOffset++
+		values[valuesOffset] = (block4 >> 19) & 127
+		valuesOffset++
+		values[valuesOffset] = (block4 >> 12) & 127
+		valuesOffset++
+		values[valuesOffset] = (block4 >> 5) & 127
+		valuesOffset++
+
+		block5 := blocks[blocksOffset]
+		blocksOffset++
+		values[valuesOffset] = ((block4 & 31) << 2) | (block5 >> 62)
+		valuesOffset++
+		values[valuesOffset] = (block5 >> 55) & 127
+		valuesOffset++
+		values[valuesOffset] = (block5 >> 48) & 127
+		valuesOffset++
+		values[valuesOffset] = (block5 >> 41) & 127
+		valuesOffset++
+		values[valuesOffset] = (block5 >> 34) & 127
+		valuesOffset++
+		values[valuesOffset] = (block5 >> 27) & 127
+		valuesOffset++
+		values[valuesOffset] = (block5 >> 20) & 127
+		valuesOffset++
+		values[valuesOffset] = (block5 >> 13) & 127
+		valuesOffset++
+		values[valuesOffset] = (block5 >> 6) & 127
+		valuesOffset++
+
+		block6 := blocks[blocksOffset]
+		blocksOffset++
+		values[valuesOffset] = ((block5 & 63) << 1) | (block6 >> 63)
+		valuesOffset++
+		values[valuesOffset] = (block6 >> 56) & 127
+		valuesOffset++
+		values[valuesOffset] = (block6 >> 49) & 127
+		valuesOffset++
+		values[valuesOffset] = (block6 >> 42) & 127
+		valuesOffset++
+		values[valuesOffset] = (block6 >> 35) & 127
+		valuesOffset++
+		values[valuesOffset] = (block6 >> 28) & 127
+		valuesOffset++
+		values[valuesOffset] = (block6 >> 21) & 127
+		valuesOffset++
+		values[valuesOffset] = (block6 >> 14) & 127
+		valuesOffset++
+		values[valuesOffset] = (block6 >> 7) & 127
+		valuesOffset++
+		values[valuesOffset] = block6 & 127
 		valuesOffset++
 	}
 }
 
-func (b *BulkOperationPacked7) DecodeBytes(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked7) DecodeBytes(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := int64(blocks[blocksOffset])
+		byte0 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		values[valuesOffset] = byte0 >> 2
+		values[valuesOffset] = byte0 >> 1
 		valuesOffset++
-		byte1 := int64(blocks[blocksOffset])
-		blocksOffset++
-		values[valuesOffset] = ((byte0 & 3) << 4) | (byte1 >> 4)
-		valuesOffset++
-		byte2 := int64(blocks[blocksOffset])
-		blocksOffset++
-		values[valuesOffset] = ((byte1 & 15) << 2) | (byte2 >> 6)
-		valuesOffset++
-		values[valuesOffset] = byte2 & 63
-		valuesOffset++
-	}
-}
 
-func (b *BulkOperationPacked7) DecodeByteToInt(blocks []byte, values []int32, iterations int) {
-	blocksOffset, valuesOffset := 0, 0
-	for i := 0; i < iterations; i++ {
-		byte0 := int32(blocks[blocksOffset])
+		byte1 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		values[valuesOffset] = byte0 >> 2
+		values[valuesOffset] = ((byte0 & 1) << 6) | (byte1 >> 2)
 		valuesOffset++
-		byte1 := int32(blocks[blocksOffset])
+
+		byte2 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		values[valuesOffset] = ((byte0 & 3) << 4) | (byte1 >> 4)
+		values[valuesOffset] = ((byte1 & 3) << 5) | (byte2 >> 3)
 		valuesOffset++
-		byte2 := int32(blocks[blocksOffset])
+
+		byte3 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		values[valuesOffset] = ((byte1 & 15) << 2) | (byte2 >> 6)
+		values[valuesOffset] = ((byte2 & 7) << 4) | (byte3 >> 4)
 		valuesOffset++
-		values[valuesOffset] = byte2 & 63
+
+		byte4 := uint64(blocks[blocksOffset])
+		blocksOffset++
+		values[valuesOffset] = ((byte3 & 15) << 3) | (byte4 >> 5)
+		valuesOffset++
+
+		byte5 := uint64(blocks[blocksOffset])
+		blocksOffset++
+		values[valuesOffset] = ((byte4 & 31) << 2) | (byte5 >> 6)
+		valuesOffset++
+
+		byte6 := uint64(blocks[blocksOffset])
+		blocksOffset++
+		values[valuesOffset] = ((byte5 & 63) << 1) | (byte6 >> 7)
+		valuesOffset++
+
+		values[valuesOffset] = byte6 & 127
 		valuesOffset++
 	}
 }

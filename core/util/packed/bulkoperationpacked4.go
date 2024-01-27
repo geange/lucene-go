@@ -8,7 +8,7 @@ func NewBulkOperationPacked4() *BulkOperationPacked4 {
 	return &BulkOperationPacked4{NewBulkOperationPacked(4)}
 }
 
-func (b *BulkOperationPacked4) DecodeInts(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked4) DecodeUint64(blocks []uint64, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block := blocks[blocksOffset]
@@ -20,10 +20,10 @@ func (b *BulkOperationPacked4) DecodeInts(blocks, values []int64, iterations int
 	}
 }
 
-func (b *BulkOperationPacked4) DecodeBytes(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked4) DecodeBytes(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for j := 0; j < iterations; j++ {
-		block := int64(blocks[blocksOffset])
+		block := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (block >> 4) & 15
 		valuesOffset++

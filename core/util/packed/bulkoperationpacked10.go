@@ -8,7 +8,7 @@ func NewBulkOperationPacked10() *BulkOperationPacked10 {
 	return &BulkOperationPacked10{NewBulkOperationPacked(10)}
 }
 
-func (b *BulkOperationPacked10) DecodeInts(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked10) DecodeUint64(blocks []uint64, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block0 := blocks[blocksOffset]
@@ -88,24 +88,24 @@ func (b *BulkOperationPacked10) DecodeInts(blocks, values []int64, iterations in
 	}
 }
 
-func (b *BulkOperationPacked10) DecodeBytes(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked10) DecodeBytes(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := int64(blocks[blocksOffset])
+		byte0 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte1 := int64(blocks[blocksOffset])
+		byte1 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (byte0 << 2) | (byte1 >> 6)
 		valuesOffset++
-		byte2 := int64(blocks[blocksOffset])
+		byte2 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte1 & 63) << 4) | (byte2 >> 4)
 		valuesOffset++
-		byte3 := int64(blocks[blocksOffset])
+		byte3 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte2 & 15) << 6) | (byte3 >> 2)
 		valuesOffset++
-		byte4 := int64(blocks[blocksOffset])
+		byte4 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = ((byte3 & 3) << 8) | byte4
 		valuesOffset++

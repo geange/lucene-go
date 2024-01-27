@@ -11,12 +11,12 @@ func TestGetMutable(t *testing.T) {
 
 		m := GetMutable(num, 64, 0)
 		for i := 0; i < num; i++ {
-			m.Set(i, int64(i+2))
+			m.Set(i, uint64(i+2))
 		}
 
 		for i := 0; i < num; i++ {
 			v := m.Get(i)
-			assert.Equal(t, int64(i+2), v)
+			assert.EqualValues(t, i+2, v)
 		}
 	})
 
@@ -25,12 +25,12 @@ func TestGetMutable(t *testing.T) {
 
 		m := GetMutable(num, 64, 0)
 		for i := 0; i < num; i++ {
-			m.Set(i, int64(i+2))
+			m.Set(i, uint64(i+2))
 		}
 
 		for i := 0; i < num; i++ {
 			v := m.Get(i)
-			assert.Equal(t, int64(i+2), v)
+			assert.EqualValues(t, i+2, v)
 		}
 	})
 
@@ -39,12 +39,12 @@ func TestGetMutable(t *testing.T) {
 
 		m := GetMutable(num, 64, 0)
 		for i := 0; i < num; i++ {
-			m.Set(i, int64(i+2))
+			m.Set(i, uint64(i+2))
 		}
 
 		for i := 0; i < num; i++ {
 			v := m.Get(i)
-			assert.Equal(t, int64(i+2), v)
+			assert.EqualValues(t, i+2, v)
 		}
 	})
 
@@ -53,12 +53,12 @@ func TestGetMutable(t *testing.T) {
 
 		m := GetMutable(num, 64, 0)
 		for i := 0; i < num; i++ {
-			m.Set(i, int64(i+2))
+			m.Set(i, uint64(i+2))
 		}
 
 		for i := 0; i < num; i++ {
 			v := m.Get(i)
-			assert.Equal(t, int64(i+2), v)
+			assert.EqualValues(t, i+2, v)
 		}
 	})
 }

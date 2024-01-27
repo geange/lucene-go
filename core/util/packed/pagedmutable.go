@@ -6,7 +6,7 @@ var _ AbstractPagedMutableSPI = &PagedMutable{}
 // A PagedMutable. This class slices data into fixed-size blocks which have the same number of bits per value.
 // It can be a useful replacement for PackedInts.Mutable to store more than 2B values.
 type PagedMutable struct {
-	*AbstractPagedMutableDefault
+	*BaseAbstractPagedMutable
 
 	format Format
 }
@@ -29,7 +29,7 @@ func NewPagedMutableV3(size int64, pageSize, bitsPerValue int,
 	m := &PagedMutable{
 		format: format,
 	}
-	m.AbstractPagedMutableDefault = newAbstractPagedMutable(m, bitsPerValue, int(size), pageSize)
+	m.BaseAbstractPagedMutable = newAbstractPagedMutable(m, bitsPerValue, int(size), pageSize)
 	return m
 }
 

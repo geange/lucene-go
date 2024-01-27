@@ -6,16 +6,16 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-// PackIntsWriter A write-once PackIntsWriter.
+// Writer A write-once Writer.
 // lucene.internal
-type PackIntsWriter interface {
+type Writer interface {
 	WriteHeader(ctx context.Context) error
 
 	// GetFormat The format used to serialize values.
 	GetFormat() Format
 
 	// Add a value to the stream.
-	Add(v int64) error
+	Add(v uint64) error
 
 	// BitsPerValue The number of bits per value.
 	BitsPerValue() int
@@ -31,16 +31,15 @@ type WriterFormat interface {
 	GetFormat() Format
 }
 
-type BasePackIntsWriter struct {
+type BaseWriter struct {
 	format       WriterFormat
 	out          store.DataOutput
 	valueCount   int
 	bitsPerValue int
 }
 
-func newBasePackIntsWriter(format WriterFormat,
-	out store.DataOutput, valueCount int, bitsPerValue int) *BasePackIntsWriter {
-	return &BasePackIntsWriter{
+func newBaseWriter(format WriterFormat, out store.DataOutput, valueCount int, bitsPerValue int) *BaseWriter {
+	return &BaseWriter{
 		format:       format,
 		out:          out,
 		valueCount:   valueCount,
@@ -48,8 +47,8 @@ func newBasePackIntsWriter(format WriterFormat,
 	}
 }
 
-func (w *BasePackIntsWriter) WriteHeader(ctx context.Context) error {
-	if err := utils.WriteHeader(w.out, CODEC_NAME, VERSION_CURRENT); err != nil {
+func (w *BaseWriter) WriteHeader(ctx context.Context) error {
+	if err := utils.WriteHeader(ctx, w.out, CODEC_NAME, VERSION_CURRENT); err != nil {
 		return err
 	}
 
@@ -64,6 +63,6 @@ func (w *BasePackIntsWriter) WriteHeader(ctx context.Context) error {
 	return w.out.WriteUvarint(ctx, uint64(w.format.GetFormat().GetId()))
 }
 
-func (w *BasePackIntsWriter) BitsPerValue() int {
+func (w *BaseWriter) BitsPerValue() int {
 	return w.bitsPerValue
 }

@@ -102,7 +102,7 @@ func fastestFormatAndBits(valueCount, bitsPerValue int, acceptableOverheadRatio 
 	return NewFormatAndBits(format, actualBitsPerValue)
 }
 
-func GetBulk(reader Reader, index int, arr []int64) int {
+func GetBulk(reader Reader, index int, arr []uint64) int {
 	gets := min(reader.Size()-index, len(arr))
 
 	for i, o, end := index, 0, index+gets; i < end; {
@@ -129,11 +129,11 @@ func NewNullReader(valueCount int) *NullReader {
 	return &NullReader{valueCount: valueCount}
 }
 
-func (n *NullReader) Get(index int) int64 {
+func (n *NullReader) Get(index int) uint64 {
 	return 0
 }
 
-func (n *NullReader) GetBulk(index int, arr []int64) int {
+func (n *NullReader) GetBulk(index int, arr []uint64) int {
 	size := min(len(arr), n.valueCount-index)
 	for i := range arr {
 		arr[i] = 0
@@ -151,11 +151,11 @@ func numBlocks(size, blockSize int) (int, error) {
 	if size%blockSize == 0 {
 		add = 0
 	}
-	numBlocks := size/blockSize + add
-	if numBlocks*blockSize < size {
+	num := size/blockSize + add
+	if num*blockSize < size {
 		return 0, errors.New("size is too large for this block size")
 	}
-	return numBlocks, nil
+	return num, nil
 }
 
 // PackedIntsCopy Copy src[srcPos:srcPos+len] into dest[destPos:destPos+len] using at most mem bytes.
@@ -171,12 +171,12 @@ func PackedIntsCopy(src Reader, srcPos int, dest Mutable, destPos, size, mem int
 
 	if size > 0 {
 		// use bulk operations
-		buf := make([]int64, min(capacity, size))
+		buf := make([]uint64, min(capacity, size))
 		PackedIntsCopyBuff(src, srcPos, dest, destPos, size, buf)
 	}
 }
 
-func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int, buf []int64) {
+func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int, buf []uint64) {
 	remaining := 0
 	for size > 0 {
 		read := src.GetBulk(srcPos, buf[0:min(size, len(buf)-remaining)])
@@ -254,12 +254,11 @@ func getMutable(valueCount, bitsPerValue int, format Format) Mutable {
 		}
 		return NewPacked64(valueCount, bitsPerValue)
 	default:
-		//throw new AssertionError();
 		return nil
 	}
 }
 
-func getWriterNoHeader(out store.DataOutput, format Format, valueCount, bitsPerValue, mem int) PackIntsWriter {
+func getWriterNoHeader(out store.DataOutput, format Format, valueCount, bitsPerValue, mem int) Writer {
 	return NewPackedWriter(format, out, valueCount, bitsPerValue, mem)
 }
 
@@ -310,42 +309,48 @@ type Decoder interface {
 	// The number of values that can be stored in byteBlockCount() byte blocks.
 	ByteValueCount() int
 
-	// DecodeInts
-	// Read iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
+	// DecodeUint64
+	// Read iterations * blockCount() blocks from blocks,
+	// decode them and write iterations * valueCount() values into values.
 	// blocks: the long blocks that hold packed integer values
 	// values: the values buffer
 	// iterations: controls how much data to decode
-	DecodeInts(blocks []int64, values []int64, iterations int)
+	DecodeUint64(blocks []uint64, values []uint64, iterations int)
 
 	// DecodeBytes
-	// Read 8 * iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
+	// Read 8 * iterations * blockCount() blocks from blocks,
+	// decode them and write iterations * valueCount() values into values.
 	// blocks: the long blocks that hold packed integer values
 	// values: the values buffer
 	// iterations: controls how much data to decode
-	DecodeBytes(blocks []byte, values []int64, iterations int)
-
-	// DecodeLongToInt Read iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
-	// Params: 	blocks – the long blocks that hold packed integer values blocksOffset – the offset where to start reading blocks values – the values buffer valuesOffset – the offset where to start writing values iterations – controls how much data to decode
-	//DecodeLongToInt(blocks []int64, values []int, iterations int)
-
-	// DecodeByteToInt
-	// Read 8 * iterations * blockCount() blocks from blocks, decode them and write iterations * valueCount() values into values.
-	// blocks – the long blocks that hold packed integer values
-	// values – the values buffer
-	// iterations – controls how much data to decode
-	//DecodeByteToInt(blocks []byte, values []int32, iterations int)
+	DecodeBytes(blocks []byte, values []uint64, iterations int)
 }
 
 // Encoder An encoder for packed integers.
 type Encoder interface {
+	// LongBlockCount
+	// The minimum number of long blocks to encode in a single iteration, when using long encoding.
+	LongBlockCount() int
 
-	// EncodeLongs
+	// LongValueCount
+	// The number of values that can be stored in longBlockCount() long blocks.
+	LongValueCount() int
+
+	// ByteBlockCount
+	// The minimum number of byte blocks to encode in a single iteration, when using byte encoding.
+	ByteBlockCount() int
+
+	// ByteValueCount
+	// The number of values that can be stored in byteBlockCount() byte blocks.
+	ByteValueCount() int
+
+	// EncodeUint64
 	// Read iterations * valueCount() values from values, encode them and write
 	// iterations * blockCount() blocks into blocks.
 	// values: the values buffer
 	// blocks: the long blocks that hold packed integer values
 	// iterations: controls how much data to encode
-	EncodeLongs(values []int64, blocks []int64, iterations int)
+	EncodeUint64(values []uint64, blocks []uint64, iterations int)
 
 	// EncodeBytes
 	// Read iterations * valueCount() values from values,
@@ -353,12 +358,26 @@ type Encoder interface {
 	// values: the values buffer
 	// blocks: the long blocks that hold packed integer values
 	// iterations: controls how much data to encode
-	EncodeBytes(values []int64, blocks []byte, iterations int)
+	EncodeBytes(values []uint64, blocks []byte, iterations int)
+}
 
-	// EncodeI32ToBytes
-	// Read iterations * valueCount() values from values, encode them and write 8 * iterations * blockCount() blocks into blocks.
-	// values: the values buffer
-	// blocks: the long blocks that hold packed integer values
-	// iterations: controls how much data to encode
-	//EncodeI32ToBytes(values []int32, blocks []byte, iterations int)
+// GetEncoder
+// Get an PackedInts.Encoder.
+// format: the format used to store packed ints version – the compatibility version bitsPerValue – the number of bits per value
+func GetEncoder(format Format, version, bitsPerValue int) (Encoder, error) {
+	if err := checkVersion(version); err != nil {
+		return nil, err
+	}
+
+	return Of(format, bitsPerValue)
+}
+
+func checkVersion(version int) error {
+	if version < VERSION_START {
+		return errors.New("version is too old")
+	}
+	if version > VERSION_CURRENT {
+		return errors.New("version is too new")
+	}
+	return nil
 }

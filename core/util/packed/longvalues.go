@@ -132,10 +132,21 @@ func (p *LongValuesBuilder) packV1(values []int64, numValues, block int, accepta
 		}
 	}
 
+	copyBuffer := make([]uint64, len(values))
+
 	m := GetMutable(numValues, bitsRequired, acceptableOverheadRatio)
 	for i := 0; i < numValues; {
-		i += m.SetBulk(i, values[i:numValues-i])
+		size := CloneI64ToU64(values[i:numValues-i], copyBuffer)
+		i += m.SetBulk(i, copyBuffer[:size])
 	}
 	p.values[block] = m
 	return nil
+}
+
+func CloneI64ToU64(src []int64, dest []uint64) int {
+	size := len(src)
+	for i := 0; i < size; i++ {
+		dest[i] = uint64(src[i])
+	}
+	return size
 }

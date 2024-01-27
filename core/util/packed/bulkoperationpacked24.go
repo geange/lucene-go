@@ -8,7 +8,7 @@ func NewBulkOperationPacked24() *BulkOperationPacked24 {
 	return &BulkOperationPacked24{NewBulkOperationPacked(24)}
 }
 
-func (b *BulkOperationPacked24) DecodeInts(blocks, values []int64, iterations int) {
+func (b *BulkOperationPacked24) DecodeUint64(blocks []uint64, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
 		block0 := blocks[blocksOffset]
@@ -36,14 +36,14 @@ func (b *BulkOperationPacked24) DecodeInts(blocks, values []int64, iterations in
 	}
 }
 
-func (b *BulkOperationPacked24) DecodeBytes(blocks []byte, values []int64, iterations int) {
+func (b *BulkOperationPacked24) DecodeBytes(blocks []byte, values []uint64, iterations int) {
 	blocksOffset, valuesOffset := 0, 0
 	for i := 0; i < iterations; i++ {
-		byte0 := int64(blocks[blocksOffset])
+		byte0 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte1 := int64((blocks[blocksOffset]))
+		byte1 := uint64(blocks[blocksOffset])
 		blocksOffset++
-		byte2 := int64(blocks[blocksOffset])
+		byte2 := uint64(blocks[blocksOffset])
 		blocksOffset++
 		values[valuesOffset] = (byte0 << 16) | (byte1 << 8) | byte2
 		valuesOffset++

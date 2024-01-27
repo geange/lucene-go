@@ -5,10 +5,10 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-var _ PackIntsWriter = &PackedWriter{}
+var _ Writer = &PackedWriter{}
 
 type PackedWriter struct {
-	*BasePackIntsWriter
+	*BaseWriter
 
 	finished bool
 	format   Format
@@ -16,7 +16,7 @@ type PackedWriter struct {
 	encoder BulkOperation
 
 	nextBlocks []byte
-	nextValues []int64
+	nextValues []uint64
 	iterations int
 	off        int
 	written    int
@@ -32,17 +32,16 @@ func NewPackedWriter(format Format, out store.DataOutput, valueCount, bitsPerVal
 	iterations := op.ComputeIterations(valueCount, mem)
 
 	packedWriter := &PackedWriter{
-		BasePackIntsWriter: nil,
-		finished:           false,
-		format:             format,
-		encoder:            encoder,
-		nextBlocks:         make([]byte, iterations*encoder.ByteBlockCount()),
-		nextValues:         make([]int64, iterations*encoder.ByteValueCount()),
-		iterations:         iterations,
-		off:                0,
-		written:            0,
+		finished:   false,
+		format:     format,
+		encoder:    encoder,
+		nextBlocks: make([]byte, iterations*encoder.ByteBlockCount()),
+		nextValues: make([]uint64, iterations*encoder.ByteValueCount()),
+		iterations: iterations,
+		off:        0,
+		written:    0,
 	}
-	packedWriter.BasePackIntsWriter = newBasePackIntsWriter(packedWriter, out, valueCount, bitsPerValue)
+	packedWriter.BaseWriter = newBaseWriter(packedWriter, out, valueCount, bitsPerValue)
 
 	return packedWriter
 }
@@ -51,11 +50,11 @@ func (p *PackedWriter) GetFormat() Format {
 	return p.format
 }
 
-func (p *PackedWriter) Add(v int64) error {
+func (p *PackedWriter) Add(v uint64) error {
 	if p.valueCount != -1 && p.written >= p.valueCount {
 		return errors.New("writing past end of stream")
 	}
-	p.nextValues[p.off] = int64(v)
+	p.nextValues[p.off] = uint64(v)
 	p.off++
 	if p.off == len(p.nextValues) {
 		err := p.flush()
@@ -76,8 +75,7 @@ func (p *PackedWriter) Finish() error {
 			}
 		}
 	}
-	err := p.flush()
-	if err != nil {
+	if err := p.flush(); err != nil {
 		return err
 	}
 	p.finished = true
@@ -87,8 +85,7 @@ func (p *PackedWriter) Finish() error {
 func (p *PackedWriter) flush() error {
 	p.encoder.EncodeBytes(p.nextValues[0:], p.nextBlocks[0:], p.iterations)
 	blockCount := p.format.ByteCount(VERSION_CURRENT, p.off, p.bitsPerValue)
-	_, err := p.out.Write(p.nextBlocks[:blockCount])
-	if err != nil {
+	if _, err := p.out.Write(p.nextBlocks[:blockCount]); err != nil {
 		return err
 	}
 
