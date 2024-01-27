@@ -68,12 +68,13 @@ func (b *BulkOperationPacked) DecodeUint64(blocks []uint64, values []uint64, ite
 	for i := 0; i < b.longValueCount*iterations; i++ {
 		bitsLeft -= b.bitsPerValue
 		if bitsLeft < 0 {
-			values[valuesOffset] = ((blocks[blocksOffset] &
-				((1 << (b.bitsPerValue + bitsLeft)) - 1)) << -bitsLeft) |
-				(blocks[blocksOffset] >> (64 + bitsLeft))
-			bitsLeft += 64
+			values[valuesOffset] =
+				((blocks[blocksOffset] & ((1 << (b.bitsPerValue + bitsLeft)) - 1)) << -bitsLeft) |
+					(blocks[blocksOffset+1] >> (64 + bitsLeft))
+
 			valuesOffset++
 			blocksOffset++
+			bitsLeft += 64
 		} else {
 			values[valuesOffset] = (blocks[blocksOffset] >> bitsLeft) & b.mask
 			valuesOffset++

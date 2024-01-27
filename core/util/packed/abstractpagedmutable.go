@@ -91,7 +91,7 @@ func (a *BaseAbstractPagedMutable) indexInPage(index int) int {
 func (a *BaseAbstractPagedMutable) Get(index int) uint64 {
 	pageIndex := a.pageIndex(index)
 	indexInPage := a.indexInPage(index)
-	return uint64(a.subMutables[pageIndex].Get(indexInPage))
+	return a.subMutables[pageIndex].Get(indexInPage)
 }
 
 func (a *BaseAbstractPagedMutable) Set(index int, value uint64) {
