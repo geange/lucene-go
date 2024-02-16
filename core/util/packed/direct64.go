@@ -3,13 +3,13 @@ package packed
 var _ Mutable = &Direct64{}
 
 type Direct64 struct {
-	*MutableImpl
+	*BaseMutable
 	values []uint64
 }
 
 func NewDirect64(valueCount int) *Direct64 {
 	direct := &Direct64{values: make([]uint64, valueCount)}
-	direct.MutableImpl = newMutableImpl(direct, valueCount, 64)
+	direct.BaseMutable = newBaseMutable(direct, valueCount, 64)
 	return direct
 }
 
@@ -22,9 +22,7 @@ func (d *Direct64) Set(index int, value uint64) {
 }
 
 func (d *Direct64) Clear() {
-	for i := range d.values {
-		d.values[i] = 0
-	}
+	clear(d.values)
 }
 
 func (d *Direct64) GetBulk(index int, arr []uint64) int {

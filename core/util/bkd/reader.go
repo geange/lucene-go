@@ -15,7 +15,8 @@ import (
 
 var _ types.PointValues = &Reader{}
 
-// Reader Handles intersection of an multi-dimensional shape in byte[] space with a block KD-tree previously
+// Reader
+// Handles intersection of an multi-dimensional shape in byte[] space with a block KD-tree previously
 // written with BKDWriter.
 // lucene.experimental
 type Reader struct {
@@ -228,7 +229,7 @@ func (r *Reader) readDocIDs(ctx context.Context, in store.IndexInput, blockFP in
 		return 0, err
 	}
 
-	if err = ReadInts(in, int(count), iterator.docIDs); err != nil {
+	if err = ReadInts(nil, in, int(count), iterator.docIDs); err != nil {
 		return 0, err
 	}
 	return int(count), nil
@@ -239,14 +240,11 @@ func (r *Reader) visitDocValues(ctx context.Context, commonPrefixLengths []int, 
 	if r.version >= VERSION_LOW_CARDINALITY_LEAVES {
 		return r.visitDocValuesWithCardinality(ctx, commonPrefixLengths, scratchDataPackedValue, scratchMinIndexPackedValue, scratchMaxIndexPackedValue, in, scratchIterator, count, visitor)
 	} else {
-		return r.visitDocValuesNoCardinality(commonPrefixLengths, scratchDataPackedValue,
-			scratchMinIndexPackedValue, scratchMaxIndexPackedValue, in, scratchIterator, count, visitor)
+		return r.visitDocValuesNoCardinality(ctx, commonPrefixLengths, scratchDataPackedValue, scratchMinIndexPackedValue, scratchMaxIndexPackedValue, in, scratchIterator, count, visitor)
 	}
 }
 
-func (r *Reader) visitDocValuesNoCardinality(commonPrefixLengths []int,
-	scratchDataPackedValue, scratchMinIndexPackedValue, scratchMaxIndexPackedValue []byte, in store.IndexInput,
-	scratchIterator *readerDocIDSetIterator, count int, visitor types.IntersectVisitor) error {
+func (r *Reader) visitDocValuesNoCardinality(ctx context.Context, commonPrefixLengths []int, scratchDataPackedValue, scratchMinIndexPackedValue, scratchMaxIndexPackedValue []byte, in store.IndexInput, scratchIterator *readerDocIDSetIterator, count int, visitor types.IntersectVisitor) error {
 
 	config := r.config
 
@@ -274,7 +272,7 @@ func (r *Reader) visitDocValuesNoCardinality(commonPrefixLengths []int,
 
 		if relation == types.CELL_INSIDE_QUERY {
 			for i := 0; i < count; i++ {
-				if err := visitor.Visit(scratchIterator.docIDs[i]); err != nil {
+				if err := visitor.Visit(ctx, scratchIterator.docIDs[i]); err != nil {
 					return err
 				}
 			}
@@ -294,8 +292,7 @@ func (r *Reader) visitDocValuesNoCardinality(commonPrefixLengths []int,
 			return err
 		}
 	} else {
-		if err := r.visitCompressedDocValues(commonPrefixLengths, scratchDataPackedValue,
-			in, scratchIterator, count, visitor, compressedDim); err != nil {
+		if err := r.visitCompressedDocValues(ctx, commonPrefixLengths, scratchDataPackedValue, in, scratchIterator, count, visitor, compressedDim); err != nil {
 			return err
 		}
 	}
@@ -346,7 +343,7 @@ func (r *Reader) visitDocValuesWithCardinality(ctx context.Context, commonPrefix
 
 			if relation == types.CELL_INSIDE_QUERY {
 				for i := 0; i < count; i++ {
-					if err := visitor.Visit(scratchIterator.docIDs[i]); err != nil {
+					if err := visitor.Visit(nil, scratchIterator.docIDs[i]); err != nil {
 						return err
 					}
 				}
@@ -362,8 +359,7 @@ func (r *Reader) visitDocValuesWithCardinality(ctx context.Context, commonPrefix
 			}
 		} else {
 			// high cardinality
-			if err := r.visitCompressedDocValues(commonPrefixLengths, scratchDataPackedValue,
-				in, scratchIterator, count, visitor, compressedDim); err != nil {
+			if err := r.visitCompressedDocValues(nil, commonPrefixLengths, scratchDataPackedValue, in, scratchIterator, count, visitor, compressedDim); err != nil {
 				return err
 			}
 		}
@@ -411,7 +407,7 @@ func (r *Reader) visitSparseRawDocValues(ctx context.Context, commonPrefixLength
 			}
 		}
 		scratchIterator.reset(i, int(length))
-		if err := types.Visit(visitor, scratchIterator, scratchPackedValue); err != nil {
+		if err := types.Visit(nil, visitor, scratchIterator, scratchPackedValue); err != nil {
 			return err
 		}
 		i += int(length)
@@ -426,12 +422,10 @@ func (r *Reader) visitSparseRawDocValues(ctx context.Context, commonPrefixLength
 func (r *Reader) visitUniqueRawDocValues(scratchPackedValue []byte,
 	scratchIterator *readerDocIDSetIterator, count int, visitor types.IntersectVisitor) error {
 	scratchIterator.reset(0, count)
-	return types.Visit(visitor, scratchIterator, scratchPackedValue)
+	return types.Visit(nil, visitor, scratchIterator, scratchPackedValue)
 }
 
-func (r *Reader) visitCompressedDocValues(commonPrefixLengths []int, scratchPackedValue []byte,
-	in store.IndexInput, scratchIterator *readerDocIDSetIterator, count int,
-	visitor types.IntersectVisitor, compressedDim int) error {
+func (r *Reader) visitCompressedDocValues(ctx context.Context, commonPrefixLengths []int, scratchPackedValue []byte, in store.IndexInput, scratchIterator *readerDocIDSetIterator, count int, visitor types.IntersectVisitor, compressedDim int) error {
 
 	config := r.config
 
@@ -466,7 +460,7 @@ func (r *Reader) visitCompressedDocValues(commonPrefixLengths []int, scratchPack
 				}
 			}
 
-			if err := visitor.VisitLeaf(scratchIterator.docIDs[i+j], scratchPackedValue); err != nil {
+			if err := visitor.VisitLeaf(ctx, scratchIterator.docIDs[i+j], scratchPackedValue); err != nil {
 				return err
 			}
 

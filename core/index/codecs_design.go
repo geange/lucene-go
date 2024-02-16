@@ -101,9 +101,11 @@ type DocValuesProducer interface {
 	// lucene.internal
 	CheckIntegrity() error
 
+	// GetMergeInstance
 	// Returns an instance optimized for merging. This instance may only be consumed in the thread
-	// that called getMergeInstance().
+	// that called GetMergeInstance().
 	// The default implementation returns this
+	GetMergeInstance() DocValuesProducer
 }
 
 // DocValuesConsumer Abstract API that consumes numeric, binary and sorted docvalues.
@@ -240,6 +242,12 @@ type PointsReader interface {
 
 	// GetValues Return PointValues for the given field.
 	GetValues(field string) (types.PointValues, error)
+
+	// GetMergeInstance
+	// Returns an instance optimized for merging.
+	// This instance may only be used in the thread that acquires it.
+	// The default implementation returns this
+	GetMergeInstance() PointsReader
 }
 
 // GetMergeInstance Returns an instance optimized for merging.
@@ -276,18 +284,15 @@ type PostingsFormat interface {
 // @see SegmentInfo
 // @lucene.experimental
 type SegmentInfoFormat interface {
-	// Read {@link SegmentInfo} data from a directory.
-	// @param directory directory to read from
-	// @param segmentName name of the segment to read
-	// @param segmentID expected identifier for the segment
-	// @return infos instance to be populated with data
-	// @throws IOException If an I/O error occurs
+	// Read SegmentInfo data from a directory.
+	// dir: directory to read from
+	// segmentName: name of the segment to read
+	// segmentID: expected identifier for the segment
 	Read(ctx context.Context, dir store.Directory, segmentName string,
 		segmentID []byte, context *store.IOContext) (*SegmentInfo, error)
 
-	// Write {@link SegmentInfo} data.
+	// Write SegmentInfo data.
 	// The codec must add its SegmentInfo filename(s) to {@code info} before doing i/o.
-	// @throws IOException If an I/O error occurs
 	Write(ctx context.Context, dir store.Directory, info *SegmentInfo, ioContext *store.IOContext) error
 }
 

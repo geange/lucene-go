@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 // A TokenStream enumerates the sequence of tokens, either from Fields of a Document or from query text.
@@ -32,7 +33,8 @@ import (
 type TokenStream interface {
 	AttributeSource() *tokenattr.AttributeSource
 
-	// IncrementToken Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
+	// IncrementToken
+	// Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.
 	// Implementing classes must implement this method and update the appropriate AttributeImpls with the
 	// attributes of the next token.
 	//
@@ -51,7 +53,8 @@ type TokenStream interface {
 	// Returns: false for end of stream; true otherwise
 	IncrementToken() (bool, error)
 
-	// End This method is called by the consumer after the last token has been consumed, after incrementToken()
+	// End
+	// This method is called by the consumer after the last token has been consumed, after incrementToken()
 	// returned false (using the new TokenStream API). Streams implementing the old API should upgrade to use
 	// this feature.
 	//
@@ -80,4 +83,55 @@ type TokenStream interface {
 	// be correctly reset (e.g., Tokenizer will throw IllegalStateException on reuse).
 	// 关闭并释放资源
 	Close() error
+}
+
+// TokenStreamToAutomaton Consumes a TokenStream and creates an Automaton where the transition labels are UTF8
+// bytes (or Unicode code points if unicodeArcs is true) from the TermToBytesRefAttribute. Between tokens we
+// insert POS_SEP and for holes we insert HOLE.
+type TokenStreamToAutomaton struct {
+	preservePositionIncrements bool
+	finalOffsetGapAsHole       bool
+	unicodeArcs                bool
+}
+
+func NewTokenStreamToAutomaton() *TokenStreamToAutomaton {
+	return &TokenStreamToAutomaton{preservePositionIncrements: true}
+}
+
+// SetPreservePositionIncrements Whether to generate holes in the automaton for missing positions, true by default.
+func (r *TokenStreamToAutomaton) SetPreservePositionIncrements(enablePositionIncrements bool) {
+	r.preservePositionIncrements = enablePositionIncrements
+}
+
+// SetFinalOffsetGapAsHole f true, any final offset gaps will result in adding a position hole.
+func (r *TokenStreamToAutomaton) SetFinalOffsetGapAsHole(finalOffsetGapAsHole bool) {
+	r.finalOffsetGapAsHole = finalOffsetGapAsHole
+}
+
+// SetUnicodeArcs Whether to make transition labels Unicode code points instead of UTF8 bytes, false by default
+func (r *TokenStreamToAutomaton) SetUnicodeArcs(unicodeArcs bool) {
+	r.unicodeArcs = unicodeArcs
+}
+
+// ChangeToken Subclass and implement this if you need to change the token (such as escaping certain bytes)
+// before it's turned into a graph.
+func (r *TokenStreamToAutomaton) ChangeToken(in []byte) []byte {
+	return in
+}
+
+const (
+	// POS_SEP We create transition between two adjacent tokens.
+	POS_SEP = 0x001f
+
+	// HOLE We add this arc to represent a hole.
+	HOLE = 0x001e
+)
+
+func (r *TokenStreamToAutomaton) ToAutomaton(in TokenStream) (*automaton.Automaton, error) {
+	builder := automaton.NewNewBuilder()
+	builder.CreateState()
+
+	//in.GetAttributeSource().Add(tokenattr.NewPackedTokenAttributeImp())
+
+	panic("")
 }

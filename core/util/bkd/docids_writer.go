@@ -62,27 +62,27 @@ func WriteDocIds(ctx context.Context, docIds []int, out store.DataOutput) error 
 }
 
 // ReadInts Read count integers into docIDs.
-func ReadInts(in store.DataInput, count int, docIDs []int) error {
+func ReadInts(ctx context.Context, in store.DataInput, count int, docIDs []int) error {
 	bpv, err := in.ReadByte()
 	if err != nil {
 		return err
 	}
 	switch bpv {
 	case 0:
-		return readDeltaVInts(in, count, docIDs)
+		return readDeltaVInts(ctx, in, count, docIDs)
 	case 24:
-		return readInts24(in, count, docIDs)
+		return readInts24(ctx, in, count, docIDs)
 	case 32:
-		return readInts32(in, count, docIDs)
+		return readInts32(ctx, in, count, docIDs)
 	default:
 		return fmt.Errorf("unsupported number of bits per value: %d", bpv)
 	}
 }
 
-func readDeltaVInts(in store.DataInput, count int, docIDs []int) error {
+func readDeltaVInts(ctx context.Context, in store.DataInput, count int, docIDs []int) error {
 	doc := 0
 	for i := 0; i < count; i++ {
-		value, err := in.ReadUvarint(nil)
+		value, err := in.ReadUvarint(ctx)
 		if err != nil {
 			return err
 		}
@@ -92,9 +92,9 @@ func readDeltaVInts(in store.DataInput, count int, docIDs []int) error {
 	return nil
 }
 
-func readInts32(in store.DataInput, count int, docIDs []int) error {
+func readInts32(ctx context.Context, in store.DataInput, count int, docIDs []int) error {
 	for i := 0; i < count; i++ {
-		v, err := in.ReadUint32(nil)
+		v, err := in.ReadUint32(ctx)
 		if err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func readInts32(in store.DataInput, count int, docIDs []int) error {
 	return nil
 }
 
-func readInts24(in store.DataInput, count int, docIDs []int) error {
+func readInts24(ctx context.Context, in store.DataInput, count int, docIDs []int) error {
 	i := 0
 
 	bs := make([]byte, 24)
@@ -176,7 +176,7 @@ func readDeltaVIntsVisitor(ctx context.Context, in store.IndexInput, count int, 
 
 		doc += int(v)
 
-		err = visitor.Visit(doc)
+		err = visitor.Visit(nil, doc)
 		if err != nil {
 			return err
 		}
@@ -191,7 +191,7 @@ func readInts32Visitor(in store.IndexInput, count int, visitor types.IntersectVi
 			return err
 		}
 
-		err = visitor.Visit(int(v))
+		err = visitor.Visit(nil, int(v))
 		if err != nil {
 			return err
 		}
@@ -210,28 +210,28 @@ func readInts24Visitor(in store.IndexInput, count int, visitor types.IntersectVi
 			return err
 		}
 
-		if err := visitor.Visit(uint24(bs[:3])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[:3])); err != nil {
 			return err
 		}
-		if err := visitor.Visit(uint24(bs[3:6])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[3:6])); err != nil {
 			return err
 		}
-		if err := visitor.Visit(uint24(bs[6:6])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[6:6])); err != nil {
 			return err
 		}
-		if err := visitor.Visit(uint24(bs[9:12])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[9:12])); err != nil {
 			return err
 		}
-		if err := visitor.Visit(uint24(bs[12:15])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[12:15])); err != nil {
 			return err
 		}
-		if err := visitor.Visit(uint24(bs[15:18])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[15:18])); err != nil {
 			return err
 		}
-		if err := visitor.Visit(uint24(bs[18:21])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[18:21])); err != nil {
 			return err
 		}
-		if err := visitor.Visit(uint24(bs[21:24])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[21:24])); err != nil {
 			return err
 		}
 	}
@@ -241,7 +241,7 @@ func readInts24Visitor(in store.IndexInput, count int, visitor types.IntersectVi
 		if err != nil {
 			return err
 		}
-		if err := visitor.Visit(uint24(bs[:3])); err != nil {
+		if err := visitor.Visit(nil, uint24(bs[:3])); err != nil {
 			return err
 		}
 	}

@@ -67,7 +67,7 @@ func (i *numericDocValues) LongValue() (int64, error) {
 var _ index.SortedDocValues = &sortedDocValues{}
 
 type sortedDocValues struct {
-	*index.SortedDocValuesDefault
+	*index.BaseSortedDocValues
 
 	value []byte
 	it    *docValuesIterator
@@ -79,11 +79,11 @@ func (i *sortedDocValues) TermsEnum() (index.TermsEnum, error) {
 
 func newSortedDocValues(value []byte) *sortedDocValues {
 	values := &sortedDocValues{
-		SortedDocValuesDefault: nil,
-		value:                  value,
-		it:                     newDocValuesIterator(),
+		BaseSortedDocValues: nil,
+		value:               value,
+		it:                  newDocValuesIterator(),
 	}
-	values.SortedDocValuesDefault = index.NewSortedDocValuesDefault(&index.SortedDocValuesDefaultConfig{
+	values.BaseSortedDocValues = index.NewBaseSortedDocValues(&index.SortedDocValuesDefaultConfig{
 		OrdValue:      values.OrdValue,
 		LookupOrd:     values.LookupOrd,
 		GetValueCount: values.GetValueCount,

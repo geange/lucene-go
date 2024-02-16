@@ -2,6 +2,7 @@ package bkd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/bits-and-blooms/bitset"
@@ -78,11 +79,11 @@ func NewVerifyPointsVisitor(fieldName string, maxDoc int, values types.PointValu
 	}, nil
 }
 
-func (v *VerifyPointsVisitor) Visit(docID int) error {
+func (v *VerifyPointsVisitor) Visit(ctx context.Context, docID int) error {
 	return errors.New("not available")
 }
 
-func (v *VerifyPointsVisitor) VisitLeaf(docID int, packedValue []byte) error {
+func (v *VerifyPointsVisitor) VisitLeaf(ctx context.Context, docID int, packedValue []byte) error {
 	v.pointCountSeen++
 	v.docsSeen.Set(uint(docID))
 

@@ -3,19 +3,19 @@ package packed
 var _ Mutable = &Direct16{}
 
 type Direct16 struct {
-	*MutableImpl
+	*BaseMutable
 
 	values []uint16
 }
 
 func NewDirect16(valueCount int) *Direct16 {
 	direct := &Direct16{values: make([]uint16, valueCount)}
-	direct.MutableImpl = newMutableImpl(direct, valueCount, 16)
+	direct.BaseMutable = newBaseMutable(direct, valueCount, 16)
 	return direct
 }
 
 func (d *Direct16) Get(index int) uint64 {
-	return uint64(d.values[index] & 0xFFFF)
+	return uint64(d.values[index])
 }
 
 func (d *Direct16) Set(index int, value uint64) {
@@ -23,9 +23,7 @@ func (d *Direct16) Set(index int, value uint64) {
 }
 
 func (d *Direct16) Clear() {
-	for i := range d.values {
-		d.values[i] = 0
-	}
+	clear(d.values)
 }
 
 func (d *Direct16) GetBulk(index int, arr []uint64) int {

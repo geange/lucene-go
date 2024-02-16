@@ -189,7 +189,7 @@ func (w *Writer) build1Leaf(ctx context.Context, leavesOffset int, reader types.
 	// Write the common prefixes:
 	reader.GetValue(from, w.scratchBytesRef1)
 	copy(w.scratch1, w.scratchBytesRef1.Bytes()[:config.packedBytesLength])
-	if err := w.writeCommonPrefixes(w.scratchOut, w.commonPrefixLengths, w.scratch1); err != nil {
+	if err := w.writeCommonPrefixes(ctx, w.scratchOut, w.commonPrefixLengths, w.scratch1); err != nil {
 		return err
 	}
 
@@ -383,7 +383,7 @@ func (w *Writer) buildMerging1Leaf(ctx context.Context, leavesOffset int, points
 
 	// Write the common prefixes:
 	// 写入各个维度的公共前缀
-	if err := w.writeCommonPrefixes(out, w.commonPrefixLengths, w.scratch1); err != nil {
+	if err := w.writeCommonPrefixes(nil, out, w.commonPrefixLengths, w.scratch1); err != nil {
 		return err
 	}
 

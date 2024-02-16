@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
-	"github.com/geange/lucene-go/core/util/bytesutils"
 )
 
 var _ index.SegmentInfoFormat = &SegmentInfoFormat{}
@@ -80,29 +80,17 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		}
 	}
 
-	value, err = r.ReadLabel(SI_DOCCOUNT)
-	if err != nil {
-		return nil, err
-	}
-	docCount, err := strconv.Atoi(value)
+	docCount, err := r.ParseInt(SI_DOCCOUNT)
 	if err != nil {
 		return nil, err
 	}
 
-	value, err = r.ReadLabel(SI_USECOMPOUND)
-	if err != nil {
-		return nil, err
-	}
-	isCompoundFile, err := strconv.ParseBool(value)
+	isCompoundFile, err := r.ParseBoolPrefix(SI_USECOMPOUND)
 	if err != nil {
 		return nil, err
 	}
 
-	value, err = r.ReadLabel(SI_NUM_DIAG)
-	if err != nil {
-		return nil, err
-	}
-	numDiag, err := strconv.Atoi(value)
+	numDiag, err := r.ParseInt(SI_NUM_DIAG)
 	if err != nil {
 		return nil, err
 	}
@@ -110,16 +98,16 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 	diagnostics := make(map[string]string)
 
 	for i := 0; i < numDiag; i++ {
-		key, err := r.ReadLabel(SI_DIAG_KEY)
+		diagKey, err := r.ReadLabel(SI_DIAG_KEY)
 		if err != nil {
 			return nil, err
 		}
 
-		value, err := r.ReadLabel(SI_DIAG_VALUE)
+		diagValue, err := r.ReadLabel(SI_DIAG_VALUE)
 		if err != nil {
 			return nil, err
 		}
-		diagnostics[key] = value
+		diagnostics[diagKey] = diagValue
 	}
 
 	value, err = r.ReadLabel(SI_NUM_ATT)
@@ -134,23 +122,19 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 	attributes := make(map[string]string)
 
 	for i := 0; i < numAtt; i++ {
-		key, err := r.ReadLabel(SI_ATT_KEY)
+		attKey, err := r.ReadLabel(SI_ATT_KEY)
 		if err != nil {
 			return nil, err
 		}
 
-		value, err := r.ReadLabel(SI_ATT_VALUE)
+		attValue, err := r.ReadLabel(SI_ATT_VALUE)
 		if err != nil {
 			return nil, err
 		}
-		attributes[key] = value
+		attributes[attKey] = attValue
 	}
 
-	value, err = r.ReadLabel(SI_NUM_FILES)
-	if err != nil {
-		return nil, err
-	}
-	numFiles, err := strconv.Atoi(value)
+	numFiles, err := r.ParseInt(SI_NUM_FILES)
 	if err != nil {
 		return nil, err
 	}
@@ -164,26 +148,22 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		files[fileName] = struct{}{}
 	}
 
-	value, err = r.ReadLabel(SI_ID)
+	SIID, err := r.ParseBytes(SI_ID)
 	if err != nil {
 		return nil, err
 	}
 
-	if !bytes.Equal(segmentID, []byte(value)) {
+	if !bytes.Equal(segmentID, SIID) {
 		return nil, errors.New("file mismatch")
 	}
 
-	id := make([]byte, len([]byte(value)))
-	copy(id, []byte(value))
+	id := slices.Clone(SIID)
 
-	value, err = r.ReadLabel(SI_SORT)
+	numSortFields, err := r.ParseInt(SI_SORT)
 	if err != nil {
 		return nil, err
 	}
-	numSortFields, err := strconv.Atoi(value)
-	if err != nil {
-		return nil, err
-	}
+
 	sortField := make([]index.SortField, 0)
 	for i := 0; i < numSortFields; i++ {
 		provider, err := r.ReadLabel(SI_SORT_NAME)
@@ -195,11 +175,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 			return nil, err
 		}
 
-		value, err = r.ReadLabel(SI_SORT_BYTES)
-		if err != nil {
-			return nil, err
-		}
-		toBytes, err := bytesutils.StringToBytes(value)
+		toBytes, err := r.ParseBytes(SI_SORT_BYTES)
 		if err != nil {
 			return nil, err
 		}

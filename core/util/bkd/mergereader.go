@@ -84,11 +84,11 @@ type mergeReaderVisitor struct {
 	p *MergeReader
 }
 
-func (m *mergeReaderVisitor) Visit(docID int) error {
+func (m *mergeReaderVisitor) Visit(ctx context.Context, docID int) error {
 	return errors.New("UnsupportedOperationException")
 }
 
-func (m *mergeReaderVisitor) VisitLeaf(docID int, packedValue []byte) error {
+func (m *mergeReaderVisitor) VisitLeaf(ctx context.Context, docID int, packedValue []byte) error {
 	bkd := m.p.bkd
 	arraycopy(packedValue, 0, m.p.packedValues, m.i*bkd.config.packedBytesLength, bkd.config.packedBytesLength)
 	m.i++

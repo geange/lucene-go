@@ -18,7 +18,7 @@ var _ Scorer = &WANDScorer{}
 // and minShouldMatch by enforcing freq >= minShouldMatch. It keeps sub scorers in 3 different places: - tail: a heap that contains scorers that are behind the desired doc ID. These scorers are ordered by cost so that we can advance the least costly ones first. - lead: a linked list of scorer that are positioned on the desired doc ID - head: a heap that contains scorers which are beyond the desired doc ID, ordered by doc ID in order to move quickly to the next candidate.
 // When scoreMode == ScoreMode.TOP_SCORES, it leverages the max score from each scorer in order to know when it may call DocIdSetIterator.advance rather than DocIdSetIterator.nextDoc to move to the next competitive hit. When scoreMode != ScoreMode.TOP_SCORES, block-max scoring related logic is skipped. Finding the next match consists of first setting the desired doc ID to the least entry in 'head', and then advance 'tail' until there is a match, by meeting the configured freq >= minShouldMatch and / or ∑ max_score >= minCompetitiveScore requirements.
 type WANDScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	scalingFactor       int
 	minCompetitiveScore int64

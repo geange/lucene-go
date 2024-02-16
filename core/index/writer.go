@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util"
 	"math"
 	"strconv"
 	"sync"
@@ -57,12 +59,12 @@ const (
 
 type Writer struct {
 	enableTestPoints         bool
-	directoryOrig            store.Directory
-	directory                store.Directory
-	changeCount              *atomic.Int64
-	lastCommitChangeCount    int64
-	rollbackSegments         []*SegmentCommitInfo
-	pendingCommit            *SegmentInfos
+	directoryOrig            store.Directory      // original user directory
+	directory                store.Directory      // wrapped with additional checks
+	changeCount              *atomic.Int64        // increments every time a change is completed
+	lastCommitChangeCount    *atomic.Int64        // last changeCount that was committed
+	rollbackSegments         []*SegmentCommitInfo // list of segmentInfo we will fallback to if the commit fails
+	pendingCommit            *SegmentInfos        // set when a commit is pending (after prepareCommit() & before commit())
 	pendingSeqNo             int64
 	pendingCommitChangeCount int64
 	filesToCommit            []string
@@ -78,7 +80,7 @@ type Writer struct {
 	writeLock           store.Lock
 	closed              bool
 	closing             bool
-	_maybeMerge         *atomic.Bool
+	atomMaybeMerge      *atomic.Bool
 	commitUserData      []map[string]string
 	//mergingSegments          *hashset.Set
 	mergeScheduler MergeScheduler
@@ -102,8 +104,9 @@ type Writer struct {
 
 func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Writer, error) {
 	writer := &Writer{
-		changeCount:    new(atomic.Int64),
-		pendingNumDocs: new(atomic.Int64),
+		changeCount:           new(atomic.Int64),
+		lastCommitChangeCount: new(atomic.Int64),
+		pendingNumDocs:        new(atomic.Int64),
 	}
 	conf.setIndexWriter(writer)
 	writer.config = conf
@@ -270,7 +273,7 @@ func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Wri
 	writer.bufferedUpdatesStream = NewBufferedUpdatesStream()
 
 	writer.docWriter = NewDocumentsWriter(writer.segmentInfos.getIndexCreatedVersionMajor(), writer.pendingNumDocs,
-		writer.enableTestPoints, writer.newSegmentName,
+		writer.enableTestPoints, writer.newSegmentName(),
 		writer.config.liveIndexWriterConfig, writer.directoryOrig, writer.directory, writer.globalFieldNumberMap)
 
 	writer.bufferedUpdatesStream.GetCompletedDelGen()
@@ -361,8 +364,8 @@ func (m *Merges) enable() {
 // Throws:  CorruptIndexException – if the index is corrupt
 //
 //	IOException – if there is a low-level IO error
-func (w *Writer) AddDocument(doc *document.Document) (int64, error) {
-	return w.UpdateDocument(nil, doc)
+func (w *Writer) AddDocument(ctx context.Context, doc *document.Document) (int64, error) {
+	return w.UpdateDocument(ctx, nil, doc)
 }
 
 // UpdateDocument
@@ -374,12 +377,12 @@ func (w *Writer) AddDocument(doc *document.Document) (int64, error) {
 // Throws: 	CorruptIndexException – if the index is corrupt
 //
 //	IOException – if there is a low-level IO error
-func (w *Writer) UpdateDocument(term *Term, doc *document.Document) (int64, error) {
+func (w *Writer) UpdateDocument(ctx context.Context, term *Term, doc *document.Document) (int64, error) {
 	var delNode *Node
 	if term != nil {
 		delNode = deleteQueueNewNode(term)
 	}
-	return w.updateDocuments(delNode, []*document.Document{doc})
+	return w.updateDocuments(ctx, delNode, []*document.Document{doc})
 }
 
 // SoftUpdateDocument
@@ -395,7 +398,7 @@ func (w *Writer) UpdateDocument(term *Term, doc *document.Document) (int64, erro
 // Returns: The sequence number for this operation
 // Throws: CorruptIndexException: if the index is corrupt
 // IOException: if there is a low-level IO error
-func (w *Writer) SoftUpdateDocument(term *Term, doc *document.Document, softDeletes ...*document.Field) (int64, error) {
+func (w *Writer) SoftUpdateDocument(ctx context.Context, term *Term, doc *document.Document, softDeletes ...document.IndexableField) (int64, error) {
 	updates, err := w.buildDocValuesUpdate(term, softDeletes)
 	if err != nil {
 		return 0, err
@@ -404,10 +407,10 @@ func (w *Writer) SoftUpdateDocument(term *Term, doc *document.Document, softDele
 	if term != nil {
 		delNode = deleteQueueNewNodeDocValuesUpdates(updates)
 	}
-	return w.updateDocuments(delNode, []*document.Document{doc})
+	return w.updateDocuments(ctx, delNode, []*document.Document{doc})
 }
 
-func (w *Writer) buildDocValuesUpdate(term *Term, updates []*document.Field) ([]DocValuesUpdate, error) {
+func (w *Writer) buildDocValuesUpdate(term *Term, updates []document.IndexableField) ([]DocValuesUpdate, error) {
 	dvUpdates := make([]DocValuesUpdate, 0, len(updates))
 
 	for _, field := range updates {
@@ -429,13 +432,17 @@ func (w *Writer) buildDocValuesUpdate(term *Term, updates []*document.Field) ([]
 
 		switch dvType {
 		case document.DOC_VALUES_TYPE_NUMERIC:
-			value, err := field.I64Value()
-			if err != nil {
-				return nil, err
+			switch v := field.Get().(type) {
+			case int32:
+				dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), int64(v)))
+			case int64:
+				dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), v))
+			default:
+				panic("TODO")
 			}
-			dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), value))
+
 		case document.DOC_VALUES_TYPE_BINARY:
-			value, err := field.BytesValue()
+			value, err := document.Bytes(field.Get())
 			if err != nil {
 				return nil, err
 			}
@@ -458,8 +465,8 @@ func (w *Writer) Close() error {
 	return w.shutdown()
 }
 
-func (w *Writer) updateDocuments(delNode *Node, docs []*document.Document) (int64, error) {
-	seqNo, err := w.docWriter.updateDocuments(docs, delNode)
+func (w *Writer) updateDocuments(ctx context.Context, delNode *Node, docs []*document.Document) (int64, error) {
+	seqNo, err := w.docWriter.updateDocuments(ctx, docs, delNode)
 	if err != nil {
 		return 0, err
 	}
@@ -616,11 +623,11 @@ func (w *Writer) nrtIsCurrent(infos *SegmentInfos) bool {
 
 	// TODO: fix it
 	//ensureOpen();
-	isCurrent := infos.GetVersion() == w.segmentInfos.GetVersion() &&
-		w.docWriter.anyChanges() == false &&
-		//i.bufferedUpdatesStream.Any() == false &&
-		w.readerPool.anyDocValuesChanges() == false
-	return isCurrent
+	//isCurrent := infos.GetVersion() == w.segmentInfos.GetVersion() &&
+	//	w.docWriter.anyChanges() == false &&
+	//	//i.bufferedUpdatesStream.Any() == false &&
+	//	w.readerPool.anyDocValuesChanges() == false
+	//return isCurrent
 }
 
 func (w *Writer) GetReader(applyAllDeletes bool, writeAllDeletes bool) (DirectoryReader, error) {
@@ -702,6 +709,104 @@ func (w *Writer) GetConfig() *WriterConfig {
 func (w *Writer) IncRefDeleter(segmentInfos *SegmentInfos) error {
 	return nil
 	//return w.deleter.IncRef(segmentInfos, false)
+}
+
+// AddIndexesFromReaders
+// Merges the provided indexes into this index.
+// The provided IndexReaders are not closed.
+// See addIndexes for details on transactional semantics, temporary free space required in the Directory,
+// and non-CFS segments on an Exception.
+// NOTE: empty segments are dropped by this method and not added to this index.
+// NOTE: this merges all given LeafReaders in one merge. If you intend to merge a large number of readers, it may be better to call this method multiple times, each time with a small set of readers. In principle, if you use a merge policy with a mergeFactor or maxMergeAtOnce parameter, you should pass that many readers in one call.
+// NOTE: this method does not call or make use of the MergeScheduler, so any custom bandwidth throttling is at the moment ignored.
+func (w *Writer) AddIndexesFromReaders(readers ...CodecReader) (int64, error) {
+
+	if err := w.ensureOpen(); err != nil {
+		return 0, err
+	}
+
+	// long so we can detect int overflow:
+	var seqNo int64
+	var numDocs int
+
+	// TODO:
+	if err := w.flush(false, true); err != nil {
+		return 0, err
+	}
+
+	mergedName := w.newSegmentName()
+	numSoftDeleted := 0
+	for _, leaf := range readers {
+		numDocs += leaf.NumDocs()
+		//w.validateMergeReader(leaf);
+		if w.softDeletesEnabled {
+			liveDocs := leaf.GetLiveDocs()
+
+			docIdSetIterator, err := getDocValuesDocIdSetIterator(w.config.getSoftDeletesField(), leaf)
+			if err != nil {
+				return 0, err
+			}
+
+			softDeletes, err := countSoftDeletes(docIdSetIterator, liveDocs)
+			if err != nil {
+				return 0, err
+			}
+
+			numSoftDeleted += softDeletes
+		}
+	}
+
+	// Best-effort up front check:
+	if err := w.testReserveDocs(int64(numDocs)); err != nil {
+		return 0, err
+	}
+
+	mergeInfo := store.NewMergeInfo(numDocs, -1, false, UNBOUNDED_MAX_MERGE_SEGMENTS)
+	ioCtx := store.NewIOContext(store.WithMergeInfo(mergeInfo))
+
+	// TODO: somehow we should fix this merge so it's
+	// abortable so that IW.close(false) is able to stop it
+
+	codec := w.config.GetCodec()
+	// We set the min version to null for now, it will be set later by SegmentMerger
+	info := NewSegmentInfo(w.directoryOrig, util.VersionLast, nil, mergedName, -1,
+		false, codec, map[string]string{}, util.RandomId(), map[string]string{}, w.config.GetIndexSort())
+
+	merger, err := NewSegmentMerger(readers, info, w.directory, w.globalFieldNumberMap, ioCtx)
+	if err != nil {
+		return 0, err
+	}
+
+	if !merger.ShouldMerge() {
+		// TODO: fix it
+		//return docWriter.getNextSequenceNumber()
+	}
+
+	if err := w.MaybeMerge(); err != nil {
+		return 0, err
+	}
+	return seqNo, nil
+}
+
+// Does a best-effort check, that the current index would accept this many additional docs, but does not actually reserve them.
+func (w *Writer) testReserveDocs(addedNumDocs int64) error {
+	if w.pendingNumDocs.Load()+addedNumDocs > int64(actualMaxDocs) {
+		return w.tooManyDocs(addedNumDocs)
+	}
+	return nil
+}
+
+func (w *Writer) tooManyDocs(addedNumDocs int64) error {
+	return fmt.Errorf("number of documents in the index cannot exceed %d (current document count is %d; added numDocs is %d)",
+		actualMaxDocs, w.pendingNumDocs.Load(), addedNumDocs)
+}
+
+func (w *Writer) flush(triggerMerge, applyAllDeletes bool) error {
+	panic("")
+}
+
+func getDocValuesDocIdSetIterator(field string, reader LeafReader) (types.DocIdSetIterator, error) {
+	panic("")
 }
 
 func readFieldInfos(si *SegmentCommitInfo) (*FieldInfos, error) {

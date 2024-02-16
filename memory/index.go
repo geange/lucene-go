@@ -150,7 +150,7 @@ func WithMaxReusedBytes(maxReusedBytes int64) Option {
 	}
 }
 
-func NewFromDocument(document *document.Document, analyzer analysis.Analyzer, options ...Option) (*Index, error) {
+func NewFromDocument(doc *document.Document, analyzer analysis.Analyzer, options ...Option) (*Index, error) {
 	opt := &option{
 		storeOffsets:   false,
 		storePayloads:  false,
@@ -165,19 +165,12 @@ func NewFromDocument(document *document.Document, analyzer analysis.Analyzer, op
 		return nil, err
 	}
 
-	fn := document.Iterator()
-
-	for {
-		field := fn()
-		if field == nil {
-			break
-		}
-
-		err = newIdx.AddIndexAbleField(field, analyzer)
-		if err != nil {
+	for _, field := range doc.Fields() {
+		if err = newIdx.AddIndexAbleField(field, analyzer); err != nil {
 			return nil, err
 		}
 	}
+
 	return newIdx, nil
 }
 
@@ -285,7 +278,7 @@ func (r *Index) AddIndexAbleField(field document.IndexableField, analyzer analys
 	}
 
 	if field.FieldType().PointIndexDimensionCount() > 0 {
-		bytes, err := field.BytesValue()
+		bytes, err := document.Bytes(field.Get())
 		if err != nil {
 			return err
 		}

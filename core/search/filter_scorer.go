@@ -10,15 +10,15 @@ import (
 // that pass all requests to the contained scorer. Subclasses of FilterScorer may further
 // override some of these methods and may also provide additional methods and fields.
 type FilterScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	in Scorer
 }
 
 func newFilterScorer(in Scorer) *FilterScorer {
 	return &FilterScorer{
-		ScorerDefault: NewScorer(in.GetWeight()),
-		in:            in,
+		BaseScorer: NewScorer(in.GetWeight()),
+		in:         in,
 	}
 }
 

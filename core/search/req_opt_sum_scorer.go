@@ -30,7 +30,7 @@ var _ Scorer = &ReqOptSumScorer{}
 //
 // 请注意，以上是对ReqOptSumScorer的基本解释，实际的实现和使用方式可能会有所不同，具体取决于Lucene版本和上下文环境。
 type ReqOptSumScorer struct {
-	*ScorerDefault
+	*BaseScorer
 
 	reqScorer Scorer
 	optScorer Scorer
@@ -53,9 +53,9 @@ type ReqOptSumScorer struct {
 // scoreMode: How the produced scorers will be consumed.
 func NewReqOptSumScorer(reqScorer, optScorer Scorer, scoreMode *ScoreMode) (*ReqOptSumScorer, error) {
 	scorer := &ReqOptSumScorer{
-		ScorerDefault: NewScorer(reqScorer.GetWeight()),
-		reqScorer:     reqScorer,
-		optScorer:     optScorer,
+		BaseScorer: NewScorer(reqScorer.GetWeight()),
+		reqScorer:  reqScorer,
+		optScorer:  optScorer,
 	}
 
 	if scoreMode.Equal(TOP_SCORES) {
