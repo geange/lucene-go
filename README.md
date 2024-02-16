@@ -4,22 +4,27 @@
 
 ## About
 
-> A Go port of Apache Lucene
+Lucene is a search engine library. `lucene-go` is its Golang version implementation.
 
-The original intention of starting this project was because the recipe story of 'Elasticsearch' was too sci-fi. After
-understanding the basic knowledge related to search, I hastily started the development of the project.
+### Current Version
 
-I originally hoped to achieve a Go version of ES, but now I am still a bit far from this goal.
-More importantly, it is necessary to improve the Lucene go project as soon as possible to achieve a fully usable state.
-This available state includes but is not limited to the following:
+* Only support Go1.21+
+* Developed based on Lucene 8.11.2
+* Some libraries are basically available, and unit testing is being completed
 
-* Improve the code. The original code was to translate Java into Go, but there are many shortcomings. The next goal is
-  to make the code more like what Gopher wrote 🐶
-* Improving unit testing and single testing is the most ideal solution to ensure code quality
-* Improve use cases. The quality of use cases is still relatively low, just some simple cases that I personally used for
-  local testing
-* Improve the documentation, which will be carried out together with the process of improving the code, making it easier
-  for users to obtain the content they want (after all, the Lucene library has a very large amount of code)
+### Our Goals
+
+* API interface compatible with Java version Lucene
+* Maintain a high-quality Go version search engine library
+* Provides stronger performance than the Java version of Lucene
+
+### Current Tasks
+
+-[ ] Improve the unit testing of the basic library
+-[ ] Improve development and design documents
+-[ ] Add Code Use Cases
+
+### Project Overview
 
 The goal of the project has undergone several twists and turns during the development process, encountering far greater
 difficulties than expected, language differences, and a lack of theoretical knowledge. After a year of development, the
