@@ -160,7 +160,7 @@ func (f *FST) Save(ctx context.Context, metaOut store.DataOutput, out store.Data
 		return errors.New("call finish first")
 	}
 
-	if err := utils.WriteHeader(metaOut, FILE_FORMAT_NAME, VERSION_CURRENT); err != nil {
+	if err := utils.WriteHeader(ctx, metaOut, FILE_FORMAT_NAME, VERSION_CURRENT); err != nil {
 		return err
 	}
 

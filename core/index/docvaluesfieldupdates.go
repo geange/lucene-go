@@ -94,7 +94,7 @@ func (d *DocValuesFieldUpdatesDefault) Finish() error {
 
 		ords := packed.GetMutable(d.size, bitsRequired, packed.DEFAULT)
 		for i := 0; i < d.size; i++ {
-			ords.Set(i, int64(i))
+			ords.Set(i, uint64(i))
 		}
 
 	}
