@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
@@ -21,14 +22,14 @@ const (
 // Throws: 	IOException – If there is an I/O error writing to the underlying medium.
 //
 //	IllegalArgumentException – If the codec name is not simple ASCII, or is more than 127 characters in length
-func WriteHeader(out store.DataOutput, codec string, version int) error {
-	if err := out.WriteUint32(nil, CODEC_MAGIC); err != nil {
+func WriteHeader(ctx context.Context, out store.DataOutput, codec string, version int) error {
+	if err := out.WriteUint32(ctx, CODEC_MAGIC); err != nil {
 		return err
 	}
-	if err := out.WriteString(nil, codec); err != nil {
+	if err := out.WriteString(ctx, codec); err != nil {
 		return err
 	}
-	if err := out.WriteUint32(nil, uint32(version)); err != nil {
+	if err := out.WriteUint32(ctx, uint32(version)); err != nil {
 		return err
 	}
 	return nil

@@ -24,7 +24,7 @@ func (w *Writer) writeIndex(ctx context.Context, metaOut, indexOut store.IndexOu
 	packedIndexBytesLength := config.PackedIndexBytesLength()
 	numLeaves := leafNodes.NumLeaves()
 
-	if err := utils.WriteHeader(metaOut, CODEC_NAME, VERSION_CURRENT); err != nil {
+	if err := utils.WriteHeader(ctx, metaOut, CODEC_NAME, VERSION_CURRENT); err != nil {
 		return err
 	}
 	if err := metaOut.WriteUvarint(ctx, uint64(numDims)); err != nil {
