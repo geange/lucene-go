@@ -20,9 +20,9 @@ Lucene is a search engine library. `lucene-go` is its Golang version implementat
 
 ### Current Tasks
 
--[ ] Improve the unit testing of the basic library
--[ ] Improve development and design documents
--[ ] Add Code Use Cases
+* Improve the unit testing of the basic library
+* Improve development and design documents
+* Add Code Use Cases
 
 ### Project Overview
 
@@ -58,7 +58,7 @@ package main
 import (
 	"context"
 	"fmt"
-	
+
 	"github.com/geange/lucene-go/codecs/simpletext"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
