@@ -10,21 +10,25 @@ import (
 type RandomAccessInput interface {
 	io.ReaderAt
 
-	// RUint8 Reads a byte at the given pos in the file
+	// ReadU8
+	// Reads a byte at the given pos in the file
 	// See Also: DataInput.readByte
-	RUint8(pos int64) (byte, error)
+	ReadU8(pos int64) (byte, error)
 
-	// RUint16 Reads a short at the given pos in the file
+	// ReadU16
+	// Reads a short at the given pos in the file
 	// See Also: DataInput.readShort
-	RUint16(pos int64) (uint16, error)
+	ReadU16(pos int64) (uint16, error)
 
-	// RUint32 Reads an integer at the given pos in the file
+	// ReadU32
+	// Reads an integer at the given pos in the file
 	// See Also: DataInput.readInt
-	RUint32(pos int64) (uint32, error)
+	ReadU32(pos int64) (uint32, error)
 
-	// RUint64 Reads a long at the given pos in the file
+	// ReadU64
+	// Reads a long at the given pos in the file
 	// See Also: DataInput.readLong
-	RUint64(pos int64) (uint64, error)
+	ReadU64(pos int64) (uint64, error)
 }
 
 var _ RandomAccessInput = &randomAccessIndexInput{}
@@ -40,28 +44,28 @@ func (r *randomAccessIndexInput) ReadAt(p []byte, off int64) (int, error) {
 	return r.in.Read(p)
 }
 
-func (r *randomAccessIndexInput) RUint8(pos int64) (byte, error) {
+func (r *randomAccessIndexInput) ReadU8(pos int64) (byte, error) {
 	if _, err := r.in.Seek(pos, io.SeekStart); err != nil {
 		return 0, err
 	}
 	return r.in.ReadByte()
 }
 
-func (r *randomAccessIndexInput) RUint16(pos int64) (uint16, error) {
+func (r *randomAccessIndexInput) ReadU16(pos int64) (uint16, error) {
 	if _, err := r.in.Seek(pos, io.SeekStart); err != nil {
 		return 0, err
 	}
 	return r.in.ReadUint16(nil)
 }
 
-func (r *randomAccessIndexInput) RUint32(pos int64) (uint32, error) {
+func (r *randomAccessIndexInput) ReadU32(pos int64) (uint32, error) {
 	if _, err := r.in.Seek(pos, io.SeekStart); err != nil {
 		return 0, err
 	}
 	return r.in.ReadUint32(nil)
 }
 
-func (r *randomAccessIndexInput) RUint64(pos int64) (uint64, error) {
+func (r *randomAccessIndexInput) ReadU64(pos int64) (uint64, error) {
 	if _, err := r.in.Seek(pos, io.SeekStart); err != nil {
 		return 0, err
 	}
@@ -97,28 +101,28 @@ func (b *BytesRandomAccessInput) ReadAt(p []byte, off int64) (int, error) {
 	return copySize, nil
 }
 
-func (b *BytesRandomAccessInput) RUint8(pos int64) (byte, error) {
+func (b *BytesRandomAccessInput) ReadU8(pos int64) (byte, error) {
 	if pos >= int64(len(b.bs)) {
 		return 0, io.ErrUnexpectedEOF
 	}
 	return b.bs[pos], nil
 }
 
-func (b *BytesRandomAccessInput) RUint16(pos int64) (uint16, error) {
+func (b *BytesRandomAccessInput) ReadU16(pos int64) (uint16, error) {
 	if pos+2 >= int64(len(b.bs)) {
 		return 0, io.ErrUnexpectedEOF
 	}
 	return b.byteOrder.Uint16(b.bs[pos:]), nil
 }
 
-func (b *BytesRandomAccessInput) RUint32(pos int64) (uint32, error) {
+func (b *BytesRandomAccessInput) ReadU32(pos int64) (uint32, error) {
 	if pos+4 >= int64(len(b.bs)) {
 		return 0, io.ErrUnexpectedEOF
 	}
 	return b.byteOrder.Uint32(b.bs[pos:]), nil
 }
 
-func (b *BytesRandomAccessInput) RUint64(pos int64) (uint64, error) {
+func (b *BytesRandomAccessInput) ReadU64(pos int64) (uint64, error) {
 	if pos+8 >= int64(len(b.bs)) {
 		return 0, io.ErrUnexpectedEOF
 	}

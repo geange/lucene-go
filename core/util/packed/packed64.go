@@ -150,7 +150,7 @@ func (p *Packed64) SetBulk(index int, arr []uint64) int {
 		}
 	}
 
-	blockIndex := (int)((index * p.bitsPerValue) >> Packed64BlockBits)
+	blockIndex := (index * p.bitsPerValue) >> Packed64BlockBits
 
 	iterations := size / encoder.LongValueCount()
 	encoder.EncodeUint64(arr[off:], p.blocks[blockIndex:], iterations)

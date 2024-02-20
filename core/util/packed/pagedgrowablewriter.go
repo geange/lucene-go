@@ -1,6 +1,6 @@
 package packed
 
-var _ AbstractPagedMutableSPI = &PagedGrowableWriter{}
+var _ PagedMutableSPI = &PagedGrowableWriter{}
 
 // PagedGrowableWriter A PagedGrowableWriter. This class slices data into fixed-size blocks which have
 // independent numbers of bits per value and grow on-demand.
@@ -8,15 +8,14 @@ var _ AbstractPagedMutableSPI = &PagedGrowableWriter{}
 // write-access. Otherwise this class will likely be slower and less memory-efficient.
 // lucene.internal
 type PagedGrowableWriter struct {
-	*BaseAbstractPagedMutable
+	*BasePagedMutable
 
 	acceptableOverheadRatio float64
 }
 
 func NewPagedGrowableWriter(size, pageSize, startBitsPerValue int, acceptableOverheadRatio float64) (*PagedGrowableWriter, error) {
 	writer := &PagedGrowableWriter{
-		BaseAbstractPagedMutable: nil,
-		acceptableOverheadRatio:  acceptableOverheadRatio,
+		acceptableOverheadRatio: acceptableOverheadRatio,
 	}
 	return writer.NewPagedGrowableWriter(size, pageSize, startBitsPerValue, acceptableOverheadRatio, true)
 }
@@ -24,7 +23,7 @@ func NewPagedGrowableWriter(size, pageSize, startBitsPerValue int, acceptableOve
 func (p *PagedGrowableWriter) NewPagedGrowableWriter(size, pageSize, startBitsPerValue int,
 	acceptableOverheadRatio float64, fillPages bool) (*PagedGrowableWriter, error) {
 
-	p.BaseAbstractPagedMutable = newAbstractPagedMutable(p, startBitsPerValue, size, pageSize)
+	p.BasePagedMutable = newPagedMutable(p, startBitsPerValue, size, pageSize)
 	p.acceptableOverheadRatio = acceptableOverheadRatio
 	if fillPages {
 		if err := p.fillPages(); err != nil {
@@ -38,8 +37,12 @@ func (p *PagedGrowableWriter) NewMutable(valueCount, bitsPerValue int) Mutable {
 	return NewGrowableWriter(bitsPerValue, valueCount, p.acceptableOverheadRatio)
 }
 
-func (p *PagedGrowableWriter) NewUnfilledCopy(newSize int) AbstractPagedMutable {
-	writer, err := p.NewPagedGrowableWriter(newSize, p.pageSize(), p.bitsPerValue, p.acceptableOverheadRatio, false)
+func (p *PagedGrowableWriter) NewUnfilledCopy(newSize int) PagedMutable {
+	writer := &PagedGrowableWriter{
+		acceptableOverheadRatio: p.acceptableOverheadRatio,
+	}
+
+	writer, err := writer.NewPagedGrowableWriter(newSize, p.pageSize(), p.bitsPerValue, p.acceptableOverheadRatio, false)
 	if err != nil {
 		return nil
 	}

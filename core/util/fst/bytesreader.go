@@ -108,7 +108,7 @@ func newReverseRandomAccessReader(in store.RandomAccessInput) *ReverseRandomAcce
 func (r *ReverseRandomAccessReader) ReadByte() (byte, error) {
 	pos := r.pos
 	r.pos--
-	return r.in.RUint8(pos)
+	return r.in.ReadU8(pos)
 }
 
 func (r *ReverseRandomAccessReader) Read(b []byte) (int, error) {

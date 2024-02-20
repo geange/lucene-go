@@ -176,10 +176,12 @@ func PackedIntsCopy(src Reader, srcPos int, dest Mutable, destPos, size, mem int
 	}
 }
 
+// TODO: fix
 func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int, buf []uint64) {
 	remaining := 0
 	for size > 0 {
-		read := src.GetBulk(srcPos, buf[0:min(size, len(buf)-remaining)])
+		copySize := min(size, len(buf)-remaining)
+		read := src.GetBulk(srcPos, buf[0:copySize])
 		srcPos += read
 		size -= read
 		remaining += read

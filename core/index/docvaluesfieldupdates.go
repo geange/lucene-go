@@ -64,7 +64,7 @@ type DocValuesFieldUpdatesDefault struct {
 	bitsPerValue int
 	finished     bool
 	maxDoc       int
-	docs         *packed.PagedMutable
+	docs         *packed.FixSizePagedMutable
 	size         int
 }
 
@@ -119,12 +119,12 @@ func (d *DocValuesFieldUpdatesDefault) Swap(i, j int) error {
 }
 
 func (d *DocValuesFieldUpdatesDefault) Grow(size int) error {
-	d.docs = d.docs.Grow(size).(*packed.PagedMutable)
+	d.docs = d.docs.Grow(size).(*packed.FixSizePagedMutable)
 	return nil
 }
 
 func (d *DocValuesFieldUpdatesDefault) Resize(size int) error {
-	d.docs = d.docs.Resize(size).(*packed.PagedMutable)
+	d.docs = d.docs.Resize(size).(*packed.FixSizePagedMutable)
 	return nil
 }
 

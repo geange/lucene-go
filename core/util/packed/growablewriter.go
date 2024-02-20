@@ -56,7 +56,7 @@ func (g *GrowableWriter) GetBitsPerValue() int {
 }
 
 func (g *GrowableWriter) Set(index int, value uint64) {
-	g.ensureCapacity(uint64(value))
+	g.ensureCapacity(value)
 	g.current.Set(index, value)
 }
 

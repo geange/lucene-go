@@ -12,7 +12,7 @@ func TestRandomAccessIndexInput(t *testing.T) {
 
 	access := &randomAccessIndexInput{in: output}
 
-	rUint8, err := access.RUint8(0)
+	rUint8, err := access.ReadU8(0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 1, rUint8)
 
@@ -21,15 +21,15 @@ func TestRandomAccessIndexInput(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, 3, n)
 
-	rUint16, err := access.RUint16(0)
+	rUint16, err := access.ReadU16(0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, binary.BigEndian.Uint16([]byte{1, 2}), rUint16)
 
-	rUint32, err := access.RUint32(0)
+	rUint32, err := access.ReadU32(0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, binary.BigEndian.Uint32([]byte{1, 2, 3, 4}), rUint32)
 
-	rUint64, err := access.RUint64(0)
+	rUint64, err := access.ReadU64(0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, binary.BigEndian.Uint64([]byte{1, 2, 3, 4, 5, 6, 7, 8}), rUint64)
 }
@@ -37,7 +37,7 @@ func TestRandomAccessIndexInput(t *testing.T) {
 func TestBytesRandomAccessInput(t *testing.T) {
 	access := NewBytesRandomAccessInput([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0}, binary.BigEndian)
 
-	rUint8, err := access.RUint8(0)
+	rUint8, err := access.ReadU8(0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 1, rUint8)
 
@@ -53,15 +53,15 @@ func TestBytesRandomAccessInput(t *testing.T) {
 	_, err = access.ReadAt(bs, 100)
 	assert.NotNil(t, err)
 
-	rUint16, err := access.RUint16(0)
+	rUint16, err := access.ReadU16(0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, binary.BigEndian.Uint16([]byte{1, 2}), rUint16)
 
-	rUint32, err := access.RUint32(0)
+	rUint32, err := access.ReadU32(0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, binary.BigEndian.Uint32([]byte{1, 2, 3, 4}), rUint32)
 
-	rUint64, err := access.RUint64(0)
+	rUint64, err := access.ReadU64(0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, binary.BigEndian.Uint64([]byte{1, 2, 3, 4, 5, 6, 7, 8}), rUint64)
 

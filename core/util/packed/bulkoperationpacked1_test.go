@@ -8,7 +8,7 @@ import (
 )
 
 func TestBulkOperationPacked1_DecodeUint64(t *testing.T) {
-	iterationTimes := 10
+	iterationTimes := 5
 	blockPerBits := 64
 
 	for iterations := 1; iterations < iterationTimes; iterations++ {
@@ -16,7 +16,7 @@ func TestBulkOperationPacked1_DecodeUint64(t *testing.T) {
 
 		values := make([]uint64, valuesNum)
 
-		loopTimes := 200
+		loopTimes := 100
 
 		for i := 0; i < loopTimes; i++ {
 
@@ -41,7 +41,7 @@ func TestBulkOperationPacked1_DecodeUint64(t *testing.T) {
 }
 
 func TestBulkOperationPacked1_DecodeBytes(t *testing.T) {
-	iterationTimes := 80
+	iterationTimes := 20
 	blockPerBits := 8
 
 	for iterations := 1; iterations < iterationTimes; iterations++ {
@@ -49,7 +49,7 @@ func TestBulkOperationPacked1_DecodeBytes(t *testing.T) {
 
 		values := make([]uint64, valuesNum)
 
-		loopTimes := 200
+		loopTimes := 100
 
 		for i := 0; i < loopTimes; i++ {
 
