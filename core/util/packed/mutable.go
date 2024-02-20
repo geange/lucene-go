@@ -50,7 +50,7 @@ func (m *mutable) GetBulk(index int, arr []uint64) int {
 	length := len(arr)
 	gets := min(m.spi.Size()-index, length)
 
-	for i, o, end := index, 0, index+gets; i < end; i++ {
+	for i, o, end := index, 0, index+gets; i < end; {
 		arr[o] = m.spi.Get(i)
 		i++
 		o++
@@ -62,10 +62,13 @@ func (m *mutable) GetBulk(index int, arr []uint64) int {
 func (m *mutable) SetBulk(index int, arr []uint64) int {
 	size := min(len(arr), m.spi.Size()-index)
 
-	for i, o, end := index, 0, index+len(arr); i < end; {
-		m.spi.Set(i, arr[o])
+	i := index
+	off := 0
+	end := index + len(arr)
+	for i < end {
+		m.spi.Set(i, arr[off])
 		i++
-		o++
+		off++
 	}
 	return size
 }
@@ -130,10 +133,14 @@ func Fill(spi mutableSPI, fromIndex, toIndex int, value uint64) {
 func SetBulk(spi mutableSPI, index int, arr []uint64) int {
 	size := min(len(arr), spi.Size()-index)
 
-	for i, o, end := index, 0, len(arr); i < end; {
-		spi.Set(i, arr[o])
+	i := index
+	off := 0
+	end := index + len(arr)
+
+	for i < end {
+		spi.Set(i, arr[off])
 		i++
-		o++
+		off++
 	}
 	return size
 }

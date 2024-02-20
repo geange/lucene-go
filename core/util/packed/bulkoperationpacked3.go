@@ -175,31 +175,3 @@ func (b *BulkOperationPacked3) DecodeBytes(blocks []byte, values []uint64, itera
 		valuesOffset++
 	}
 }
-
-//func (b *BulkOperationPacked3) DecodeByteToInt(blocks []byte, values []int32, iterations int) {
-//	blocksOffset, valuesOffset := 0, 0
-//	for i := 0; i < iterations; i++ {
-//		byte0 := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		values[valuesOffset] = byte0 >> 5
-//		valuesOffset++
-//		values[valuesOffset] = (byte0 >> 2) & 7
-//		valuesOffset++
-//		byte1 := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		values[valuesOffset] = ((byte0 & 3) << 1) | (byte1 >> 7)
-//		valuesOffset++
-//		values[valuesOffset] = (byte1 >> 4) & 7
-//		valuesOffset++
-//		values[valuesOffset] = (byte1 >> 1) & 7
-//		valuesOffset++
-//		byte2 := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		values[valuesOffset] = ((byte1 & 1) << 2) | (byte2 >> 6)
-//		valuesOffset++
-//		values[valuesOffset] = (byte2 >> 3) & 7
-//		valuesOffset++
-//		values[valuesOffset] = byte2 & 7
-//		valuesOffset++
-//	}
-//}

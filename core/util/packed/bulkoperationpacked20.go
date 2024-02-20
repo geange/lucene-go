@@ -75,23 +75,3 @@ func (b *BulkOperationPacked20) DecodeBytes(blocks []byte, values []uint64, iter
 		valuesOffset++
 	}
 }
-
-//func (b *BulkOperationPacked20) DecodeByteToInt(blocks []byte, values []int32, iterations int) {
-//	blocksOffset, valuesOffset := 0, 0
-//	for i := 0; i < iterations; i++ {
-//		byte0 := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		byte1 := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		byte2 := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		values[valuesOffset] = (byte0 << 12) | (byte1 << 4) | (byte2 >> 4)
-//		valuesOffset++
-//		byte3 := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		byte4 := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		values[valuesOffset] = ((byte2 & 15) << 16) | (byte3 << 8) | byte4
-//		valuesOffset++
-//	}
-//}

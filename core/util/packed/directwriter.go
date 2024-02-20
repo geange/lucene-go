@@ -16,7 +16,7 @@ type DirectWriter struct {
 	finished     bool
 
 	// for now, just use the existing writer under the hood
-	//off               int
+	off               int
 	nextBlocks        []byte
 	nextValues        []uint64
 	nextValuesMaxSize int
@@ -34,17 +34,14 @@ func NewDirectWriter(output store.DataOutput, numValues, bitsPerValue int) (*Dir
 		ComputeIterations(valueCount, ramBudget int) int
 	}).ComputeIterations(min(numValues, math.MaxInt32), DEFAULT_BUFFER_SIZE)
 
-	nextValuesMaxSize := iterations * encoder.ByteBlockCount()
-
 	writer := &DirectWriter{
-		bitsPerValue:      bitsPerValue,
-		numValues:         numValues,
-		output:            output,
-		nextBlocks:        make([]byte, nextValuesMaxSize),
-		nextValues:        make([]uint64, nextValuesMaxSize),
-		nextValuesMaxSize: nextValuesMaxSize,
-		encoder:           encoder,
-		iterations:        iterations,
+		bitsPerValue: bitsPerValue,
+		numValues:    numValues,
+		output:       output,
+		nextBlocks:   make([]byte, iterations*encoder.ByteBlockCount()),
+		nextValues:   make([]uint64, iterations*encoder.ByteValueCount()),
+		encoder:      encoder,
+		iterations:   iterations,
 	}
 	return writer, nil
 }
@@ -53,8 +50,11 @@ func (d *DirectWriter) Add(v uint64) error {
 	if d.count >= d.numValues {
 		return errors.New("writing past end of stream")
 	}
-	d.nextValues = append(d.nextValues, v)
-	if len(d.nextValues) == d.nextValuesMaxSize {
+
+	d.nextValues[d.off] = v
+	d.off++
+
+	if len(d.nextValues) == d.off {
 		if err := d.flush(); err != nil {
 			return err
 		}
@@ -69,7 +69,7 @@ func (d *DirectWriter) flush() error {
 	if _, err := d.output.Write(d.nextBlocks[:blockCount]); err != nil {
 		return err
 	}
-	d.nextValues = d.nextValues[:0]
+	d.off = 0
 	return nil
 }
 

@@ -31,15 +31,3 @@ func (b *BulkOperationPacked4) DecodeBytes(blocks []byte, values []uint64, itera
 		valuesOffset++
 	}
 }
-
-//func (b *BulkOperationPacked4) DecodeByteToInt(blocks []byte, values []int32, iterations int) {
-//	blocksOffset, valuesOffset := 0, 0
-//	for j := 0; j < iterations; j++ {
-//		block := int32(blocks[blocksOffset])
-//		blocksOffset++
-//		values[valuesOffset] = (block >> 4) & 15
-//		valuesOffset++
-//		values[valuesOffset] = block & 15
-//		valuesOffset++
-//	}
-//}
