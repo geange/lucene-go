@@ -1,6 +1,9 @@
 package packed
 
 import (
+	"context"
+	"errors"
+	"github.com/geange/lucene-go/core/store"
 	"sort"
 )
 
@@ -19,81 +22,81 @@ func NewPacked64SingleBlock(valueCount, bitsPerValue int) *Packed64SingleBlock {
 	return block
 }
 
-func (p *Packed64SingleBlock) Get(index int) uint64 {
+func (p *Packed64SingleBlock) Get(index int) (uint64, error) {
 	switch p.bitsPerValue {
 	case 1:
 		o := index >> 6
 		b := index & 63
 		shift := b << 0
-		return (p.blocks[o] >> shift) & 1
+		return (p.blocks[o] >> shift) & 1, nil
 	case 2:
 		o := index >> 5
 		b := index & 31
 		shift := b << 1
-		return (p.blocks[o] >> shift) & 3
+		return (p.blocks[o] >> shift) & 3, nil
 	case 3:
 		o := index / 21
 		b := index % 21
 		shift := b * 3
-		return (p.blocks[o] >> shift) & 7
+		return (p.blocks[o] >> shift) & 7, nil
 	case 4:
 		o := index >> 4
 		b := index & 15
 		shift := b << 2
-		return (p.blocks[o] >> shift) & 15
+		return (p.blocks[o] >> shift) & 15, nil
 	case 5:
 		o := index / 12
 		b := index % 12
 		shift := b * 5
-		return (p.blocks[o] >> shift) & 31
+		return (p.blocks[o] >> shift) & 31, nil
 	case 6:
 		o := index / 10
 		b := index % 10
 		shift := b * 6
-		return (p.blocks[o] >> shift) & 63
+		return (p.blocks[o] >> shift) & 63, nil
 	case 7:
 		o := index / 9
 		b := index % 9
 		shift := b * 7
-		return (p.blocks[o] >> shift) & 127
+		return (p.blocks[o] >> shift) & 127, nil
 	case 8:
 		o := index >> 3
 		b := index & 7
 		shift := b << 3
-		return (p.blocks[o] >> shift) & 255
+		return (p.blocks[o] >> shift) & 255, nil
 	case 9:
 		o := index / 7
 		b := index % 7
 		shift := b * 9
-		return (p.blocks[o] >> shift) & 511
+		return (p.blocks[o] >> shift) & 511, nil
 	case 10:
 		o := index / 6
 		b := index % 6
 		shift := b * 10
-		return (p.blocks[o] >> shift) & 1023
+		return (p.blocks[o] >> shift) & 1023, nil
 	case 12:
 		o := index / 5
 		b := index % 5
 		shift := b * 12
-		return (p.blocks[o] >> shift) & 4095
+		return (p.blocks[o] >> shift) & 4095, nil
 	case 16:
 		o := index >> 2
 		b := index & 3
 		shift := b << 4
-		return (p.blocks[o] >> shift) & 65535
+		return (p.blocks[o] >> shift) & 65535, nil
 	case 21:
 		o := index / 3
 		b := index % 3
 		shift := b * 21
-		return (p.blocks[o] >> shift) & 2097151
+		return (p.blocks[o] >> shift) & 2097151, nil
 	case 32:
 		o := index >> 1
 		b := index & 1
 		shift := b << 5
-		return (p.blocks[o] >> shift) & 4294967295
+		return (p.blocks[o] >> shift) & 4294967295, nil
 	}
 
-	return 0
+	return 0, nil
 }
 
 func (p *Packed64SingleBlock) Set(index int, value uint64) {
@@ -188,11 +191,26 @@ func requiredCapacity(valueCount, valuesPerBlock int) int {
 	return valueCount/valuesPerBlock + add
 }
 
-func CreatePacked64SingleBlock(valueCount, bitsPerValue int) *Packed64SingleBlock {
+func CreatePacked64SingleBlock(valueCount, bitsPerValue int) (*Packed64SingleBlock, error) {
 	switch bitsPerValue {
 	case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 21, 32:
-		return NewPacked64SingleBlock(valueCount, bitsPerValue)
+		return NewPacked64SingleBlock(valueCount, bitsPerValue), nil
 	default:
-		return nil
+		return nil, errors.New("unsupported number of bits per value")
 	}
+}
+
+func CreatePacked64SingleBlockV1(in store.DataInput, valueCount, bitsPerValue int) (*Packed64SingleBlock, error) {
+	reader, err := CreatePacked64SingleBlock(valueCount, bitsPerValue)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(reader.blocks); i++ {
+		block, err := in.ReadUint64(context.TODO())
+		if err != nil {
+			return nil, err
+		}
+		reader.blocks[i] = block
+	}
+	return reader, nil
 }

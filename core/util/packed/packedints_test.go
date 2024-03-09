@@ -15,7 +15,7 @@ func TestGetMutable(t *testing.T) {
 		}
 
 		for i := 0; i < num; i++ {
-			v := m.Get(i)
+			v, _ := m.Get(i)
 			assert.EqualValues(t, i+2, v)
 		}
 	})
@@ -29,7 +29,7 @@ func TestGetMutable(t *testing.T) {
 		}
 
 		for i := 0; i < num; i++ {
-			v := m.Get(i)
+			v, _ := m.Get(i)
 			assert.EqualValues(t, i+2, v)
 		}
 	})
@@ -43,7 +43,7 @@ func TestGetMutable(t *testing.T) {
 		}
 
 		for i := 0; i < num; i++ {
-			v := m.Get(i)
+			v, _ := m.Get(i)
 			assert.EqualValues(t, i+2, v)
 		}
 	})
@@ -57,7 +57,7 @@ func TestGetMutable(t *testing.T) {
 		}
 
 		for i := 0; i < num; i++ {
-			v := m.Get(i)
+			v, _ := m.Get(i)
 			assert.EqualValues(t, i+2, v)
 		}
 	})

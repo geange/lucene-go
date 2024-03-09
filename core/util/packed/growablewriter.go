@@ -39,8 +39,13 @@ func mask(bitsPerValue int) uint64 {
 	return MaxValue(bitsPerValue)
 }
 
-func (g *GrowableWriter) Get(index int) uint64 {
+func (g *GrowableWriter) Get(index int) (uint64, error) {
 	return g.current.Get(index)
+}
+
+func (g *GrowableWriter) GetTest(index int) uint64 {
+	v, _ := g.Get(index)
+	return v
 }
 
 func (g *GrowableWriter) GetBulk(index int, arr []uint64) int {
@@ -72,7 +77,7 @@ func (g *GrowableWriter) ensureCapacity(value uint64) {
 	bitsRequired := unsignedBitsRequired(value)
 	valueCount := g.Size()
 	next := getMutableV1(valueCount, bitsRequired, g.acceptableOverheadRatio)
-	PackedIntsCopy(g.current, 0, next, 0, valueCount, DEFAULT_BUFFER_SIZE)
+	CopyValues(g.current, 0, next, 0, valueCount, DEFAULT_BUFFER_SIZE)
 	g.current = next
 	g.currentMask = mask(g.current.GetBitsPerValue())
 }
@@ -110,6 +115,6 @@ func (g *GrowableWriter) GetFormat() Format {
 func (g *GrowableWriter) Resize(newSize int) *GrowableWriter {
 	next := NewGrowableWriter(g.GetBitsPerValue(), newSize, g.acceptableOverheadRatio)
 	limit := min(g.Size(), newSize)
-	PackedIntsCopy(g.current, 0, next, 0, limit, DEFAULT_BUFFER_SIZE)
+	CopyValues(g.current, 0, next, 0, limit, DEFAULT_BUFFER_SIZE)
 	return next
 }

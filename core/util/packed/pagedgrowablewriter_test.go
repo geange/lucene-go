@@ -19,8 +19,8 @@ func TestPagedGrowableWriter(t *testing.T) {
 	writer.Set(0, 1)
 	writer.Set(999, 2)
 
-	assert.EqualValues(t, 1, writer.Get(0))
-	assert.EqualValues(t, 2, writer.Get(999))
+	assert.EqualValues(t, 1, writer.GetTest(0))
+	assert.EqualValues(t, 2, writer.GetTest(999))
 }
 
 func TestPagedGrowableWriter_NewUnfilledCopy(t *testing.T) {
@@ -35,8 +35,8 @@ func TestPagedGrowableWriter_NewUnfilledCopy(t *testing.T) {
 	writer.Set(0, 1)
 	writer.Set(999, 2)
 
-	assert.EqualValues(t, 1, writer.Get(0))
-	assert.EqualValues(t, 2, writer.Get(999))
+	assert.EqualValues(t, 1, writer.GetTest(0))
+	assert.EqualValues(t, 2, writer.GetTest(999))
 
 	newWriter := writer.NewUnfilledCopy(100)
 
@@ -58,12 +58,12 @@ func TestPagedGrowableWriter_Resize(t *testing.T) {
 	writer.Set(0, 1)
 	writer.Set(999, 2)
 
-	assert.EqualValues(t, 1, writer.Get(0))
-	assert.EqualValues(t, 2, writer.Get(999))
+	assert.EqualValues(t, 1, writer.GetTest(0))
+	assert.EqualValues(t, 2, writer.GetTest(999))
 
 	newWriter := writer.Resize(100)
 
 	newWriter.Set(99, 3)
-	assert.EqualValues(t, 1, newWriter.Get(0))
-	assert.EqualValues(t, 3, newWriter.Get(99))
+	assert.EqualValues(t, 1, newWriter.GetTest(0))
+	assert.EqualValues(t, 3, newWriter.GetTest(99))
 }

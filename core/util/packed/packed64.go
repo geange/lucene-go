@@ -43,7 +43,47 @@ func NewPacked64(valueCount, bitsPerValue int) *Packed64 {
 	return packed64
 }
 
-func (p *Packed64) Get(index int) uint64 {
+// NewPacked64V1
+// Creates an array with content retrieved from the given DataInput.
+// in: a DataInput, positioned at the start of Packed64-content.
+// valueCount: the number of elements.
+// bitsPerValue the number of bits available for any given value.
+func NewPacked64V1(packedIntsVersion int, in store.DataInput, valueCount, bitsPerValue int) (*Packed64, error) {
+	res := NewPacked64(valueCount, bitsPerValue)
+
+	format := FormatPacked
+	byteCount := format.ByteCount(packedIntsVersion, valueCount, bitsPerValue) // to know how much to read
+	longCount := format.LongCount(VERSION_CURRENT, valueCount, bitsPerValue)   // to size the array
+	res.blocks = make([]uint64, longCount)
+	// read as many longs as we can
+	for i := 0; i < byteCount/8; i++ {
+		block, err := in.ReadUint64(context.TODO())
+		if err != nil {
+			return nil, err
+		}
+		res.blocks[i] = block
+	}
+	remaining := byteCount % 8
+	if remaining != 0 {
+		// read the last bytes
+		lastLong := uint64(0)
+		for i := 0; i < remaining; i++ {
+			b, err := in.ReadByte()
+			if err != nil {
+				return nil, err
+			}
+			lastLong |= uint64(b) << (56 - i*8)
+		}
+		res.blocks[len(res.blocks)-1] = lastLong
+	}
+
+	res.maskRight = ^uint64(0) << (Packed64BlockSize - bitsPerValue) >> (Packed64BlockSize - bitsPerValue)
+	res.bpvMinusBlockSize = bitsPerValue - Packed64BlockSize
+	res.BaseMutable = newBaseMutable(res, valueCount, bitsPerValue)
+	return res, nil
+}
+
+func (p *Packed64) Get(index int) (uint64, error) {
 	// The abstract index in a bit stream
 	majorBitPos := index * p.bitsPerValue
 
@@ -55,13 +95,18 @@ func (p *Packed64) Get(index int) uint64 {
 
 	if endBits <= 0 {
 		// Single block
-		return (p.blocks[elementPos] >> -endBits) & p.maskRight
+		return (p.blocks[elementPos] >> -endBits) & p.maskRight, nil
 	}
 
 	// Two blocks
 	return ((p.blocks[elementPos] << endBits) |
 		(p.blocks[elementPos+1] >> (Packed64BlockSize - endBits))) &
-		p.maskRight
+		p.maskRight, nil
+}
+
+func (p *Packed64) GetTest(index int) uint64 {
+	v, _ := p.Get(index)
+	return v
 }
 
 func (p *Packed64) GetBulk(index int, arr []uint64) int {
@@ -79,7 +124,7 @@ func (p *Packed64) GetBulk(index int, arr []uint64) int {
 	offsetInBlocks := index % decoder.LongBlockCount()
 	if offsetInBlocks != 0 {
 		for i := offsetInBlocks; i < decoder.LongValueCount() && length > 0; i++ {
-			arr[off] = p.Get(index)
+			arr[off], _ = p.Get(index)
 			off++
 			index++
 			length--
@@ -235,7 +280,11 @@ func (p *Packed64) Save(ctx context.Context, out store.DataOutput) error {
 		return err
 	}
 	for i := 0; i < p.Size(); i++ {
-		if err := writer.Add(p.Get(i)); err != nil {
+		v, err := p.Get(i)
+		if err != nil {
+			return err
+		}
+		if err := writer.Add(v); err != nil {
 			return err
 		}
 	}

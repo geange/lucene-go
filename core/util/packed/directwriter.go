@@ -113,13 +113,3 @@ func roundBits(bitsRequired int) int {
 		return bitsRequired
 	}
 }
-
-// DirectWriterBitsRequired
-// Returns how many bits are required to hold values up to and including maxValue
-// maxValue – the maximum value that should be representable.
-// the amount of bits needed to represent values from 0 to maxValue.
-// PackedInts.bitsRequired(long)
-//func DirectWriterBitsRequired(maxValue int64) int {
-//	required, _ := BitsRequired(maxValue)
-//	return roundBits(required)
-//}

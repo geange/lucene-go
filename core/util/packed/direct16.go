@@ -1,5 +1,10 @@
 package packed
 
+import (
+	"context"
+	"github.com/geange/lucene-go/core/store"
+)
+
 var _ Mutable = &Direct16{}
 
 type Direct16 struct {
@@ -14,8 +19,34 @@ func NewDirect16(valueCount int) *Direct16 {
 	return direct
 }
 
-func (d *Direct16) Get(index int) uint64 {
-	return uint64(d.values[index])
+func NewDirect16V1(packedIntsVersion int, in store.DataInput, valueCount int) (*Direct16, error) {
+	direct := NewDirect16(valueCount)
+
+	for i := 0; i < valueCount; i++ {
+		num, err := in.ReadUint16(context.TODO())
+		if err != nil {
+			return nil, err
+		}
+		direct.values[i] = num
+	}
+
+	// because packed ints have not always been byte-aligned
+	remaining := FormatPacked.ByteCount(packedIntsVersion, valueCount, 16) - 2*valueCount
+	for i := 0; i < remaining; i++ {
+		if _, err := in.ReadByte(); err != nil {
+			return nil, err
+		}
+	}
+	return direct, nil
+}
+
+func (d *Direct16) Get(index int) (uint64, error) {
+	return uint64(d.values[index]), nil
+}
+
+func (d *Direct16) GetTest(index int) uint64 {
+	v, _ := d.Get(index)
+	return v
 }
 
 func (d *Direct16) Set(index int, value uint64) {

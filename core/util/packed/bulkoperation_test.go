@@ -66,7 +66,6 @@ func testDecodeBytes(t *testing.T, blockBits, valueBits, maxBlockSize int, packe
 			values[idx] = uint64(tRand.Intn(1<<valueBits - 1))
 		}
 
-		//packed := NewBulkOperationPacked2()
 		iterations := blockCount / minBlockCount
 
 		encodeBlocks := make([]byte, blockCount)

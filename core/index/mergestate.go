@@ -157,7 +157,11 @@ func buildDeletionDocMaps(readers []CodecReader) []MergeStateDocMap {
 			if liveDocs == nil {
 				return docBase + docID
 			} else if liveDocs.Test(uint(docID)) {
-				return docBase + int(delDocMap.Get(int64(docID)))
+				value, err := delDocMap.Get(docID)
+				if err != nil {
+					return 0
+				}
+				return docBase + int(value)
 			} else {
 				return -1
 			}

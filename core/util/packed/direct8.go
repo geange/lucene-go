@@ -1,5 +1,7 @@
 package packed
 
+import "github.com/geange/lucene-go/core/store"
+
 var _ Mutable = &Direct8{}
 
 // Direct8
@@ -17,8 +19,28 @@ func NewDirect8(valueCount int) *Direct8 {
 	return direct
 }
 
-func (d *Direct8) Get(index int) uint64 {
-	return uint64(d.values[index])
+func NewDirect8V1(packedIntsVersion int, in store.DataInput, valueCount int) (*Direct8, error) {
+	direct := NewDirect8(valueCount)
+	if _, err := in.Read(direct.values); err != nil {
+		return nil, err
+	}
+	// because packed ints have not always been byte-aligned
+	remaining := FormatPacked.ByteCount(packedIntsVersion, valueCount, 8) - 1*valueCount
+	for i := 0; i < remaining; i++ {
+		if _, err := in.ReadByte(); err != nil {
+			return nil, err
+		}
+	}
+	return direct, nil
+}
+
+func (d *Direct8) Get(index int) (uint64, error) {
+	return uint64(d.values[index]), nil
+}
+
+func (d *Direct8) GetTest(index int) uint64 {
+	v, _ := d.Get(index)
+	return v
 }
 
 func (d *Direct8) Set(index int, value uint64) {

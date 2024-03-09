@@ -37,7 +37,7 @@ type Mutable interface {
 
 type mutableSPI interface {
 	GetBitsPerValue() int
-	Get(index int) uint64
+	Get(index int) (uint64, error)
 	Size() int
 	Set(index int, value uint64)
 }
@@ -51,7 +51,7 @@ func (m *mutable) GetBulk(index int, arr []uint64) int {
 	gets := min(m.spi.Size()-index, length)
 
 	for i, o, end := index, 0, index+gets; i < end; {
-		arr[o] = m.spi.Get(i)
+		arr[o], _ = m.spi.Get(i)
 		i++
 		o++
 	}
@@ -90,7 +90,11 @@ func (m *mutable) Save(ctx context.Context, out store.DataOutput) error {
 		return err
 	}
 	for i := 0; i < m.spi.Size(); i++ {
-		if err := writer.Add(m.spi.Get(i)); err != nil {
+		n, err := m.spi.Get(i)
+		if err != nil {
+			return err
+		}
+		if err := writer.Add(n); err != nil {
 			return err
 		}
 	}

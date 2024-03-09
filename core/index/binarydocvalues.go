@@ -118,12 +118,26 @@ func (b *BinaryDocValuesFieldUpdates) Swap(i, j int) error {
 		return err
 	}
 
-	tmpOffset := b.offsets.Get(j)
-	b.offsets.Set(j, b.offsets.Get(i))
+	tmpOffset, err := b.offsets.Get(j)
+	if err != nil {
+		return err
+	}
+	v1, err := b.offsets.Get(i)
+	if err != nil {
+		return err
+	}
+	b.offsets.Set(j, v1)
 	b.offsets.Set(i, tmpOffset)
 
-	tmpLength := b.lengths.Get(j)
-	b.lengths.Set(j, b.lengths.Get(i))
+	tmpLength, err := b.lengths.Get(j)
+	if err != nil {
+		return err
+	}
+	v2, err := b.lengths.Get(i)
+	if err != nil {
+		return err
+	}
+	b.lengths.Set(j, v2)
 	b.lengths.Set(i, tmpLength)
 	return nil
 }

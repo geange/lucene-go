@@ -138,7 +138,12 @@ func (b *BufferedNumericDocValues) NextDoc() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	b.value = b.iter.Next()
+	v, err := b.iter.Next()
+	if err != nil {
+		return 0, err
+	}
+	b.value = int64(v)
+
 	return docID, nil
 }
 

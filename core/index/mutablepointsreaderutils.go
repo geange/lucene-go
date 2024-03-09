@@ -81,7 +81,7 @@ func (r *innerSortByDim) Swap(i, j int) {
 // Partition points around mid. All values on the left must be less than or equal to it and all values on the right must be greater than or equal to it.
 func Partition(config *bkd.Config, maxDoc, splitDim, commonPrefixLen int,
 	reader types.MutablePointValues, from, to, mid int,
-	scratch1, scratch2 *bytes.Buffer) {
+	_scratch1, _scratch2 *bytes.Buffer) {
 
 	dimOffset := splitDim*config.BytesPerDoc() + commonPrefixLen
 	dimCmpBytes := config.BytesPerDoc() - commonPrefixLen
