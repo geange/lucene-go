@@ -1,6 +1,7 @@
 package packed
 
 import (
+	"github.com/geange/lucene-go/core/store"
 	"math"
 )
 
@@ -24,11 +25,25 @@ func NewPacked8ThreeBlocks(valueCount int) *Packed8ThreeBlocks {
 	return blocks
 }
 
-func (p *Packed8ThreeBlocks) Get(index int) uint64 {
+func NewNewPacked8ThreeBlocksV1(packedIntsVersion int,
+	in store.DataInput, valueCount int) (*Packed8ThreeBlocks, error) {
+	blocks := NewPacked8ThreeBlocks(valueCount)
+	if _, err := in.Read(blocks.blocks[:3*valueCount]); err != nil {
+		return nil, err
+	}
+	return blocks, nil
+}
+
+func (p *Packed8ThreeBlocks) Get(index int) (uint64, error) {
 	o := index * 3
 	return uint64(p.blocks[o])<<16 |
 		uint64(p.blocks[o+1])<<8 |
-		uint64(p.blocks[o+2])
+		uint64(p.blocks[o+2]), nil
+}
+
+func (p *Packed8ThreeBlocks) GetTest(index int) uint64 {
+	v, _ := p.Get(index)
+	return v
 }
 
 func (p *Packed8ThreeBlocks) GetBulk(index int, arr []uint64) int {

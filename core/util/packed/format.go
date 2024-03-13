@@ -51,8 +51,6 @@ func (f *intsFormat) LongCount(packedIntsVersion, valueCount, bitsPerValue int) 
 
 	byteCount := f.ByteCount(packedIntsVersion, valueCount, bitsPerValue)
 
-	//assert byteCount < 8L * Integer.MAX_VALUE;
-
 	if byteCount%8 == 0 {
 		return byteCount / 8
 	}
@@ -85,7 +83,7 @@ func (f *formatPacked) GetId() int {
 	return f.format.GetId()
 }
 
-func (f *formatPacked) ByteCount(packedIntsVersion, valueCount, bitsPerValue int) int {
+func (f *formatPacked) ByteCount(_packedIntsVersion, valueCount, bitsPerValue int) int {
 	return int(math.Ceil(float64(valueCount*bitsPerValue) / 8))
 }
 
@@ -128,7 +126,7 @@ func (f *formatPackedSingleBlock) ByteCount(packedIntsVersion, valueCount, bitsP
 	return 8 * f.LongCount(packedIntsVersion, valueCount, bitsPerValue)
 }
 
-func (f *formatPackedSingleBlock) LongCount(packedIntsVersion, valueCount, bitsPerValue int) int {
+func (f *formatPackedSingleBlock) LongCount(_packedIntsVersion, valueCount, bitsPerValue int) int {
 	valuesPerBlock := 64 / float64(bitsPerValue)
 	return int(math.Ceil(float64(valueCount) / valuesPerBlock))
 }

@@ -52,11 +52,10 @@ func (p *PackedWriter) Add(v uint64) error {
 	if p.valueCount != -1 && p.written >= p.valueCount {
 		return errors.New("writing past end of stream")
 	}
-	p.nextValues[p.off] = uint64(v)
+	p.nextValues[p.off] = v
 	p.off++
 	if p.off == len(p.nextValues) {
-		err := p.flush()
-		if err != nil {
+		if err := p.flush(); err != nil {
 			return err
 		}
 	}

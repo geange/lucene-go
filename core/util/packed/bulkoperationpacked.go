@@ -137,7 +137,7 @@ func (b *BulkOperationPacked) EncodeUint64(values []uint64, blocks []uint64, ite
 	}
 }
 
-// EncodeBytes c
+// EncodeBytes
 func (b *BulkOperationPacked) EncodeBytes(values []uint64, blocks []byte, iterations int) {
 	valuesOffset, blocksOffset := 0, 0
 

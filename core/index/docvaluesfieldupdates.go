@@ -112,9 +112,16 @@ func (d *DocValuesFieldUpdatesDefault) Size() int {
 }
 
 func (d *DocValuesFieldUpdatesDefault) Swap(i, j int) error {
-	tmpDoc := d.docs.Get(j)
-	d.docs.Set(j, d.docs.Get(i))
-	d.docs.Set(i, tmpDoc)
+	doc1, err := d.docs.Get(j)
+	if err != nil {
+		return err
+	}
+	doc2, err := d.docs.Get(i)
+	if err != nil {
+		return err
+	}
+	d.docs.Set(j, doc2)
+	d.docs.Set(i, doc1)
 	return nil
 }
 

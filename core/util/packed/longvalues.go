@@ -1,6 +1,9 @@
 package packed
 
-import "github.com/geange/lucene-go/core/types"
+import (
+	"github.com/geange/lucene-go/core/types"
+	"io"
+)
 
 var _ types.LongValues = &LongValues{}
 
@@ -10,26 +13,26 @@ var _ types.LongValues = &LongValues{}
 type LongValues struct {
 	values    []Reader
 	pageShift int
-	pageMask  int64
+	pageMask  int
 	size      int
 }
 
 func NewLongValues(values []Reader, pageShift int, pageMask int, size int) *LongValues {
-	return &LongValues{values: values, pageShift: pageShift, pageMask: int64(pageMask), size: size}
+	return &LongValues{values: values, pageShift: pageShift, pageMask: pageMask, size: size}
 }
 
 func (p *LongValues) Size() int64 {
 	return int64(p.size)
 }
 
-func (p *LongValues) Get(index int64) int64 {
-	block := int(index >> p.pageShift)
-	element := int(index & p.pageMask)
+func (p *LongValues) Get(index int) (uint64, error) {
+	block := index >> p.pageShift
+	element := index & p.pageMask
 	return p.Load(block, element)
 }
 
-func (p *LongValues) Load(block int, element int) int64 {
-	return int64(p.values[block].Get(element))
+func (p *LongValues) Load(block int, element int) (uint64, error) {
+	return p.values[block].Get(element)
 }
 
 type LongValuesIterator struct {
@@ -42,13 +45,16 @@ func (i *LongValuesIterator) HasNext() bool {
 	return i.pos < int(i.p.Size())
 }
 
-func (i *LongValuesIterator) Next() int64 {
+func (i *LongValuesIterator) Next() (uint64, error) {
 	if i.HasNext() {
-		v := i.p.Get(int64(i.pos))
+		v, err := i.p.Get(i.pos)
+		if err != nil {
+			return 0, err
+		}
 		i.pos++
-		return v
+		return v, nil
 	}
-	return 0
+	return 0, io.EOF
 }
 
 func (p *LongValues) Iterator() *LongValuesIterator {

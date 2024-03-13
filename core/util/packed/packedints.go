@@ -106,7 +106,7 @@ func GetBulk(reader Reader, index int, arr []uint64) int {
 	gets := min(reader.Size()-index, len(arr))
 
 	for i, o, end := index, 0, index+gets; i < end; {
-		arr[o] = reader.Get(i)
+		arr[o], _ = reader.Get(i)
 		i++
 		o++
 	}
@@ -129,15 +129,13 @@ func NewNullReader(valueCount int) *NullReader {
 	return &NullReader{valueCount: valueCount}
 }
 
-func (n *NullReader) Get(index int) uint64 {
-	return 0
+func (n *NullReader) Get(index int) (uint64, error) {
+	return 0, nil
 }
 
 func (n *NullReader) GetBulk(index int, arr []uint64) int {
 	size := min(len(arr), n.valueCount-index)
-	for i := range arr {
-		arr[i] = 0
-	}
+	clear(arr[:size])
 	return size
 }
 
@@ -146,7 +144,7 @@ func (n *NullReader) Size() int {
 }
 
 // Return the number of blocks required to store size values on blockSize.
-func numBlocks(size, blockSize int) (int, error) {
+func getNumBlocks(size, blockSize int) (int, error) {
 	add := 1
 	if size%blockSize == 0 {
 		add = 0
@@ -158,12 +156,17 @@ func numBlocks(size, blockSize int) (int, error) {
 	return num, nil
 }
 
-// PackedIntsCopy Copy src[srcPos:srcPos+len] into dest[destPos:destPos+len] using at most mem bytes.
-func PackedIntsCopy(src Reader, srcPos int, dest Mutable, destPos, size, mem int) {
+// CopyValues
+// Copy src[srcPos:srcPos+len] into dest[destPos:destPos+len] using at most mem bytes.
+func CopyValues(src Reader, srcPos int, dest Mutable, destPos, size, mem int) {
 	capacity := mem >> 3
 	if capacity == 0 {
 		for i := 0; i < size; i++ {
-			dest.Set(destPos, src.Get(srcPos))
+			v, err := src.Get(srcPos)
+			if err != nil {
+				return
+			}
+			dest.Set(destPos, v)
 			destPos++
 			srcPos++
 		}
@@ -172,12 +175,13 @@ func PackedIntsCopy(src Reader, srcPos int, dest Mutable, destPos, size, mem int
 	if size > 0 {
 		// use bulk operations
 		buf := make([]uint64, min(capacity, size))
-		PackedIntsCopyBuff(src, srcPos, dest, destPos, size, buf)
+		CopyValuesWithBuffer(src, srcPos, dest, destPos, size, buf)
 	}
 }
 
-// TODO: fix
-func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int, buf []uint64) {
+// CopyValuesWithBuffer
+// Same as copy(PackedInts.Reader, int, PackedInts.Mutable, int, int, int) but using a pre-allocated buffer.
+func CopyValuesWithBuffer(src Reader, srcPos int, dest Mutable, destPos, size int, buf []uint64) {
 	remaining := 0
 	for size > 0 {
 		copySize := min(size, len(buf)-remaining)
@@ -189,7 +193,8 @@ func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int,
 		written := dest.SetBulk(destPos, buf[0:remaining])
 		destPos += written
 		if written < remaining {
-			copy(buf[0:remaining-written], buf[written:remaining])
+			length := remaining - written
+			copy(buf[:length], buf[written:])
 		}
 		remaining -= written
 	}
@@ -198,7 +203,7 @@ func PackedIntsCopyBuff(src Reader, srcPos int, dest Mutable, destPos, size int,
 		written := dest.SetBulk(destPos, buf[0:remaining])
 		destPos += written
 		remaining -= written
-		copy(buf[0:remaining], buf[written:written+remaining])
+		copy(buf[0:remaining], buf[written:])
 	}
 }
 
@@ -232,7 +237,8 @@ func getMutableV1(valueCount, bitsPerValue int, acceptableOverheadRatio float64)
 func getMutable(valueCount, bitsPerValue int, format Format) Mutable {
 	switch format.(type) {
 	case *formatPackedSingleBlock:
-		return CreatePacked64SingleBlock(valueCount, bitsPerValue)
+		m, _ := CreatePacked64SingleBlock(valueCount, bitsPerValue)
+		return m
 	case *formatPacked:
 		switch bitsPerValue {
 		case 8:
@@ -282,6 +288,10 @@ func BitsRequired(maxValue int64) (int, error) {
 		return 0, fmt.Errorf("maxValue must be non-negative (got: %d)", maxValue)
 	}
 	return unsignedBitsRequired(uint64(maxValue)), nil
+}
+
+func UnsignedBitsRequired(v uint64) int {
+	return unsignedBitsRequired(v)
 }
 
 func unsignedBitsRequired(v uint64) int {
@@ -374,6 +384,13 @@ func GetEncoder(format Format, version, bitsPerValue int) (Encoder, error) {
 	return Of(format, bitsPerValue)
 }
 
+func GetDecoder(format Format, version, bitsPerValue int) (Decoder, error) {
+	if err := checkVersion(version); err != nil {
+		return nil, err
+	}
+	return Of(format, bitsPerValue)
+}
+
 func checkVersion(version int) error {
 	if version < VERSION_START {
 		return errors.New("version is too old")
@@ -382,4 +399,79 @@ func checkVersion(version int) error {
 		return errors.New("version is too new")
 	}
 	return nil
+}
+
+// Expert: Restore a PackedInts.Reader from a stream without reading metadata at the beginning of the stream.
+// This method is useful to restore data from streams which have been created using
+// getWriterNoHeader(store.DataOutput, Format, int, int, int).
+//
+// in: the stream to read data from, positioned at the beginning of the packed values
+// format: the format used to serialize
+// version: the version used to serialize the data
+// valueCount: how many values the stream holds
+// bitsPerValue: the number of bits per value
+//
+// lucene.internal
+func getReaderNoHeader(in store.IndexInput, format Format, version, valueCount, bitsPerValue int) (Reader, error) {
+	err := checkVersion(version)
+	if err != nil {
+		return nil, err
+	}
+	switch format.(type) {
+	case *formatPackedSingleBlock:
+		return CreatePacked64SingleBlockV1(in, valueCount, bitsPerValue)
+	case *formatPacked:
+		switch bitsPerValue {
+		case 8:
+			return NewDirect8V1(version, in, valueCount)
+		case 16:
+			return NewDirect16V1(version, in, valueCount)
+		case 32:
+			return NewDirect32V1(version, in, valueCount)
+		case 64:
+			return NewDirect64V1(version, in, valueCount)
+		case 24:
+			if valueCount <= Packed8ThreeBlocksMaxSize {
+				return NewNewPacked8ThreeBlocksV1(version, in, valueCount)
+			}
+			break
+		case 48:
+			if valueCount <= Packed16ThreeBlocksMaxSize {
+				return NewPacked16ThreeBlocksV1(version, in, valueCount)
+			}
+			break
+		}
+		return NewPacked64V1(version, in, valueCount, bitsPerValue)
+	default:
+		return nil, errors.New("unknown Writer format")
+	}
+}
+
+// Expert: Construct a direct Reader from a stream without reading
+// metadata at the beginning of the stream. This method is useful to restore
+// data from streams which have been created using getWriterNoHeader(store.DataOutput, Format, int, int, int)
+//
+// The returned reader will have very little memory overhead, but every call
+// to {@link Reader#get(int)} is likely to perform a disk seek.
+//
+// in: the stream to read data from
+// format: the format used to serialize
+// version: the version used to serialize the data
+// valueCount: how many values the stream holds
+// bitsPerValue: the number of bits per value
+// @lucene.internal
+func getDirectReaderNoHeader(in store.IndexInput, format Format, version, valueCount, bitsPerValue int) (Reader, error) {
+	err := checkVersion(version)
+	if err != nil {
+		return nil, err
+	}
+
+	switch format {
+	case FormatPacked:
+		return NewDirectPackedReader(bitsPerValue, valueCount, in), nil
+	case FormatPackedSingleBlock:
+		return NewDirectPacked64SingleBlockReader(bitsPerValue, valueCount, in), nil
+	default:
+		return nil, errors.New("unknown format")
+	}
 }

@@ -1,7 +1,8 @@
 package packed
 
 type PagedMutable interface {
-	Get(index int) uint64
+	Get(index int) (uint64, error)
+	GetTest(index int) uint64
 	Set(index int, value uint64)
 	Resize(newSize int) PagedMutable
 	Grow(minSize int) PagedMutable
@@ -33,7 +34,7 @@ func newPagedMutable(spi PagedMutableSPI, bitsPerValue, size, pageSize int) *Bas
 		pageMask:     pageSize - 1,
 	}
 
-	numPages, _ := numBlocks(size, pageSize)
+	numPages, _ := getNumBlocks(size, pageSize)
 	m.subMutables = make([]Mutable, numPages)
 	return m
 }
@@ -49,7 +50,7 @@ const (
 )
 
 func (a *BasePagedMutable) fillPages() error {
-	numPages, err := numBlocks(a.size, a.pageSize())
+	numPages, err := getNumBlocks(a.size, a.pageSize())
 	if err != nil {
 		return err
 	}
@@ -88,10 +89,15 @@ func (a *BasePagedMutable) indexInPage(index int) int {
 	return index & a.pageMask
 }
 
-func (a *BasePagedMutable) Get(index int) uint64 {
+func (a *BasePagedMutable) Get(index int) (uint64, error) {
 	pageIndex := a.pageIndex(index)
 	indexInPage := a.indexInPage(index)
 	return a.subMutables[pageIndex].Get(indexInPage)
+}
+
+func (a *BasePagedMutable) GetTest(index int) uint64 {
+	v, _ := a.Get(index)
+	return v
 }
 
 func (a *BasePagedMutable) Set(index int, value uint64) {
@@ -137,7 +143,7 @@ func (a *BasePagedMutable) Resize(newSize int) PagedMutable {
 		ucopy.SetSubMutableByIndex(i, a.spi.NewMutable(valueCount, bpv))
 		if i < numCommonPages {
 			copyLength := min(valueCount, a.subMutables[i].Size())
-			PackedIntsCopyBuff(a.subMutables[i], 0, subMutables[i], 0, copyLength, copyBuffer)
+			CopyValuesWithBuffer(a.subMutables[i], 0, subMutables[i], 0, copyLength, copyBuffer)
 		}
 	}
 	return ucopy

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/geange/lucene-go/core/util/zigzag"
 	"io"
 )
 
@@ -164,9 +165,12 @@ func (d *BaseDataInput) ReadUint64(context.Context) (uint64, error) {
 	return d.endian.Uint64(d.buff), nil
 }
 
-func (d *BaseDataInput) ReadZInt64(context.Context) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+func (d *BaseDataInput) ReadZInt64(ctx context.Context) (int64, error) {
+	num, err := d.ReadUvarint(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return zigzag.Decode(num), nil
 }
 
 func (d *BaseDataInput) ReadString(ctx context.Context) (string, error) {
@@ -392,8 +396,8 @@ func (d *BaseDataOutput) WriteUint64(ctx context.Context, i uint64) error {
 }
 
 func (d *BaseDataOutput) WriteZInt64(ctx context.Context, i int64) error {
-	//TODO implement me
-	panic("implement me")
+	num := zigzag.Encode(i)
+	return d.WriteUvarint(ctx, num)
 }
 
 func (d *BaseDataOutput) WriteString(ctx context.Context, s string) error {
