@@ -345,7 +345,7 @@ func (b *BlockPackedReaderIterator) NextSlices(ctx context.Context, count int) (
 	b.valuesRef = b.values[b.off : b.off+count]
 
 	b.off += count
-	b.off += count
+	b.ord += count
 
 	return b.valuesRef, nil
 }
@@ -369,7 +369,7 @@ func (b *BlockPackedReaderIterator) refill(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		minValue = zigzag.Decode(num)
+		minValue = zigzag.Decode(num + 1)
 	}
 
 	if bitsPerValue == 0 {
@@ -403,7 +403,7 @@ func (b *BlockPackedReaderIterator) refill(ctx context.Context) error {
 			}
 		}
 	}
-	b.ord = 0
+	b.off = 0
 	return nil
 }
 
