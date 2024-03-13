@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	Packed16ThreeBlocksMaxSize = math.MaxInt32 / 3
+	Packed16ThreeBlocks_MAX_SIZE = math.MaxInt32 / 3
 )
 
 var _ Mutable = &Packed16ThreeBlocks{}
@@ -16,22 +16,23 @@ var _ Mutable = &Packed16ThreeBlocks{}
 // Packed16ThreeBlocks Packs integers into 3 shorts (48 bits per value).
 // lucene.internal
 type Packed16ThreeBlocks struct {
-	*BaseMutable
+	*baseMutable
 
 	blocks []uint16
 }
 
 func NewPacked16ThreeBlocks(valueCount int) *Packed16ThreeBlocks {
 	blocks := &Packed16ThreeBlocks{blocks: make([]uint16, valueCount*3)}
-	blocks.BaseMutable = newBaseMutable(blocks, valueCount, 48)
+	blocks.baseMutable = newBaseMutable(blocks, valueCount, 48)
 	return blocks
 }
 
-func NewPacked16ThreeBlocksV1(packedIntsVersion int,
+func NewPacked16ThreeBlocksV1(ctx context.Context, packedIntsVersion int,
 	in store.DataInput, valueCount int) (*Packed16ThreeBlocks, error) {
+
 	blocks := NewPacked16ThreeBlocks(valueCount)
 	for i := 0; i < 3*valueCount; i++ {
-		block, err := in.ReadUint16(context.TODO())
+		block, err := in.ReadUint16(ctx)
 		if err != nil {
 			return nil, err
 		}

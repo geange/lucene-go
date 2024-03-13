@@ -2,106 +2,100 @@ package packed
 
 import (
 	"errors"
-	"math"
+	"github.com/geange/lucene-go/core/util/packed/bulkoperation"
+	"github.com/geange/lucene-go/core/util/packed/common"
 )
-
-type BulkOperation interface {
-	Decoder
-	Encoder
-}
 
 var (
-	packedBulkOps = []BulkOperation{
-		NewBulkOperationPacked1(),
-		NewBulkOperationPacked2(),
-		NewBulkOperationPacked3(),
-		NewBulkOperationPacked4(),
-		NewBulkOperationPacked5(),
-		NewBulkOperationPacked6(),
-		NewBulkOperationPacked7(),
-		NewBulkOperationPacked8(),
-		NewBulkOperationPacked9(),
-		NewBulkOperationPacked10(),
-		NewBulkOperationPacked11(),
-		NewBulkOperationPacked12(),
-		NewBulkOperationPacked13(),
-		NewBulkOperationPacked14(),
-		NewBulkOperationPacked15(),
-		NewBulkOperationPacked16(),
-		NewBulkOperationPacked17(),
-		NewBulkOperationPacked18(),
-		NewBulkOperationPacked19(),
-		NewBulkOperationPacked20(),
-		NewBulkOperationPacked21(),
-		NewBulkOperationPacked22(),
-		NewBulkOperationPacked23(),
-		NewBulkOperationPacked24(),
-		NewBulkOperationPacked(25),
-		NewBulkOperationPacked(26),
-		NewBulkOperationPacked(27),
-		NewBulkOperationPacked(28),
-		NewBulkOperationPacked(29),
-		NewBulkOperationPacked(30),
-		NewBulkOperationPacked(31),
-		NewBulkOperationPacked(32),
-		NewBulkOperationPacked(33),
-		NewBulkOperationPacked(34),
-		NewBulkOperationPacked(35),
-		NewBulkOperationPacked(36),
-		NewBulkOperationPacked(37),
-		NewBulkOperationPacked(38),
-		NewBulkOperationPacked(39),
-		NewBulkOperationPacked(40),
-		NewBulkOperationPacked(41),
-		NewBulkOperationPacked(42),
-		NewBulkOperationPacked(43),
-		NewBulkOperationPacked(44),
-		NewBulkOperationPacked(45),
-		NewBulkOperationPacked(46),
-		NewBulkOperationPacked(47),
-		NewBulkOperationPacked(48),
-		NewBulkOperationPacked(49),
-		NewBulkOperationPacked(50),
-		NewBulkOperationPacked(51),
-		NewBulkOperationPacked(52),
-		NewBulkOperationPacked(53),
-		NewBulkOperationPacked(54),
-		NewBulkOperationPacked(55),
-		NewBulkOperationPacked(56),
-		NewBulkOperationPacked(57),
-		NewBulkOperationPacked(58),
-		NewBulkOperationPacked(59),
-		NewBulkOperationPacked(60),
-		NewBulkOperationPacked(61),
-		NewBulkOperationPacked(62),
-		NewBulkOperationPacked(63),
-		NewBulkOperationPacked(64),
+	packedBulkOps = []common.BulkOperation{
+		bulkoperation.NewPacked1(),
+		bulkoperation.NewPacked2(),
+		bulkoperation.NewPacked3(),
+		bulkoperation.NewPacked4(),
+		bulkoperation.NewPacked5(),
+		bulkoperation.NewPacked6(),
+		bulkoperation.NewPacked7(),
+		bulkoperation.NewPacked8(),
+		bulkoperation.NewPacked9(),
+		bulkoperation.NewPacked10(),
+		bulkoperation.NewPacked11(),
+		bulkoperation.NewPacked12(),
+		bulkoperation.NewPacked13(),
+		bulkoperation.NewPacked14(),
+		bulkoperation.NewPacked15(),
+		bulkoperation.NewPacked16(),
+		bulkoperation.NewPacked17(),
+		bulkoperation.NewPacked18(),
+		bulkoperation.NewPacked19(),
+		bulkoperation.NewPacked20(),
+		bulkoperation.NewPacked21(),
+		bulkoperation.NewPacked22(),
+		bulkoperation.NewPacked23(),
+		bulkoperation.NewPacked24(),
+		bulkoperation.NewPacked(25),
+		bulkoperation.NewPacked(26),
+		bulkoperation.NewPacked(27),
+		bulkoperation.NewPacked(28),
+		bulkoperation.NewPacked(29),
+		bulkoperation.NewPacked(30),
+		bulkoperation.NewPacked(31),
+		bulkoperation.NewPacked(32),
+		bulkoperation.NewPacked(33),
+		bulkoperation.NewPacked(34),
+		bulkoperation.NewPacked(35),
+		bulkoperation.NewPacked(36),
+		bulkoperation.NewPacked(37),
+		bulkoperation.NewPacked(38),
+		bulkoperation.NewPacked(39),
+		bulkoperation.NewPacked(40),
+		bulkoperation.NewPacked(41),
+		bulkoperation.NewPacked(42),
+		bulkoperation.NewPacked(43),
+		bulkoperation.NewPacked(44),
+		bulkoperation.NewPacked(45),
+		bulkoperation.NewPacked(46),
+		bulkoperation.NewPacked(47),
+		bulkoperation.NewPacked(48),
+		bulkoperation.NewPacked(49),
+		bulkoperation.NewPacked(50),
+		bulkoperation.NewPacked(51),
+		bulkoperation.NewPacked(52),
+		bulkoperation.NewPacked(53),
+		bulkoperation.NewPacked(54),
+		bulkoperation.NewPacked(55),
+		bulkoperation.NewPacked(56),
+		bulkoperation.NewPacked(57),
+		bulkoperation.NewPacked(58),
+		bulkoperation.NewPacked(59),
+		bulkoperation.NewPacked(60),
+		bulkoperation.NewPacked(61),
+		bulkoperation.NewPacked(62),
+		bulkoperation.NewPacked(63),
+		bulkoperation.NewPacked(64),
 	}
 
-	packedSingleBlockBulkOps = []BulkOperation{
-		NewBulkOperationPackedSingleBlock(1),
-		NewBulkOperationPackedSingleBlock(2),
-		NewBulkOperationPackedSingleBlock(3),
-		NewBulkOperationPackedSingleBlock(4),
-		NewBulkOperationPackedSingleBlock(5),
-		NewBulkOperationPackedSingleBlock(6),
-		NewBulkOperationPackedSingleBlock(7),
-		NewBulkOperationPackedSingleBlock(8),
-		NewBulkOperationPackedSingleBlock(9),
-		NewBulkOperationPackedSingleBlock(10),
+	packedSingleBlockBulkOps = []common.BulkOperation{
+		bulkoperation.NewPackedSingleBlock(1),
+		bulkoperation.NewPackedSingleBlock(2),
+		bulkoperation.NewPackedSingleBlock(3),
+		bulkoperation.NewPackedSingleBlock(4),
+		bulkoperation.NewPackedSingleBlock(5),
+		bulkoperation.NewPackedSingleBlock(6),
+		bulkoperation.NewPackedSingleBlock(7),
+		bulkoperation.NewPackedSingleBlock(8),
+		bulkoperation.NewPackedSingleBlock(9),
+		bulkoperation.NewPackedSingleBlock(10),
 		nil,
-		NewBulkOperationPackedSingleBlock(12),
-		nil,
-		nil,
-		nil,
-		NewBulkOperationPackedSingleBlock(16),
+		bulkoperation.NewPackedSingleBlock(12),
 		nil,
 		nil,
 		nil,
+		bulkoperation.NewPackedSingleBlock(16),
 		nil,
-		NewBulkOperationPackedSingleBlock(21),
 		nil,
 		nil,
+		nil,
+		bulkoperation.NewPackedSingleBlock(21),
 		nil,
 		nil,
 		nil,
@@ -110,11 +104,13 @@ var (
 		nil,
 		nil,
 		nil,
-		NewBulkOperationPackedSingleBlock(32),
+		nil,
+		nil,
+		bulkoperation.NewPackedSingleBlock(32),
 	}
 )
 
-func Of(format Format, bitsPerValue int) (BulkOperation, error) {
+func Of(format Format, bitsPerValue int) (common.BulkOperation, error) {
 	switch format.(type) {
 	case *formatPacked:
 		if packedBulkOps[bitsPerValue-1] != nil {
@@ -126,43 +122,4 @@ func Of(format Format, bitsPerValue int) (BulkOperation, error) {
 		}
 	}
 	return nil, errors.New("AssertionError")
-}
-
-type bulkOperation struct {
-	decoder Decoder
-}
-
-func writeLong(block uint64, blocks []byte, blocksOffset int) int {
-	for j := 1; j <= 8; j++ {
-		blocks[blocksOffset] = byte(block >> (64 - (j << 3)))
-		blocksOffset++
-	}
-	return blocksOffset
-}
-
-// ComputeIterations
-// For every number of bits per value, there is a minimum number of blocks (b) / values (v)
-// you need to write in order to reach the next block boundary:
-// - 16 bits per value -> b=2, v=1
-// - 24 bits per value -> b=3, v=1
-// - 50 bits per value -> b=25, v=4
-// - 63 bits per value -> b=63, v=8
-// - ...
-// A bulk read consists in copying iterations*v values that are contained in iterations*b blocks
-// into a long[] (higher values of iterations are likely to yield a better throughput):
-// this requires n * (b + 8v) bytes of memory. This method computes iterations as ramBudget / (b + 8v)
-// (since a long is 8 bytes).
-func (b *bulkOperation) ComputeIterations(valueCount, ramBudget int) int {
-	iterations := ramBudget / (b.decoder.ByteBlockCount() + 8*b.decoder.ByteValueCount())
-	if iterations == 0 {
-		// at least 1
-		return 1
-	}
-
-	if (iterations-1)*b.decoder.ByteValueCount() >= valueCount {
-		// don't allocate for more than the size of the reader
-		return int(math.Ceil(float64(valueCount) / float64(b.decoder.ByteValueCount())))
-	}
-
-	return iterations
 }

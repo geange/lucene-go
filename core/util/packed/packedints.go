@@ -1,12 +1,13 @@
 package packed
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/store"
-
-	"github.com/pkg/errors"
 	"math"
 	"math/bits"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 const (
@@ -78,9 +79,9 @@ func fastestFormatAndBits(valueCount, bitsPerValue int, acceptableOverheadRatio 
 		actualBitsPerValue = 32
 	} else if bitsPerValue <= 64 && maxBitsPerValue >= 64 {
 		actualBitsPerValue = 64
-	} else if valueCount <= Packed8ThreeBlocksMaxSize && bitsPerValue <= 24 && maxBitsPerValue >= 24 {
+	} else if valueCount <= Packed8ThreeBlocks_MAX_SIZE && bitsPerValue <= 24 && maxBitsPerValue >= 24 {
 		actualBitsPerValue = 24
-	} else if valueCount <= Packed8ThreeBlocksMaxSize && bitsPerValue <= 48 && maxBitsPerValue >= 48 {
+	} else if valueCount <= Packed8ThreeBlocks_MAX_SIZE && bitsPerValue <= 48 && maxBitsPerValue >= 48 {
 		actualBitsPerValue = 48
 	} else {
 		for bpv := bitsPerValue; bpv <= maxBitsPerValue; bpv++ {
@@ -237,7 +238,7 @@ func getMutableV1(valueCount, bitsPerValue int, acceptableOverheadRatio float64)
 func getMutable(valueCount, bitsPerValue int, format Format) Mutable {
 	switch format.(type) {
 	case *formatPackedSingleBlock:
-		m, _ := CreatePacked64SingleBlock(valueCount, bitsPerValue)
+		m, _ := NewPacked64SingleBlock(valueCount, bitsPerValue)
 		return m
 	case *formatPacked:
 		switch bitsPerValue {
@@ -250,12 +251,12 @@ func getMutable(valueCount, bitsPerValue int, format Format) Mutable {
 		case 64:
 			return NewDirect64(valueCount)
 		case 24:
-			if valueCount <= Packed8ThreeBlocksMaxSize {
+			if valueCount <= Packed8ThreeBlocks_MAX_SIZE {
 				return NewPacked8ThreeBlocks(valueCount)
 			}
 			break
 		case 48:
-			if valueCount <= Packed16ThreeBlocksMaxSize {
+			if valueCount <= Packed16ThreeBlocks_MAX_SIZE {
 				return NewPacked16ThreeBlocks(valueCount)
 			}
 			break
@@ -412,36 +413,34 @@ func checkVersion(version int) error {
 // bitsPerValue: the number of bits per value
 //
 // lucene.internal
-func getReaderNoHeader(in store.IndexInput, format Format, version, valueCount, bitsPerValue int) (Reader, error) {
-	err := checkVersion(version)
-	if err != nil {
+func getReaderNoHeader(ctx context.Context, in store.IndexInput, format Format, version, valueCount, bitsPerValue int) (Reader, error) {
+	if err := checkVersion(version); err != nil {
 		return nil, err
 	}
+
 	switch format.(type) {
 	case *formatPackedSingleBlock:
-		return CreatePacked64SingleBlockV1(in, valueCount, bitsPerValue)
+		return NewPacked64SingleBlockV1(nil, in, valueCount, bitsPerValue)
 	case *formatPacked:
 		switch bitsPerValue {
 		case 8:
-			return NewDirect8V1(version, in, valueCount)
+			return NewDirect8V1(ctx, version, in, valueCount)
 		case 16:
-			return NewDirect16V1(version, in, valueCount)
+			return NewDirect16V1(ctx, version, in, valueCount)
 		case 32:
-			return NewDirect32V1(version, in, valueCount)
+			return NewDirect32V1(ctx, version, in, valueCount)
 		case 64:
-			return NewDirect64V1(version, in, valueCount)
+			return NewDirect64V1(ctx, version, in, valueCount)
 		case 24:
-			if valueCount <= Packed8ThreeBlocksMaxSize {
-				return NewNewPacked8ThreeBlocksV1(version, in, valueCount)
+			if valueCount <= Packed8ThreeBlocks_MAX_SIZE {
+				return NewNewPacked8ThreeBlocksV1(ctx, version, in, valueCount)
 			}
-			break
 		case 48:
-			if valueCount <= Packed16ThreeBlocksMaxSize {
-				return NewPacked16ThreeBlocksV1(version, in, valueCount)
+			if valueCount <= Packed16ThreeBlocks_MAX_SIZE {
+				return NewPacked16ThreeBlocksV1(ctx, version, in, valueCount)
 			}
-			break
 		}
-		return NewPacked64V1(version, in, valueCount, bitsPerValue)
+		return NewPacked64V1(ctx, version, in, valueCount, bitsPerValue)
 	default:
 		return nil, errors.New("unknown Writer format")
 	}
@@ -460,7 +459,7 @@ func getReaderNoHeader(in store.IndexInput, format Format, version, valueCount, 
 // valueCount: how many values the stream holds
 // bitsPerValue: the number of bits per value
 // @lucene.internal
-func getDirectReaderNoHeader(in store.IndexInput, format Format, version, valueCount, bitsPerValue int) (Reader, error) {
+func getDirectReaderNoHeader(ctx context.Context, in store.IndexInput, format Format, version, valueCount, bitsPerValue int) (Reader, error) {
 	err := checkVersion(version)
 	if err != nil {
 		return nil, err

@@ -1,12 +1,13 @@
 package packed
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/store"
 	"math"
 )
 
 const (
-	Packed8ThreeBlocksMaxSize = math.MaxInt32 / 3
+	Packed8ThreeBlocks_MAX_SIZE = math.MaxInt32 / 3
 )
 
 var _ Mutable = &Packed8ThreeBlocks{}
@@ -14,19 +15,20 @@ var _ Mutable = &Packed8ThreeBlocks{}
 // Packed8ThreeBlocks Packs integers into 3 bytes (24 bits per value).
 // lucene.internal
 type Packed8ThreeBlocks struct {
-	*BaseMutable
+	*baseMutable
 
 	blocks []byte
 }
 
 func NewPacked8ThreeBlocks(valueCount int) *Packed8ThreeBlocks {
 	blocks := &Packed8ThreeBlocks{blocks: make([]byte, valueCount*3)}
-	blocks.BaseMutable = newBaseMutable(blocks, valueCount, 24)
+	blocks.baseMutable = newBaseMutable(blocks, valueCount, 24)
 	return blocks
 }
 
-func NewNewPacked8ThreeBlocksV1(packedIntsVersion int,
+func NewNewPacked8ThreeBlocksV1(ctx context.Context, packedIntsVersion int,
 	in store.DataInput, valueCount int) (*Packed8ThreeBlocks, error) {
+
 	blocks := NewPacked8ThreeBlocks(valueCount)
 	if _, err := in.Read(blocks.blocks[:3*valueCount]); err != nil {
 		return nil, err
@@ -51,9 +53,10 @@ func (p *Packed8ThreeBlocks) GetBulk(index int, arr []uint64) int {
 	end := (index + gets) * 3
 
 	off := 0
+
 	for i := index * 3; i < end; i += 3 {
 		arr[off] = uint64(p.blocks[i])<<16 |
-			uint64(p.blocks[i+1])<<16 |
+			uint64(p.blocks[i+1])<<8 |
 			uint64(p.blocks[i+2])
 		off++
 	}
@@ -68,16 +71,17 @@ func (p *Packed8ThreeBlocks) Set(index int, value uint64) {
 }
 
 func (p *Packed8ThreeBlocks) SetBulk(index int, arr []uint64) int {
-	sets := min(p.valueCount-index, len(arr))
+	setSize := min(p.valueCount-index, len(arr))
 
-	for i, off := 0, index*3; i < sets; i++ {
+	off := index * 3
+	for i := 0; i < setSize; i++ {
 		value := arr[i]
 		p.blocks[off] = byte(value >> 16)
 		p.blocks[off+1] = byte(value >> 8)
 		p.blocks[off+2] = byte(value)
 		off += 3
 	}
-	return sets
+	return setSize
 }
 
 func (p *Packed8ThreeBlocks) Fill(fromIndex, toIndex int, value uint64) {

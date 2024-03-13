@@ -1,67 +1,105 @@
 package packed
 
 import (
-	"slices"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPacked8ThreeBlocks_Fill(t *testing.T) {
-	direct := NewPacked8ThreeBlocks(100)
-	direct.Clear()
+	for i := 0; i < 10; i++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 100 + r.Intn(10000)
 
-	direct.Fill(0, 10, 1)
-	assert.EqualValues(t, 1, direct.GetTest(9))
+		direct := NewPacked8ThreeBlocks(valueCount)
+		direct.Clear()
 
-	direct.Fill(0, 20, 2)
-	assert.EqualValues(t, 2, direct.GetTest(9))
-	assert.EqualValues(t, 2, direct.GetTest(17))
+		fromIndex := r.Intn(valueCount / 2)
+		toIndex := fromIndex + r.Intn(valueCount/2)
 
-	direct.Fill(90, 100, 3)
-	assert.EqualValues(t, 3, direct.GetTest(90))
-	assert.EqualValues(t, 3, direct.GetTest(99))
+		value := uint64(r.Intn(1 << 24))
+
+		direct.Fill(fromIndex, toIndex, value)
+
+		for j := 0; j < 10; j++ {
+			idx := fromIndex + r.Intn(toIndex-fromIndex)
+			assert.EqualValues(t, value, direct.GetTest(idx))
+		}
+	}
 }
 
 func TestPacked8ThreeBlocks_Set(t *testing.T) {
-	direct := NewPacked8ThreeBlocks(100)
+	for i := 0; i < 10; i++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 100 + r.Intn(10000)
 
-	direct.Set(0, 2)
-	assert.EqualValues(t, 2, direct.GetTest(0))
+		direct := NewPacked8ThreeBlocks(valueCount)
+		direct.Clear()
 
-	direct.Set(1, 3)
-	assert.EqualValues(t, 3, direct.GetTest(1))
-
-	direct.Set(2, 4)
-	assert.EqualValues(t, 4, direct.GetTest(2))
-
-	direct.Set(99, 5)
-	assert.EqualValues(t, 5, direct.GetTest(99))
+		for j := 0; j < 10; j++ {
+			value := uint64(r.Intn(1 << 24))
+			idx := r.Intn(valueCount)
+			direct.Set(idx, value)
+			assert.EqualValues(t, value, direct.GetTest(idx))
+		}
+	}
 }
 
 func TestPacked8ThreeBlocks_GetBulk(t *testing.T) {
-	direct := NewPacked8ThreeBlocks(100)
-	direct.Fill(0, 10, 1)
+	for i := 0; i < 10; i++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 100 + r.Intn(10000)
 
-	bulk := make([]uint64, 10)
-	direct.GetBulk(0, bulk)
+		direct := NewPacked8ThreeBlocks(valueCount)
+		direct.Clear()
 
-	assert.EqualValues(t, fill(make([]uint64, 10), 1), bulk)
+		fromIndex := r.Intn(valueCount / 2)
+		toIndex := fromIndex + r.Intn(valueCount/2)
 
-	direct.GetBulk(50, bulk)
-	assert.EqualValues(t, make([]uint64, 10), bulk)
+		size := toIndex - fromIndex
+		nums := make([]uint64, size)
+
+		for j := 0; j < 10; j++ {
+			idx := r.Intn(size)
+			value := uint64(r.Intn(1 << 24))
+			nums[idx] = value
+			direct.Set(fromIndex+idx, value)
+		}
+
+		bulkNums := make([]uint64, size)
+		direct.GetBulk(fromIndex, bulkNums)
+
+		assert.EqualValues(t, nums, bulkNums)
+	}
 }
 
 func TestPacked8ThreeBlocks_SetBulk(t *testing.T) {
-	direct := NewPacked8ThreeBlocks(100)
+	for i := 0; i < 10; i++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 100 + r.Intn(10000)
 
-	index := 1
+		direct := NewPacked8ThreeBlocks(valueCount)
+		direct.Clear()
 
-	writeBulk := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	expectBulk := slices.Clone(writeBulk)
-	direct.SetBulk(index, writeBulk)
+		fromIndex := r.Intn(valueCount / 2)
+		toIndex := fromIndex + r.Intn(valueCount/2)
 
-	readBulk := make([]uint64, 10)
-	direct.GetBulk(index, readBulk)
-	assert.EqualValues(t, expectBulk, readBulk)
+		size := toIndex - fromIndex
+		nums := make([]uint64, size)
+
+		for j := 0; j < 10; j++ {
+			idx := r.Intn(size)
+			value := uint64(r.Intn(1 << 24))
+			nums[idx] = value
+		}
+
+		direct.SetBulk(fromIndex, nums)
+
+		bulkNums := make([]uint64, size)
+		direct.GetBulk(fromIndex, bulkNums)
+
+		assert.EqualValues(t, nums, bulkNums)
+	}
 }

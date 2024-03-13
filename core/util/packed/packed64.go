@@ -2,35 +2,32 @@ package packed
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/geange/lucene-go/core/store"
+	"io"
 )
 
 const (
-	Packed64BlockSize = 64                    // 32 = int, 64 = long
-	Packed64BlockBits = 6                     // The #bits representing BLOCK_SIZE
-	Packed64ModMask   = Packed64BlockSize - 1 // x % BLOCK_SIZE
+	Packed64BlockSize = 64                            // 32 = int, 64 = long
+	Packed64BlockBits = 6                             // The #bits representing BLOCK_SIZE
+	MOD_MASK          = uint64(Packed64BlockSize - 1) // x % BLOCK_SIZE
 )
 
 var _ Mutable = &Packed64{}
 
 type Packed64 struct {
-	*BaseMutable
+	*baseMutable
 
-	// Values are stores contiguously in the blocks array.
-	blocks []uint64
-
-	// A right-aligned mask of width BitsPerValue used by get(int).
-	maskRight uint64
-
-	// Optimization: Saves one lookup in get(int).
-	bpvMinusBlockSize int
+	blocks            []uint64 // Values are stores contiguously in the blocks array.
+	maskRight         uint64   // A right-aligned mask of width BitsPerValue used by get(int).
+	bpvMinusBlockSize int      // Optimization: Saves one lookup in get(int).
 }
 
 // NewPacked64
 // Creates an array with the internal structures adjusted for the given limits and initialized to 0.
-// Params: 	valueCount – the number of elements.
-//
-//	bitsPerValue – the number of bits available for any given value.
+// valueCount: the number of elements.
+// bitsPerValue: the number of bits available for any given value.
 func NewPacked64(valueCount, bitsPerValue int) *Packed64 {
 	format := FormatPacked
 	longCount := format.LongCount(VERSION_CURRENT, valueCount, bitsPerValue)
@@ -39,7 +36,7 @@ func NewPacked64(valueCount, bitsPerValue int) *Packed64 {
 	packed64.maskRight = ^uint64(0) << (Packed64BlockSize - bitsPerValue) >> (Packed64BlockSize - bitsPerValue)
 	packed64.bpvMinusBlockSize = bitsPerValue - Packed64BlockSize
 
-	packed64.BaseMutable = newBaseMutable(packed64, valueCount, bitsPerValue)
+	packed64.baseMutable = newBaseMutable(packed64, valueCount, bitsPerValue)
 	return packed64
 }
 
@@ -48,7 +45,7 @@ func NewPacked64(valueCount, bitsPerValue int) *Packed64 {
 // in: a DataInput, positioned at the start of Packed64-content.
 // valueCount: the number of elements.
 // bitsPerValue the number of bits available for any given value.
-func NewPacked64V1(packedIntsVersion int, in store.DataInput, valueCount, bitsPerValue int) (*Packed64, error) {
+func NewPacked64V1(ctx context.Context, packedIntsVersion int, in store.DataInput, valueCount, bitsPerValue int) (*Packed64, error) {
 	res := NewPacked64(valueCount, bitsPerValue)
 
 	format := FormatPacked
@@ -57,7 +54,7 @@ func NewPacked64V1(packedIntsVersion int, in store.DataInput, valueCount, bitsPe
 	res.blocks = make([]uint64, longCount)
 	// read as many longs as we can
 	for i := 0; i < byteCount/8; i++ {
-		block, err := in.ReadUint64(context.TODO())
+		block, err := in.ReadUint64(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -79,23 +76,31 @@ func NewPacked64V1(packedIntsVersion int, in store.DataInput, valueCount, bitsPe
 
 	res.maskRight = ^uint64(0) << (Packed64BlockSize - bitsPerValue) >> (Packed64BlockSize - bitsPerValue)
 	res.bpvMinusBlockSize = bitsPerValue - Packed64BlockSize
-	res.BaseMutable = newBaseMutable(res, valueCount, bitsPerValue)
+	res.baseMutable = newBaseMutable(res, valueCount, bitsPerValue)
 	return res, nil
 }
 
 func (p *Packed64) Get(index int) (uint64, error) {
 	// The abstract index in a bit stream
-	majorBitPos := index * p.bitsPerValue
+	majorBitPos := uint64(index * p.bitsPerValue)
 
 	// The index in the backing long-array
 	elementPos := majorBitPos >> Packed64BlockBits
 
+	if int(elementPos) >= len(p.blocks) {
+		return 0, io.EOF
+	}
+
 	// The number of value-bits in the second long
-	endBits := (majorBitPos & Packed64ModMask) + p.bpvMinusBlockSize
+	endBits := int(majorBitPos&MOD_MASK) + p.bpvMinusBlockSize
 
 	if endBits <= 0 {
 		// Single block
 		return (p.blocks[elementPos] >> -endBits) & p.maskRight, nil
+	}
+
+	if int(elementPos+1) >= len(p.blocks) {
+		return 0, io.EOF
 	}
 
 	// Two blocks
@@ -109,8 +114,8 @@ func (p *Packed64) GetTest(index int) uint64 {
 	return v
 }
 
-func (p *Packed64) GetBulk(index int, arr []uint64) int {
-	off, length := 0, len(arr)
+func (p *Packed64) GetBulk(index int, buffer []uint64) int {
+	bufferIndex, length := 0, len(buffer)
 	length = min(length, p.valueCount-index)
 
 	originalIndex := index
@@ -121,11 +126,18 @@ func (p *Packed64) GetBulk(index int, arr []uint64) int {
 	}
 
 	// go to the next block where the value does not span across two blocks
-	offsetInBlocks := index % decoder.LongBlockCount()
+	offsetInBlocks := index % decoder.LongValueCount()
 	if offsetInBlocks != 0 {
 		for i := offsetInBlocks; i < decoder.LongValueCount() && length > 0; i++ {
-			arr[off], _ = p.Get(index)
-			off++
+			n, err := p.Get(index)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return bufferIndex
+				}
+				return 0
+			}
+			buffer[bufferIndex] = n
+			bufferIndex++
 			index++
 			length--
 		}
@@ -139,7 +151,7 @@ func (p *Packed64) GetBulk(index int, arr []uint64) int {
 	blockIndex := (index * p.bitsPerValue) >> Packed64BlockBits
 
 	iterations := length / decoder.LongValueCount()
-	decoder.DecodeUint64(p.blocks[blockIndex:], arr[off:], iterations)
+	decoder.DecodeUint64(p.blocks[blockIndex:], buffer[bufferIndex:], iterations)
 	gotValues := iterations * decoder.LongValueCount()
 	index += gotValues
 	length -= gotValues
@@ -150,18 +162,21 @@ func (p *Packed64) GetBulk(index int, arr []uint64) int {
 	}
 
 	// no progress so far => already at a block boundary but no full block to get
-	return GetBulk(p, index, arr[off:off+length])
+	return GetBulk(p, index, buffer[bufferIndex:bufferIndex+length])
 }
 
 func (p *Packed64) Set(index int, value uint64) {
 	// The abstract index in a contiguous bit stream
-	majorBitPos := index * p.bitsPerValue
+	majorBitPos := uint64(index * p.bitsPerValue)
 	// The index in the backing long-array
 	elementPos := majorBitPos >> Packed64BlockBits // / BLOCK_SIZE
 	// The number of value-bits in the second long
-	endBits := (majorBitPos & Packed64ModMask) + p.bpvMinusBlockSize
+	endBits := int(majorBitPos&MOD_MASK) + p.bpvMinusBlockSize
 
 	if endBits <= 0 { // Single block
+		if int(elementPos) >= len(p.blocks) {
+			fmt.Println(elementPos, p.bitsPerValue)
+		}
 		p.blocks[elementPos] = p.blocks[elementPos] & ^(p.maskRight<<-endBits) | (value << -endBits)
 		return
 	}

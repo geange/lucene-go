@@ -2,12 +2,15 @@ package packed
 
 import (
 	"errors"
-	"math"
-	"slices"
-
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/packed/common"
+	"math"
 )
 
+// DirectWriter
+// Class for writing packed integers to be directly read from Directory.
+// Integers can be read on-the-fly via DirectReader.
+// Unlike PackedInts, it optimizes for read i/o operations and supports > 2B values.
 type DirectWriter struct {
 	bitsPerValue int
 	numValues    int
@@ -20,7 +23,7 @@ type DirectWriter struct {
 	nextBlocks        []byte
 	nextValues        []uint64
 	nextValuesMaxSize int
-	encoder           BulkOperation
+	encoder           common.BulkOperation
 	iterations        int
 }
 
@@ -95,21 +98,21 @@ func (d *DirectWriter) Finish() error {
 
 // GetInstance
 // Returns an instance suitable for encoding numValues using bitsPerValue
-func GetInstance(output store.DataOutput, numValues, bitsPerValue int) (*DirectWriter, error) {
-	if _, ok := slices.BinarySearch(SUPPORTED_BITS_PER_VALUE, bitsPerValue); !ok {
-		return nil, errors.New("unsupported bitsPerValue")
-	}
-	return NewDirectWriter(output, numValues, bitsPerValue)
-}
+//func GetInstance(output store.DataOutput, numValues, bitsPerValue int) (*DirectWriter, error) {
+//	if _, ok := slices.BinarySearch(SUPPORTED_BITS_PER_VALUE, bitsPerValue); !ok {
+//		return nil, errors.New("unsupported bitsPerValue")
+//	}
+//	return NewDirectWriter(output, numValues, bitsPerValue)
+//}
 
 // Round a number of bits per value to the next amount of bits per value that is supported by this writer.
 // bitsRequired – the amount of bits required
 // the next number of bits per value that is gte the provided value and supported by this writer
-func roundBits(bitsRequired int) int {
-	index, _ := slices.BinarySearch(SUPPORTED_BITS_PER_VALUE, bitsRequired)
-	if index < 0 {
-		return SUPPORTED_BITS_PER_VALUE[-index-1]
-	} else {
-		return bitsRequired
-	}
-}
+//func roundBits(bitsRequired int) int {
+//	index, _ := slices.BinarySearch(SUPPORTED_BITS_PER_VALUE, bitsRequired)
+//	if index < 0 {
+//		return SUPPORTED_BITS_PER_VALUE[-index-1]
+//	} else {
+//		return bitsRequired
+//	}
+//}

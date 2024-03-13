@@ -64,7 +64,7 @@ func NewBlockPackedReader(ctx context.Context, in store.IndexInput,
 			size := min(blockSize, valueCount-i*blockSize)
 			if direct {
 				pointer := in.GetFilePointer()
-				subReader, err := getDirectReaderNoHeader(in, FormatPacked, packedIntsVersion, size, bitsPerValue)
+				subReader, err := getDirectReaderNoHeader(ctx, in, FormatPacked, packedIntsVersion, size, bitsPerValue)
 				if err != nil {
 					return nil, err
 				}
@@ -73,7 +73,7 @@ func NewBlockPackedReader(ctx context.Context, in store.IndexInput,
 					return nil, err
 				}
 			} else {
-				subReader, err := getReaderNoHeader(in, FormatPacked, packedIntsVersion, size, bitsPerValue)
+				subReader, err := getReaderNoHeader(ctx, in, FormatPacked, packedIntsVersion, size, bitsPerValue)
 				if err != nil {
 					return nil, err
 				}
