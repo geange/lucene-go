@@ -1,5 +1,7 @@
 # lucene-go
 
+[![Go](https://github.com/geange/lucene-go/actions/workflows/go.yml/badge.svg)](https://github.com/geange/lucene-go/actions/workflows/go.yml)
+
 **[English](README.md)**
 
 ## 概要
