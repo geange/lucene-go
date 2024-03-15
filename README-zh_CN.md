@@ -3,6 +3,7 @@
 [![GoDoc](https://godoc.org/github.com/geange/lucene-go?status.svg)](https://godoc.org/github.com/geange/lucene-go)
 [![Go](https://github.com/geange/lucene-go/actions/workflows/go.yml/badge.svg)](https://github.com/geange/lucene-go/actions/workflows/go.yml)
 [![CodeQL](https://github.com/geange/lucene-go/actions/workflows/codeql.yml/badge.svg)](https://github.com/geange/lucene-go/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/geange/lucene-go/graph/badge.svg?token=52HZJSPPS6)](https://codecov.io/gh/geange/lucene-go)
 
 **[English](README.md)**
 
