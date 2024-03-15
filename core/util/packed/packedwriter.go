@@ -2,7 +2,10 @@ package packed
 
 import (
 	"errors"
+
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/packed/bulkoperation"
+	"github.com/geange/lucene-go/core/util/packed/common"
 )
 
 var _ Writer = &PackedWriter{}
@@ -12,7 +15,7 @@ type PackedWriter struct {
 
 	finished   bool
 	format     Format
-	encoder    BulkOperation
+	encoder    common.BulkOperation
 	nextBlocks []byte
 	nextValues []uint64
 	iterations int
@@ -26,8 +29,7 @@ func NewPackedWriter(format Format, out store.DataOutput, valueCount, bitsPerVal
 		return nil
 	}
 
-	op := bulkOperation{decoder: encoder}
-	iterations := op.ComputeIterations(valueCount, mem)
+	iterations := bulkoperation.ComputeIterations(encoder, valueCount, mem)
 
 	packedWriter := &PackedWriter{
 		finished:   false,

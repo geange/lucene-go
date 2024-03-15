@@ -2,24 +2,29 @@ package packed
 
 import (
 	"context"
+	"errors"
 	"github.com/geange/lucene-go/core/store"
+	"io"
 )
 
-// Mutable A packed integer array that can be modified.
+// Mutable
+// A packed integer array that can be modified.
 // lucene.internal
 type Mutable interface {
 	Reader
 
-	// GetBitsPerValue Returns:
-	//the number of bits used to store any given value. Note: This does not imply that memory usage is bitsPerValue * #values as implementations are free to use non-space-optimal packing of bits.
+	// GetBitsPerValue returns the number of bits used to store any given value.
+	// Note: This does not imply that memory usage is bitsPerValue * #values as implementations
+	// are free to use non-space-optimal packing of bits.
 	GetBitsPerValue() int
 
 	// Set the value at the given index in the array.
-	// Params:  index – where the value should be positioned.
-	//			value – a value conforming to the constraints set by the array.
+	// index: where the value should be positioned.
+	// value: a value conforming to the constraints set by the array.
 	Set(index int, value uint64)
 
-	// SetBulk Bulk set: set at least one and at most len longs starting at off in arr into this mutable, starting at index. Returns the actual number of values that have been set.
+	// SetBulk set at least one and at most len longs starting at off in arr into this mutable,
+	// starting at index. Returns the actual number of values that have been set.
 	SetBulk(index int, arr []uint64) int
 
 	// Fill the mutable from fromIndex (inclusive) to toIndex (exclusive) with val.
@@ -51,7 +56,15 @@ func (m *mutable) GetBulk(index int, arr []uint64) int {
 	gets := min(m.spi.Size()-index, length)
 
 	for i, o, end := index, 0, index+gets; i < end; {
-		arr[o], _ = m.spi.Get(i)
+		n, err := m.spi.Get(i)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return i
+			}
+			return 0
+		}
+
+		arr[o] = n
 		i++
 		o++
 	}
@@ -105,26 +118,26 @@ func (m *mutable) GetFormat() Format {
 	return FormatPacked
 }
 
-type BaseMutable struct {
+type baseMutable struct {
 	*mutable
 
 	valueCount   int
 	bitsPerValue int
 }
 
-func newBaseMutable(spi mutableSPI, valueCount int, bitsPerValue int) *BaseMutable {
-	return &BaseMutable{
+func newBaseMutable(spi mutableSPI, valueCount int, bitsPerValue int) *baseMutable {
+	return &baseMutable{
 		mutable:      &mutable{spi: spi},
 		valueCount:   valueCount,
 		bitsPerValue: bitsPerValue,
 	}
 }
 
-func (m *BaseMutable) GetBitsPerValue() int {
+func (m *baseMutable) GetBitsPerValue() int {
 	return m.bitsPerValue
 }
 
-func (m *BaseMutable) Size() int {
+func (m *baseMutable) Size() int {
 	return m.valueCount
 }
 

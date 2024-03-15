@@ -4,22 +4,39 @@ import (
 	"context"
 	"errors"
 	"github.com/geange/lucene-go/core/store"
-	"sort"
 )
 
 type Packed64SingleBlock struct {
-	*BaseMutable
+	*baseMutable
 
-	fnGet  func(index int) int64
-	fnSet  func(index int, value int64)
 	blocks []uint64
 }
 
-func NewPacked64SingleBlock(valueCount, bitsPerValue int) *Packed64SingleBlock {
-	valuesPerBlock := 64 / bitsPerValue
-	block := &Packed64SingleBlock{blocks: make([]uint64, requiredCapacity(valueCount, valuesPerBlock))}
-	block.BaseMutable = newBaseMutable(block, valueCount, bitsPerValue)
-	return block
+func NewPacked64SingleBlock(valueCount, bitsPerValue int) (*Packed64SingleBlock, error) {
+	switch bitsPerValue {
+	case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 21, 32:
+		valuesPerBlock := 64 / bitsPerValue
+		block := &Packed64SingleBlock{blocks: make([]uint64, requiredCapacity(valueCount, valuesPerBlock))}
+		block.baseMutable = newBaseMutable(block, valueCount, bitsPerValue)
+		return block, nil
+	default:
+		return nil, errors.New("unsupported number of bits per value")
+	}
+}
+
+func NewPacked64SingleBlockV1(ctx context.Context, in store.DataInput, valueCount, bitsPerValue int) (*Packed64SingleBlock, error) {
+	reader, err := NewPacked64SingleBlock(valueCount, bitsPerValue)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(reader.blocks); i++ {
+		block, err := in.ReadUint64(ctx)
+		if err != nil {
+			return nil, err
+		}
+		reader.blocks[i] = block
+	}
+	return reader, nil
 }
 
 func (p *Packed64SingleBlock) Get(index int) (uint64, error) {
@@ -175,12 +192,19 @@ func (p *Packed64SingleBlock) Set(index int, value uint64) {
 
 }
 
+func (p *Packed64SingleBlock) Clear() {
+	clear(p.blocks)
+}
+
 var (
-	SUPPORTED_BITS_PER_VALUE = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 21, 32}
+	//SUPPORTED_BITS_PER_VALUE = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 21, 32}
+	SUPPORTED_BITS_PER_VALUE = map[int]bool{
+		1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true, 9: true, 10: true, 12: true, 16: true, 21: true, 32: true,
+	}
 )
 
 func isSupported(bitsPerValue int) bool {
-	return sort.SearchInts(SUPPORTED_BITS_PER_VALUE, bitsPerValue) >= 0
+	return SUPPORTED_BITS_PER_VALUE[bitsPerValue]
 }
 
 func requiredCapacity(valueCount, valuesPerBlock int) int {
@@ -189,28 +213,4 @@ func requiredCapacity(valueCount, valuesPerBlock int) int {
 		add = 0
 	}
 	return valueCount/valuesPerBlock + add
-}
-
-func CreatePacked64SingleBlock(valueCount, bitsPerValue int) (*Packed64SingleBlock, error) {
-	switch bitsPerValue {
-	case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 21, 32:
-		return NewPacked64SingleBlock(valueCount, bitsPerValue), nil
-	default:
-		return nil, errors.New("unsupported number of bits per value")
-	}
-}
-
-func CreatePacked64SingleBlockV1(in store.DataInput, valueCount, bitsPerValue int) (*Packed64SingleBlock, error) {
-	reader, err := CreatePacked64SingleBlock(valueCount, bitsPerValue)
-	if err != nil {
-		return nil, err
-	}
-	for i := 0; i < len(reader.blocks); i++ {
-		block, err := in.ReadUint64(context.TODO())
-		if err != nil {
-			return nil, err
-		}
-		reader.blocks[i] = block
-	}
-	return reader, nil
 }

@@ -2,84 +2,113 @@ package packed
 
 import (
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"slices"
 	"testing"
+	"time"
 )
 
 func TestNewGrowableWriter(t *testing.T) {
-	startBitsPerValue := 1
-	valueCount := 100
-	acceptableOverheadRatio := 1.0
-	growableWriter := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
-	growableWriter.Set(0, 1<<8-1)
+	for startBitsPerValue := 1; startBitsPerValue <= 64; startBitsPerValue++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 100 + r.Intn(10000)
+		acceptableOverheadRatio := 1.0
+		growableWriter := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
 
-	{
-		n, err := growableWriter.Get(0)
-		assert.Nil(t, err)
-		assert.EqualValues(t, 1<<8-1, n)
+		for i := 0; i < 10; i++ {
+			idx := r.Intn(valueCount)
+			value := uint64(1<<startBitsPerValue - 1)
+			growableWriter.Set(idx, value)
+			n, err := growableWriter.Get(idx)
+			assert.Nil(t, err)
+			assert.EqualValues(t, value, n)
+		}
 	}
-
-	assert.EqualValues(t, 8, growableWriter.GetBitsPerValue())
 }
 
 func TestGrowableWriter_Fill(t *testing.T) {
-	startBitsPerValue := 1
-	valueCount := 100
-	acceptableOverheadRatio := 1.0
-	direct := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
-	direct.Clear()
+	for startBitsPerValue := 1; startBitsPerValue <= 64; startBitsPerValue++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 100 + r.Intn(10000)
+		acceptableOverheadRatio := 1.0
+		growableWriter := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
 
-	direct.Fill(0, 10, 1)
-	assert.EqualValues(t, 1, direct.GetTest(9))
+		for i := 0; i < 10; i++ {
+			from := r.Intn(valueCount / 2)
+			to := from + 1 + r.Intn(valueCount/2)
 
-	direct.Fill(0, 20, 2)
-	assert.EqualValues(t, 2, direct.GetTest(9))
-	assert.EqualValues(t, 2, direct.GetTest(17))
+			value := uint64(1<<startBitsPerValue - 1)
 
-	direct.Fill(90, 100, 3)
-	assert.EqualValues(t, 3, direct.GetTest(90))
-	assert.EqualValues(t, 3, direct.GetTest(99))
+			growableWriter.Fill(from, to, value)
+			idx := from + r.Intn(to-from)
+
+			assert.EqualValues(t, value, growableWriter.GetTest(idx))
+		}
+	}
 }
 
 func TestGrowableWriter_Set(t *testing.T) {
-	startBitsPerValue := 1
-	valueCount := 100
-	acceptableOverheadRatio := 1.0
-	direct := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
+	for startBitsPerValue := 1; startBitsPerValue <= 64; startBitsPerValue++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 100 + r.Intn(10000)
+		acceptableOverheadRatio := 1.0
+		growableWriter := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
 
-	direct.Set(0, 2)
-	assert.EqualValues(t, 2, direct.GetTest(0))
-
-	direct.Set(1, 3)
-	assert.EqualValues(t, 3, direct.GetTest(1))
-
-	direct.Set(2, 4)
-	assert.EqualValues(t, 4, direct.GetTest(2))
-
-	direct.Set(99, 5)
-	assert.EqualValues(t, 5, direct.GetTest(99))
+		for i := 0; i < 10; i++ {
+			idx := r.Intn(valueCount)
+			value := uint64(1<<startBitsPerValue - 1)
+			growableWriter.Set(idx, value)
+			assert.EqualValues(t, value, growableWriter.GetTest(idx))
+		}
+	}
 }
 
 func TestGrowableWriter_GetBulk(t *testing.T) {
-	startBitsPerValue := 1
-	valueCount := 1000
-	acceptableOverheadRatio := 1.0
-	direct := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
-	direct.Fill(0, 10, 1)
+	for startBitsPerValue := 1; startBitsPerValue <= 64; startBitsPerValue++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 100 + r.Intn(10000)
+		acceptableOverheadRatio := 1.0
+		growableWriter := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
 
-	bulk := make([]uint64, 10)
-	direct.GetBulk(0, bulk)
+		fromIndex := r.Intn(valueCount / 2)
+		toIndex := fromIndex + 1 + r.Intn(valueCount/2)
+		size := toIndex - fromIndex
+		nums := make([]uint64, size)
 
-	assert.EqualValues(t, fill(make([]uint64, 10), 1), bulk)
+		value := uint64(1<<startBitsPerValue - 1)
+		for i := 0; i < 10; i++ {
+			idx := r.Intn(size)
+			nums[idx] = value
+			growableWriter.Set(fromIndex+idx, value)
+		}
 
-	direct.GetBulk(50, bulk)
-	assert.EqualValues(t, make([]uint64, 10), bulk)
+		bulkNums := make([]uint64, size)
+		bulkSize := growableWriter.GetBulk(fromIndex, bulkNums)
+		assert.NotEqual(t, 0, bulkSize)
+		assert.EqualValuesf(t, nums[:bulkSize], bulkNums[:bulkSize],
+			"startBitsPerValue=%d,valueCount=%d,fromIndex=%d,toIndex=%d",
+			startBitsPerValue, valueCount, fromIndex, toIndex)
+	}
+	//
+	//startBitsPerValue := 1
+	//valueCount := 1000
+	//acceptableOverheadRatio := 1.0
+	//direct := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
+	//direct.Fill(0, 10, 1)
+	//
+	//bulk := make([]uint64, 10)
+	//direct.GetBulk(0, bulk)
+	//
+	//assert.EqualValues(t, fill(make([]uint64, 10), 1), bulk)
+	//
+	//direct.GetBulk(50, bulk)
+	//assert.EqualValues(t, make([]uint64, 10), bulk)
 }
 
 func TestGrowableWriter_SetBulk(t *testing.T) {
 	startBitsPerValue := 1
 	valueCount := 1000
-	acceptableOverheadRatio := 1.0
+	acceptableOverheadRatio := 0.0
 	direct := NewGrowableWriter(startBitsPerValue, valueCount, acceptableOverheadRatio)
 
 	index := 2

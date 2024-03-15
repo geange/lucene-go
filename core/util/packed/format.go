@@ -1,11 +1,25 @@
 package packed
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 var (
 	FormatPacked            = newFormatPacked(0)
 	FormatPackedSingleBlock = newFormatPackedSingleBlock(1)
 )
+
+func GetFormatById(id int) (Format, error) {
+	switch id {
+	case 0:
+		return FormatPacked, nil
+	case 1:
+		return FormatPackedSingleBlock, nil
+	default:
+		return nil, fmt.Errorf("unknown format id: %d", id)
+	}
+}
 
 type Format interface {
 	GetId() int
@@ -127,8 +141,8 @@ func (f *formatPackedSingleBlock) ByteCount(packedIntsVersion, valueCount, bitsP
 }
 
 func (f *formatPackedSingleBlock) LongCount(_packedIntsVersion, valueCount, bitsPerValue int) int {
-	valuesPerBlock := 64 / float64(bitsPerValue)
-	return int(math.Ceil(float64(valueCount) / valuesPerBlock))
+	valuesPerBlock := 64 / bitsPerValue
+	return int(math.Ceil(float64(valueCount) / float64(valuesPerBlock)))
 }
 
 func (f *formatPackedSingleBlock) IsSupported(bitsPerValue int) bool {

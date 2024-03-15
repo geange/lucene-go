@@ -2,9 +2,10 @@ package packed
 
 import (
 	"context"
+	"math"
+
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"math"
 )
 
 var _ types.LongValues = &MonotonicBlockPackedReader{}
@@ -67,7 +68,7 @@ func NewMonotonicBlockPackedReader(ctx context.Context, in store.IndexInput,
 			size := min(blockSize, valueCount-i*blockSize)
 			if direct {
 				pointer := in.GetFilePointer()
-				readerNoHeader, err := getDirectReaderNoHeader(in, FormatPacked, packedIntsVersion, size, int(bitsPerValue))
+				readerNoHeader, err := getDirectReaderNoHeader(ctx, in, FormatPacked, packedIntsVersion, size, int(bitsPerValue))
 				if err != nil {
 					return nil, err
 				}
@@ -77,7 +78,7 @@ func NewMonotonicBlockPackedReader(ctx context.Context, in store.IndexInput,
 					return nil, err
 				}
 			} else {
-				readerNoHeader, err := getReaderNoHeader(in, FormatPacked, packedIntsVersion, size, int(bitsPerValue))
+				readerNoHeader, err := getReaderNoHeader(ctx, in, FormatPacked, packedIntsVersion, size, int(bitsPerValue))
 				if err != nil {
 					return nil, err
 				}

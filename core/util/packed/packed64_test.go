@@ -1,42 +1,52 @@
 package packed
 
 import (
+	"context"
+	"github.com/geange/lucene-go/core/store"
+	"math/rand"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPacked64_Fill(t *testing.T) {
-	direct := NewPacked64(100, 10)
-	direct.Clear()
+	for i := 1; i < 63; i++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 1 + r.Intn(200000)
+		direct := NewPacked64(valueCount, i)
+		direct.Clear()
 
-	direct.Fill(0, 10, 1)
-	assert.EqualValues(t, 1, direct.GetTest(9))
+		value := uint64(r.Intn(1 << i))
+		direct.Fill(0, valueCount, value)
 
-	direct.Fill(0, 20, 2)
-	assert.EqualValues(t, 2, direct.GetTest(9))
-	assert.EqualValues(t, 2, direct.GetTest(17))
+		for j := 0; j < 10; j++ {
 
-	direct.Fill(90, 100, 3)
-	assert.EqualValues(t, 3, direct.GetTest(90))
-	assert.EqualValues(t, 3, direct.GetTest(99))
+			idx := r.Intn(valueCount)
+			assert.EqualValuesf(t, value, direct.GetTest(idx), "bitsPerValue=%d", i)
+		}
+
+	}
 }
 
 func TestPacked64_Set(t *testing.T) {
-	direct := NewPacked64(100, 10)
+	for i := 1; i < 63; i++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := 1 + r.Intn(200000)
+		direct := NewPacked64(valueCount, i)
+		direct.Clear()
 
-	direct.Set(0, 2)
-	assert.EqualValues(t, 2, direct.GetTest(0))
+		times := r.Intn(10000)
+		for j := 0; j < times; j++ {
+			idx := r.Intn(valueCount)
 
-	direct.Set(1, 3)
-	assert.EqualValues(t, 3, direct.GetTest(1))
+			value := uint64(r.Intn(1 << i))
+			direct.Set(idx, value)
 
-	direct.Set(2, 4)
-	assert.EqualValues(t, 4, direct.GetTest(2))
-
-	direct.Set(99, 5)
-	assert.EqualValues(t, 5, direct.GetTest(99))
+			assert.EqualValuesf(t, value, direct.GetTest(idx), "bitsPerValue=%d", i)
+		}
+	}
 }
 
 func TestPacked64_GetBulk(t *testing.T) {
@@ -64,4 +74,21 @@ func TestPacked64_SetBulk(t *testing.T) {
 	readBulk := make([]uint64, 10)
 	direct.GetBulk(index, readBulk)
 	assert.EqualValues(t, expectBulk, readBulk)
+}
+
+func TestPacked64_Save(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		output := store.NewBufferDataOutput()
+
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		valueCount := r.Intn(10000)
+		bitsPerValue := 1 + r.Intn(64)
+		pack := NewPacked64(valueCount, bitsPerValue)
+
+		err := pack.Save(context.TODO(), output)
+		assert.Nil(t, err)
+
+		bs := output.Bytes()
+		t.Log(len(bs), valueCount, bitsPerValue)
+	}
 }

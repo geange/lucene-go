@@ -5,10 +5,14 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/core/store"
 	"io"
+	"math"
 )
 
 var _ Reader = &DirectPackedReader{}
 
+// DirectPackedReader
+// Reads directly from disk on each get
+// just for back compat, use DirectReader/DirectWriter for more efficient impl
 type DirectPackedReader struct {
 	in           store.IndexInput
 	bitsPerValue int
@@ -44,8 +48,7 @@ func NewDirectPackedReader(bitsPerValue, valueCount int, in store.IndexInput) *D
 	}
 
 	if bitsPerValue == 64 {
-		n := int64(-1)
-		reader.valueMask = uint64(n)
+		reader.valueMask = math.MaxUint64
 	} else {
 		reader.valueMask = (1 << bitsPerValue) - 1
 	}
@@ -62,7 +65,9 @@ func (d *DirectPackedReader) Get(index int) (uint64, error) {
 
 	bitPos := majorBitPos & 7
 	// round up bits to a multiple of 8 to find total bytes needed to read
-	roundedBits := (bitPos + d.bitsPerValue + 7) & int(^uint32(7))
+	// 将位数四舍五入到8的倍数，以找到读取所需的总字节数
+	// roundedBits = (bitPos+d.bitsPerValue+7) / 8
+	roundedBits := int(uint64(bitPos+d.bitsPerValue+7) & (^uint64(7)))
 	// the number of extra bits read at the end to shift out
 	shiftRightBits := roundedBits - bitPos - d.bitsPerValue
 
@@ -102,6 +107,7 @@ func (d *DirectPackedReader) Get(index int) (uint64, error) {
 			return 0, err
 		}
 		rawValue = uint64(v)
+
 	case 5:
 		n1, err := d.in.ReadUint32(ctx)
 		if err != nil {
