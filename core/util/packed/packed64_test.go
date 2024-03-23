@@ -87,8 +87,5 @@ func TestPacked64_Save(t *testing.T) {
 
 		err := pack.Save(context.TODO(), output)
 		assert.Nil(t, err)
-
-		bs := output.Bytes()
-		t.Log(len(bs), valueCount, bitsPerValue)
 	}
 }

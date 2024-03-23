@@ -12,7 +12,6 @@ func TestBytesHashAdd(t *testing.T) {
 	checkBytesHashAdd(t, 16, 2)
 	checkBytesHashAdd(t, 16, 16)
 	checkBytesHashAdd(t, 1<<4, 1<<3)
-	checkBytesHashAdd(t, 1<<4, 1<<3)
 	checkBytesHashAdd(t, 1<<8, 1<<7)
 	checkBytesHashAdd(t, 1<<8, 1<<8)
 	checkBytesHashAdd(t, 1<<16, 1<<15)
@@ -37,7 +36,9 @@ func checkBytesHashAdd(t *testing.T, capacity int, size int) {
 		bytesItems = append(bytesItems, bs)
 		bytesId, err := bytesHash.Add(bs)
 		assert.Nil(t, err)
-		bytesIdItems = append(bytesIdItems, bytesId)
+		if assert.Truef(t, bytesId >= 0, "bytesId=%d", bytesId) {
+			bytesIdItems = append(bytesIdItems, bytesId)
+		}
 	}
 
 	for i, bytesID := range bytesIdItems {

@@ -17,7 +17,7 @@ func TestPacked8ThreeBlocks_Fill(t *testing.T) {
 		direct.Clear()
 
 		fromIndex := r.Intn(valueCount / 2)
-		toIndex := fromIndex + r.Intn(valueCount/2)
+		toIndex := fromIndex + 1 + r.Intn(valueCount/2)
 
 		value := uint64(r.Intn(1 << 24))
 
@@ -56,7 +56,7 @@ func TestPacked8ThreeBlocks_GetBulk(t *testing.T) {
 		direct.Clear()
 
 		fromIndex := r.Intn(valueCount / 2)
-		toIndex := fromIndex + r.Intn(valueCount/2)
+		toIndex := fromIndex + 1 + r.Intn(valueCount/2)
 
 		size := toIndex - fromIndex
 		nums := make([]uint64, size)
@@ -84,7 +84,7 @@ func TestPacked8ThreeBlocks_SetBulk(t *testing.T) {
 		direct.Clear()
 
 		fromIndex := r.Intn(valueCount / 2)
-		toIndex := fromIndex + r.Intn(valueCount/2)
+		toIndex := fromIndex + 1 + r.Intn(valueCount/2)
 
 		size := toIndex - fromIndex
 		nums := make([]uint64, size)

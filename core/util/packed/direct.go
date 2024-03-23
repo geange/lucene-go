@@ -2,6 +2,7 @@ package packed
 
 import (
 	"context"
+
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -22,7 +23,7 @@ func NewDirect8(valueCount int) *Direct8 {
 	return direct
 }
 
-func NewDirect8V1(ctx context.Context, packedIntsVersion int, in store.DataInput, valueCount int) (*Direct8, error) {
+func NewDirect8V1(_ context.Context, packedIntsVersion int, in store.DataInput, valueCount int) (*Direct8, error) {
 	direct := NewDirect8(valueCount)
 	if _, err := in.Read(direct.values); err != nil {
 		return nil, err

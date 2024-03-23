@@ -135,13 +135,13 @@ func (b *BlockPackedReader) Get(index int) (uint64, error) {
 // 请参阅: BlockPackedReaderIterator, BlockPackedReader
 // lucene.internal
 type BlockPackedWriter struct {
-	*AbstractBlockPackedWriter
+	*abstractBlockPackedWriter
 }
 
 func NewBlockPackedWriter(out store.DataOutput, blockSize int) *BlockPackedWriter {
 	res := &BlockPackedWriter{}
-	res.AbstractBlockPackedWriter = newAbstractBlockPackedWriter(out, blockSize)
-	res.AbstractBlockPackedWriter.flusher = res
+	res.abstractBlockPackedWriter = newAbstractBlockPackedWriter(out, blockSize)
+	res.abstractBlockPackedWriter.flusher = res
 	return res
 }
 
@@ -201,6 +201,10 @@ func (b *BlockPackedWriter) Flush(ctx context.Context) error {
 
 	b.off = 0
 	return nil
+}
+
+func (b *BlockPackedWriter) Add(ctx context.Context, u uint64) error {
+	return b.add(ctx, u)
 }
 
 // BlockPackedReaderIterator

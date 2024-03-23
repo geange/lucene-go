@@ -92,7 +92,7 @@ func (d *DocValuesFieldUpdatesDefault) Finish() error {
 			return err
 		}
 
-		ords := packed.GetMutable(d.size, bitsRequired, packed.DEFAULT)
+		ords := packed.DefaultGetMutable(d.size, bitsRequired, packed.DEFAULT)
 		for i := 0; i < d.size; i++ {
 			ords.Set(i, uint64(i))
 		}

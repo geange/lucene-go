@@ -139,7 +139,7 @@ type NormsProducer interface {
 // NormValuesWriter Buffers up pending long per doc, then flushes when segment flushes.
 type NormValuesWriter struct {
 	docsWithField *DocsWithFieldSet
-	pending       *packed.LongValuesBuilder
+	pending       *packed.PackedLongValuesBuilder
 	fieldInfo     *document.FieldInfo
 	lastDocID     int
 }

@@ -46,9 +46,6 @@ func NewBlockPool(allocator Allocator) *BlockPool {
 		byteUpto:   BlockSize,
 		byteOffset: -BlockSize,
 		allocator:  allocator,
-		//NEXT_LEVEL_ARRAY: []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 9},
-		//LEVEL_SIZE_ARRAY: []int{5, 14, 20, 30, 40, 40, 80, 80, 120, 200},
-		//FIRST_LEVEL_SIZE: 5,
 	}
 }
 

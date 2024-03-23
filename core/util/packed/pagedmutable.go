@@ -12,11 +12,11 @@ type PagedMutable interface {
 	SetSubMutableByIndex(index int, value Mutable)
 }
 
-// BasePagedMutable
+// basePagedMutable
 // Base implementation for FixSizePagedMutable and PagedGrowableWriter.
 // lucene.internal
-type BasePagedMutable struct {
-	spi          PagedMutableSPI
+type basePagedMutable struct {
+	spi          PagedMutableBuilder
 	size         int
 	pageShift    int
 	pageMask     int
@@ -24,9 +24,9 @@ type BasePagedMutable struct {
 	bitsPerValue int
 }
 
-func newPagedMutable(spi PagedMutableSPI, bitsPerValue, size, pageSize int) *BasePagedMutable {
+func newPagedMutable(spi PagedMutableBuilder, bitsPerValue, size, pageSize int) (*basePagedMutable, error) {
 
-	m := &BasePagedMutable{
+	m := &basePagedMutable{
 		spi:          spi,
 		bitsPerValue: bitsPerValue,
 		size:         size,
@@ -34,14 +34,17 @@ func newPagedMutable(spi PagedMutableSPI, bitsPerValue, size, pageSize int) *Bas
 		pageMask:     pageSize - 1,
 	}
 
-	numPages, _ := getNumBlocks(size, pageSize)
+	numPages, err := getNumBlocks(size, pageSize)
+	if err != nil {
+		return nil, err
+	}
 	m.subMutables = make([]Mutable, numPages)
-	return m
+	return m, nil
 }
 
-type PagedMutableSPI interface {
+type PagedMutableBuilder interface {
 	NewMutable(valueCount, bitsPerValue int) Mutable
-	NewUnfilledCopy(newSize int) PagedMutable
+	NewUnfilledCopy(newSize int) (PagedMutable, error)
 }
 
 const (
@@ -49,7 +52,7 @@ const (
 	MAX_BLOCK_SIZE = 1 << 30
 )
 
-func (a *BasePagedMutable) fillPages() error {
+func (a *basePagedMutable) fillPages() error {
 	numPages, err := getNumBlocks(a.size, a.pageSize())
 	if err != nil {
 		return err
@@ -65,7 +68,7 @@ func (a *BasePagedMutable) fillPages() error {
 	return nil
 }
 
-func (a *BasePagedMutable) lastPageSize(size int) int {
+func (a *basePagedMutable) lastPageSize(size int) int {
 	sz := a.indexInPage(size)
 	if sz == 0 {
 		return a.pageSize()
@@ -73,56 +76,56 @@ func (a *BasePagedMutable) lastPageSize(size int) int {
 	return sz
 }
 
-func (a *BasePagedMutable) pageSize() int {
+func (a *basePagedMutable) pageSize() int {
 	return a.pageMask + 1
 }
 
-func (a *BasePagedMutable) Size() int {
+func (a *basePagedMutable) Size() int {
 	return a.size
 }
 
-func (a *BasePagedMutable) pageIndex(index int) int {
+func (a *basePagedMutable) pageIndex(index int) int {
 	return index >> a.pageShift
 }
 
-func (a *BasePagedMutable) indexInPage(index int) int {
+func (a *basePagedMutable) indexInPage(index int) int {
 	return index & a.pageMask
 }
 
-func (a *BasePagedMutable) Get(index int) (uint64, error) {
+func (a *basePagedMutable) Get(index int) (uint64, error) {
 	pageIndex := a.pageIndex(index)
 	indexInPage := a.indexInPage(index)
 	return a.subMutables[pageIndex].Get(indexInPage)
 }
 
-func (a *BasePagedMutable) GetTest(index int) uint64 {
+func (a *basePagedMutable) GetTest(index int) uint64 {
 	v, _ := a.Get(index)
 	return v
 }
 
-func (a *BasePagedMutable) Set(index int, value uint64) {
+func (a *basePagedMutable) Set(index int, value uint64) {
 	pageIndex := a.pageIndex(index)
 	indexInPage := a.indexInPage(index)
 	a.subMutables[pageIndex].Set(indexInPage, value)
 }
 
-func (a *BasePagedMutable) SubMutables() []Mutable {
+func (a *basePagedMutable) SubMutables() []Mutable {
 	return a.subMutables
 }
 
-func (a *BasePagedMutable) GetSubMutableByIndex(index int) Mutable {
+func (a *basePagedMutable) GetSubMutableByIndex(index int) Mutable {
 	return a.subMutables[index]
 }
 
-func (a *BasePagedMutable) SetSubMutableByIndex(index int, value Mutable) {
+func (a *basePagedMutable) SetSubMutableByIndex(index int, value Mutable) {
 	a.subMutables[index] = value
 }
 
 // Resize
 // Create a new copy of size newSize based on the content of this buffer.
 // This method is much more efficient than creating a new instance and copying values one by one.
-func (a *BasePagedMutable) Resize(newSize int) PagedMutable {
-	ucopy := a.spi.NewUnfilledCopy(newSize)
+func (a *basePagedMutable) Resize(newSize int) PagedMutable {
+	ucopy, _ := a.spi.NewUnfilledCopy(newSize)
 	numCommonPages := min(len(ucopy.SubMutables()), len(a.subMutables))
 	copyBuffer := make([]uint64, 1024)
 
@@ -149,7 +152,7 @@ func (a *BasePagedMutable) Resize(newSize int) PagedMutable {
 	return ucopy
 }
 
-func (a *BasePagedMutable) Grow(minSize int) PagedMutable {
+func (a *basePagedMutable) Grow(minSize int) PagedMutable {
 	if minSize <= a.Size() {
 		return a
 	}
@@ -163,6 +166,6 @@ func (a *BasePagedMutable) Grow(minSize int) PagedMutable {
 }
 
 // GrowOne Similar to ArrayUtil.grow(long[]).
-func (a *BasePagedMutable) GrowOne() PagedMutable {
+func (a *basePagedMutable) GrowOne() PagedMutable {
 	return a.Grow(a.Size() + 1)
 }
