@@ -63,8 +63,8 @@ func (n *NumericDocValuesDefault) LongValue() (int64, error) {
 var _ DocValuesWriter = &NumericDocValuesWriter{}
 
 type NumericDocValuesWriter struct {
-	pending       *packed.LongValuesBuilder
-	finalValues   *packed.LongValues
+	pending       *packed.PackedLongValuesBuilder
+	finalValues   *packed.PackedLongValues
 	docsWithField *DocsWithFieldSet
 	fieldInfo     *document.FieldInfo
 	lastDocID     int
@@ -113,12 +113,12 @@ func (n *NumericDocValuesWriter) GetDocValues() types.DocIdSetIterator {
 var _ NumericDocValues = &BufferedNumericDocValues{}
 
 type BufferedNumericDocValues struct {
-	iter          *packed.LongValuesIterator
+	iter          packed.PackedLongValuesIterator
 	docsWithField types.DocIdSetIterator
 	value         int64
 }
 
-func NewBufferedNumericDocValues(values *packed.LongValues,
+func NewBufferedNumericDocValues(values *packed.PackedLongValues,
 	docsWithFields types.DocIdSetIterator) *BufferedNumericDocValues {
 
 	docValues := &BufferedNumericDocValues{

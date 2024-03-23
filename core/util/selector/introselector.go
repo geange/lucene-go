@@ -18,6 +18,10 @@ func NewIntroSelector(intro IntroSelector) Selector {
 	return &introSelector{selector: intro}
 }
 
+func newIntroSelector(intro IntroSelector) {
+
+}
+
 func (s *introSelector) SelectK(from, to, k int) {
 	maxDepth := 2 * math.Log2(float64(to-from))
 	s.quickSelect(from, to, k, int(maxDepth))

@@ -144,7 +144,7 @@ func buildDeletionDocMaps(readers []CodecReader) []MergeStateDocMap {
 	for _, reader := range readers {
 		liveDocs := reader.GetLiveDocs()
 
-		var delDocMap *packed.LongValues
+		var delDocMap *packed.PackedLongValues
 		if liveDocs != nil {
 			delDocMap = removeDeletes(reader.MaxDoc(), liveDocs)
 		} else {
@@ -172,7 +172,7 @@ func buildDeletionDocMaps(readers []CodecReader) []MergeStateDocMap {
 	return docMaps
 }
 
-func removeDeletes(maxDoc int, liveDocs util.Bits) *packed.LongValues {
+func removeDeletes(maxDoc int, liveDocs util.Bits) *packed.PackedLongValues {
 	// TODO: fix it
 	panic("")
 	//docMapBuilder := packed.NewLongValuesBuilder()

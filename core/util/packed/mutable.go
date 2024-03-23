@@ -3,8 +3,9 @@ package packed
 import (
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/store"
 	"io"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 // Mutable
@@ -25,7 +26,7 @@ type Mutable interface {
 
 	// SetBulk set at least one and at most len longs starting at off in arr into this mutable,
 	// starting at index. Returns the actual number of values that have been set.
-	SetBulk(index int, arr []uint64) int
+	SetBulk(index int, values []uint64) int
 
 	// Fill the mutable from fromIndex (inclusive) to toIndex (exclusive) with val.
 	Fill(fromIndex, toIndex int, value uint64)
@@ -53,35 +54,26 @@ type mutable struct {
 
 func (m *mutable) GetBulk(index int, arr []uint64) int {
 	length := len(arr)
-	gets := min(m.spi.Size()-index, length)
+	size := min(m.spi.Size()-index, length)
 
-	for i, o, end := index, 0, index+gets; i < end; {
-		n, err := m.spi.Get(i)
+	for i := range arr[:size] {
+		n, err := m.spi.Get(index + i)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return i
 			}
 			return 0
 		}
-
-		arr[o] = n
-		i++
-		o++
+		arr[i] = n
 	}
 
-	return gets
+	return size
 }
 
 func (m *mutable) SetBulk(index int, arr []uint64) int {
 	size := min(len(arr), m.spi.Size()-index)
-
-	i := index
-	off := 0
-	end := index + len(arr)
-	for i < end {
-		m.spi.Set(i, arr[off])
-		i++
-		off++
+	for i, v := range arr[:size] {
+		m.spi.Set(index+i, v)
 	}
 	return size
 }
@@ -98,8 +90,7 @@ func (m *mutable) Clear() {
 
 func (m *mutable) Save(ctx context.Context, out store.DataOutput) error {
 	writer := getWriterNoHeader(out, m.GetFormat(), m.spi.Size(), m.spi.GetBitsPerValue(), DEFAULT_BUFFER_SIZE)
-	err := writer.WriteHeader(ctx)
-	if err != nil {
+	if err := writer.WriteHeader(ctx); err != nil {
 		return err
 	}
 	for i := 0; i < m.spi.Size(); i++ {

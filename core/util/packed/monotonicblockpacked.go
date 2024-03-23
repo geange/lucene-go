@@ -100,7 +100,7 @@ func (m *MonotonicBlockPackedReader) Get(index int) (uint64, error) {
 		return 0, err
 	}
 
-	return expected(m.minValues[block], m.averages[block], idx) + value, nil
+	return uint64(expected(int64(m.minValues[block]), m.averages[block], idx) + int64(value)), nil
 }
 
 // Size
@@ -109,8 +109,8 @@ func (m *MonotonicBlockPackedReader) Size() int {
 	return m.valueCount
 }
 
-func expected(origin uint64, average float32, index int) uint64 {
-	return origin + uint64(average*float32(index))
+func expected(origin int64, average float32, index int) int64 {
+	return origin + int64(average*float32(index))
 }
 
 var _ BlockPackedFlusher = &MonotonicBlockPackedWriter{}
@@ -131,7 +131,7 @@ var _ BlockPackedFlusher = &MonotonicBlockPackedWriter{}
 // MonotonicBlockPackedReader
 // lucene.internal
 type MonotonicBlockPackedWriter struct {
-	*AbstractBlockPackedWriter
+	*abstractBlockPackedWriter
 }
 
 func NewMonotonicBlockPackedWriter(out store.DataOutput, blockSize int) *MonotonicBlockPackedWriter {
@@ -142,7 +142,7 @@ func NewMonotonicBlockPackedWriter(out store.DataOutput, blockSize int) *Monoton
 }
 
 func (m *MonotonicBlockPackedWriter) Add(ctx context.Context, v uint64) error {
-	return m.AbstractBlockPackedWriter.Add(ctx, v)
+	return m.add(ctx, v)
 }
 
 func (m *MonotonicBlockPackedWriter) Flush(ctx context.Context) error {
@@ -152,11 +152,11 @@ func (m *MonotonicBlockPackedWriter) Flush(ctx context.Context) error {
 	} else {
 		avg = float32(m.values[m.off-1]-m.values[0]) / float32(m.off-1)
 	}
-	minValue := m.values[0]
+	minValue := int64(m.values[0])
 
 	// adjust min so that all deltas will be positive
 	for i := 1; i < m.off; i++ {
-		actual := m.values[i]
+		actual := int64(m.values[i])
 		expect := expected(minValue, avg, i)
 		if expect > actual {
 			minValue = minValue - (expect - actual)
@@ -165,7 +165,7 @@ func (m *MonotonicBlockPackedWriter) Flush(ctx context.Context) error {
 
 	maxDelta := uint64(0)
 	for i := 0; i < m.off; i++ {
-		m.values[i] = m.values[i] - expected(minValue, avg, i)
+		m.values[i] = uint64(int64(m.values[i]) - expected(minValue, avg, i))
 		maxDelta = max(maxDelta, m.values[i])
 	}
 

@@ -8,10 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDeltaPackedLongValues(t *testing.T) {
+func TestMonotonicLongValues(t *testing.T) {
+
 	for shift := 6; shift <= 20; shift++ {
 		acceptableOverheadRatio := 1.0
-		longValuesBuilder := NewDeltaPackedLongValuesBuilder(1<<shift, acceptableOverheadRatio)
+		longValuesBuilder := NewMonotonicLongValuesBuilder(1<<shift, acceptableOverheadRatio)
 
 		nums := make([]int64, 0)
 
@@ -42,4 +43,5 @@ func TestDeltaPackedLongValues(t *testing.T) {
 			i++
 		}
 	}
+
 }

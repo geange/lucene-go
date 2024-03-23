@@ -208,7 +208,7 @@ func CopyValuesWithBuffer(src Reader, srcPos int, dest Mutable, destPos, size in
 	}
 }
 
-// GetMutable
+// DefaultGetMutable
 // Create a packed integer array with the given amount of values initialized to 0.
 // the valueCount and the bitsPerValue cannot be changed after creation. All Mutables known by this
 // factory are kept fully in RAM.
@@ -223,9 +223,8 @@ func CopyValuesWithBuffer(src Reader, srcPos int, dest Mutable, destPos, size in
 //
 // Returns a mutable packed integer array
 // lucene.internal
-func GetMutable(valueCount, bitsPerValue int, acceptableOverheadRatio float64) Mutable {
-	formatAndBits := fastestFormatAndBits(valueCount, bitsPerValue, acceptableOverheadRatio)
-	return getMutable(valueCount, bitsPerValue, formatAndBits.format)
+func DefaultGetMutable(valueCount, bitsPerValue int, acceptableOverheadRatio float64) Mutable {
+	return getMutableV1(valueCount, bitsPerValue, acceptableOverheadRatio)
 }
 
 func getMutableV1(valueCount, bitsPerValue int, acceptableOverheadRatio float64) Mutable {

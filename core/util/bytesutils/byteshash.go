@@ -200,10 +200,10 @@ func (r *BytesHash) Close() {
 }
 
 // Add Adds a new []byte
-// Params: bytes – the bytes to hash
-// Returns: the id the given bytes are hashed if there was no mapping for the given bytes, otherwise (-(id)-1).
+// bytes: the bytes to hash
+//
+// the id the given bytes are hashed if there was no mapping for the given bytes, otherwise (-(id)-1).
 // This guarantees that the return value will always be >= 0 if the given bytes haven't been hashed before.
-// Throws: BytesHash.MaxBytesLengthExceededException – if the given bytes are > 2 + ByteBlockPool.BYTE_BLOCK_SIZE
 func (r *BytesHash) Add(bytes []byte) (int, error) {
 	length := len(bytes)
 

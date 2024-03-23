@@ -46,7 +46,8 @@ func TestPagedGrowableWriter_NewUnfilledCopy(t *testing.T) {
 	assert.EqualValues(t, 1, writer.GetTest(0))
 	assert.EqualValues(t, 2, writer.GetTest(999))
 
-	newWriter := writer.NewUnfilledCopy(100)
+	newWriter, err := writer.NewUnfilledCopy(100)
+	assert.Nil(t, err)
 
 	assert.Panics(t, func() {
 		newWriter.Set(99, 3)

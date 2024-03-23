@@ -14,7 +14,7 @@ func TestGetMutable(t *testing.T) {
 	t.Run("num=100", func(t *testing.T) {
 		num := 100
 
-		m := GetMutable(num, 64, 0)
+		m := DefaultGetMutable(num, 64, 0)
 		for i := 0; i < num; i++ {
 			m.Set(i, uint64(i+2))
 		}
@@ -28,7 +28,7 @@ func TestGetMutable(t *testing.T) {
 	t.Run("num=1000", func(t *testing.T) {
 		num := 1000
 
-		m := GetMutable(num, 64, 0)
+		m := DefaultGetMutable(num, 64, 0)
 		for i := 0; i < num; i++ {
 			m.Set(i, uint64(i+2))
 		}
@@ -42,7 +42,7 @@ func TestGetMutable(t *testing.T) {
 	t.Run("num=10000", func(t *testing.T) {
 		num := 10000
 
-		m := GetMutable(num, 64, 0)
+		m := DefaultGetMutable(num, 64, 0)
 		for i := 0; i < num; i++ {
 			m.Set(i, uint64(i+2))
 		}
@@ -56,7 +56,7 @@ func TestGetMutable(t *testing.T) {
 	t.Run("num=100000", func(t *testing.T) {
 		num := 100000
 
-		m := GetMutable(num, 64, 0)
+		m := DefaultGetMutable(num, 64, 0)
 		for i := 0; i < num; i++ {
 			m.Set(i, uint64(i+2))
 		}
