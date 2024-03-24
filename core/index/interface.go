@@ -1,7 +1,7 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 // FieldTermIterator
@@ -10,7 +10,7 @@ import (
 // but == can be used since the iterator implementation ensures
 // it will use the same String instance for a given field.
 type FieldTermIterator interface {
-	bytesutils.BytesIterator
+	bytesref.BytesIterator
 
 	// Field
 	// Returns current field.

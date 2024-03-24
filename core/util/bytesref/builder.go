@@ -1,31 +1,31 @@
-package bytesutils
+package bytesref
 
-// BytesRefBuilder A builder for BytesRef instances.
-type BytesRefBuilder struct {
+// Builder A builder for BytesRef instances.
+type Builder struct {
 	bytes []byte
 }
 
 // NewBytesRefBuilder Sole constructor.
-func NewBytesRefBuilder() *BytesRefBuilder {
-	return &BytesRefBuilder{bytes: make([]byte, 0, 4096)}
+func NewBytesRefBuilder() *Builder {
+	return &Builder{bytes: make([]byte, 0, 4096)}
 }
 
-func (r *BytesRefBuilder) Get() []byte {
+func (r *Builder) Get() []byte {
 	return r.bytes
 }
 
 // Bytes Return a reference to the bytes of this builder.
-func (r *BytesRefBuilder) Bytes() []byte {
+func (r *Builder) Bytes() []byte {
 	return r.bytes
 }
 
 // Length Return the number of bytes in this buffer.
-func (r *BytesRefBuilder) Length() int {
+func (r *Builder) Length() int {
 	return len(r.bytes)
 }
 
 // SetLength Set the length.
-func (r *BytesRefBuilder) SetLength(length int) {
+func (r *Builder) SetLength(length int) {
 	if len(r.bytes) < length {
 		r.bytes = append(r.bytes, make([]byte, length-len(r.bytes))...)
 		return
@@ -34,7 +34,7 @@ func (r *BytesRefBuilder) SetLength(length int) {
 }
 
 // ByteAt Return the byte at the given offset.
-func (r *BytesRefBuilder) ByteAt(offset int) byte {
+func (r *Builder) ByteAt(offset int) byte {
 	if offset < len(r.bytes) {
 		return r.bytes[offset]
 	}
@@ -42,44 +42,44 @@ func (r *BytesRefBuilder) ByteAt(offset int) byte {
 }
 
 // SetByteAt Set a byte.
-func (r *BytesRefBuilder) SetByteAt(offset int, b byte) {
+func (r *Builder) SetByteAt(offset int, b byte) {
 	if offset < len(r.bytes) {
 		r.bytes[offset] = b
 	}
 }
 
 // Grow Ensure that this builder can hold at least capacity bytes without resizing.
-func (r *BytesRefBuilder) Grow(capacity int) {
+func (r *Builder) Grow(capacity int) {
 	r.bytes = append(r.bytes, make([]byte, capacity)...)
 }
 
 // AppendByte Append a single byte to this builder.
-func (r *BytesRefBuilder) AppendByte(b byte) {
+func (r *Builder) AppendByte(b byte) {
 	r.bytes = append(r.bytes, b)
 }
 
 // AppendBytes Append the provided bytes to this builder.
-func (r *BytesRefBuilder) AppendBytes(b []byte) {
+func (r *Builder) AppendBytes(b []byte) {
 	r.bytes = append(r.bytes, b...)
 }
 
 // AppendRef Append the provided bytes to this builder.
 //func (r *BytesRefBuilder) AppendRef(ref *BytesRef) {
-//	r.AppendBytes(ref.Bytes, ref.Offset, ref.Len)
+//	r.AppendBytes(ref.NewBytes, ref.Offset, ref.Len)
 //}
 
 // AppendBuilder Append the provided bytes to this builder.
-func (r *BytesRefBuilder) AppendBuilder(builder *BytesRefBuilder) {
+func (r *Builder) AppendBuilder(builder *Builder) {
 	r.AppendBytes(builder.Get())
 }
 
-func (r *BytesRefBuilder) Clear() {
+func (r *Builder) Clear() {
 	r.SetLength(0)
 }
 
 // CopyBytes Replace the content of this builder with the provided bytes. Equivalent to calling clear() and
 // then append(byte[], int, int).
-func (r *BytesRefBuilder) CopyBytes(b []byte, off, length int) {
+func (r *Builder) CopyBytes(b []byte, off, length int) {
 	r.Clear()
 	r.AppendBytes(b[off : off+length])
 }
@@ -92,8 +92,8 @@ func (r *BytesRefBuilder) CopyBytes(b []byte, off, length int) {
 //}
 
 // CopyBytesBuilder Replace the content of this builder with the provided bytes. Equivalent to calling clear()
-// and then append(BytesRefBuilder).
-func (r *BytesRefBuilder) CopyBytesBuilder(builder *BytesRefBuilder) {
+// and then append(Builder).
+func (r *Builder) CopyBytesBuilder(builder *Builder) {
 	r.Clear()
 	r.AppendBuilder(builder)
 }

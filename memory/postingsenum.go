@@ -1,11 +1,11 @@
 package memory
 
 import (
-	"github.com/geange/lucene-go/core/util/bytesutils"
-	"github.com/geange/lucene-go/core/util/ints"
 	"io"
 
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/util/bytesref"
+	"github.com/geange/lucene-go/core/util/ints"
 )
 
 var _ index.PostingsEnum = &memPostingsEnum{}
@@ -20,8 +20,8 @@ type memPostingsEnum struct {
 	startOffset       int
 	endOffset         int
 	payloadIndex      int
-	payloadBuilder    *bytesutils.BytesRefBuilder
-	payloadsBytesRefs *bytesutils.BytesRefArray
+	payloadBuilder    *bytesref.Builder
+	payloadsBytesRefs *bytesref.Array
 	storeOffsets      bool
 	storePayloads     bool
 }
@@ -30,9 +30,9 @@ func newPostingsEnum(intBlockPool *ints.BlockPool, storePayloads bool) *memPosti
 	return &memPostingsEnum{
 		doc:         -1,
 		sliceReader: ints.NewSliceReader(intBlockPool),
-		payloadBuilder: func() *bytesutils.BytesRefBuilder {
+		payloadBuilder: func() *bytesref.Builder {
 			if storePayloads {
-				return bytesutils.NewBytesRefBuilder()
+				return bytesref.NewBytesRefBuilder()
 			}
 			return nil
 		}(),

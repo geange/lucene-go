@@ -6,7 +6,7 @@ import (
 
 type sliceByteStartArray struct {
 	initSize   int
-	bytesStart []int
+	bytesStart []uint32
 	start      []int // the start offset in the IntBlockPool per term
 	end        []int // the end pointer in the IntBlockPool for the postings slice per term
 	freq       []int // the term frequency
@@ -18,8 +18,8 @@ func newSliceByteStartArray(initSize int) *sliceByteStartArray {
 	}
 }
 
-func (s *sliceByteStartArray) Init() []int {
-	s.bytesStart = make([]int, s.initSize)
+func (s *sliceByteStartArray) Init() []uint32 {
+	s.bytesStart = make([]uint32, s.initSize)
 	ord := s.bytesStart
 	size := len(ord)
 
@@ -31,7 +31,7 @@ func (s *sliceByteStartArray) Init() []int {
 	return ord
 }
 
-func (s *sliceByteStartArray) Grow() []int {
+func (s *sliceByteStartArray) Grow() []uint32 {
 	s.bytesStart = append(s.bytesStart, 0)
 	ord := s.bytesStart
 
@@ -44,7 +44,7 @@ func (s *sliceByteStartArray) Grow() []int {
 	return ord
 }
 
-func (s *sliceByteStartArray) Clear() []int {
+func (s *sliceByteStartArray) Clear() []uint32 {
 	s.start = s.start[:0]
 	s.end = s.end[:0]
 	s.freq = s.freq[:0]

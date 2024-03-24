@@ -44,7 +44,7 @@ func NewPrefixCodedTermsBuilder() *PrefixCodedTermsBuilder {
 }
 
 func (p *PrefixCodedTermsBuilder) Add(ctx context.Context, term *Term) error {
-	return p.AddBytes(ctx, term.field, term.Bytes())
+	return p.AddBytes(ctx, term.field, term.NewBytes())
 }
 
 func (p *PrefixCodedTermsBuilder) AddBytes(ctx context.Context, field string, bs []byte) (err error) {
@@ -83,7 +83,7 @@ func (p *PrefixCodedTermsBuilder) AddBytes(ctx context.Context, field string, bs
 	}
 	p.lastTermBytes.Reset()
 	p.lastTermBytes.Write(bs)
-	p.lastTerm.bytes = p.lastTermBytes.Bytes()
+	p.lastTerm.bytes = p.lastTermBytes.NewBytes()
 	p.lastTerm.field = field
 	p.size++
 

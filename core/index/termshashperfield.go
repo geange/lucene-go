@@ -2,10 +2,10 @@ package index
 
 import (
 	"encoding/binary"
-	"github.com/geange/lucene-go/core/util/bytesutils"
-	"github.com/geange/lucene-go/core/util/ints"
 
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/util/bytesref"
+	"github.com/geange/lucene-go/core/util/ints"
 )
 
 const HASH_INIT_SIZE = 4
@@ -54,7 +54,7 @@ type TermsHashPerField interface {
 type TermsHashPerFieldDefault struct {
 	nextPerField TermsHashPerField
 	intPool      *ints.BlockPool
-	bytePool     *bytesutils.BlockPool
+	bytePool     *bytesref.BlockPool
 
 	// for each term we store an integer per stream that points into the bytePool above
 	// the address is updated once data is written to the stream to point to the next free offset
@@ -73,7 +73,7 @@ type TermsHashPerFieldDefault struct {
 
 	// This stores the actual term bytes for postings and offsets into the parent hash in the case that this
 	// TermsHashPerField is hashing term vectors.
-	bytesHash *bytesutils.BytesHash
+	bytesHash *bytesref.BytesHash
 
 	postingsArray ParallelPostingsArray
 
@@ -89,7 +89,7 @@ type TermsHashPerFieldDefault struct {
 }
 
 func NewTermsHashPerFieldDefault(streamCount int,
-	intPool *ints.BlockPool, bytePool, termBytePool *bytesutils.BlockPool,
+	intPool *ints.BlockPool, bytePool, termBytePool *bytesref.BlockPool,
 	nextPerField TermsHashPerField, fieldName string, indexOptions document.IndexOptions, perField TermsHashPerField) *TermsHashPerFieldDefault {
 
 	res := &TermsHashPerFieldDefault{
@@ -133,7 +133,7 @@ func (t *TermsHashPerFieldDefault) initReader(reader *ByteSliceReader, termID, s
 	streamAddressBuffer := t.intPool.Get(streamStartOffset >> ints.INT_BLOCK_SHIFT)
 	offsetInAddressBuffer := streamStartOffset & ints.INT_BLOCK_MASK
 
-	startIndex := t.postingsArray.GetByteStarts(termID) + stream*bytesutils.ByteFirstLevelSize
+	startIndex := t.postingsArray.GetByteStarts(termID) + stream*bytesref.FIRST_LEVEL_SIZE
 	endIndex := streamAddressBuffer[offsetInAddressBuffer+stream]
 
 	return reader.init(t.bytePool, startIndex, endIndex)
@@ -158,7 +158,7 @@ func (t *TermsHashPerFieldDefault) reinitHash() {
 // textStart, so we hash by textStart.  term vectors use
 // this API.
 func (t *TermsHashPerFieldDefault) add(textStart, docID int) error {
-	termID := t.bytesHash.AddByPoolOffset(textStart)
+	termID := t.bytesHash.AddByPoolOffset(uint32(textStart))
 	if termID >= 0 {
 		// First time we are seeing this token since we last
 		// flushed the hash.
@@ -176,7 +176,7 @@ func (t *TermsHashPerFieldDefault) initStreamSlices(termID, docID int) error {
 		t.intPool.NextBuffer()
 	}
 
-	if bytesutils.BlockSize-t.bytePool.ByteUpto() < (2*t.streamCount)*bytesutils.ByteFirstLevelSize {
+	if bytesref.BYTE_BLOCK_SIZE-t.bytePool.ByteUpto() < (2*t.streamCount)*bytesref.FIRST_LEVEL_SIZE {
 		// can we fit at least one byte per stream in the current buffer, if not allocate a new one
 		t.bytePool.NextBuffer()
 	}
@@ -190,7 +190,7 @@ func (t *TermsHashPerFieldDefault) initStreamSlices(termID, docID int) error {
 	for i := 0; i < t.streamCount; i++ {
 		// initialize each stream with a slice we start with ByteBlockPool.FIRST_LEVEL_SIZE)
 		// and grow as we need more space. see ByteBlockPool.LEVEL_SIZE_ARRAY
-		upto := t.bytePool.NewSlice(bytesutils.ByteFirstLevelSize)
+		upto := t.bytePool.NewSlice(bytesref.FIRST_LEVEL_SIZE)
 		t.termStreamAddressBuffer[t.streamAddressOffset+i] = upto + t.bytePool.ByteOffset()
 	}
 	t.postingsArray.SetByteStarts(termID, t.termStreamAddressBuffer[t.streamAddressOffset])
@@ -230,7 +230,7 @@ func (t *TermsHashPerFieldDefault) Start(field document.IndexableField, first bo
 // textStart, so we hash by textStart.  term vectors use
 // this API.
 func (t *TermsHashPerFieldDefault) Add2nd(textStart, docID int) error {
-	termID := t.bytesHash.AddByPoolOffset(textStart)
+	termID := t.bytesHash.AddByPoolOffset(uint32(textStart))
 	if termID >= 0 {
 		// First time we are seeing this token since we last
 		// flushed the hash.
@@ -293,8 +293,8 @@ func (t *TermsHashPerFieldDefault) writeVInt(stream, i int) {
 func (t *TermsHashPerFieldDefault) writeByte(stream int, b byte) {
 	streamAddress := t.streamAddressOffset + stream
 	upto := t.termStreamAddressBuffer[streamAddress]
-	bytes := t.bytePool.Get(upto >> bytesutils.BlockShift)
-	offset := upto & bytesutils.BlockMask
+	bytes := t.bytePool.Get(upto >> bytesref.BYTE_BLOCK_SHIFT)
+	offset := upto & bytesref.BYTE_BLOCK_MASK
 	if bytes[offset] != 0 {
 		// End of slice; allocate a new one
 		offset = t.bytePool.AllocSlice(bytes, offset)
@@ -305,7 +305,7 @@ func (t *TermsHashPerFieldDefault) writeByte(stream int, b byte) {
 	t.termStreamAddressBuffer[streamAddress]++
 }
 
-var _ bytesutils.BytesStartArray = &PostingsBytesStartArray{}
+var _ bytesref.StartArray = &PostingsBytesStartArray{}
 
 type PostingsBytesStartArray struct {
 	perField TermsHashPerField
@@ -315,7 +315,7 @@ func NewPostingsBytesStartArray(perField TermsHashPerField) *PostingsBytesStartA
 	return &PostingsBytesStartArray{perField: perField}
 }
 
-func (p *PostingsBytesStartArray) Init() []int {
+func (p *PostingsBytesStartArray) Init() []uint32 {
 	if p.perField.GetPostingsArray() == nil {
 		p.perField.SetPostingsArray(p.perField.CreatePostingsArray(2))
 		p.perField.NewPostingsArray()
@@ -323,13 +323,13 @@ func (p *PostingsBytesStartArray) Init() []int {
 	return p.perField.GetPostingsArray().TextStarts()
 }
 
-func (p *PostingsBytesStartArray) Grow() []int {
+func (p *PostingsBytesStartArray) Grow() []uint32 {
 	p.perField.GetPostingsArray().Grow()
 	p.perField.NewPostingsArray()
 	return p.perField.GetPostingsArray().TextStarts()
 }
 
-func (p *PostingsBytesStartArray) Clear() []int {
+func (p *PostingsBytesStartArray) Clear() []uint32 {
 	if p.perField.GetPostingsArray() != nil {
 		p.perField.SetPostingsArray(nil)
 		p.perField.NewPostingsArray()

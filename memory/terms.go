@@ -7,7 +7,7 @@ import (
 
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/tokenattr"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 func (r *Index) newTerms(info *info) *Terms {
@@ -92,7 +92,7 @@ func (r *Index) newTermsEnum(info *info) *memTermsEnum {
 	}
 }
 
-func (m *memTermsEnum) binarySearch(text []byte, low, high int, hash *bytesutils.BytesHash, ords []int) int {
+func (m *memTermsEnum) binarySearch(text []byte, low, high int, hash *bytesref.BytesHash, ords []int) int {
 	mid := 0
 	for low <= high {
 		mid = (low + high) >> 1 // mid

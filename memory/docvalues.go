@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 var _ index.NumericDocValues = &numericDocValues{}
@@ -213,12 +213,12 @@ var _ index.SortedSetDocValues = &sortedSetDocValues{}
 
 type sortedSetDocValues struct {
 	ord      int64
-	values   *bytesutils.BytesHash
+	values   *bytesref.BytesHash
 	bytesIds []int
 	it       *docValuesIterator
 }
 
-func newSortedSetDocValues(values *bytesutils.BytesHash, bytesIds []int, it *docValuesIterator) *sortedSetDocValues {
+func newSortedSetDocValues(values *bytesref.BytesHash, bytesIds []int, it *docValuesIterator) *sortedSetDocValues {
 	return &sortedSetDocValues{values: values, bytesIds: bytesIds, it: it}
 }
 

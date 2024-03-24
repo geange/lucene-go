@@ -3,9 +3,10 @@ package index
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util/bytesutils"
 	"slices"
+
+	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 var _ store.DataInput = &ByteSliceReader{}
@@ -18,7 +19,7 @@ var _ store.DataInput = &ByteSliceReader{}
 type ByteSliceReader struct {
 	*store.BaseDataInput
 
-	pool         *bytesutils.BlockPool
+	pool         *bytesref.BlockPool
 	bufferUpto   int
 	buffer       []byte
 	upto         int
@@ -47,20 +48,20 @@ func NewByteSliceReader() *ByteSliceReader {
 	return &ByteSliceReader{}
 }
 
-func (b *ByteSliceReader) init(pool *bytesutils.BlockPool, startIndex, endIndex int) error {
+func (b *ByteSliceReader) init(pool *bytesref.BlockPool, startIndex, endIndex int) error {
 	b.pool = pool
 	b.endIndex = endIndex
 
 	b.level = 0
-	b.bufferUpto = startIndex / bytesutils.BlockSize
-	b.bufferOffset = b.bufferUpto * bytesutils.BlockSize
-	b.buffer = pool.GetBytes(b.bufferUpto)
-	b.upto = startIndex & bytesutils.BlockMask
+	b.bufferUpto = startIndex / bytesref.BYTE_BLOCK_SIZE
+	b.bufferOffset = b.bufferUpto * bytesref.BYTE_BLOCK_SIZE
+	b.buffer = pool.GetBytes(uint32(b.bufferUpto))
+	b.upto = startIndex & bytesref.BYTE_BLOCK_MASK
 
-	firstSize := bytesutils.ByteLevelSizeArray[0]
+	firstSize := bytesref.LEVEL_SIZE_ARRAY[0]
 	if startIndex+firstSize >= endIndex {
 		// There is only this one slice to read
-		b.limit = endIndex & bytesutils.BlockMask
+		b.limit = endIndex & bytesref.BYTE_BLOCK_MASK
 	} else {
 		b.limit = b.upto + firstSize - 4
 	}
@@ -90,13 +91,13 @@ func (b *ByteSliceReader) Read(bs []byte) (n int, err error) {
 func (b *ByteSliceReader) nextSlice() {
 	// Skip to our next slice
 	nextIndex := binary.BigEndian.Uint32(b.buffer[b.limit:])
-	b.level = bytesutils.ByteNextLevelArray[b.level]
-	newSize := bytesutils.ByteLevelSizeArray[b.level]
+	b.level = bytesref.NEXT_LEVEL_ARRAY[b.level]
+	newSize := bytesref.LEVEL_SIZE_ARRAY[b.level]
 
-	b.bufferUpto = int(nextIndex / bytesutils.BlockSize)
-	b.bufferOffset = b.bufferUpto * bytesutils.BlockSize
+	b.bufferUpto = int(nextIndex / bytesref.BYTE_BLOCK_SIZE)
+	b.bufferOffset = b.bufferUpto * bytesref.BYTE_BLOCK_SIZE
 	b.buffer = b.pool.Get(b.bufferUpto)
-	b.upto = int(nextIndex & bytesutils.BlockMask)
+	b.upto = int(nextIndex & bytesref.BYTE_BLOCK_MASK)
 
 	if int(nextIndex)+newSize >= b.endIndex {
 		// We are advancing to the final slice

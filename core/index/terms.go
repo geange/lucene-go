@@ -2,7 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/util/automaton"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 type Terms interface {
@@ -139,7 +139,7 @@ func (t *TermsBase) GetMax() ([]byte, error) {
 		return nil, nil
 	}
 
-	scratch := bytesutils.NewBytesRefBuilder()
+	scratch := bytesref.NewBytesRefBuilder()
 	scratch.AppendByte(0)
 
 	for {

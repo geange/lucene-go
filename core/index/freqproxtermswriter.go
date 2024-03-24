@@ -2,7 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
 
@@ -13,7 +13,7 @@ type FreqProxTermsWriter struct {
 }
 
 func NewFreqProxTermsWriter(intBlockAllocator ints.IntsAllocator,
-	byteBlockAllocator bytesutils.Allocator, nextTermsHash TermsHash) *FreqProxTermsWriter {
+	byteBlockAllocator bytesref.Allocator, nextTermsHash TermsHash) *FreqProxTermsWriter {
 
 	return &FreqProxTermsWriter{
 		NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nextTermsHash)}
@@ -63,7 +63,7 @@ func (f *FreqProxTermsWriter) AddField(invertState *FieldInvertState, fieldInfo 
 	return NewFreqProxTermsWriterPerField(invertState, f, fieldInfo, addField)
 }
 
-func (f *FreqProxTermsWriter) SetTermBytePool(termBytePool *bytesutils.BlockPool) {
+func (f *FreqProxTermsWriter) SetTermBytePool(termBytePool *bytesref.BlockPool) {
 	f.termBytePool = termBytePool
 }
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/packed"
 )
 
@@ -72,7 +72,7 @@ type BinaryDocValuesFieldUpdates struct {
 
 	offsets, lengths *packed.PagedGrowableWriter
 
-	values bytesutils.BytesRefBuilder
+	values bytesref.Builder
 }
 
 func (b *BinaryDocValuesFieldUpdates) AddInt64(doc int, value int64) error {

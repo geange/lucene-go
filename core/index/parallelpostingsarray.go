@@ -12,29 +12,29 @@ type ParallelPostingsArray interface {
 	SetTextStarts(termID, v int)
 	SetAddressOffset(termID, v int)
 	SetByteStarts(termID, v int)
-	TextStarts() []int
+	TextStarts() []uint32
 	Grow()
 }
 
 type ParallelPostingsArrayDefault struct {
-	textStarts    []int // maps term ID to the terms's text start in the bytesHash
-	addressOffset []int // maps term ID to current stream address
-	byteStarts    []int // maps term ID to stream start offset in the byte pool
+	textStarts    []uint32 // maps term ID to the terms's text start in the bytesHash
+	addressOffset []int    // maps term ID to current stream address
+	byteStarts    []int    // maps term ID to stream start offset in the byte pool
 }
 
 func NewParallelPostingsArrayDefault() *ParallelPostingsArrayDefault {
 	return &ParallelPostingsArrayDefault{
-		textStarts:    []int{},
+		textStarts:    []uint32{},
 		addressOffset: []int{},
 		byteStarts:    []int{},
 	}
 }
 
 func (p *ParallelPostingsArrayDefault) GetTextStarts(index int) int {
-	return p.textStarts[index]
+	return int(p.textStarts[index])
 }
 
-func (p *ParallelPostingsArrayDefault) TextStarts() []int {
+func (p *ParallelPostingsArrayDefault) TextStarts() []uint32 {
 	return p.textStarts
 }
 
@@ -57,9 +57,9 @@ func (p *ParallelPostingsArrayDefault) GetByteStarts(index int) int {
 func (p *ParallelPostingsArrayDefault) SetTextStarts(termID, v int) {
 	if termID >= len(p.textStarts) {
 		size := termID - len(p.textStarts) + 1
-		p.textStarts = append(p.textStarts, make([]int, size)...)
+		p.textStarts = append(p.textStarts, make([]uint32, size)...)
 	}
-	p.textStarts[termID] = v
+	p.textStarts[termID] = uint32(v)
 }
 
 func (p *ParallelPostingsArrayDefault) SetAddressOffset(termID, v int) {

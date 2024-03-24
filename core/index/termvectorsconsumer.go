@@ -3,7 +3,7 @@ package index
 import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
 
@@ -23,7 +23,7 @@ type TermVectorsConsumer struct {
 }
 
 func NewTermVectorsConsumer(intBlockAllocator ints.IntsAllocator,
-	byteBlockAllocator bytesutils.Allocator, directory store.Directory,
+	byteBlockAllocator bytesref.Allocator, directory store.Directory,
 	info *SegmentInfo, codec Codec) *TermVectorsConsumer {
 
 	termsHashDefault := NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nil)
@@ -35,7 +35,7 @@ func NewTermVectorsConsumer(intBlockAllocator ints.IntsAllocator,
 	}
 }
 
-func (t *TermVectorsConsumer) SetTermBytePool(termBytePool *bytesutils.BlockPool) {
+func (t *TermVectorsConsumer) SetTermBytePool(termBytePool *bytesref.BlockPool) {
 	t.termBytePool = termBytePool
 }
 

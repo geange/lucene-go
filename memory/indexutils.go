@@ -8,7 +8,7 @@ import (
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/util/array"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 func (r *Index) getInfo(fieldName string, fieldType document.IndexableFieldType) (*info, error) {
@@ -185,7 +185,7 @@ func (r *Index) storeDocValues(info *info, docValuesType document.DocValuesType,
 		if info.binaryProducer.dvBytesValuesSet != nil {
 			return fmt.Errorf("only one value per field allowed for [%s] doc values field [%s]", docValuesType, fieldName)
 		}
-		bytesHash, err := bytesutils.NewBytesHash(r.byteBlockPool)
+		bytesHash, err := bytesref.NewBytesHash(r.byteBlockPool)
 		if err != nil {
 			return err
 		}
@@ -204,7 +204,7 @@ func (r *Index) storeDocValues(info *info, docValuesType document.DocValuesType,
 		if info.binaryProducer.dvBytesValuesSet != nil {
 			return fmt.Errorf("only one value per field allowed for [%s] doc values field [%s]", docValuesType, fieldName)
 		}
-		bytesHash, err := bytesutils.NewBytesHash(r.byteBlockPool)
+		bytesHash, err := bytesref.NewBytesHash(r.byteBlockPool)
 		if err != nil {
 			return err
 		}
@@ -221,7 +221,7 @@ func (r *Index) storeDocValues(info *info, docValuesType document.DocValuesType,
 		}
 	case document.DOC_VALUES_TYPE_SORTED_SET:
 		if info.binaryProducer.dvBytesValuesSet == nil {
-			bytesHash, err := bytesutils.NewBytesHash(r.byteBlockPool)
+			bytesHash, err := bytesref.NewBytesHash(r.byteBlockPool)
 			if err != nil {
 				return err
 			}
@@ -265,13 +265,13 @@ func (r *Index) storePointValues(info *info, pointValue []byte) error {
 	return nil
 }
 
-func (r *Index) newInfo(docFieldInfo *document.FieldInfo, pool *bytesutils.BlockPool) *info {
-	sliceArray := newSliceByteStartArray(bytesutils.DefaultCapacity)
+func (r *Index) newInfo(docFieldInfo *document.FieldInfo, pool *bytesref.BlockPool) *info {
+	sliceArray := newSliceByteStartArray(bytesref.DefaultCapacity)
 
-	byteHash, err := bytesutils.NewBytesHash(
+	byteHash, err := bytesref.NewBytesHash(
 		pool,
-		bytesutils.WithCapacity(bytesutils.DefaultCapacity),
-		bytesutils.WithStartArray(sliceArray),
+		bytesref.WithCapacity(bytesref.DefaultCapacity),
+		bytesref.WithStartArray(sliceArray),
 	)
 	if err != nil {
 		return nil
