@@ -1,45 +1,39 @@
-package bytesutils
+package bytesref
 
 import (
 	"context"
 	"io"
-	"sync/atomic"
 )
 
-// BytesRefArray A simple append only random-access BytesRef array that stores full copies of the appended
-// bytes in a BlockPool.
+// Array
+// A simple append only random-access BytesRef array that stores full copies of the
+// appended []byte in a BlockPool.
 // Note: This class is not Thread-Safe!
-type BytesRefArray struct {
+type Array struct {
 	pool          *BlockPool
 	offsets       []int
 	lastElement   int
 	currentOffset int
-	bytesUsed     *atomic.Int64
+	//bytesUsed     *atomic.Int64
 }
 
-func NewBytesRefArray(bytesUsed int64) *BytesRefArray {
+func NewArray(bytesUsed int64) *Array {
 	array := newBytesRefArray()
-	array.pool = NewBlockPool(NewDirectAllocator(BlockSize))
+	array.pool = NewBlockPool(newDirectAllocator(BYTE_BLOCK_SIZE))
 	array.pool.NextBuffer()
-	// useless
-	bytesUsed += 8
-
-	atomicBytesUsed := new(atomic.Int64)
-	atomicBytesUsed.Store(bytesUsed)
-	return &BytesRefArray{bytesUsed: atomicBytesUsed}
+	return array
 }
 
-func newBytesRefArray() *BytesRefArray {
-	return &BytesRefArray{
+func newBytesRefArray() *Array {
+	return &Array{
 		pool:          nil,
 		offsets:       make([]int, 1),
 		lastElement:   0,
 		currentOffset: 0,
-		bytesUsed:     nil,
 	}
 }
 
-func (r *BytesRefArray) Append(bytes []byte) int {
+func (r *Array) Append(bytes []byte) int {
 	if r.lastElement >= len(r.offsets) {
 		r.offsets = append(r.offsets, 0)
 	}
@@ -50,7 +44,7 @@ func (r *BytesRefArray) Append(bytes []byte) int {
 	return r.lastElement - 1
 }
 
-func (r *BytesRefArray) Clear() {
+func (r *Array) Clear() {
 	r.lastElement = 0
 	r.currentOffset = 0
 	for i := range r.offsets {
@@ -59,11 +53,11 @@ func (r *BytesRefArray) Clear() {
 	r.pool.Reset(false, true)
 }
 
-func (r *BytesRefArray) Size() int {
+func (r *Array) Size() int {
 	return r.lastElement
 }
 
-func (r *BytesRefArray) Get(spare *BytesRefBuilder, index int) []byte {
+func (r *Array) Get(spare *Builder, index int) []byte {
 	offset := r.offsets[index]
 	var length int
 	if index == r.lastElement-1 {
@@ -80,7 +74,7 @@ func (r *BytesRefArray) Get(spare *BytesRefBuilder, index int) []byte {
 
 // Used only by sort below, to set a BytesRef with the specified slice, avoiding copying bytes in the common
 // case when the slice is contained in a single block in the byte block pool.
-func (r *BytesRefArray) setBytesRef(spare *BytesRefBuilder, result []byte, index int) {
+func (r *Array) setBytesRef(spare *Builder, result []byte, index int) {
 	offset := r.offsets[index]
 	length := 0
 	if index == r.lastElement-1 {
@@ -91,7 +85,7 @@ func (r *BytesRefArray) setBytesRef(spare *BytesRefBuilder, result []byte, index
 	r.pool.SetBytesRefV1(spare, result, offset, length)
 }
 
-func (r *BytesRefArray) Iterator(_ *BytesRef) BytesIterator {
+func (r *Array) Iterator() BytesIterator {
 	return &bytesRefIterator{
 		size:  r.Size(),
 		pos:   -1,
@@ -106,9 +100,9 @@ type bytesRefIterator struct {
 	size  int
 	pos   int
 	ord   int
-	spare *BytesRefBuilder
+	spare *Builder
 	ref   []byte
-	array *BytesRefArray
+	array *Array
 }
 
 func (b *bytesRefIterator) Next(context.Context) ([]byte, error) {

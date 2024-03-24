@@ -1,4 +1,4 @@
-package bytesutils
+package bytesref
 
 import (
 	"bytes"
@@ -26,14 +26,14 @@ type BytesHash struct {
 	sync.Mutex
 
 	pool            *BlockPool
-	bytesStart      []int
+	bytesStart      []uint32
 	hashSize        int
 	hashHalfSize    int
-	hashMask        int
+	hashMask        uint32
 	count           int
 	lastCount       int
 	ids             []int
-	bytesStartArray BytesStartArray
+	bytesStartArray StartArray
 	hasher          hash.Hash32
 }
 
@@ -43,7 +43,7 @@ const (
 
 type bytesHashOption struct {
 	capacity   int
-	startArray BytesStartArray
+	startArray StartArray
 	hasher     hash.Hash32
 }
 
@@ -56,7 +56,7 @@ func WithCapacity(capacity int) BytesHashOption {
 	}
 }
 
-func WithStartArray(startArray BytesStartArray) BytesHashOption {
+func WithStartArray(startArray StartArray) BytesHashOption {
 	return func(option *bytesHashOption) {
 		option.startArray = startArray
 	}
@@ -71,44 +71,33 @@ func WithHash32(hasher hash.Hash32) BytesHashOption {
 func NewBytesHash(pool *BlockPool, options ...BytesHashOption) (*BytesHash, error) {
 	opt := &bytesHashOption{
 		capacity:   DefaultCapacity,
-		startArray: NewDirectBytesStartArray(DefaultCapacity),
+		startArray: NewDirectStartArray(DefaultCapacity),
 		hasher:     murmur3.New32WithSeed(uint32(GOOD_FAST_HASH_SEED)),
 	}
 	for _, option := range options {
 		option(opt)
 	}
 
-	return newBytesHashV1(pool, opt.capacity, opt.startArray, opt.hasher), nil
+	return newBytesHash(pool, opt.capacity, opt.startArray, opt.hasher), nil
 }
 
-func newBytesHashV1(pool *BlockPool, capacity int, startArray BytesStartArray, hasher hash.Hash32) *BytesHash {
-	bytesHash := newBytesHash()
-	bytesHash.hashSize = capacity
-	bytesHash.hasher = hasher
-	bytesHash.hashHalfSize = bytesHash.hashSize >> 1
-	bytesHash.hashMask = bytesHash.hashSize - 1
-	bytesHash.pool = pool
-	bytesHash.ids = make([]int, bytesHash.hashSize)
+func newBytesHash(pool *BlockPool, capacity int, startArray StartArray, hasher hash.Hash32) *BytesHash {
+	bytesHash := &BytesHash{
+		pool:            pool,
+		bytesStart:      startArray.Init(),
+		hashSize:        capacity,
+		hashHalfSize:    capacity >> 1,
+		hashMask:        uint32(capacity) - 1,
+		count:           0,
+		lastCount:       -1,
+		ids:             make([]int, capacity),
+		bytesStartArray: startArray,
+		hasher:          hasher,
+	}
 	for i := range bytesHash.ids {
 		bytesHash.ids[i] = -1
 	}
-	bytesHash.bytesStartArray = startArray
-	bytesHash.bytesStart = startArray.Init()
 	return bytesHash
-}
-
-func newBytesHash() *BytesHash {
-	return &BytesHash{
-		pool:            nil,
-		bytesStart:      make([]int, 0),
-		hashSize:        0,
-		hashHalfSize:    0,
-		hashMask:        0,
-		count:           0,
-		lastCount:       -1,
-		ids:             make([]int, 0),
-		bytesStartArray: nil,
-	}
 }
 
 // Size Returns the number of []byte/BytesRef values in this BytesHash.
@@ -122,8 +111,8 @@ func (r *BytesHash) Size() int {
 // bytesID: the id
 // ref: the BytesRef to populate
 // Returns: the given BytesRef instance populated with the bytes for the given bytesID
-func (r *BytesHash) Get(bytesID int) []byte {
-	return r.pool.GetBytes(r.bytesStart[bytesID])
+func (r *BytesHash) Get(id int) []byte {
+	return r.pool.GetBytes(r.bytesStart[id])
 }
 
 // Compact Returns the ids array in arbitrary order. Valid ids start at offset of 0 and end at a limit of size() - 1
@@ -149,32 +138,31 @@ func (r *BytesHash) Compact() []int {
 func (r *BytesHash) Sort() []int {
 	compact := r.Compact()
 
-	sorter := &RadixSorter{
-		Ids:       compact[0:r.count],
+	sort.Sort(&quickSorter{
 		BytesHash: r,
-	}
-	sort.Sort(sorter)
-
+		ids:       compact[0:r.count],
+	})
 	return compact
 }
 
-type RadixSorter struct {
-	Ids []int
+type quickSorter struct {
 	*BytesHash
+
+	ids []int
 }
 
-func (r *RadixSorter) Len() int {
-	return len(r.Ids)
+func (r *quickSorter) Len() int {
+	return len(r.ids)
 }
 
-func (r *RadixSorter) Less(i, j int) bool {
-	bs1 := r.pool.get(r.bytesStart[r.Ids[i]])
-	bs2 := r.pool.get(r.bytesStart[r.Ids[j]])
+func (r *quickSorter) Less(i, j int) bool {
+	bs1 := r.pool.GetBytes(r.bytesStart[r.ids[i]])
+	bs2 := r.pool.GetBytes(r.bytesStart[r.ids[j]])
 	return bytes.Compare(bs1, bs2) < 0
 }
 
-func (r *RadixSorter) Swap(i, j int) {
-	r.Ids[i], r.Ids[j] = r.Ids[j], r.Ids[i]
+func (r *quickSorter) Swap(i, j int) {
+	r.ids[i], r.ids[j] = r.ids[j], r.ids[i]
 }
 
 func (r *BytesHash) Clear(resetPool bool) {
@@ -199,37 +187,37 @@ func (r *BytesHash) Close() {
 	r.ids = nil
 }
 
-// Add Adds a new []byte
+// Add
+// adds a new []byte
 // bytes: the bytes to hash
-//
 // the id the given bytes are hashed if there was no mapping for the given bytes, otherwise (-(id)-1).
 // This guarantees that the return value will always be >= 0 if the given bytes haven't been hashed before.
-func (r *BytesHash) Add(bytes []byte) (int, error) {
-	length := len(bytes)
+func (r *BytesHash) Add(bs []byte) (int, error) {
+	length := len(bs)
 
 	// final position
-	hashPos := r.findHash(bytes)
-	e := r.ids[hashPos]
+	hashPos := r.findHash(bs)
+	id := r.ids[hashPos]
 
-	if e == -1 {
+	if id == -1 {
 		// new entry
-		len2 := 2 + len(bytes)
-		if len2+r.pool.byteUpto > BlockSize {
-			if len2 > BlockSize {
+		len2 := 2 + len(bs)
+		if len2+r.pool.byteUpto > BYTE_BLOCK_SIZE {
+			if len2 > BYTE_BLOCK_SIZE {
 				return 0, fmt.Errorf("bytes can be at most %d in length; got %d",
-					BlockSize-2, len(bytes))
+					BYTE_BLOCK_SIZE-2, len(bs))
 			}
 			r.pool.NextBuffer()
 		}
 		buffer := r.pool.buffer
-		bufferUpto := r.pool.byteUpto
+		byteUpto := r.pool.byteUpto
 		if r.count >= len(r.bytesStart) {
 			r.bytesStart = r.bytesStartArray.Grow()
 		}
-		e = r.count
+		id = r.count
 		r.count++
 
-		r.bytesStart[e] = bufferUpto + r.pool.ByteOffset()
+		r.bytesStart[id] = uint32(byteUpto + r.pool.ByteOffset())
 
 		// We first encode the length, followed by the
 		// bytes. Len is encoded as vInt, but will consume
@@ -237,77 +225,73 @@ func (r *BytesHash) Add(bytes []byte) (int, error) {
 		// above).
 
 		if length < 128 {
-			buffer[bufferUpto] = byte(length)
+			buffer[byteUpto] = byte(length)
 			r.pool.byteUpto += length + 1
-			copy(buffer[bufferUpto+1:bufferUpto+1+length], bytes)
+			copy(buffer[byteUpto+1:byteUpto+1+length], bs)
 		} else {
 			// 2 byte to store length
-			buffer[bufferUpto] = byte(0x80 | (length & 0x7f))
-			buffer[bufferUpto+1] = byte(length >> 7)
+			buffer[byteUpto] = byte(0x80 | (length & 0x7F))
+			buffer[byteUpto+1] = byte(length >> 7)
 			r.pool.byteUpto += length + 2
-			copy(buffer[bufferUpto+2:bufferUpto+2+length], bytes)
+			copy(buffer[byteUpto+2:byteUpto+2+length], bs)
 		}
-		r.ids[hashPos] = e
+		r.ids[hashPos] = id
 
 		if r.count == r.hashHalfSize {
 			r.rehash(2*r.hashSize, true)
 		}
-		return e, nil
+		return id, nil
 	}
-	return -(e + 1), nil
-}
-
-func (r *BytesHash) AddBytesRef(ref *BytesRef) (int, error) {
-	return r.Add(ref.Bytes())
+	return -(id + 1), nil
 }
 
 func (r *BytesHash) Find(bytes []byte) int {
 	return r.ids[r.findHash(bytes)]
 }
 
-func (r *BytesHash) findHash(bytes []byte) int {
-	code := r.doHash(bytes)
+func (r *BytesHash) findHash(bs []byte) int {
+	code := r.doHash(bs)
 
 	// final position
 	hashPos := code & r.hashMask
-	e := r.ids[hashPos]
-	if e != -1 && !r.equals(e, bytes) {
+	id := r.ids[hashPos]
+	if id != -1 && !r.equals(id, bs) {
 		// Conflict; use linear probe to find an open slot
 		// (see LUCENE-5604):
 
 		code++
 		hashPos = code & r.hashMask
-		e = r.ids[hashPos]
+		id = r.ids[hashPos]
 
-		for e != -1 && !r.equals(e, bytes) {
+		for id != -1 && !r.equals(id, bs) {
 			code++
 			hashPos = code & r.hashMask
-			e = r.ids[hashPos]
+			id = r.ids[hashPos]
 		}
 	}
-	return hashPos
+	return int(hashPos)
 }
 
-func (r *BytesHash) equals(id int, b []byte) bool {
+func (r *BytesHash) equals(id int, bs []byte) bool {
 	textStart := r.bytesStart[id]
-	array := r.pool.buffers[textStart>>BlockShift]
-	pos := textStart & BlockMask
-	length, offset := 0, 0
-	if (array[pos] & 0x80) == 0 {
+	blockIdx := textStart >> BYTE_BLOCK_SHIFT
+	block := r.pool.buffers[blockIdx]
+	pos := textStart & BYTE_BLOCK_MASK
+	length, offset := uint32(0), uint32(0)
+	if (block[pos] & 0x80) == 0 {
 		// length is 1 byte
-		length = int(array[pos])
+		length = uint32(block[pos])
 		offset = pos + 1
 	} else {
 		// length is 2 bytes
-		length = (int(b[pos]) & 0x7f) + ((int(b[pos+1]) & 0xff) << 7)
+		length = (uint32(block[pos]) & 0x7F) + ((uint32(block[pos+1]) & 0xFF) << 7)
 		offset = pos + 2
 	}
-	return bytes.Equal(array[offset:offset+length], b)
+	return bytes.Equal(block[offset:offset+length], bs)
 }
 
 func (r *BytesHash) shrink(targetSize int) bool {
-	// Cannot use ArrayUtil.shrink because we require power
-	// of 2:
+	// Cannot use ArrayUtil.shrink because we require power of 2:
 	newSize := r.hashSize
 	for newSize >= 8 && newSize/4 > targetSize {
 		newSize /= 2
@@ -320,7 +304,7 @@ func (r *BytesHash) shrink(targetSize int) bool {
 			r.ids[i] = -1
 		}
 		r.hashHalfSize = newSize / 2
-		r.hashMask = newSize - 1
+		r.hashMask = uint32(newSize) - 1
 		return true
 	}
 
@@ -331,7 +315,7 @@ func (r *BytesHash) shrink(targetSize int) bool {
 // hold the hash for term vectors, because they do not redundantly store the byte[] term directly and instead
 // reference the byte[] term already stored by the postings BytesHash. See add(int textStart) in
 // TermsHashPerField.
-func (r *BytesHash) AddByPoolOffset(offset int) int {
+func (r *BytesHash) AddByPoolOffset(offset uint32) int {
 	// final position
 	code := offset
 	hashPos := offset & r.hashMask
@@ -368,7 +352,8 @@ func (r *BytesHash) AddByPoolOffset(offset int) int {
 	return -(e + 1)
 }
 
-// ReInit reinitializes the BytesHash after a previous clear() call.
+// ReInit
+// reinitializes the BytesHash after a previous clear() call.
 // If clear() has not been called previously this method has no effect.
 func (r *BytesHash) ReInit() {
 	if r.bytesStart == nil {
@@ -380,42 +365,43 @@ func (r *BytesHash) ReInit() {
 	}
 }
 
-// ByteStart Returns the bytesStart offset into the internally used BlockPool for the given bytesID
+// ByteStart
+// Returns the bytesStart offset into the internally used BlockPool for the given bytesID
 // Params: bytesID – the id to look up
 // Returns: the bytesStart offset into the internally used BlockPool for the given id
-func (r *BytesHash) ByteStart(bytesID int) int {
+func (r *BytesHash) ByteStart(bytesID int) uint32 {
 	return r.bytesStart[bytesID]
 }
 
 // Called when hash is too small (> 50% occupied) or too large (< 20% occupied).
 func (r *BytesHash) rehash(newSize int, hashOnData bool) {
-	newMask := newSize - 1
+	newMask := uint32(newSize - 1)
 	newHash := make([]int, newSize)
 	for i := 0; i < len(newHash); i++ {
 		newHash[i] = -1
 	}
 
 	for i := 0; i < r.hashSize; i++ {
-		e0 := r.ids[i]
-		if e0 != -1 {
-			code := 0
+		id := r.ids[i]
+		if id != -1 {
+			code := uint32(0)
 			if hashOnData {
-				off := r.bytesStart[e0]
-				start := off & BlockMask
-				bs := r.pool.buffers[off>>BlockShift]
-				length := 0
-				pos := 0
-				if bs[start]&0x80 == 0 {
+				off := r.bytesStart[id]
+				start := off & BYTE_BLOCK_MASK
+				block := r.pool.buffers[off>>BYTE_BLOCK_SHIFT]
+				length := uint32(0)
+				pos := uint32(0)
+				if block[start]&0x80 == 0 {
 					// length is 1 byte
-					length = int(bs[start])
+					length = uint32(block[start])
 					pos = start + 1
 				} else {
-					length = int((bs[start] & 0x7f) + ((bs[start+1]) << 7))
+					length = (uint32(block[start]) & 0x7F) + (uint32(block[start+1]) << 7)
 					pos = start + 2
 				}
-				code = r.doHash(bs[pos : pos+length])
+				code = r.doHash(block[pos : pos+length])
 			} else {
-				code = r.bytesStart[e0]
+				code = r.bytesStart[id]
 			}
 
 			hashPos := code & newMask
@@ -427,20 +413,25 @@ func (r *BytesHash) rehash(newSize int, hashOnData bool) {
 					hashPos = code & newMask
 				}
 			}
-			newHash[hashPos] = e0
+			newHash[hashPos] = id
 		}
 	}
+
+	r.hashMask = newMask
+	r.ids = newHash
+	r.hashSize = newSize
+	r.hashHalfSize = newSize / 2
 }
 
 var (
 	GOOD_FAST_HASH_SEED = time.Now().Unix()
 )
 
-func (r *BytesHash) doHash(bytes []byte) int {
+func (r *BytesHash) doHash(bytes []byte) uint32 {
 	r.Lock()
 	defer r.Unlock()
 
 	r.hasher.Reset()
-	r.hasher.Write(bytes)
-	return int(r.hasher.Sum32())
+	_, _ = r.hasher.Write(bytes)
+	return r.hasher.Sum32()
 }

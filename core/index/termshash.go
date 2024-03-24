@@ -2,7 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
 
@@ -16,7 +16,7 @@ type TermsHash interface {
 
 	AddField(fieldInvertState *FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error)
 
-	SetTermBytePool(termBytePool *bytesutils.BlockPool)
+	SetTermBytePool(termBytePool *bytesref.BlockPool)
 
 	FinishDocument(docID int) error
 
@@ -27,23 +27,23 @@ type TermsHash interface {
 	StartDocument() error
 
 	GetIntPool() *ints.BlockPool
-	GetBytePool() *bytesutils.BlockPool
-	GetTermBytePool() *bytesutils.BlockPool
+	GetBytePool() *bytesref.BlockPool
+	GetTermBytePool() *bytesref.BlockPool
 }
 
 type BaseTermsHash struct {
 	nextTermsHash TermsHash
 	intPool       *ints.BlockPool
-	bytePool      *bytesutils.BlockPool
-	termBytePool  *bytesutils.BlockPool
+	bytePool      *bytesref.BlockPool
+	termBytePool  *bytesref.BlockPool
 }
 
-func NewTermsHashDefault(intBlockAllocator ints.IntsAllocator, byteBlockAllocator bytesutils.Allocator,
+func NewTermsHashDefault(intBlockAllocator ints.IntsAllocator, byteBlockAllocator bytesref.Allocator,
 	nextTermsHash TermsHash) *BaseTermsHash {
 	termHash := &BaseTermsHash{
 		nextTermsHash: nextTermsHash,
 		intPool:       ints.NewBlockPool(intBlockAllocator),
-		bytePool:      bytesutils.NewBlockPool(byteBlockAllocator),
+		bytePool:      bytesref.NewBlockPool(byteBlockAllocator),
 	}
 
 	if nextTermsHash != nil {
@@ -57,11 +57,11 @@ func (h *BaseTermsHash) GetIntPool() *ints.BlockPool {
 	return h.intPool
 }
 
-func (h *BaseTermsHash) GetBytePool() *bytesutils.BlockPool {
+func (h *BaseTermsHash) GetBytePool() *bytesref.BlockPool {
 	return h.bytePool
 }
 
-func (h *BaseTermsHash) GetTermBytePool() *bytesutils.BlockPool {
+func (h *BaseTermsHash) GetTermBytePool() *bytesref.BlockPool {
 	return h.termBytePool
 }
 

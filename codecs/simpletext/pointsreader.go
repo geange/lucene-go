@@ -9,7 +9,7 @@ import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 var _ index.PointsReader = &PointsReader{}
@@ -136,7 +136,7 @@ func (s *PointsReader) initReader(fp int64) (*BKDReader, error) {
 	if err != nil {
 		return nil, err
 	}
-	minValue, err := bytesutils.StringToBytes(v)
+	minValue, err := bytesref.StringToBytes(v)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (s *PointsReader) initReader(fp int64) (*BKDReader, error) {
 	if err != nil {
 		return nil, err
 	}
-	maxValue, err := bytesutils.StringToBytes(v)
+	maxValue, err := bytesref.StringToBytes(v)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (s *PointsReader) initReader(fp int64) (*BKDReader, error) {
 		if err != nil {
 			return nil, err
 		}
-		br, err := bytesutils.StringToBytes(v)
+		br, err := bytesref.StringToBytes(v)
 		if err != nil {
 			return nil, err
 		}

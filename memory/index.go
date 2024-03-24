@@ -2,14 +2,15 @@ package memory
 
 import (
 	"errors"
+	"reflect"
+
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
-	"reflect"
 )
 
 // High-performance single-document main memory Apache Lucene fulltext search index.
@@ -102,10 +103,10 @@ type Index struct {
 	fields            *treemap.Map[string, *info]
 	storeOffsets      bool
 	storePayloads     bool
-	byteBlockPool     *bytesutils.BlockPool
+	byteBlockPool     *bytesref.BlockPool
 	intBlockPool      *ints.BlockPool
 	postingsWriter    *ints.SliceWriter
-	payloadsBytesRefs *bytesutils.BytesRefArray //non null only when storePayloads
+	payloadsBytesRefs *bytesref.Array //non null only when storePayloads
 	frozen            bool
 	normSimilarity    index.Similarity
 	defaultFieldType  *document.FieldType
@@ -197,11 +198,11 @@ func newIndex(storeOffsets, storePayloads bool, maxReusedBytes int64) (*Index, e
 		return nil, err
 	}
 
-	maxBufferedByteBlocks := (int)((maxReusedBytes / 2) / bytesutils.BlockSize)
-	maxBufferedIntBlocks := (int(maxReusedBytes) - (maxBufferedByteBlocks * bytesutils.BlockSize)) / (ints.INT_BLOCK_SIZE * 4)
+	maxBufferedByteBlocks := (int)((maxReusedBytes / 2) / bytesref.BYTE_BLOCK_SIZE)
+	maxBufferedIntBlocks := (int(maxReusedBytes) - (maxBufferedByteBlocks * bytesref.BYTE_BLOCK_SIZE)) / (ints.INT_BLOCK_SIZE * 4)
 
-	allocator := bytesutils.NewRecyclingByteBlockAllocator(bytesutils.BlockSize, maxBufferedByteBlocks)
-	newIdx.byteBlockPool = bytesutils.NewBlockPool(allocator)
+	allocator := bytesref.GetAllocatorBuilder().NewRecyclingByteBlock(bytesref.BYTE_BLOCK_SIZE, maxBufferedByteBlocks)
+	newIdx.byteBlockPool = bytesref.NewBlockPool(allocator)
 
 	intsAllocator := ints.NewRecyclingIntBlockAllocator(ints.INT_BLOCK_SIZE, maxBufferedIntBlocks)
 	newIdx.intBlockPool = ints.NewBlockPool(intsAllocator)

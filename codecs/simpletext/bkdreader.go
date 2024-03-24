@@ -9,7 +9,7 @@ import (
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 var _ types.PointValues = &BKDReader{}
@@ -246,9 +246,9 @@ func (s *BKDReader) visitDocValues(ctx context.Context, commonPrefixLengths []in
 
 		scratch.Next(len(BLOCK_VALUE))
 
-		//value := util.BytesToString(scratch.Bytes())
+		//value := util.BytesToString(scratch.NewBytes())
 		//br := []byte(value)
-		br, err := bytesutils.StringToBytes(scratch.String())
+		br, err := bytesref.StringToBytes(scratch.String())
 		if err != nil {
 			return err
 		}

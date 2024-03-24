@@ -2,10 +2,11 @@ package search
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util/bytesutils"
-	"github.com/geange/lucene-go/core/util/structure"
 	"io"
+
+	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/util/bytesref"
+	"github.com/geange/lucene-go/core/util/structure"
 )
 
 var _ MatchesIterator = &DisjunctionMatchesIterator{}
@@ -93,7 +94,7 @@ func newDisjunctionMatchesIterator(matches []MatchesIterator) (MatchesIterator, 
 // Create a DisjunctionMatchesIterator over a list of terms extracted from a BytesRefIterator
 // Only terms that have at least one match in the given document will be included
 func FromTermsEnumMatchesIterator(context *index.LeafReaderContext, doc int, query Query,
-	field string, terms bytesutils.BytesIterator) (MatchesIterator, error) {
+	field string, terms bytesref.BytesIterator) (MatchesIterator, error) {
 
 	t, err := context.Reader().(index.LeafReader).Terms(field)
 	if err != nil {
@@ -139,14 +140,14 @@ var _ MatchesIterator = &termsEnumDisjunctionMatchesIterator{}
 
 type termsEnumDisjunctionMatchesIterator struct {
 	first MatchesIterator
-	terms bytesutils.BytesIterator
+	terms bytesref.BytesIterator
 	te    index.TermsEnum
 	doc   int
 	query Query
 	it    MatchesIterator
 }
 
-func newTermsEnumDisjunctionMatchesIterator(first MatchesIterator, terms bytesutils.BytesIterator,
+func newTermsEnumDisjunctionMatchesIterator(first MatchesIterator, terms bytesref.BytesIterator,
 	te index.TermsEnum, doc int, query Query) *termsEnumDisjunctionMatchesIterator {
 	return &termsEnumDisjunctionMatchesIterator{
 		first: first,

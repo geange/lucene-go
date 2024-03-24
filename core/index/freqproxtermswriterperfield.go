@@ -2,12 +2,12 @@ package index
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/util/bytesutils"
 	"sort"
 	"strings"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 var _ TermsHashPerField = &FreqProxTermsWriterPerField{}
@@ -60,9 +60,9 @@ func NewFreqProxTermsWriterPerField(invertState *FieldInvertState, termsHash Ter
 		nextPerField, fieldInfo.Name(), indexOptions, perfield)
 
 	byteStarts := NewPostingsBytesStartArray(perfield)
-	bytesHash, err := bytesutils.NewBytesHash(termBytePool,
-		bytesutils.WithCapacity(HASH_INIT_SIZE),
-		bytesutils.WithStartArray(byteStarts))
+	bytesHash, err := bytesref.NewBytesHash(termBytePool,
+		bytesref.WithCapacity(HASH_INIT_SIZE),
+		bytesref.WithStartArray(byteStarts))
 	if err != nil {
 		return nil, err
 	}

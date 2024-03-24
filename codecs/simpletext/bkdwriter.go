@@ -13,7 +13,7 @@ import (
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/bkd"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/numeric"
 )
 
@@ -360,7 +360,7 @@ func (s *BKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []int64, spli
 	if err := w.Bytes(MIN_VALUE); err != nil {
 		return err
 	}
-	if err := w.String(bytesutils.BytesToString(s.minPackedValue)); err != nil {
+	if err := w.String(bytesref.BytesToString(s.minPackedValue)); err != nil {
 		return err
 	}
 	if err := w.NewLine(); err != nil {
@@ -370,7 +370,7 @@ func (s *BKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []int64, spli
 	if err := w.Bytes(MAX_VALUE); err != nil {
 		return err
 	}
-	if err := w.String(bytesutils.BytesToString(s.maxPackedValue)); err != nil {
+	if err := w.String(bytesref.BytesToString(s.maxPackedValue)); err != nil {
 		return err
 	}
 	if err := w.NewLine(); err != nil {
@@ -438,7 +438,7 @@ func (s *BKDWriter) writeIndex(out store.IndexOutput, leafBlockFPs []int64, spli
 		offset := 1 + (i * (1 + s.config.BytesPerDim()))
 		endOffset := offset + s.config.BytesPerDim()
 		values := splitPackedValues[offset:endOffset]
-		if err := w.String(bytesutils.BytesToString(values)); err != nil {
+		if err := w.String(bytesref.BytesToString(values)); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {
@@ -591,7 +591,7 @@ func (s *BKDWriter) writeLeafBlockPackedValues(out store.IndexOutput, commonPref
 		if err := utils.WriteBytes(out, BLOCK_VALUE); err != nil {
 			return err
 		}
-		if err := utils.WriteString(out, bytesutils.BytesToString(packedValue)); err != nil {
+		if err := utils.WriteString(out, bytesref.BytesToString(packedValue)); err != nil {
 			return err
 		}
 		if err := utils.NewLine(out); err != nil {

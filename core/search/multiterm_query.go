@@ -3,7 +3,7 @@ package search
 import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/tokenattr"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 // MultiTermQuery An abstract Query that matches documents containing a subset of terms provided by a
@@ -156,7 +156,7 @@ type matches struct {
 	doc     int
 	query   Query
 	field   string
-	terms   bytesutils.BytesIterator
+	terms   bytesref.BytesIterator
 }
 
 func (r *matches) Get() (MatchesIterator, error) {

@@ -1,9 +1,10 @@
 package index
 
 import (
-	"github.com/bits-and-blooms/bitset"
-	"github.com/geange/lucene-go/core/util/bytesutils"
 	"math"
+
+	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 // FieldUpdatesBuffer This class efficiently buffers numeric and binary field updates and stores terms,
@@ -16,9 +17,9 @@ import (
 // share the same item for a numeric field we only store the item once.
 type FieldUpdatesBuffer struct {
 	numUpdates    int
-	termValues    *bytesutils.BytesRefArray
-	termSortState *bytesutils.SortState
-	byteValues    *bytesutils.BytesRefArray
+	termValues    *bytesref.Array
+	termSortState *bytesref.SortState
+	byteValues    *bytesref.Array
 	docsUpTo      []int
 	numericValues []int64
 	hasValues     *bitset.BitSet

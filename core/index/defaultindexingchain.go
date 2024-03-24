@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
 
@@ -19,7 +20,7 @@ var _ DocConsumer = &DefaultIndexingChain{}
 type DefaultIndexingChain struct {
 	fieldInfos           *FieldInfosBuilder
 	termsHash            TermsHash
-	docValuesBytePool    *bytesutils.BlockPool
+	docValuesBytePool    *bytesref.BlockPool
 	storedFieldsConsumer *StoredFieldsConsumer
 	termVectorsWriter    *TermVectorsConsumer
 
@@ -32,7 +33,7 @@ type DefaultIndexingChain struct {
 
 	fields []*PerField
 
-	byteBlockAllocator bytesutils.Allocator
+	byteBlockAllocator bytesref.Allocator
 
 	indexWriterConfig *liveIndexWriterConfig
 
@@ -56,7 +57,7 @@ func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentI
 	indexChain := &DefaultIndexingChain{
 		fieldInfos:               fieldInfos,
 		termsHash:                NewFreqProxTermsWriter(intBlockAllocator, byteBlockAllocator, termVectorsWriter),
-		docValuesBytePool:        bytesutils.NewBlockPool(byteBlockAllocator),
+		docValuesBytePool:        bytesref.NewBlockPool(byteBlockAllocator),
 		storedFieldsConsumer:     storedFieldsConsumer,
 		termVectorsWriter:        termVectorsWriter,
 		fieldHash:                make(map[string]*PerField),
@@ -871,13 +872,11 @@ func newIntBlockAllocator() ints.IntsAllocator {
 	}
 }
 
-func newByteBlockAllocator() bytesutils.Allocator {
-	return &bytesutils.BytesAllocator{
-		BlockSize: bytesutils.BlockSize,
-		FnRecycleByteBlocksRange: func(blocks [][]byte, start, end int) {
-			for i := start; i < end; i++ {
-				blocks[i] = nil
-			}
-		},
+func newByteBlockAllocator() bytesref.Allocator {
+	fn := func(blocks [][]byte, start, end int) {
+		for i := start; i < end; i++ {
+			blocks[i] = nil
+		}
 	}
+	return bytesref.GetAllocatorBuilder().NewBytes(bytesref.BYTE_BLOCK_SIZE, fn)
 }

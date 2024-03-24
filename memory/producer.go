@@ -3,11 +3,11 @@ package memory
 import (
 	"sort"
 
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 type binaryDocValuesProducer struct {
-	dvBytesValuesSet *bytesutils.BytesHash
+	dvBytesValuesSet *bytesref.BytesHash
 	bytesIds         []int
 }
 

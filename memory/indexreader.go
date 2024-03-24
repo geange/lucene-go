@@ -8,7 +8,7 @@ import (
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 var _ index.LeafReader = &IndexReader{}
@@ -164,7 +164,7 @@ func (m *IndexReader) GetMetaData() *index.LeafMetaData {
 	return index.NewLeafMetaData(util.VersionLast.Major, util.VersionLast, nil)
 }
 
-func genSortedSetDocValues(values *bytesutils.BytesHash, bytesIds []int) index.SortedSetDocValues {
+func genSortedSetDocValues(values *bytesref.BytesHash, bytesIds []int) index.SortedSetDocValues {
 	it := newDocValuesIterator()
 	return newSortedSetDocValues(values, bytesIds, it)
 }

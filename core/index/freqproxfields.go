@@ -148,22 +148,26 @@ func (f *FreqProxTermsEnum) Next(context.Context) ([]byte, error) {
 	}
 	textStart := f.postingsArray.textStarts[f.sortedTermIDs[f.ord]]
 	var err error
-	f.scratch, err = f.terms.bytePool.GetAddress(textStart)
-	return f.scratch, err
+	scratch, err := f.terms.bytePool.GetAddress(textStart)
+	if err != nil {
+		return nil, err
+	}
+	f.scratch = scratch
+	return f.scratch, nil
 }
 
 func (f *FreqProxTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
 	// binary search:
 	lo := 0
 	hi := f.numTerms - 1
-	var err error
 	for hi >= lo {
 		mid := (lo + hi) >> 1
 		textStart := f.postingsArray.textStarts[f.sortedTermIDs[mid]]
-		f.scratch, err = f.terms.bytePool.GetAddress(textStart)
+		scratch, err := f.terms.bytePool.GetAddress(textStart)
 		if err != nil {
 			return 0, err
 		}
+		f.scratch = scratch
 		cmp := bytes.Compare(f.scratch, text)
 		if cmp < 0 {
 			lo = mid + 1

@@ -8,7 +8,7 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util"
-	"github.com/geange/lucene-go/core/util/bytesutils"
+	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
 type Fields struct {
@@ -50,7 +50,7 @@ type info struct {
 	norm      *int64
 
 	// Term strings and their positions for this field: map<termText:string, positions:[]int>
-	terms      *bytesutils.BytesHash
+	terms      *bytesref.BytesHash
 	sliceArray *sliceByteStartArray
 
 	sortedTerms []int // terms sorted ascending by term text; computed on demand
