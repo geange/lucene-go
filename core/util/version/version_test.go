@@ -167,21 +167,29 @@ func TestParse(t *testing.T) {
 	items := []struct {
 		major, minor, bugfix, prerelease uint8
 		version                          string
+		isErr                            bool
 	}{
-		{1, 2, 3, 0, "1.2.3"},
-		{2, 3, 4, 0, "2.3.4"},
-		{8, 9, 10, 0, "8.9.10"},
-		{8, 0, 0, 1, "8.0.0.1"},
-		{8, 0, 0, 2, "8.0.0.2"},
+		{1, 2, 3, 0, "1.2.3", false},
+		{2, 3, 4, 0, "2.3.4", false},
+		{8, 9, 10, 0, "8.9.10", false},
+		{8, 0, 0, 1, "8.0.0.1", false},
+		{8, 0, 0, 2, "8.0.0.2", false},
+		{8, 0, 0, 2, "8.0..2", true},
+		{8, 0, 0, 2, "8..0", true},
 	}
 
 	for _, item := range items {
-		parse, err := Parse(item.version)
-		assert.Nil(t, err)
 
-		assert.EqualValues(t, item.major, parse.Major())
-		assert.EqualValues(t, item.minor, parse.Minor())
-		assert.EqualValues(t, item.bugfix, parse.Bugfix())
-		assert.EqualValues(t, item.prerelease, parse.Prerelease())
+		if !item.isErr {
+			parse, err := Parse(item.version)
+			assert.Nil(t, err)
+			assert.EqualValues(t, item.major, parse.Major())
+			assert.EqualValues(t, item.minor, parse.Minor())
+			assert.EqualValues(t, item.bugfix, parse.Bugfix())
+			assert.EqualValues(t, item.prerelease, parse.Prerelease())
+		} else {
+			_, err := Parse(item.version)
+			assert.NotNil(t, err)
+		}
 	}
 }
