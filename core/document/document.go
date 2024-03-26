@@ -31,6 +31,7 @@ func (d *Document) Fields() []IndexableField {
 	return d.fields
 }
 
+// Add
 // Add a field to a document. Several fields may be added with the same name. In this case,
 // if the fields are indexed, their text is treated as though appended for the purposes of search.
 // Note that add like the removeField(s) methods only makes sense prior to adding a document to an index.
@@ -40,7 +41,8 @@ func (d *Document) Add(field IndexableField) {
 	d.fields = append(d.fields, field)
 }
 
-// RemoveField Removes field with the specified name from the document. If multiple fields exist with this name,
+// RemoveField
+// Removes field with the specified name from the document. If multiple fields exist with this name,
 // this method removes the first field that has been added. If there is no field with the specified name,
 // the document remains unchanged.
 // Note that the removeField(s) methods like the add method only make sense prior to adding a document to an index.
@@ -55,7 +57,8 @@ func (d *Document) RemoveField(name string) {
 	}
 }
 
-// RemoveFields Removes all fields with the given name from the document. If there is no field with the
+// RemoveFields
+// Removes all fields with the given name from the document. If there is no field with the
 // specified name, the document remains unchanged.
 // Note that the removeField(s) methods like the add method only make sense prior to adding a document to an
 // index. These methods cannot be used to change the content of an existing index! In order to achieve this,
@@ -70,10 +73,10 @@ func (d *Document) RemoveFields(name string) {
 	d.fields = tmp
 }
 
-// GetBinaryValues Returns an array of byte arrays for of the fields that have the name specified as the method parameter.
+// GetBinaryValues
+// Returns [][]byte for of the fields that have the name specified as the method parameter.
 // This method returns an empty array when there are no matching fields. It never returns null.
-// Params: name – the name of the field
-// Returns: a BytesRef[] of binary field values
+// name: the name of the field
 func (d *Document) GetBinaryValues(name string) [][]byte {
 	ret := make([][]byte, 0, len(d.fields))
 	for _, field := range d.fields {
@@ -125,7 +128,7 @@ func (d *Document) GetField(name string) (IndexableField, error) {
 // there are no matching fields. It never returns null.
 // name: the name of the field
 func (d *Document) GetFields(name string) []IndexableField {
-	ret := make([]IndexableField, 0, 1)
+	ret := make([]IndexableField, 0)
 	for i, field := range d.fields {
 		if field.Name() == name {
 			ret = append(ret, d.fields[i])
@@ -134,11 +137,11 @@ func (d *Document) GetFields(name string) []IndexableField {
 	return ret
 }
 
-// GetValues Returns an array of values of the field specified as the method parameter. This method returns
+// GetValues
+// Returns an array of values of the field specified as the method parameter. This method returns
 // an empty array when there are no matching fields. It never returns null. For a numeric StoredField
 // it returns the string value of the number. If you want the actual numeric field instances back, use getFields.
-// Params: name – the name of the field
-// Returns: a String[] of field values
+// name: the name of the field
 func (d *Document) GetValues(name string) []string {
 	ret := make([]string, 0, len(d.fields))
 	for _, field := range d.fields {

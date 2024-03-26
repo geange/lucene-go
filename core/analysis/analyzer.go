@@ -2,8 +2,9 @@ package analysis
 
 import (
 	"bytes"
-	"github.com/geange/lucene-go/core/util"
 	"io"
+
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 // An Analyzer builds TokenStreams, which analyze text. It thus represents a policy for
@@ -49,10 +50,10 @@ type Analyzer interface {
 	GetReuseStrategy() ReuseStrategy
 
 	// SetVersion Set the version of Lucene this analyzer should mimic the behavior for analysis.
-	SetVersion(v *util.Version)
+	SetVersion(v *version.Version)
 
 	// GetVersion Return the version of Lucene this analyzer will mimic the behavior of for analysis.
-	GetVersion() *util.Version
+	GetVersion() *version.Version
 }
 
 type ComponentsBuilder interface {
@@ -62,7 +63,7 @@ type ComponentsBuilder interface {
 type BaseAnalyzer struct {
 	builder       ComponentsBuilder
 	reuseStrategy ReuseStrategy
-	version       *util.Version
+	version       *version.Version
 	storedValue   any
 }
 
@@ -70,7 +71,7 @@ func NewBaseAnalyzer(builder ComponentsBuilder) *BaseAnalyzer {
 	return &BaseAnalyzer{
 		builder:       builder,
 		reuseStrategy: &GlobalReuseStrategy{},
-		version:       util.VersionLast,
+		version:       version.Last,
 	}
 }
 
@@ -124,11 +125,11 @@ func (r *BaseAnalyzer) GetReuseStrategy() ReuseStrategy {
 	return r.reuseStrategy
 }
 
-func (r *BaseAnalyzer) SetVersion(v *util.Version) {
+func (r *BaseAnalyzer) SetVersion(v *version.Version) {
 	r.version = v
 }
 
-func (r *BaseAnalyzer) GetVersion() *util.Version {
+func (r *BaseAnalyzer) GetVersion() *version.Version {
 	return r.version
 }
 

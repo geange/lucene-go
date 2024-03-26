@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/codecs/utils"
-	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
 	"strconv"
 	"strings"
+
+	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 const (
@@ -85,10 +86,10 @@ type SegmentInfos struct {
 	id []byte
 
 	// Which Lucene version wrote this commit.
-	luceneVersion *util.Version
+	luceneVersion *version.Version
 
 	// Version of the oldest segment in the index, or null if there are no segments.
-	minSegmentLuceneVersion *util.Version
+	minSegmentLuceneVersion *version.Version
 
 	// The Lucene version major that was used to create the index.
 	indexCreatedVersionMajor int
@@ -303,31 +304,40 @@ func ReadCommitFromChecksum(ctx context.Context, directory store.Directory, inpu
 		return nil, err
 	}
 
-	n1, err := input.ReadUvarint(ctx)
+	//major, minor, bugfix
+
+	major, err := input.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
-	n2, err := input.ReadUvarint(ctx)
+	minor, err := input.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
-	n3, err := input.ReadUvarint(ctx)
+	bugfix, err := input.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
-	luceneVersion := util.NewVersion(int(n1), int(n2), int(n3))
+	luceneVersion, err := version.New(
+		version.WithMajor(uint8(major)),
+		version.WithMinor(uint8(minor)),
+		version.WithBugfix(uint8(bugfix)),
+	)
+	if err != nil {
+		return nil, err
+	}
 	indexCreatedVersion, err := input.ReadUvarint(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if luceneVersion.Major < int(indexCreatedVersion) {
+	if uint64(luceneVersion.Major()) < (indexCreatedVersion) {
 		return nil, fmt.Errorf(
 			"creation version [%d.x] can't be greater than the version that wrote the segment infos: [%d]",
 			indexCreatedVersion, luceneVersion,
 		)
 	}
 
-	if int(indexCreatedVersion) < util.VersionLast.Major-1 {
+	if int(indexCreatedVersion) < int(version.Last.Major()-1) {
 		return nil, errors.New("lucene only supports reading the current and previous major versions")
 	}
 
@@ -337,11 +347,11 @@ func ReadCommitFromChecksum(ctx context.Context, directory store.Directory, inpu
 	infos.lastGeneration = generation
 	infos.luceneVersion = luceneVersion
 
-	version, err := input.ReadUint64(ctx)
+	ver, err := input.ReadUint64(ctx)
 	if err != nil {
 		return nil, err
 	}
-	infos.version = int64(version)
+	infos.version = int64(ver)
 
 	if format > VERSION_70 {
 		count, err := input.ReadUvarint(ctx)
@@ -363,19 +373,28 @@ func ReadCommitFromChecksum(ctx context.Context, directory store.Directory, inpu
 	}
 
 	if numSegments > 0 {
-		n1, err := input.ReadUvarint(ctx)
+		// major, minor, bugfix
+		major, err := input.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
 		}
-		n2, err := input.ReadUvarint(ctx)
+		minor, err := input.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
 		}
-		n3, err := input.ReadUvarint(ctx)
+		bugfix, err := input.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
 		}
-		infos.minSegmentLuceneVersion = util.NewVersion(int(n1), int(n2), int(n3))
+		minSegmentLuceneVersion, err := version.New(
+			version.WithMajor(uint8(major)),
+			version.WithMinor(uint8(minor)),
+			version.WithBugfix(uint8(bugfix)),
+		)
+		if err != nil {
+			return nil, err
+		}
+		infos.minSegmentLuceneVersion = minSegmentLuceneVersion
 	} else {
 		// else leave as null: no segments
 	}
@@ -506,7 +525,7 @@ func ReadCommitFromChecksum(ctx context.Context, directory store.Directory, inpu
 			//throw new CorruptIndexException("segments file recorded minSegmentLuceneVersion=" + infos.minSegmentLuceneVersion + " but segment=" + info + " has older version=" + segmentVersion, input);
 		}
 
-		if infos.indexCreatedVersionMajor >= 7 && segmentVersion.Major < infos.indexCreatedVersionMajor {
+		if infos.indexCreatedVersionMajor >= 7 && int(segmentVersion.Major()) < infos.indexCreatedVersionMajor {
 			return nil, errors.New("version too new")
 			//throw new CorruptIndexException("segments file recorded indexCreatedVersionMajor=" + infos.indexCreatedVersionMajor + " but segment=" + info + " has older version=" + segmentVersion, input);
 		}

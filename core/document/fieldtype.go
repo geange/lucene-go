@@ -24,11 +24,11 @@ type FieldType struct {
 }
 
 func NewFieldType() *FieldType {
-	return defaultFieldType()
+	return newFieldType()
 }
 
 func NewFieldTypeFrom(fieldType IndexableFieldType) *FieldType {
-	t := defaultFieldType()
+	t := newFieldType()
 	t.stored = fieldType.Stored()
 	t.tokenized = fieldType.Tokenized()
 	t.storeTermVectors = fieldType.StoreTermVectors()
@@ -47,7 +47,7 @@ func NewFieldTypeFrom(fieldType IndexableFieldType) *FieldType {
 	return t
 }
 
-func defaultFieldType() *FieldType {
+func newFieldType() *FieldType {
 	return &FieldType{
 		stored:                   false,
 		tokenized:                true,

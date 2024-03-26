@@ -3,10 +3,11 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
 	"strings"
 	"sync"
+
+	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 const (
@@ -40,18 +41,18 @@ type SegmentInfo struct {
 	// The format expected is "x.y" - "2.x" for pre-3.0 indexes (or null), and
 	// specific versions afterwards ("3.0.0", "3.1.0" etc.).
 	// see o.a.l.util.Version.
-	version *util.Version
+	version *version.Version
 
 	// Tracks the minimum version that contributed documents to a segment. For
 	// Flush segments, that is the version that wrote it. For merged segments,
 	// this is the minimum minVersion of all the segments that have been merged
 	// into this segment
-	minVersion *util.Version
+	minVersion *version.Version
 
 	setFiles map[string]struct{}
 }
 
-func NewSegmentInfo(dir store.Directory, version, minVersion *util.Version, name string,
+func NewSegmentInfo(dir store.Directory, version, minVersion *version.Version, name string,
 	maxDoc int, isCompoundFile bool, codec Codec, diagnostics map[string]string,
 	id []byte, attributes map[string]string, indexSort *Sort) *SegmentInfo {
 
@@ -120,11 +121,11 @@ func (s *SegmentInfo) AddFile(file string) error {
 	return nil
 }
 
-func (s *SegmentInfo) GetVersion() *util.Version {
+func (s *SegmentInfo) GetVersion() *version.Version {
 	return s.version
 }
 
-func (s *SegmentInfo) GetMinVersion() *util.Version {
+func (s *SegmentInfo) GetMinVersion() *version.Version {
 	return s.minVersion
 }
 
