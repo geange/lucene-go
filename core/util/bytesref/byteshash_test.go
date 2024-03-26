@@ -11,16 +11,17 @@ import (
 )
 
 func TestBytesHashAdd(t *testing.T) {
-	checkBytesHashAdd(t, 1<<4, 2)
-	checkBytesHashAdd(t, 1<<4, 16)
-	checkBytesHashAdd(t, 1<<4, 1<<5)
-	checkBytesHashAdd(t, 1<<4, 1<<3)
-	checkBytesHashAdd(t, 1<<8, 1<<7)
-	checkBytesHashAdd(t, 1<<8, 1<<10)
-	checkBytesHashAdd(t, 1<<16, 1<<15)
+	t.Run("capacity > size", func(t *testing.T) {
+		testEnoughCapacity(t, 1<<4, 1<<1)
+		testEnoughCapacity(t, 1<<4, 1<<4)
+		testEnoughCapacity(t, 1<<4, 1<<3)
+		testEnoughCapacity(t, 1<<8, 1<<7)
+		testEnoughCapacity(t, 1<<8, 1<<10)
+		testEnoughCapacity(t, 1<<16, 1<<14)
+	})
 }
 
-func checkBytesHashAdd(t *testing.T, capacity int, size int) {
+func testEnoughCapacity(t *testing.T, capacity int, size int) {
 	sizeLists := []int{8, 128, 256}
 	//sizeLists := []int{8}
 	for _, byteSize := range sizeLists {
@@ -48,8 +49,13 @@ func checkBytesHashAdd(t *testing.T, capacity int, size int) {
 			}
 
 			for i, bytesID := range bytesIdItems {
-				bs := bytesHash.Get(bytesID)
-				assert.Equal(t, bs, bytesItems[i])
+				if bytesID > 0 {
+					bs := bytesHash.Get(bytesID)
+					assert.Equal(t, bs, bytesItems[i])
+				} else {
+					bs := bytesHash.Get(-bytesID - 1)
+					assert.Equal(t, bs, bytesItems[i])
+				}
 			}
 		})
 	}
