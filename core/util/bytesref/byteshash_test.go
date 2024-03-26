@@ -13,8 +13,9 @@ import (
 func TestBytesHashAdd(t *testing.T) {
 	t.Run("capacity > size", func(t *testing.T) {
 		testEnoughCapacity(t, 1<<4, 1<<1)
-		testEnoughCapacity(t, 1<<4, 1<<4)
+		testEnoughCapacity(t, 1<<4, 1<<2)
 		testEnoughCapacity(t, 1<<4, 1<<3)
+		testEnoughCapacity(t, 1<<4, 1<<4)
 		testEnoughCapacity(t, 1<<8, 1<<7)
 		testEnoughCapacity(t, 1<<8, 1<<10)
 		testEnoughCapacity(t, 1<<16, 1<<14)
@@ -49,7 +50,7 @@ func testEnoughCapacity(t *testing.T, capacity int, size int) {
 			}
 
 			for i, bytesID := range bytesIdItems {
-				if bytesID > 0 {
+				if bytesID >= 0 {
 					bs := bytesHash.Get(bytesID)
 					assert.Equal(t, bs, bytesItems[i])
 				} else {
