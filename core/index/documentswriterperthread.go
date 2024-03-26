@@ -8,7 +8,7 @@ import (
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 const (
@@ -45,8 +45,8 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string,
 
 	codec := indexWriterConfig.GetCodec()
 
-	segmentInfo := NewSegmentInfo(dirOrig, util.VersionLast,
-		util.VersionLast, segmentName, -1,
+	segmentInfo := NewSegmentInfo(dirOrig, version.Last,
+		version.Last, segmentName, -1,
 		false, codec, map[string]string{}, []byte(""),
 		map[string]string{}, indexWriterConfig.GetIndexSort())
 

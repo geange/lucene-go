@@ -7,8 +7,8 @@ import (
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/bytesref"
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 type Fields struct {
@@ -145,7 +145,7 @@ func (r *info) prepareDocValuesAndPointValues() {
 func (r *info) getNormDocValues() index.NumericDocValues {
 	if r.norm == nil {
 		invertState := index.NewFieldInvertState(
-			util.VersionLast.Major,
+			int(version.Last.Major()),
 			r.fieldInfo.Name(),
 			r.fieldInfo.GetIndexOptions(),
 			r.lastPosition,

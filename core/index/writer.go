@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 	"math"
 	"strconv"
 	"sync"
@@ -13,6 +11,9 @@ import (
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 var (
@@ -769,7 +770,7 @@ func (w *Writer) AddIndexesFromReaders(readers ...CodecReader) (int64, error) {
 
 	codec := w.config.GetCodec()
 	// We set the min version to null for now, it will be set later by SegmentMerger
-	info := NewSegmentInfo(w.directoryOrig, util.VersionLast, nil, mergedName, -1,
+	info := NewSegmentInfo(w.directoryOrig, version.Last, nil, mergedName, -1,
 		false, codec, map[string]string{}, util.RandomId(), map[string]string{}, w.config.GetIndexSort())
 
 	merger, err := NewSegmentMerger(readers, info, w.directory, w.globalFieldNumberMap, ioCtx)

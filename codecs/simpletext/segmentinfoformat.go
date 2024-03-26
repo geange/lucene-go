@@ -10,7 +10,7 @@ import (
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util"
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 var _ index.SegmentInfoFormat = &SegmentInfoFormat{}
@@ -61,12 +61,12 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 	if err != nil {
 		return nil, err
 	}
-	version, err := util.ParseVersion(value)
+	ver, err := version.Parse(value)
 	if err != nil {
 		return nil, err
 	}
 
-	var minVersion *util.Version
+	var minVersion *version.Version
 	value, err = r.ReadLabel(SI_MIN_VERSION)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 	if value == "null" {
 		minVersion = nil
 	} else {
-		minVersion, err = util.ParseVersion(value)
+		minVersion, err = version.Parse(value)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +196,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		return nil, err
 	}
 
-	info := index.NewSegmentInfo(dir, version, minVersion, segmentName, docCount,
+	info := index.NewSegmentInfo(dir, ver, minVersion, segmentName, docCount,
 		isCompoundFile, nil, diagnostics, id, attributes, indexSort)
 	info.SetFiles(files)
 	return info, nil

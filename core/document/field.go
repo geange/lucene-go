@@ -116,9 +116,7 @@ func (r *Field[T]) Number() (any, bool) {
 	return 0, false
 }
 
-var (
-	_ analysis.TokenStream = &StringTokenStream{}
-)
+var _ analysis.TokenStream = &StringTokenStream{}
 
 func NewStringTokenStream(source *tokenattr.AttributeSource) (*StringTokenStream, error) {
 	stream := &StringTokenStream{
@@ -181,9 +179,7 @@ func (s *StringTokenStream) SetValue(value string) {
 	s.value = value
 }
 
-var (
-	_ analysis.TokenStream = &BinaryTokenStream{}
-)
+var _ analysis.TokenStream = &BinaryTokenStream{}
 
 func NewBinaryTokenStream(source *tokenattr.AttributeSource) (*BinaryTokenStream, error) {
 	stream := &BinaryTokenStream{
