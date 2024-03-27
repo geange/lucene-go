@@ -20,10 +20,12 @@ import (
 type DocIdSetBuilder struct {
 	maxDoc    int
 	threshold int
+
 	// pkg-private for testing
 	multivalued     bool
 	numValuesPerDoc float64
 	buffers         []*Buffer
+
 	// accumulated size of the allocated buffers
 	totalAllocated int
 	bitSet         *bitset.BitSet
