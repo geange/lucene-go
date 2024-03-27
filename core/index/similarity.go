@@ -5,7 +5,8 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
-// Similarity defines the components of Lucene scoring.
+// Similarity
+// defines the components of Lucene scoring.
 // Expert: Scoring API.
 // This is a low-level API, you should only extend this API if you want to implement an information retrieval
 // model. If you are instead looking for a convenient way to alter Lucene's scoring, consider just tweaking the
