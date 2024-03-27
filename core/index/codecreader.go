@@ -2,40 +2,46 @@ package index
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/types"
 
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/types"
 )
 
 type CodecReader interface {
 	LeafReader
 
-	// GetFieldsReader Expert: retrieve thread-private StoredFieldsReader
+	// GetFieldsReader
+	// Expert: retrieve thread-private StoredFieldsReader
 	// lucene.internal
 	GetFieldsReader() StoredFieldsReader
 
-	// GetTermVectorsReader Expert: retrieve thread-private TermVectorsReader
+	// GetTermVectorsReader
+	// Expert: retrieve thread-private TermVectorsReader
 	// lucene.internal
 	GetTermVectorsReader() TermVectorsReader
 
-	// GetNormsReader Expert: retrieve underlying NormsProducer
+	// GetNormsReader
+	// Expert: retrieve underlying NormsProducer
 	// lucene.internal
 	GetNormsReader() NormsProducer
 
-	// GetDocValuesReader Expert: retrieve underlying DocValuesProducer
+	// GetDocValuesReader
+	// Expert: retrieve underlying DocValuesProducer
 	// lucene.internal
 	GetDocValuesReader() DocValuesProducer
 
-	// GetPostingsReader Expert: retrieve underlying FieldsProducer
+	// GetPostingsReader
+	// Expert: retrieve underlying FieldsProducer
 	// lucene.internal
 	GetPostingsReader() FieldsProducer
 
-	// GetPointsReader Expert: retrieve underlying PointsReader
+	// GetPointsReader
+	// Expert: retrieve underlying PointsReader
 	// lucene.internal
 	GetPointsReader() PointsReader
 }
 
-type CodecReaderDefaultSPI interface {
+type CodecReaderSPI interface {
 	GetFieldsReader() StoredFieldsReader
 	GetTermVectorsReader() TermVectorsReader
 	GetPostingsReader() FieldsProducer
@@ -49,20 +55,20 @@ type CodecReaderDefaultSPI interface {
 type BaseCodecReader struct {
 	*BaseLeafReader
 
-	CodecReaderDefaultSPI
+	CodecReaderSPI
 }
 
 func NewBaseCodecReader(reader CodecReader) *BaseCodecReader {
 	codec := &BaseCodecReader{
-		CodecReaderDefaultSPI: reader,
+		CodecReaderSPI: reader,
 	}
 
 	codec.BaseLeafReader = NewBaseLeafReader(reader)
 	return codec
 }
 
-func (c *BaseCodecReader) DocumentV1(docID int, visitor document.StoredFieldVisitor) error {
-	return c.GetFieldsReader().VisitDocument(docID, visitor)
+func (c *BaseCodecReader) DocumentWithVisitor(docID int, visitor document.StoredFieldVisitor) error {
+	return c.GetFieldsReader().VisitDocument(nil, docID, visitor)
 }
 
 func (c *BaseCodecReader) GetTermVectors(docID int) (Fields, error) {
@@ -73,7 +79,7 @@ func (c *BaseCodecReader) GetTermVectors(docID int) (Fields, error) {
 	if err := c.checkBounds(docID); err != nil {
 		return nil, err
 	}
-	return termVectorsReader.Get(docID)
+	return termVectorsReader.Get(nil, docID)
 }
 
 func (c *BaseCodecReader) checkBounds(docID int) error {
@@ -113,7 +119,7 @@ func (c *BaseCodecReader) GetNumericDocValues(field string) (NumericDocValues, e
 	if fi == nil {
 		return nil, nil
 	}
-	return c.GetDocValuesReader().GetNumeric(fi)
+	return c.GetDocValuesReader().GetNumeric(nil, fi)
 }
 
 func (c *BaseCodecReader) GetBinaryDocValues(field string) (BinaryDocValues, error) {
@@ -122,7 +128,7 @@ func (c *BaseCodecReader) GetBinaryDocValues(field string) (BinaryDocValues, err
 	if fi == nil {
 		return nil, nil
 	}
-	return c.GetDocValuesReader().GetBinary(fi)
+	return c.GetDocValuesReader().GetBinary(nil, fi)
 }
 
 func (c *BaseCodecReader) GetSortedDocValues(field string) (SortedDocValues, error) {
@@ -131,7 +137,7 @@ func (c *BaseCodecReader) GetSortedDocValues(field string) (SortedDocValues, err
 	if fi == nil {
 		return nil, nil
 	}
-	return c.GetDocValuesReader().GetSorted(fi)
+	return c.GetDocValuesReader().GetSorted(nil, fi)
 }
 
 func (c *BaseCodecReader) GetSortedNumericDocValues(field string) (SortedNumericDocValues, error) {
@@ -140,7 +146,7 @@ func (c *BaseCodecReader) GetSortedNumericDocValues(field string) (SortedNumeric
 	if fi == nil {
 		return nil, nil
 	}
-	return c.GetDocValuesReader().GetSortedNumeric(fi)
+	return c.GetDocValuesReader().GetSortedNumeric(nil, fi)
 }
 
 func (c *BaseCodecReader) GetSortedSetDocValues(field string) (SortedSetDocValues, error) {
@@ -149,7 +155,7 @@ func (c *BaseCodecReader) GetSortedSetDocValues(field string) (SortedSetDocValue
 	if fi == nil {
 		return nil, nil
 	}
-	return c.GetDocValuesReader().GetSortedSet(fi)
+	return c.GetDocValuesReader().GetSortedSet(nil, fi)
 }
 
 func (c *BaseCodecReader) GetNormValues(field string) (NumericDocValues, error) {
@@ -169,7 +175,7 @@ func (c *BaseCodecReader) GetPointValues(field string) (types.PointValues, bool)
 		// Field does not exist or does not index points
 		return nil, false
 	}
-	values, err := c.GetPointsReader().GetValues(field)
+	values, err := c.GetPointsReader().GetValues(nil, field)
 	if err != nil {
 		return nil, false
 	}

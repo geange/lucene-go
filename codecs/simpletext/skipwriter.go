@@ -33,7 +33,7 @@ var (
 //var _ index.MultiLevelSkipListWriter = &SkipWriter{}
 
 type SkipWriter struct {
-	*index.MultiLevelSkipListWriterDefault
+	*index.BaseMultiLevelSkipListWriter
 
 	wroteHeaderPerLevelMap  map[int]bool
 	curDoc                  int
@@ -60,19 +60,16 @@ func NewSkipWriter(writeState *index.SegmentWriteState) (*SkipWriter, error) {
 		writer.curCompetitiveFreqNorms[i] = index.NewCompetitiveImpactAccumulator()
 	}
 
-	// TODO: fix
-	/*
-		writer.MultiLevelSkipListWriterDefault = index.NewMultiLevelSkipListWriterDefault(&index.MultiLevelSkipListWriterDefaultConfig{
-			SkipInterval:      BLOCK_SIZE,
-			SkipMultiplier:    skipMultiplier,
-			MaxSkipLevels:     maxSkipLevels,
-			DF:                maxDoc,
-			WriteSkipData:     writer.WriteSkipData,
-			WriteLevelLength:  writer.WriteLevelLength,
-			WriteChildPointer: writer.WriteChildPointer,
-		})
+	writer.BaseMultiLevelSkipListWriter = index.NewBaseMultiLevelSkipListWriter(&index.BaseMultiLevelSkipListWriterConfig{
+		SkipInterval:      BLOCK_SIZE,
+		SkipMultiplier:    skipMultiplier,
+		MaxSkipLevels:     maxSkipLevels,
+		DF:                maxDoc,
+		WriteSkipData:     writer.WriteSkipData,
+		WriteLevelLength:  writer.WriteLevelLength,
+		WriteChildPointer: writer.WriteChildPointer,
+	})
 
-	*/
 	writer.ResetSkip()
 	return writer, nil
 }
@@ -118,7 +115,7 @@ func (s *SkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) erro
 	competitiveFreqNorms := s.curCompetitiveFreqNorms[level]
 	impacts := competitiveFreqNorms.GetCompetitiveFreqNormPairs()
 	//assert impacts.size() > 0;
-	if level+1 < s.NumberOfSkipLevels {
+	if level+1 < s.NumberOfSkipLevels() {
 		s.curCompetitiveFreqNorms[level+1].AddAll(competitiveFreqNorms)
 	}
 	if err := w.Bytes(IMPACTS); err != nil {

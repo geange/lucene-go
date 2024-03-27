@@ -27,14 +27,14 @@ func NewTermMatchesIterator(query Query, pe index.PostingsEnum) (*TermMatchesIte
 }
 
 func (t *TermMatchesIterator) Next() (bool, error) {
-	var err error
 	upto := t.upto
 	t.upto--
 	if upto > 0 {
-		t.pos, err = t.pe.NextPosition()
+		pos, err := t.pe.NextPosition()
 		if err != nil {
 			return false, err
 		}
+		t.pos = pos
 		return true, nil
 	}
 	return false, nil

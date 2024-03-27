@@ -15,12 +15,12 @@ func (r *Index) newTerms(info *info) *Terms {
 		info:  info,
 		index: r,
 	}
-	terms.TermsBase = index.NewTerms(terms)
+	terms.BaseTerms = index.NewTerms(terms)
 	return terms
 }
 
 type Terms struct {
-	*index.TermsBase
+	*index.BaseTerms
 
 	index         *Index
 	info          *info

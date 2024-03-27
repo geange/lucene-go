@@ -66,14 +66,14 @@ func NewReaderPool(directory, originalDirectory store.Directory, segmentInfos *S
 		for i := 0; i < len(leaves); i++ {
 			leaf := leaves[i]
 			segReader := leaf.LeafReader().(*SegmentReader)
-			newReader, err := NewSegmentReaderV1(segmentInfos.Info(i), segReader, segReader.GetLiveDocs(),
+			newReader, err := segReader.New(segmentInfos.Info(i), segReader.GetLiveDocs(),
 				segReader.GetHardLiveDocs(), segReader.NumDocs(), true)
 			if err != nil {
 				return nil, err
 			}
 
 			deletes := pool.newPendingDeletesV1(newReader, newReader.GetOriginalSegmentInfo())
-			updates, err := NewReadersAndUpdatesV1(segmentInfos.getIndexCreatedVersionMajor(), newReader, deletes)
+			updates, err := newReader.NewReadersAndUpdates(segmentInfos.getIndexCreatedVersionMajor(), deletes)
 			if err != nil {
 				return nil, err
 			}
@@ -112,13 +112,14 @@ func (p *ReaderPool) newPendingDeletesV1(reader *SegmentReader, info *SegmentCom
 // Enables reader pooling for this pool. This should be called once the readers in this pool are shared
 // with an outside resource like an NRT reader. Once reader pooling is enabled a ReadersAndUpdates will
 // be kept around in the reader pool on calling release(ReadersAndUpdates, boolean) until the segment
-// get dropped via calls to drop(SegmentCommitInfo) or dropAll() or close(). Reader pooling is disabled
+// get dropped via calls to drop(SegmentCommitInfo) or dropAll() or close(). IndexReader pooling is disabled
 // upon construction but can't be disabled again once it's enabled.
 func (p *ReaderPool) enableReaderPooling() {
 	p.poolReaders = true
 }
 
-// Get Obtain a ReadersAndLiveDocs instance from the readerPool. If create is true,
+// Get
+// Obtain a ReadersAndLiveDocs instance from the readerPool. If create is true,
 // you must later call release(ReadersAndUpdates, boolean).
 func (p *ReaderPool) Get(info *SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
 	if p.closed.Load() {

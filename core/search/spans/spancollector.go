@@ -6,7 +6,8 @@ import "github.com/geange/lucene-go/core/index"
 // An interface defining the collection of postings information from the leaves of a Spans
 // lucene.experimental
 type SpanCollector interface {
-	// CollectLeaf Collect information from postings
+	// CollectLeaf
+	// Collect information from postings
 	// postings: a PostingsEnum
 	// position: – the position of the PostingsEnum
 	// term: – the Term for this postings list

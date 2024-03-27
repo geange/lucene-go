@@ -7,7 +7,8 @@ import (
 
 var _ Scorer = &TermScorer{}
 
-// TermScorer Expert: A Scorer for documents matching a Term.
+// TermScorer
+// Expert: A Scorer for documents matching a Term.
 type TermScorer struct {
 	*BaseScorer
 

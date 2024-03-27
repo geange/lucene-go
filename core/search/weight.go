@@ -2,6 +2,7 @@ package search
 
 import (
 	"errors"
+	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
@@ -23,6 +24,7 @@ import (
 //
 // 由于权重为给定的LeafReaderContext（Scorer（LeafReaderContext））创建记分器实例，因此调用程序必须保持搜索器的顶级索引
 // ReaderContext和用于创建记分器的上下文之间的关系。
+//
 // a Scorer.
 // A Weight is used in the following way:
 // A Weight is constructed by a top-level query, given a IndexSearcher (Query.createWeight(IndexSearcher, ScoreMode, float)).
@@ -31,38 +33,39 @@ import (
 type Weight interface {
 	SegmentCacheable
 
-	ExtractTerms(terms []*index.Term) error
+	ExtractTerms(terms *treeset.Set[*index.Term]) error
 
-	// Matches Returns Matches for a specific document, or null if the document does not match the parent query A query match that contains no position information (for example, a Point or DocValues query) will return MatchesUtils.MATCH_WITH_NO_TERMS
-	// Params: 	context – the reader's context to create the Matches for
-	//			doc – the document's id relative to the given context's reader
-	Matches(context *index.LeafReaderContext, doc int) (Matches, error)
+	// Matches
+	// Returns Matches for a specific document, or null if the document does not match the parent query
+	// A query match that contains no position information (for example, a Point or DocValues query) will
+	// return MatchesUtils.MATCH_WITH_NO_TERMS
+	// context: the reader's context to create the Matches for
+	// doc: the document's id relative to the given context's reader
+	Matches(readerContext index.LeafReaderContext, doc int) (Matches, error)
 
-	// Explain An explanation of the score computation for the named document.
-	// Params: 	context – the readers context to create the Explanation for.
-	//			doc – the document's id relative to the given context's reader
+	// Explain
+	// An explanation of the score computation for the named document.
+	// context: the readers context to create the Explanation for.
+	// doc: the document's id relative to the given context's reader
 	// Returns: an Explanation for the score
 	// Throws: 	IOException – if an IOException occurs
-	Explain(ctx *index.LeafReaderContext, doc int) (*types.Explanation, error)
+	Explain(readerContext index.LeafReaderContext, doc int) (*types.Explanation, error)
 
 	// GetQuery The query that this concerns.
 	GetQuery() Query
 
-	// Scorer Returns a Scorer which can iterate in order over all matching documents and assign them a score.
-	//NOTE: null can be returned if no documents will be scored by this query.
-	//NOTE: The returned Scorer does not have LeafReader.getLiveDocs() applied, they need to be checked on top.
-	//Params:
-	//context – the LeafReaderContext for which to return the Scorer.
-	//Returns:
-	//a Scorer which scores documents in/out-of order.
-	//Throws:
-	//IOException – if there is a low-level I/O error
-	Scorer(ctx *index.LeafReaderContext) (Scorer, error)
+	// Scorer
+	// Returns a Scorer which can iterate in order over all matching documents and assign them a score.
+	// NOTE: null can be returned if no documents will be scored by this query.
+	// NOTE: The returned Scorer does not have LeafReader.getLiveDocs() applied, they need to be checked on top.
+	// ctx: the LeafReaderContext for which to return the Scorer.
+	// a Scorer which scores documents in/out-of order.
+	Scorer(ctx index.LeafReaderContext) (Scorer, error)
 
-	// ScorerSupplier Optional method. Get a ScorerSupplier, which allows to know the cost of the Scorer before building it. The default implementation calls scorer and builds a ScorerSupplier wrapper around it.
-	//See Also:
-	//scorer
-	ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error)
+	// ScorerSupplier
+	// Optional method. Get a ScorerSupplier, which allows to know the cost of the Scorer before building it.
+	// The default implementation calls scorer and builds a ScorerSupplier wrapper around it.
+	ScorerSupplier(ctx index.LeafReaderContext) (ScorerSupplier, error)
 
 	// BulkScorer
 	// Optional method, to return a BulkScorer to score the query and send hits to a Collector.
@@ -83,48 +86,44 @@ type Weight interface {
 	// 参数：
 	// context - 要返回Scorer的LeafReaderContext。
 	// 返回： 一个BulkScorer，对文档进行评分并将其传递给Collector。
-	BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error)
+	BulkScorer(ctx index.LeafReaderContext) (BulkScorer, error)
 }
 
-type WeightSPI interface {
-	Scorer(ctx *index.LeafReaderContext) (Scorer, error)
+type WeightScorer interface {
+	Scorer(ctx index.LeafReaderContext) (Scorer, error)
 }
 
-type WeightDefault struct {
-	WeightSPI
+type BaseWeight struct {
+	scorer WeightScorer
 
 	parentQuery Query
 }
 
-func NewWeight(parentQuery Query, spi WeightSPI) *WeightDefault {
-	return &WeightDefault{
-		WeightSPI:   spi,
+func NewBaseWeight(parentQuery Query, scorer WeightScorer) *BaseWeight {
+	return &BaseWeight{
+		scorer:      scorer,
 		parentQuery: parentQuery,
 	}
 }
 
-func (r *WeightDefault) ExtractTerms(terms []*index.Term) error {
-	return nil
-}
-
-func (r *WeightDefault) GetQuery() Query {
+func (r *BaseWeight) GetQuery() Query {
 	return r.parentQuery
 }
 
-func (r *WeightDefault) IsCacheable(ctx *index.LeafReaderContext) bool {
-	return false
-}
+//func (r *BaseWeight) IsCacheable(ctx index.LeafReaderContext) bool {
+//	return false
+//}
 
-func (r *WeightDefault) Matches(ctx *index.LeafReaderContext, doc int) (Matches, error) {
-	scorerSupplier, err := r.ScorerSupplier(ctx)
+func (r *BaseWeight) Matches(ctx index.LeafReaderContext, doc int) (Matches, error) {
+	supplier, err := r.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if scorerSupplier == nil {
+	if supplier == nil {
 		return nil, nil
 	}
 
-	scorer, err := scorerSupplier.Get(1)
+	scorer, err := supplier.Get(1)
 	if err != nil {
 		return nil, err
 	}
@@ -150,8 +149,8 @@ func (r *WeightDefault) Matches(ctx *index.LeafReaderContext, doc int) (Matches,
 	return nil, errors.New("MATCH_WITH_NO_TERMS")
 }
 
-func (r *WeightDefault) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
-	scorer, err := r.Scorer(ctx)
+func (r *BaseWeight) ScorerSupplier(ctx index.LeafReaderContext) (ScorerSupplier, error) {
+	scorer, err := r.scorer.Scorer(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -176,8 +175,8 @@ func (s *scorerSupplier) Cost() int64 {
 	return s.scorer.Iterator().Cost()
 }
 
-func (r *WeightDefault) BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error) {
-	scorer, err := r.Scorer(ctx)
+func (r *BaseWeight) BulkScorer(ctx index.LeafReaderContext) (BulkScorer, error) {
+	scorer, err := r.scorer.Scorer(ctx)
 	if err != nil {
 		return nil, err
 	}

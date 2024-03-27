@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/core/util/packed"
 	"io"
@@ -8,38 +9,44 @@ import (
 	"github.com/geange/lucene-go/core/document"
 )
 
-// NormsConsumer Abstract API that consumes normalization values. Concrete implementations of this actually do "something" with the norms (write it into the index in a specific format).
+// NormsConsumer
+// Abstract API that consumes normalization values. Concrete implementations of this actually do "something"
+// with the norms (write it into the index in a specific format).
 // The lifecycle is:
 // NormsConsumer is created by NormsFormat.normsConsumer(SegmentWriteState).
-// FnAddNormsField is called for each field with normalization values. The API is a "pull" rather than "push", and the implementation is free to iterate over the values multiple times (Iterable.iterator()).
+// FnAddNormsField is called for each field with normalization values. The API is a "pull" rather than "push",
+// and the implementation is free to iterate over the values multiple times (Iterable.iterator()).
 // After all fields are added, the consumer is closed.
 type NormsConsumer interface {
 	io.Closer
 
-	// AddNormsField Writes normalization values for a field.
-	//Params: field – field information
-	//		  normsProducer – NormsProducer of the numeric norm values
-	//Throws: IOException – if an I/O error occurred.
-	AddNormsField(field *document.FieldInfo, normsProducer NormsProducer) error
+	// AddNormsField
+	// Writes normalization values for a field.
+	// field: field information
+	// normsProducer: NormsProducer of the numeric norm values
+	// Throws: IOException – if an I/O error occurred.
+	AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer NormsProducer) error
 
-	// Merge Merges in the fields from the readers in mergeState.
+	// Merge
+	// Merges in the fields from the readers in mergeState.
 	// The default implementation calls mergeNormsField for each field,
 	// filling segments with missing norms for the field with zeros.
 	// Implementations can override this method for more sophisticated merging
 	// (bulk-byte copying, etc).
-	Merge(mergeState *MergeState) error
+	Merge(ctx context.Context, mergeState *MergeState) error
 
-	// MergeNormsField Merges the norms from toMerge.
+	// MergeNormsField
+	// Merges the norms from toMerge.
 	// The default implementation calls FnAddNormsField, passing an Iterable
 	// that merges and filters deleted documents on the fly.
-	MergeNormsField(mergeFieldInfo *document.FieldInfo, mergeState *MergeState) error
+	MergeNormsField(ctx context.Context, mergeFieldInfo *document.FieldInfo, mergeState *MergeState) error
 }
 
 type NormsConsumerDefault struct {
-	FnAddNormsField func(field *document.FieldInfo, normsProducer NormsProducer) error
+	FnAddNormsField func(ctx context.Context, field *document.FieldInfo, normsProducer NormsProducer) error
 }
 
-func (n *NormsConsumerDefault) Merge(mergeState *MergeState) error {
+func (n *NormsConsumerDefault) Merge(ctx context.Context, mergeState *MergeState) error {
 	for _, normsProducer := range mergeState.NormsProducers {
 		if normsProducer != nil {
 			if err := normsProducer.CheckIntegrity(); err != nil {
@@ -49,7 +56,7 @@ func (n *NormsConsumerDefault) Merge(mergeState *MergeState) error {
 	}
 	for _, mergeFieldInfo := range mergeState.MergeFieldInfos.List() {
 		if mergeFieldInfo.HasNorms() {
-			if err := n.MergeNormsField(mergeFieldInfo, mergeState); err != nil {
+			if err := n.MergeNormsField(ctx, mergeFieldInfo, mergeState); err != nil {
 				return err
 			}
 		}
@@ -57,9 +64,9 @@ func (n *NormsConsumerDefault) Merge(mergeState *MergeState) error {
 	return nil
 }
 
-func (n *NormsConsumerDefault) MergeNormsField(mergeFieldInfo *document.FieldInfo, mergeState *MergeState) error {
+func (n *NormsConsumerDefault) MergeNormsField(ctx context.Context, mergeFieldInfo *document.FieldInfo, mergeState *MergeState) error {
 	// TODO: try to share code with default merge of DVConsumer by passing MatchAllBits ?
-	return n.FnAddNormsField(mergeFieldInfo, &innerNormsProducer{
+	return n.FnAddNormsField(ctx, mergeFieldInfo, &innerNormsProducer{
 		mergeFieldInfo: mergeFieldInfo,
 		mergeState:     mergeState,
 	})
@@ -80,6 +87,8 @@ func (i *innerNormsProducer) GetNorms(fieldInfo *document.FieldInfo) (NumericDoc
 	if fieldInfo != i.mergeFieldInfo {
 		return nil, errors.New("wrong fieldInfo")
 	}
+
+	// TODO: impl it
 
 	//subs :=
 	//List<NumericDocValuesSub> subs = new ArrayList<>();
@@ -136,7 +145,8 @@ type NormsProducer interface {
 	GetMergeInstance() NormsProducer
 }
 
-// NormValuesWriter Buffers up pending long per doc, then flushes when segment flushes.
+// NormValuesWriter
+// Buffers up pending long per doc, then flushes when segment flushes.
 type NormValuesWriter struct {
 	docsWithField *DocsWithFieldSet
 	pending       *packed.PackedLongValuesBuilder
@@ -148,7 +158,11 @@ func (n *NormValuesWriter) AddValue(docID int, value int64) error {
 	if n.lastDocID >= docID {
 		return errors.New("docID too small")
 	}
-	n.pending.Add(value)
+
+	if err := n.pending.Add(value); err != nil {
+		return err
+	}
+
 	n.lastDocID = docID
 	return n.docsWithField.Add(docID)
 }
@@ -159,6 +173,7 @@ func (n *NormValuesWriter) Finish(maxDoc int) {
 
 func (n *NormValuesWriter) Flush(state *SegmentWriteState, sortMap *DocMap, normsConsumer NormsConsumer) error {
 	//values := n.pending.Build()
+	// TODO: impl it
 	panic("")
 }
 
@@ -169,6 +184,6 @@ func NewNormValuesWriter(fieldInfo *document.FieldInfo) *NormValuesWriter {
 	//	fieldInfo:     fieldInfo,
 	//	lastDocID:     -1,
 	//}
-	// TODO: fix it
+	// TODO: impl it
 	panic("")
 }

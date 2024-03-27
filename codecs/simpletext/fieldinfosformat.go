@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"strconv"
 
 	"github.com/geange/lucene-go/codecs/utils"
@@ -49,7 +50,7 @@ func NewSimpleTextFieldInfosFormat() *FieldInfosFormat {
 	return &FieldInfosFormat{}
 }
 
-func (s *FieldInfosFormat) Read(directory store.Directory, segmentInfo *index.SegmentInfo, segmentSuffix string, ctx *store.IOContext) (*index.FieldInfos, error) {
+func (s *FieldInfosFormat) Read(ctx context.Context, directory store.Directory, segmentInfo *index.SegmentInfo, segmentSuffix string, ioContext *store.IOContext) (*index.FieldInfos, error) {
 	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
 	input, err := store.OpenChecksumInput(directory, fileName)
 	if err != nil {
@@ -169,8 +170,7 @@ func (s *FieldInfosFormat) Read(directory store.Directory, segmentInfo *index.Se
 	return fieldInfos, nil
 }
 
-func (s *FieldInfosFormat) Write(directory store.Directory, segmentInfo *index.SegmentInfo,
-	segmentSuffix string, infos *index.FieldInfos, context *store.IOContext) error {
+func (s *FieldInfosFormat) Write(ctx context.Context, directory store.Directory, segmentInfo *index.SegmentInfo, segmentSuffix string, infos *index.FieldInfos, ioContext *store.IOContext) error {
 	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
 	out, err := directory.CreateOutput(nil, fileName)
 	if err != nil {

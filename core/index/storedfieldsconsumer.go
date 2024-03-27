@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -23,13 +24,13 @@ func NewStoredFieldsConsumer(codec Codec, dir store.Directory, info *SegmentInfo
 	}
 }
 
-func (s *StoredFieldsConsumer) writeField(info *document.FieldInfo, field document.IndexableField) error {
-	return s.writer.WriteField(info, field)
+func (s *StoredFieldsConsumer) writeField(ctx context.Context, info *document.FieldInfo, field document.IndexableField) error {
+	return s.writer.WriteField(ctx, info, field)
 }
 
-func (s *StoredFieldsConsumer) initStoredFieldsWriter() error {
+func (s *StoredFieldsConsumer) initStoredFieldsWriter(ctx context.Context) error {
 	if s.writer == nil {
-		writer, err := s.codec.StoredFieldsFormat().FieldsWriter(s.dir, s.info, nil)
+		writer, err := s.codec.StoredFieldsFormat().FieldsWriter(ctx, s.dir, s.info, nil)
 		if err != nil {
 			return err
 		}
@@ -38,32 +39,32 @@ func (s *StoredFieldsConsumer) initStoredFieldsWriter() error {
 	return nil
 }
 
-func (s *StoredFieldsConsumer) StartDocument(docID int) error {
-	if err := s.initStoredFieldsWriter(); err != nil {
+func (s *StoredFieldsConsumer) StartDocument(ctx context.Context, docID int) error {
+	if err := s.initStoredFieldsWriter(ctx); err != nil {
 		return err
 	}
 
 	s.lastDoc++
 
 	for s.lastDoc < docID {
-		if err := s.writer.StartDocument(); err != nil {
+		if err := s.writer.StartDocument(ctx); err != nil {
 			return err
 		}
-		if err := s.writer.FinishDocument(); err != nil {
+		if err := s.writer.FinishDocument(ctx); err != nil {
 			return err
 		}
 		s.lastDoc++
 	}
-	return s.writer.StartDocument()
+	return s.writer.StartDocument(ctx)
 }
 
 func (s *StoredFieldsConsumer) FinishDocument() error {
-	return s.writer.FinishDocument()
+	return s.writer.FinishDocument(nil)
 }
 
-func (s *StoredFieldsConsumer) Finish(maxDoc int) error {
+func (s *StoredFieldsConsumer) Finish(ctx context.Context, maxDoc int) error {
 	for s.lastDoc < maxDoc-1 {
-		if err := s.StartDocument(s.lastDoc); err != nil {
+		if err := s.StartDocument(ctx, s.lastDoc); err != nil {
 			return err
 		}
 		if err := s.FinishDocument(); err != nil {
@@ -74,13 +75,13 @@ func (s *StoredFieldsConsumer) Finish(maxDoc int) error {
 	return nil
 }
 
-func (s *StoredFieldsConsumer) Flush(state *SegmentWriteState, sortMap *DocMap) error {
+func (s *StoredFieldsConsumer) Flush(ctx context.Context, state *SegmentWriteState, sortMap *DocMap) error {
 	maxDoc, err := state.SegmentInfo.MaxDoc()
 	if err != nil {
 		return err
 	}
-	err = s.writer.Finish(state.FieldInfos, maxDoc)
-	if err != nil {
+
+	if err := s.writer.Finish(ctx, state.FieldInfos, maxDoc); err != nil {
 		return err
 	}
 	return s.writer.Close()

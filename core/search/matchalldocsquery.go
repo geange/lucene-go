@@ -22,11 +22,11 @@ func (m *MatchAllDocsQuery) String(field string) string {
 	return "*:*"
 }
 
-func (m *MatchAllDocsQuery) CreateWeight(_ *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
-	return newConstantScoreWeight(boost, m, scoreMode), nil
+func (m *MatchAllDocsQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
+	return newMatchAllDocsQueryWeight(boost, m, scoreMode), nil
 }
 
-func (m *MatchAllDocsQuery) Rewrite(reader index.Reader) (Query, error) {
+func (m *MatchAllDocsQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	return m, nil
 }
 
@@ -34,40 +34,40 @@ func (m *MatchAllDocsQuery) Visit(visitor QueryVisitor) error {
 	return visitor.VisitLeaf(m)
 }
 
-var _ Weight = &constantScoreWeight{}
+var _ Weight = &matchAllDocsWeight{}
 
-type constantScoreWeight struct {
+type matchAllDocsWeight struct {
 	*ConstantScoreWeight
 
-	scoreMode *ScoreMode
+	scoreMode ScoreMode
 }
 
-func newConstantScoreWeight(score float64, query Query, scoreMode *ScoreMode) *constantScoreWeight {
-	weight := &constantScoreWeight{
+func newMatchAllDocsQueryWeight(score float64, query Query, scoreMode ScoreMode) *matchAllDocsWeight {
+	weight := &matchAllDocsWeight{
 		scoreMode: scoreMode,
 	}
 	weight.ConstantScoreWeight = NewConstantScoreWeight(score, query, weight)
 	return weight
 }
 
-func (c *constantScoreWeight) Scorer(context *index.LeafReaderContext) (Scorer, error) {
+func (c *matchAllDocsWeight) Scorer(context index.LeafReaderContext) (Scorer, error) {
 	maxDoc := context.Reader().MaxDoc()
 	return NewConstantScoreScorer(c, c.score, c.scoreMode, types.DocIdSetIteratorAll(maxDoc))
 }
 
-func (c *constantScoreWeight) IsCacheable(ctx *index.LeafReaderContext) bool {
+func (c *matchAllDocsWeight) IsCacheable(ctx index.LeafReaderContext) bool {
 	return true
 }
 
-func (c *constantScoreWeight) BulkScorer(context *index.LeafReaderContext) (BulkScorer, error) {
+func (c *matchAllDocsWeight) BulkScorer(readerContext index.LeafReaderContext) (BulkScorer, error) {
 	if c.scoreMode.IsExhaustive() == false {
-		return c.ConstantScoreWeight.BulkScorer(context)
+		return c.ConstantScoreWeight.BulkScorer(readerContext)
 	}
 
 	score := c.score
-	maxDoc := context.Reader().MaxDoc()
+	maxDoc := readerContext.Reader().MaxDoc()
 
-	return &BulkScorerDefault{
+	return &BaseBulkScorer{
 		FnScoreRange: func(collector LeafCollector, acceptDocs util.Bits, fromDoc, toDoc int) (int, error) {
 			toDoc = min(maxDoc, toDoc)
 			scorer := NewScoreAndDoc()
@@ -78,8 +78,7 @@ func (c *constantScoreWeight) BulkScorer(context *index.LeafReaderContext) (Bulk
 			for doc := fromDoc; doc < toDoc; doc++ {
 				scorer.doc = doc
 				if acceptDocs == nil || acceptDocs.Test(uint(doc)) {
-					err := collector.Collect(context2.Background(), doc)
-					if err != nil {
+					if err := collector.Collect(context2.Background(), doc); err != nil {
 						return 0, err
 					}
 				}

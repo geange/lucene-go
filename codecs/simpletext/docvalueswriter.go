@@ -40,9 +40,9 @@ type DocValuesWriter struct {
 	fieldsSeen map[string]struct{}
 }
 
-func NewDocValuesWriter(state *index.SegmentWriteState, ext string) (*DocValuesWriter, error) {
+func NewDocValuesWriter(ctx context.Context, state *index.SegmentWriteState, ext string) (*DocValuesWriter, error) {
 	fileName := store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, ext)
-	output, err := state.Directory.CreateOutput(nil, fileName)
+	output, err := state.Directory.CreateOutput(ctx, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 
 	// first pass to find min/max
 	minValue, maxValue := int64(math.MaxInt64), int64(math.MaxInt64)
-	values, err := valuesProducer.GetNumeric(field)
+	values, err := valuesProducer.GetNumeric(nil, field)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,9 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 	}
 
 	// write our minimum value to the .dat, all entries are deltas from that
-	writeValue(s.data, DOC_VALUES_MINVALUE, minValue)
+	if err := writeValue(s.data, DOC_VALUES_MINVALUE, minValue); err != nil {
+		return err
+	}
 
 	// buildV1 up our fixed-width "simple text packed ints"
 	// format
@@ -121,20 +123,21 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 	}
 
 	// write our pattern to the .dat
-	writeValue(s.data, DOC_VALUES_PATTERN, sb.String())
+	if err := writeValue(s.data, DOC_VALUES_PATTERN, sb.String()); err != nil {
+		return err
+	}
 
 	fmtStr := fmt.Sprintf(`%%0%dd`, maxBytesPerValue)
 	numDocsWritten := 0
 
 	// second pass to write the values
-	values, err = valuesProducer.GetNumeric(field)
+	values, err = valuesProducer.GetNumeric(nil, field)
 	if err != nil {
 		return err
 	}
 	for i := 0; i < s.numDocs; i++ {
 		if values.DocID() < i {
-			_, err := values.NextDoc()
-			if err != nil {
+			if _, err := values.NextDoc(); err != nil {
 				return err
 			}
 			if values.DocID() >= i {
@@ -153,15 +156,25 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 			panic("")
 		}
 
-		utils.WriteString(s.data, fmt.Sprintf(fmtStr, value-minValue))
-		utils.NewLine(s.data)
+		if err := utils.WriteString(s.data, fmt.Sprintf(fmtStr, value-minValue)); err != nil {
+			return err
+		}
+		if err := utils.NewLine(s.data); err != nil {
+			return err
+		}
 
 		if values.DocID() != i {
-			utils.WriteString(s.data, "F")
+			if err := utils.WriteString(s.data, "F"); err != nil {
+				return err
+			}
 		} else {
-			utils.WriteString(s.data, "T")
+			if err := utils.WriteString(s.data, "T"); err != nil {
+				return err
+			}
 		}
-		utils.NewLine(s.data)
+		if err := utils.NewLine(s.data); err != nil {
+			return err
+		}
 		numDocsWritten++
 		if numDocsWritten <= s.numDocs {
 			panic("")
@@ -188,7 +201,7 @@ func (s *DocValuesWriter) AddBinaryField(ctx context.Context, field *document.Fi
 
 func (s *DocValuesWriter) doAddBinaryField(field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	maxLength := 0
-	values, err := valuesProducer.GetBinary(field)
+	values, err := valuesProducer.GetBinary(nil, field)
 	if err != nil {
 		return err
 	}
@@ -212,18 +225,24 @@ func (s *DocValuesWriter) doAddBinaryField(field *document.FieldInfo, valuesProd
 
 		maxLength = max(maxLength, len(binaryValue))
 	}
-	s.writeFieldEntry(field, document.DOC_VALUES_TYPE_BINARY)
+	if err := s.writeFieldEntry(field, document.DOC_VALUES_TYPE_BINARY); err != nil {
+		return err
+	}
 
 	// write maxLength
-	writeValue(s.data, DOC_VALUES_MAXLENGTH, maxLength)
+	if err := writeValue(s.data, DOC_VALUES_MAXLENGTH, maxLength); err != nil {
+		return err
+	}
 
 	maxBytesLength := len(strconv.Itoa(maxLength))
 
 	fmtStr := fmt.Sprintf("%%0%dd", maxBytesLength)
 
-	writeValue(s.data, DOC_VALUES_PATTERN, fmt.Sprintf(fmtStr, 0))
+	if err := writeValue(s.data, DOC_VALUES_PATTERN, fmt.Sprintf(fmtStr, 0)); err != nil {
+		return err
+	}
 
-	values, err = valuesProducer.GetBinary(field)
+	values, err = valuesProducer.GetBinary(nil, field)
 	if err != nil {
 		return err
 	}
@@ -246,7 +265,9 @@ func (s *DocValuesWriter) doAddBinaryField(field *document.FieldInfo, valuesProd
 			length = len(bs)
 		}
 
-		writeValue(s.data, DOC_VALUES_LENGTH, fmt.Sprintf(fmtStr, length))
+		if err := writeValue(s.data, DOC_VALUES_LENGTH, fmt.Sprintf(fmtStr, length)); err != nil {
+			return err
+		}
 
 		// write bytes -- don't use SimpleText.write
 		// because it escapes:
@@ -255,21 +276,33 @@ func (s *DocValuesWriter) doAddBinaryField(field *document.FieldInfo, valuesProd
 			if err != nil {
 				return err
 			}
-			utils.WriteBytes(s.data, bs)
+			if err := utils.WriteBytes(s.data, bs); err != nil {
+				return err
+			}
 		}
 
 		// pad to fit
 		for j := length; j < maxLength; j++ {
-			s.data.WriteByte(' ')
+			if err := s.data.WriteByte(' '); err != nil {
+				return err
+			}
 		}
-		utils.NewLine(s.data)
+		if err := utils.NewLine(s.data); err != nil {
+			return err
+		}
 
 		if values.DocID() != i {
-			utils.WriteString(s.data, "F")
+			if err := utils.WriteString(s.data, "F"); err != nil {
+				return err
+			}
 		} else {
-			utils.WriteString(s.data, "T")
+			if err := utils.WriteString(s.data, "T"); err != nil {
+				return err
+			}
 		}
-		utils.NewLine(s.data)
+		if err := utils.NewLine(s.data); err != nil {
+			return err
+		}
 		numDocsWritten++
 	}
 
@@ -288,11 +321,13 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 		panic("")
 	}
 
-	s.writeFieldEntry(field, document.DOC_VALUES_TYPE_SORTED)
+	if err := s.writeFieldEntry(field, document.DOC_VALUES_TYPE_SORTED); err != nil {
+		return err
+	}
 
 	valueCount, maxLength := 0, -1
 
-	sorted, err := valuesProducer.GetSorted(field)
+	sorted, err := valuesProducer.GetSorted(nil, field)
 	if err != nil {
 		return err
 	}
@@ -315,24 +350,32 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 	}
 
 	// write numValues
-	writeValue(s.data, DOC_VALUES_NUMVALUES, valueCount)
+	if err := writeValue(s.data, DOC_VALUES_NUMVALUES, valueCount); err != nil {
+		return err
+	}
 	// write maxLength
-	writeValue(s.data, DOC_VALUES_MAXLENGTH, maxLength)
+	if err := writeValue(s.data, DOC_VALUES_MAXLENGTH, maxLength); err != nil {
+		return err
+	}
 
 	maxBytesLength := len(strconv.Itoa(maxLength))
 	encoderFmt := fmt.Sprintf("%%0%dd", maxBytesLength)
 
 	// write our pattern for encoding lengths
-	writeValue(s.data, DOC_VALUES_PATTERN, fmt.Sprintf(encoderFmt, 0))
+	if err := writeValue(s.data, DOC_VALUES_PATTERN, fmt.Sprintf(encoderFmt, 0)); err != nil {
+		return err
+	}
 
 	maxOrdBytes := len(strconv.Itoa(valueCount + 1))
 	ordEncoderFmt := fmt.Sprintf("%%0%dd", maxOrdBytes)
 	// write our pattern for ords
-	writeValue(s.data, DOC_VALUES_ORDPATTERN, fmt.Sprintf(ordEncoderFmt, 0))
+	if err := writeValue(s.data, DOC_VALUES_ORDPATTERN, fmt.Sprintf(ordEncoderFmt, 0)); err != nil {
+		return err
+	}
 
 	// for asserts:
 	valuesSeen := 0
-	sorted, err = valuesProducer.GetSorted(field)
+	sorted, err = valuesProducer.GetSorted(nil, field)
 	if err != nil {
 		return err
 	}
@@ -352,16 +395,24 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 		}
 
 		// write length
-		writeValue(s.data, DOC_VALUES_LENGTH, fmt.Sprintf(encoderFmt, len(value)))
+		if err := writeValue(s.data, DOC_VALUES_LENGTH, fmt.Sprintf(encoderFmt, len(value))); err != nil {
+			return err
+		}
 
 		// write bytes -- don't use SimpleText.write
 		// because it escapes:
-		s.data.Write(value)
+		if _, err := s.data.Write(value); err != nil {
+			return err
+		}
 
 		for i := len(value); i < maxLength; i++ {
-			s.data.WriteByte(' ')
+			if err := s.data.WriteByte(' '); err != nil {
+				return err
+			}
 		}
-		utils.NewLine(s.data)
+		if err := utils.NewLine(s.data); err != nil {
+			return err
+		}
 		valuesSeen++
 
 		if valuesSeen > valueCount {
@@ -373,7 +424,7 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 		panic("")
 	}
 
-	values, err := valuesProducer.GetSorted(field)
+	values, err := valuesProducer.GetSorted(nil, field)
 	if err != nil {
 		return err
 	}
@@ -392,8 +443,12 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 				return err
 			}
 		}
-		utils.WriteString(s.data, fmt.Sprintf(ordEncoderFmt, ord+1))
-		utils.NewLine(s.data)
+		if err := utils.WriteString(s.data, fmt.Sprintf(ordEncoderFmt, ord+1)); err != nil {
+			return err
+		}
+		if err := utils.NewLine(s.data); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -408,8 +463,8 @@ func (s *DocValuesWriter) AddSortedNumericField(ctx context.Context, field *docu
 	}
 
 	return s.doAddBinaryField(field, &index.EmptyDocValuesProducer{
-		FnGetBinary: func(field *document.FieldInfo) (index.BinaryDocValues, error) {
-			values, err := valuesProducer.GetSortedNumeric(field)
+		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error) {
+			values, err := valuesProducer.GetSortedNumeric(nil, field)
 			if err != nil {
 				return nil, err
 			}
@@ -520,19 +575,33 @@ func (s *DocValuesWriter) fieldSeen(field string) error {
 }
 
 func (s *DocValuesWriter) writeFieldEntry(field *document.FieldInfo, _type document.DocValuesType) error {
-	utils.WriteBytes(s.data, DOC_VALUES_FIELD)
-	utils.WriteString(s.data, field.Name())
-	utils.NewLine(s.data)
+	if err := utils.WriteBytes(s.data, DOC_VALUES_FIELD); err != nil {
+		return err
+	}
+	if err := utils.WriteString(s.data, field.Name()); err != nil {
+		return err
+	}
+	if err := utils.NewLine(s.data); err != nil {
+		return err
+	}
 
-	utils.WriteBytes(s.data, DOC_VALUES_TYPE)
-	utils.WriteString(s.data, _type.String())
+	if err := utils.WriteBytes(s.data, DOC_VALUES_TYPE); err != nil {
+		return err
+	}
+	if err := utils.WriteString(s.data, _type.String()); err != nil {
+		return err
+	}
 	return utils.NewLine(s.data)
 }
 
 func (s *DocValuesWriter) Close() error {
 	if s.data != nil {
-		utils.WriteBytes(s.data, DOC_VALUES_END)
-		utils.NewLine(s.data)
+		if err := utils.WriteBytes(s.data, DOC_VALUES_END); err != nil {
+			return err
+		}
+		if err := utils.NewLine(s.data); err != nil {
+			return err
+		}
 		if err := s.data.Close(); err != nil {
 			return err
 		}

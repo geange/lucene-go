@@ -10,7 +10,7 @@ import (
 var _ search.SimpleCollector = &simpleCollector{}
 
 type simpleCollector struct {
-	*search.DefSimpleCollector
+	*search.BaseSimpleCollector
 
 	scorer search.Scorable
 	scores []float64
@@ -18,15 +18,15 @@ type simpleCollector struct {
 
 func newSimpleCollector(scores []float64) *simpleCollector {
 	collector := &simpleCollector{
-		DefSimpleCollector: nil,
-		scorer:             nil,
-		scores:             scores,
+		BaseSimpleCollector: nil,
+		scorer:              nil,
+		scores:              scores,
 	}
-	collector.DefSimpleCollector = search.NewSimpleCollector(collector)
+	collector.BaseSimpleCollector = search.NewSimpleCollector(collector)
 	return collector
 }
 
-func (s *simpleCollector) ScoreMode() *search.ScoreMode {
+func (s *simpleCollector) ScoreMode() search.ScoreMode {
 	return search.COMPLETE
 }
 
@@ -40,7 +40,7 @@ func (s *simpleCollector) Collect(ctx context.Context, doc int) error {
 	return err
 }
 
-func (s *simpleCollector) DoSetNextReader(context *index.LeafReaderContext) error {
+func (s *simpleCollector) DoSetNextReader(_ index.LeafReaderContext) error {
 	return nil
 }
 

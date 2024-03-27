@@ -14,5 +14,5 @@ type SegmentCacheable interface {
 
 	// IsCacheable
 	// Returns: true if the object can be cached against a given leaf
-	IsCacheable(ctx *index.LeafReaderContext) bool
+	IsCacheable(ctx index.LeafReaderContext) bool
 }

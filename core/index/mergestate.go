@@ -6,7 +6,8 @@ import (
 	"github.com/geange/lucene-go/core/util/packed"
 )
 
-// MergeState Holds common state used during segment merging.
+// MergeState
+// Holds common state used during segment merging.
 type MergeState struct {
 	// Maps document IDs from old segments to document IDs in the new segment
 	DocMaps []MergeStateDocMap

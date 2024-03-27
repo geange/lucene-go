@@ -1,6 +1,7 @@
 package search
 
-// Matches Reports the positions and optionally offsets of all matching terms in a query for a single document
+// Matches
+// Reports the positions and optionally offsets of all matching terms in a query for a single document
 // To obtain a MatchesIterator for a particular field, call GetMatches(String). Note that you can call
 // GetMatches(String) multiple times to retrieve new iterators, but it is not thread-safe.
 // 报告单个文档的查询中所有匹配项的位置和可选偏移量，以获取特定字段的匹配迭代器，称为getMatches（String）。
@@ -8,16 +9,18 @@ package search
 type Matches interface {
 	Strings() []string
 
-	// GetMatches Returns a MatchesIterator over the matches for a single field, or null if there are no matches
+	// GetMatches
+	// Returns a MatchesIterator over the matches for a single field, or null if there are no matches
 	// in that field.
 	GetMatches(field string) (MatchesIterator, error)
 
-	// GetSubMatches Returns a collection of Matches that make up this instance; if it is not a composite,
+	// GetSubMatches
+	// Returns a collection of Matches that make up this instance; if it is not a composite,
 	// then this returns an empty list
 	GetSubMatches() []Matches
 }
 
-type MatchesImp struct {
+type baseMatches struct {
 	strs []string
 }
 

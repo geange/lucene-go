@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -68,10 +69,10 @@ type LeafCollector interface {
 	CompetitiveIterator() (types.DocIdSetIterator, error)
 }
 
-type DefLeafCollector struct {
+type baseLeafCollector struct {
 }
 
-func (*DefLeafCollector) CompetitiveIterator() (types.DocIdSetIterator, error) {
+func (*baseLeafCollector) CompetitiveIterator() (types.DocIdSetIterator, error) {
 	return nil, nil
 }
 

@@ -1,6 +1,8 @@
 package index
 
 import (
+	"context"
+	"fmt"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"strconv"
@@ -9,7 +11,7 @@ import (
 var _ CodecReader = &SegmentReader{}
 
 // SegmentReader
-// Reader implementation over a single segment.
+// IndexReader implementation over a single segment.
 // Instances pointing to the same segment (but with different deletes, etc) may share the same core data.
 // lucene.experimental
 type SegmentReader struct {
@@ -22,8 +24,7 @@ type SegmentReader struct {
 	// and lookup pooled readers etc.
 	originalSi *SegmentCommitInfo
 
-	metaData *LeafMetaData
-
+	metaData     *LeafMetaData
 	liveDocs     util.Bits
 	hardLiveDocs util.Bits
 
@@ -44,10 +45,12 @@ type SegmentReader struct {
 	fieldInfos *FieldInfos
 }
 
-func NewSegmentReader(si *SegmentCommitInfo,
-	createdVersionMajor int, context *store.IOContext) (*SegmentReader, error) {
+// NewSegmentReader
+// Constructs a new SegmentReader with a new core.
+func NewSegmentReader(ctx context.Context, si *SegmentCommitInfo,
+	createdVersionMajor int, ioContext *store.IOContext) (*SegmentReader, error) {
 
-	readers, err := NewSegmentCoreReaders(si.info.dir, si, context)
+	readers, err := NewSegmentCoreReaders(ctx, si.info.dir, si, ioContext)
 	if err != nil {
 		return nil, err
 	}
@@ -71,14 +74,13 @@ func NewSegmentReader(si *SegmentCommitInfo,
 	codec := si.info.GetCodec()
 	if si.HasDeletions() {
 		// NOTE: the bitvector is stored using the regular directory, not cfs
-		liveDocs, err := codec.LiveDocsFormat().ReadLiveDocs(reader.Directory(), si, nil)
+		liveDocs, err := codec.LiveDocsFormat().ReadLiveDocs(ctx, reader.Directory(), si, ioContext)
 		if err != nil {
 			return nil, err
 		}
 		reader.hardLiveDocs = liveDocs
 		reader.liveDocs = liveDocs
 	} else {
-		//assert si.getDelCount() == 0;
 		reader.hardLiveDocs = nil
 		reader.liveDocs = nil
 	}
@@ -89,21 +91,74 @@ func NewSegmentReader(si *SegmentCommitInfo,
 	}
 	reader.numDocs = maxDoc - si.GetDelCount()
 
-	reader.fieldInfos, err = reader.initFieldInfos()
+	fieldInfos, err := reader.initFieldInfos()
 	if err != nil {
 		return nil, err
 	}
-	reader.docValuesProducer, err = reader.initDocValuesProducer()
+	reader.fieldInfos = fieldInfos
+
+	docValuesProducer, err := reader.initDocValuesProducer()
 	if err != nil {
 		return nil, err
 	}
+	reader.docValuesProducer = docValuesProducer
 	return reader, nil
 }
 
-func NewSegmentReaderV1(si *SegmentCommitInfo, sr *SegmentReader,
-	liveDocs, hardLiveDocs util.Bits, numDocs int, isNRT bool) (*SegmentReader, error) {
+// New
+// Create new SegmentReader sharing core from a previous SegmentReader and using the provided liveDocs,
+// and recording whether those liveDocs were carried in ram (isNRT=true).
+func (s *SegmentReader) New(si *SegmentCommitInfo, liveDocs, hardLiveDocs util.Bits, numDocs int, isNRT bool) (*SegmentReader, error) {
 
-	panic("")
+	maxDoc, err := si.info.MaxDoc()
+	if err != nil {
+		return nil, err
+	}
+	if numDocs > maxDoc {
+		return nil, fmt.Errorf("numDocs=%d but maxDoc=%d", numDocs, maxDoc)
+	}
+
+	if liveDocs != nil && int(liveDocs.Len()) != maxDoc {
+		return nil, fmt.Errorf("maxDoc=%d but liveDocs.size()=%d", maxDoc, liveDocs.Len())
+	}
+
+	reader := &SegmentReader{
+		si:                si.Clone(),
+		originalSi:        si,
+		metaData:          s.GetMetaData(),
+		liveDocs:          liveDocs,
+		hardLiveDocs:      hardLiveDocs,
+		numDocs:           numDocs,
+		core:              s.core,
+		segDocValues:      s.segDocValues,
+		isNRT:             isNRT,
+		docValuesProducer: nil,
+		fieldInfos:        nil,
+	}
+
+	if err := reader.core.incRef(); err != nil {
+		return nil, err
+	}
+
+	fieldInfos, err := reader.initFieldInfos()
+	if err != nil {
+		if err := reader.DoClose(); err != nil {
+			return nil, err
+		}
+		return nil, err
+	}
+	reader.fieldInfos = fieldInfos
+
+	docValuesProducer, err := reader.initDocValuesProducer()
+	if err != nil {
+		if err := reader.DoClose(); err != nil {
+			return nil, err
+		}
+		return nil, err
+	}
+	reader.docValuesProducer = docValuesProducer
+
+	return reader, nil
 }
 
 func (s *SegmentReader) Directory() store.Directory {
@@ -122,7 +177,7 @@ func (s *SegmentReader) MaxDoc() int {
 }
 
 func (s *SegmentReader) DoClose() error {
-	if err := s.core.DecRef(); err != nil {
+	if err := s.core.decRef(); err != nil {
 		return err
 	}
 
@@ -203,7 +258,7 @@ func (s *SegmentReader) initFieldInfos() (*FieldInfos, error) {
 		// updates always outside of CFS
 		fisFormat := s.si.info.GetCodec().FieldInfosFormat()
 		segmentSuffix := strconv.FormatInt(s.si.GetFieldInfosGen(), 36)
-		return fisFormat.Read(s.si.info.dir, s.si.info, segmentSuffix, nil)
+		return fisFormat.Read(nil, s.si.info.dir, s.si.info, segmentSuffix, nil)
 	}
 }
 

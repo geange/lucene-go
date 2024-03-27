@@ -47,12 +47,12 @@ func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
 		return err
 	}
 
-	consumer, err := state.SegmentInfo.GetCodec().PostingsFormat().FieldsConsumer(state)
+	consumer, err := state.SegmentInfo.GetCodec().PostingsFormat().FieldsConsumer(nil, state)
 	if err != nil {
 		return err
 	}
 	defer consumer.Close()
-	return consumer.Write(fields, norms)
+	return consumer.Write(nil, fields, norms)
 }
 
 func (f *FreqProxTermsWriter) AddField(invertState *FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error) {

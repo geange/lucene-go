@@ -1,6 +1,7 @@
 package simpletext
 
 import (
+	"context"
 	"errors"
 	"io"
 	"strconv"
@@ -25,7 +26,7 @@ var (
 var _ index.FieldsConsumer = &TextFieldsWriter{}
 
 type TextFieldsWriter struct {
-	*index.FieldsConsumerDefault // TODO: fix it
+	*index.BaseFieldsConsumer // TODO: fix it
 
 	out        store.IndexOutput
 	writeState *index.SegmentWriteState
@@ -49,7 +50,7 @@ func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, er
 		return nil, err
 	}
 	return &TextFieldsWriter{
-		FieldsConsumerDefault:        nil,
+		BaseFieldsConsumer:           nil,
 		out:                          out,
 		writeState:                   writeState,
 		segment:                      writeState.SegmentInfo.Name(),
@@ -73,7 +74,7 @@ func (s *TextFieldsWriter) Close() error {
 	return s.out.Close()
 }
 
-func (s *TextFieldsWriter) Write(fields index.Fields, norms index.NormsProducer) error {
+func (s *TextFieldsWriter) Write(ctx context.Context, fields index.Fields, norms index.NormsProducer) error {
 	return s.WriteV1(s.writeState.FieldInfos, fields, norms)
 }
 

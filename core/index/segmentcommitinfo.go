@@ -1,6 +1,14 @@
 package index
 
-// SegmentCommitInfo Embeds a [read-only] SegmentInfo and adds per-commit fields.
+import (
+	"context"
+	"github.com/google/uuid"
+	"maps"
+	"slices"
+)
+
+// SegmentCommitInfo
+// Embeds a [read-only] SegmentInfo and adds per-commit fields.
 // lucene.experimental
 type SegmentCommitInfo struct {
 	// The SegmentInfo that we wrap.
@@ -52,7 +60,9 @@ type SegmentCommitInfo struct {
 	bufferedDeletesGen int64
 }
 
-func NewSegmentCommitInfo(info *SegmentInfo, delCount, softDelCount int, delGen, fieldInfosGen, docValuesGen int64, id []byte) *SegmentCommitInfo {
+func NewSegmentCommitInfo(info *SegmentInfo, delCount, softDelCount int,
+	delGen, fieldInfosGen, docValuesGen int64, id []byte) *SegmentCommitInfo {
+
 	nextWriteDelGen := delGen + 1
 	if delGen == -1 {
 		nextWriteDelGen = 1
@@ -159,8 +169,7 @@ func (s *SegmentCommitInfo) Files() (map[string]struct{}, error) {
 	files := s.info.Files()
 
 	// Must separately add any live docs files:
-	_, err := s.info.GetCodec().LiveDocsFormat().Files(s, files)
-	if err != nil {
+	if _, err := s.info.GetCodec().LiveDocsFormat().Files(context.TODO(), s, files); err != nil {
 		return nil, err
 	}
 
@@ -205,18 +214,15 @@ func (s *SegmentCommitInfo) SetNextWriteDocValuesGen(v int64) {
 func (s *SegmentCommitInfo) SetFieldInfosFiles(fieldInfosFiles map[string]struct{}) {
 	s.fieldInfosFiles = map[string]struct{}{}
 	for file := range fieldInfosFiles {
-		s.fieldInfosFiles[s.info.NamedForThisSegment(file)] = struct{}{}
+		segmentName := s.info.NamedForThisSegment(file)
+		s.fieldInfosFiles[segmentName] = struct{}{}
 	}
 }
 
 func (s *SegmentCommitInfo) SetDocValuesUpdatesFiles(files map[int]map[string]struct{}) {
 	s.dvUpdatesFiles = map[int]map[string]struct{}{}
 	for k, values := range files {
-		newValues := make(map[string]struct{})
-		for v := range values {
-			newValues[v] = struct{}{}
-		}
-		s.dvUpdatesFiles[k] = newValues
+		s.dvUpdatesFiles[k] = maps.Clone(values)
 	}
 }
 
@@ -231,11 +237,7 @@ func (s *SegmentCommitInfo) Clone() *SegmentCommitInfo {
 	other.nextWriteDocValuesGen = s.nextWriteDocValuesGen
 
 	for k, files := range s.dvUpdatesFiles {
-		values := make(map[string]struct{}, len(files))
-		for k := range files {
-			values[k] = struct{}{}
-		}
-		other.dvUpdatesFiles[k] = values
+		other.dvUpdatesFiles[k] = maps.Clone(files)
 	}
 
 	for k := range s.fieldInfosFiles {
@@ -247,9 +249,7 @@ func (s *SegmentCommitInfo) Clone() *SegmentCommitInfo {
 
 func (s *SegmentCommitInfo) GetId() []byte {
 	if len(s.id) > 0 {
-		items := make([]byte, len(s.id))
-		copy(items, s.id)
-		return items
+		return slices.Clone(s.id)
 	}
 	return nil
 }
@@ -270,4 +270,30 @@ func (s *SegmentCommitInfo) SizeInBytes() (int64, error) {
 	}
 
 	return s.sizeInBytes, nil
+}
+
+// AdvanceDelGen
+// Called when we succeed in writing deletes
+func (s *SegmentCommitInfo) AdvanceDelGen() {
+	s.delGen = s.nextWriteDelGen
+	s.nextWriteDelGen = s.delGen + 1
+	s.generationAdvanced()
+}
+
+func (s *SegmentCommitInfo) generationAdvanced() {
+	s.sizeInBytes = -1
+	r, _ := uuid.NewRandom()
+	s.id = []byte(r.String())
+}
+
+func (s *SegmentCommitInfo) GetBufferedDeletesGen() int64 {
+	return s.bufferedDeletesGen
+}
+
+func (s *SegmentCommitInfo) GetFieldInfosFiles() map[string]struct{} {
+	return s.fieldInfosFiles
+}
+
+func (s *SegmentCommitInfo) GetDocValuesUpdatesFiles() map[int]map[string]struct{} {
+	return s.dvUpdatesFiles
 }

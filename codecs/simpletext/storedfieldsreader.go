@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +16,8 @@ import (
 
 var _ index.StoredFieldsReader = &StoredFieldsReader{}
 
-// StoredFieldsReader reads plaintext stored fields
+// StoredFieldsReader
+// reads plaintext stored fields
 // FOR RECREATIONAL USE ONLY
 // lucene.experimental
 type StoredFieldsReader struct {
@@ -26,12 +28,11 @@ type StoredFieldsReader struct {
 	fieldInfos   *index.FieldInfos
 }
 
-func NewStoredFieldsReader(
-	directory store.Directory, si *index.SegmentInfo,
-	fn *index.FieldInfos, context *store.IOContext) (*StoredFieldsReader, error) {
+func NewStoredFieldsReader(ctx context.Context, directory store.Directory,
+	si *index.SegmentInfo, fn *index.FieldInfos, ioContext *store.IOContext) (*StoredFieldsReader, error) {
 
-	fname := store.SegmentFileName(si.Name(), "", FIELDS_EXTENSION)
-	input, err := directory.OpenInput(nil, fname)
+	fileName := store.SegmentFileName(si.Name(), "", FIELDS_EXTENSION)
+	input, err := directory.OpenInput(ctx, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +98,7 @@ func (s *StoredFieldsReader) Close() error {
 	return nil
 }
 
-func (s *StoredFieldsReader) VisitDocument(docID int, visitor document.StoredFieldVisitor) error {
+func (s *StoredFieldsReader) VisitDocument(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error {
 	if _, err := s.in.Seek(s.offsets[docID], io.SeekStart); err != nil {
 		return err
 	}
@@ -226,7 +227,7 @@ func (s *StoredFieldsReader) readLine() error {
 	return utils.ReadLine(s.in, s.scratch)
 }
 
-func (s *StoredFieldsReader) Clone() index.StoredFieldsReader {
+func (s *StoredFieldsReader) Clone(context.Context) index.StoredFieldsReader {
 	if s.in == nil {
 		panic("closed!")
 	}

@@ -7,7 +7,8 @@ import (
 
 var _ IndexOutput = &OutputStream{}
 
-// OutputStream Implementation class for buffered IndexOutput that writes to an OutputStream.
+// OutputStream
+// Implementation class for buffered IndexOutput that writes to an OutputStream.
 type OutputStream struct {
 	*BaseIndexOutput
 
@@ -18,6 +19,9 @@ type OutputStream struct {
 }
 
 func (o *OutputStream) GetChecksum() (uint32, error) {
+	if err := o.out.Flush(); err != nil {
+		return 0, err
+	}
 	return o.crc.Sum(), nil
 }
 

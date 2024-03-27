@@ -1,14 +1,43 @@
 package index
 
+import (
+	"bytes"
+	"github.com/geange/lucene-go/core/store"
+)
+
 // PrefixCodedTerms
 // Prefix codes term instances (prefixes are shared).
 // This is expected to be faster to build than a FST and might also be more compact
 // if there are no common suffixes.
 // lucene.internal
 type PrefixCodedTerms struct {
-	//buffer *store.RAMFile
+	buffer *store.RAMFile
 	size   int64
 	delGen int64
+}
+
+func (t *PrefixCodedTerms) Size() int {
+	return int(t.size)
+}
+
+// Iterator TODO: fix it
+func (t *PrefixCodedTerms) Iterator() interface{} {
+	panic("")
+}
+
+// An iterator over the list of terms stored in a PrefixCodedTerms.
+type prefixCodedTermsTermIterator struct {
+	//   final IndexInput input;
+	//    final BytesRefBuilder builder = new BytesRefBuilder();
+	//    final BytesRef bytes = builder.get();
+	//    final long end;
+	//    final long delGen;
+	//    String field = "";
+	input   store.IndexInput
+	builder *bytes.Buffer
+	end     int64
+	delGen  int64
+	field   string
 }
 
 /*

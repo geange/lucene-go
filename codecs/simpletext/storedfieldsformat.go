@@ -1,6 +1,8 @@
 package simpletext
 
 import (
+	"context"
+
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -14,14 +16,11 @@ func NewStoredFieldsFormat() *StoredFieldsFormat {
 	return &StoredFieldsFormat{}
 }
 
-func (s *StoredFieldsFormat) FieldsReader(directory store.Directory, si *index.SegmentInfo,
-	fn *index.FieldInfos, context *store.IOContext) (index.StoredFieldsReader, error) {
+func (s *StoredFieldsFormat) FieldsReader(ctx context.Context, directory store.Directory, si *index.SegmentInfo, fn *index.FieldInfos, ioContext *store.IOContext) (index.StoredFieldsReader, error) {
 
-	return NewStoredFieldsReader(directory, si, fn, context)
+	return NewStoredFieldsReader(ctx, directory, si, fn, ioContext)
 }
 
-func (s *StoredFieldsFormat) FieldsWriter(directory store.Directory,
-	si *index.SegmentInfo, context *store.IOContext) (index.StoredFieldsWriter, error) {
-
-	return NewStoredFieldsWriter(directory, si.Name(), context)
+func (s *StoredFieldsFormat) FieldsWriter(ctx context.Context, directory store.Directory, si *index.SegmentInfo, ioContext *store.IOContext) (index.StoredFieldsWriter, error) {
+	return NewStoredFieldsWriter(ctx, directory, si.Name(), ioContext)
 }

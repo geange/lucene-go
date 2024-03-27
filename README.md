@@ -61,74 +61,74 @@ Using `IndexWriter`
 package main
 
 import (
-	"context"
-	"fmt"
+  "context"
+  "fmt"
 
-	"github.com/geange/lucene-go/codecs/simpletext"
-	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/search"
-	"github.com/geange/lucene-go/core/store"
+  "github.com/geange/lucene-go/codecs/simpletext"
+  "github.com/geange/lucene-go/core/document"
+  "github.com/geange/lucene-go/core/index"
+  "github.com/geange/lucene-go/core/search"
+  "github.com/geange/lucene-go/core/store"
 )
 
 func main() {
-	dir, err := store.NewNIOFSDirectory("data")
-	if err != nil {
-		panic(err)
-	}
+  dir, err := store.NewNIOFSDirectory("data")
+  if err != nil {
+    panic(err)
+  }
 
-	codec := simpletext.NewSimpleTextCodec()
-	similarity := search.NewCastBM25Similarity()
+  codec := simpletext.NewCodec()
+  similarity, err := search.NewCastBM25Similarity()
 
-	config := index.NewIndexWriterConfig(codec, similarity)
+  config := index.NewIndexWriterConfig(codec, similarity)
 
-	writer, err := index.NewIndexWriter(dir, config)
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		err := writer.Commit(context.Background())
-		if err != nil {
-			fmt.Println(err)
-		}
-	}()
+  writer, err := index.NewIndexWriter(context.Background(), dir, config)
+  if err != nil {
+    panic(err)
+  }
+  defer func() {
+    err := writer.Commit(context.Background())
+    if err != nil {
+      fmt.Println(err)
+    }
+  }()
 
-	{
-		doc := document.NewDocument()
-		doc.Add(document.NewStoredFieldAny("a", 74, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a1", 86, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a2", 1237, document.STORED_ONLY))
-		docID, err := writer.AddDocument(doc)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(docID)
-	}
+  {
+    doc := document.NewDocument()
+    doc.Add(document.NewStoredField[int32]("a", 74))
+    doc.Add(document.NewStoredField[int32]("a1", 86))
+    doc.Add(document.NewStoredField[int32]("a2", 1237))
+    docID, err := writer.AddDocument(context.Background(), doc)
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(docID)
+  }
 
-	{
-		doc := document.NewDocument()
-		doc.Add(document.NewStoredFieldAny("a", 123, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a1", 123, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a2", 789, document.STORED_ONLY))
+  {
+    doc := document.NewDocument()
+    doc.Add(document.NewStoredField[int32]("a", 123))
+    doc.Add(document.NewStoredField[int32]("a1", 123))
+    doc.Add(document.NewStoredField[int32]("a2", 789))
 
-		docID, err := writer.AddDocument(doc)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(docID)
-	}
+    docID, err := writer.AddDocument(context.Background(), doc)
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(docID)
+  }
 
-	{
-		doc := document.NewDocument()
-		doc.Add(document.NewStoredFieldAny("a", 741, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a1", 861, document.STORED_ONLY))
-		doc.Add(document.NewStoredFieldAny("a2", 12137, document.STORED_ONLY))
-		docID, err := writer.AddDocument(doc)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(docID)
-	}
+  {
+    doc := document.NewDocument()
+    doc.Add(document.NewStoredField[int32]("a", 741))
+    doc.Add(document.NewStoredField[int32]("a1", 861))
+    doc.Add(document.NewStoredField[int32]("a2", 12137))
+    docID, err := writer.AddDocument(context.Background(), doc)
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(docID)
+  }
 }
 
 ```

@@ -17,32 +17,25 @@ var _ DocConsumer = &DefaultIndexingChain{}
 
 // DefaultIndexingChain
 // Default general purpose indexing chain, which handles indexing all types of fields.
+// 默认的通用索引链，用于处理所有类型的字段的索引。
 type DefaultIndexingChain struct {
-	fieldInfos           *FieldInfosBuilder
-	termsHash            TermsHash
-	docValuesBytePool    *bytesref.BlockPool
-	storedFieldsConsumer *StoredFieldsConsumer
-	termVectorsWriter    *TermVectorsConsumer
-
-	// 使用map简化理解
-	fieldHash map[string]*PerField
-	hashMask  int
-
-	totalFieldCount int
-	nextFieldGen    int64
-
-	fields []*PerField
-
-	byteBlockAllocator bytesref.Allocator
-
-	indexWriterConfig *liveIndexWriterConfig
-
+	fieldInfos               *FieldInfosBuilder
+	termsHash                TermsHash
+	docValuesBytePool        *bytesref.BlockPool
+	storedFieldsConsumer     *StoredFieldsConsumer
+	termVectorsWriter        *TermVectorsConsumer
+	fieldHash                map[string]*PerField // 使用map简化理解
+	totalFieldCount          int
+	nextFieldGen             int64
+	fields                   []*PerField
+	byteBlockAllocator       bytesref.Allocator
+	indexWriterConfig        *liveIndexWriterConfig
 	indexCreatedVersionMajor int
-
-	hasHitAbortingException bool
+	hasHitAbortingException  bool
 }
 
-func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo, dir store.Directory, fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) *DefaultIndexingChain {
+func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo, dir store.Directory,
+	fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) *DefaultIndexingChain {
 
 	byteBlockAllocator := newByteBlockAllocator()
 	intBlockAllocator := newIntBlockAllocator()
@@ -61,7 +54,6 @@ func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentI
 		storedFieldsConsumer:     storedFieldsConsumer,
 		termVectorsWriter:        termVectorsWriter,
 		fieldHash:                make(map[string]*PerField),
-		hashMask:                 1,
 		totalFieldCount:          0,
 		nextFieldGen:             0,
 		fields:                   make([]*PerField, 0),
@@ -75,33 +67,40 @@ func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentI
 }
 
 func (d *DefaultIndexingChain) getDocValuesLeafReader() LeafReader {
-	reader := &innerLeafReader{
+	reader := &defaultIndexingChainLeafReader{
 		DocValuesLeafReader: NewDocValuesLeafReader(),
 		chain:               d,
 	}
 	return reader
 }
 
-var _ LeafReader = &innerLeafReader{}
+var _ LeafReader = &defaultIndexingChainLeafReader{}
 
-type innerLeafReader struct {
+type defaultIndexingChainLeafReader struct {
 	*DocValuesLeafReader
+
 	chain *DefaultIndexingChain
 }
 
-func (i *innerLeafReader) GetNumericDocValues(field string) (NumericDocValues, error) {
-	pf := i.chain.getPerField(field)
+func (r *defaultIndexingChainLeafReader) GetNumericDocValues(field string) (NumericDocValues, error) {
+	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
+
 	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_NUMERIC {
-		return pf.docValuesWriter.GetDocValues().(NumericDocValues), nil
+		docValues := pf.docValuesWriter.GetDocValues()
+		numericDocValues, ok := docValues.(NumericDocValues)
+		if !ok {
+			return nil, errors.New("expected numeric doc values")
+		}
+		return numericDocValues, nil
 	}
 	return nil, nil
 }
 
-func (i *innerLeafReader) GetBinaryDocValues(field string) (BinaryDocValues, error) {
-	pf := i.chain.getPerField(field)
+func (r *defaultIndexingChainLeafReader) GetBinaryDocValues(field string) (BinaryDocValues, error) {
+	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
@@ -111,8 +110,8 @@ func (i *innerLeafReader) GetBinaryDocValues(field string) (BinaryDocValues, err
 	return nil, nil
 }
 
-func (i *innerLeafReader) GetSortedDocValues(field string) (SortedDocValues, error) {
-	pf := i.chain.getPerField(field)
+func (r *defaultIndexingChainLeafReader) GetSortedDocValues(field string) (SortedDocValues, error) {
+	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
@@ -122,19 +121,24 @@ func (i *innerLeafReader) GetSortedDocValues(field string) (SortedDocValues, err
 	return nil, nil
 }
 
-func (i *innerLeafReader) GetSortedNumericDocValues(field string) (SortedNumericDocValues, error) {
-	pf := i.chain.getPerField(field)
+func (r *defaultIndexingChainLeafReader) GetSortedNumericDocValues(field string) (SortedNumericDocValues, error) {
+	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
 	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED_NUMERIC {
-		return pf.docValuesWriter.GetDocValues().(SortedNumericDocValues), nil
+		docValues := pf.docValuesWriter.GetDocValues()
+		sortedNumericDocValues, ok := docValues.(SortedNumericDocValues)
+		if !ok {
+			return nil, errors.New("docValues is not SortedNumericDocValues")
+		}
+		return sortedNumericDocValues, nil
 	}
 	return nil, nil
 }
 
-func (i *innerLeafReader) GetSortedSetDocValues(field string) (SortedSetDocValues, error) {
-	pf := i.chain.getPerField(field)
+func (r *defaultIndexingChainLeafReader) GetSortedSetDocValues(field string) (SortedSetDocValues, error) {
+	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
@@ -144,8 +148,8 @@ func (i *innerLeafReader) GetSortedSetDocValues(field string) (SortedSetDocValue
 	return nil, nil
 }
 
-func (i *innerLeafReader) GetFieldInfos() *FieldInfos {
-	return i.chain.fieldInfos.Finish()
+func (r *defaultIndexingChainLeafReader) GetFieldInfos() *FieldInfos {
+	return r.chain.fieldInfos.Finish()
 }
 
 func (d *DefaultIndexingChain) maybeSortSegment(state *SegmentWriteState) (*DocMap, error) {
@@ -199,14 +203,14 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *SegmentWriteSta
 	if err := d.writeDocValues(state, sortMap); err != nil {
 		return nil, err
 	}
-	if err := d.writePoints(state, sortMap); err != nil {
+	if err := d.writePoints(ctx, state, sortMap); err != nil {
 		return nil, err
 	}
 
-	if err := d.storedFieldsConsumer.Finish(maxDoc); err != nil {
+	if err := d.storedFieldsConsumer.Finish(ctx, maxDoc); err != nil {
 		return nil, err
 	}
-	if err := d.storedFieldsConsumer.Flush(state, sortMap); err != nil {
+	if err := d.storedFieldsConsumer.Flush(ctx, state, sortMap); err != nil {
 		return nil, err
 	}
 
@@ -216,28 +220,30 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *SegmentWriteSta
 		fieldsToFlush[perField.fieldInfo.Name()] = perField.termsHashPerField
 	}
 
-	readState := NewSegmentReadState(state.Directory, state.SegmentInfo, state.FieldInfos, nil, state.SegmentSuffix)
+	readState := NewSegmentReadState(state.Directory, state.SegmentInfo, state.FieldInfos, state.Context, state.SegmentSuffix)
 
-	var norms NormsProducer
+	//var norms NormsProducer
 	if readState.FieldInfos.HasNorms() {
-		norms, err = state.SegmentInfo.GetCodec().NormsFormat().NormsProducer(readState)
+		norms, err := state.SegmentInfo.GetCodec().NormsFormat().NormsProducer(ctx, readState)
 		if err != nil {
 			return nil, err
 		}
+
 		normsMergeInstance := norms.GetMergeInstance()
-		d.termsHash.Flush(fieldsToFlush, state, sortMap, normsMergeInstance)
+		if err := d.termsHash.Flush(fieldsToFlush, state, sortMap, normsMergeInstance); err != nil {
+			return nil, err
+		}
 	}
 
-	err = d.indexWriterConfig.GetCodec().FieldInfosFormat().
-		Write(state.Directory, state.SegmentInfo, "", state.FieldInfos, nil)
-	if err != nil {
+	if err := d.indexWriterConfig.GetCodec().FieldInfosFormat().
+		Write(ctx, state.Directory, state.SegmentInfo, "", state.FieldInfos, state.Context); err != nil {
 		return nil, err
 	}
 	return sortMap, nil
 }
 
 // Writes all buffered points.
-func (d *DefaultIndexingChain) writePoints(state *SegmentWriteState, sortMap *DocMap) error {
+func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *SegmentWriteState, sortMap *DocMap) error {
 	var pointsWriter PointsWriter
 	var err error
 
@@ -253,13 +259,13 @@ func (d *DefaultIndexingChain) writePoints(state *SegmentWriteState, sortMap *Do
 				if format == nil {
 					return errors.New("pointsFormat not found")
 				}
-				pointsWriter, err = format.FieldsWriter(state)
+				pointsWriter, err = format.FieldsWriter(nil, state)
 				if err != nil {
 					return err
 				}
 			}
 
-			if err := perField.pointValuesWriter.Flush(state, sortMap, pointsWriter); err != nil {
+			if err := perField.pointValuesWriter.Flush(ctx, state, sortMap, pointsWriter); err != nil {
 				return err
 			}
 			perField.pointValuesWriter = nil
@@ -291,7 +297,7 @@ func (d *DefaultIndexingChain) writeDocValues(state *SegmentWriteState, sortMap 
 			if dvConsumer == nil {
 				// lazy init
 				format := state.SegmentInfo.GetCodec().DocValuesFormat()
-				dvConsumer, err = format.FieldsConsumer(state)
+				dvConsumer, err = format.FieldsConsumer(nil, state)
 				if err != nil {
 					return err
 				}
@@ -318,7 +324,7 @@ func (d *DefaultIndexingChain) writeNorms(state *SegmentWriteState, sortMap *Doc
 	var err error
 	if state.FieldInfos.HasNorms() {
 		normsFormat := state.SegmentInfo.GetCodec().NormsFormat()
-		normsConsumer, err = normsFormat.NormsConsumer(state)
+		normsConsumer, err = normsFormat.NormsConsumer(nil, state)
 		if err != nil {
 			return err
 		}
@@ -366,24 +372,23 @@ func (d *DefaultIndexingChain) ProcessDocument(ctx context.Context, docId int, d
 	if err := d.termsHash.StartDocument(); err != nil {
 		return err
 	}
-	if err := d.startStoredFields(docId); err != nil {
+	if err := d.startStoredFields(ctx, docId); err != nil {
 		return err
 	}
 
-	var err error
-
 	for _, field := range doc.Fields() {
-		fieldCount, err = d.processField(docId, field, fieldGen, fieldCount)
+		count, err := d.processField(ctx, docId, field, fieldGen, fieldCount)
 		if err != nil {
 			return err
 		}
+		fieldCount = count
 
 		for i := 0; i < fieldCount; i++ {
-			if err = d.fields[i].Finish(docId); err != nil {
+			if err := d.fields[i].Finish(docId); err != nil {
 				return err
 			}
 		}
-		if err = d.finishStoredFields(); err != nil {
+		if err := d.finishStoredFields(); err != nil {
 			return err
 		}
 	}
@@ -391,8 +396,7 @@ func (d *DefaultIndexingChain) ProcessDocument(ctx context.Context, docId int, d
 	return d.termsHash.FinishDocument(docId)
 }
 
-func (d *DefaultIndexingChain) processField(docId int,
-	field document.IndexableField, fieldGen int64, fieldCount int) (int, error) {
+func (d *DefaultIndexingChain) processField(ctx context.Context, docId int, field document.IndexableField, fieldGen int64, fieldCount int) (int, error) {
 
 	fieldName := field.Name()
 	fieldType := field.FieldType()
@@ -410,12 +414,12 @@ func (d *DefaultIndexingChain) processField(docId int,
 		if err != nil {
 			return 0, err
 		}
-		first := fp.fieldGen != fieldGen
-		if err := fp.invert(docId, field, first); err != nil {
+		isFirst := fp.fieldGen != fieldGen
+		if err := fp.invert(docId, field, isFirst); err != nil {
 			return 0, err
 		}
 
-		if first {
+		if isFirst {
 			d.fields = append(d.fields, fp)
 			fieldCount++
 			fp.fieldGen = fieldGen
@@ -436,14 +440,7 @@ func (d *DefaultIndexingChain) processField(docId int,
 		}
 
 		if fieldType.Stored() {
-			//str, err := document.Str(field.Get())
-			//if err == nil {
-			//	if len(str) > MAX_STORED_STRING_LENGTH {
-			//		return 0, errors.New("stored field too large")
-			//	}
-			//}
-
-			if err := d.storedFieldsConsumer.writeField(fp.fieldInfo, field); err != nil {
+			if err := d.storedFieldsConsumer.writeField(ctx, fp.fieldInfo, field); err != nil {
 				return 0, err
 			}
 		}
@@ -665,8 +662,8 @@ func (d *DefaultIndexingChain) GetHasDocValues(field string) types.DocIdSetItera
 	return nil
 }
 
-func (d *DefaultIndexingChain) startStoredFields(docID int) error {
-	return d.storedFieldsConsumer.StartDocument(docID)
+func (d *DefaultIndexingChain) startStoredFields(ctx context.Context, docID int) error {
+	return d.storedFieldsConsumer.StartDocument(ctx, docID)
 }
 
 func (d *DefaultIndexingChain) finishStoredFields() error {
@@ -719,11 +716,12 @@ func (p *PerField) setInvertState() error {
 	p.invertState = NewFieldInvertStateV1(
 		p.indexCreatedVersionMajor, p.fieldInfo.Name(), p.fieldInfo.GetIndexOptions())
 
-	var err error
-	p.termsHashPerField, err = p.chain.termsHash.AddField(p.invertState, p.fieldInfo)
+	termsHashPerField, err := p.chain.termsHash.AddField(p.invertState, p.fieldInfo)
 	if err != nil {
 		return err
 	}
+	p.termsHashPerField = termsHashPerField
+
 	if p.fieldInfo.OmitsNorms() == false {
 		p.norms = NewNormValuesWriter(p.fieldInfo)
 	}
@@ -742,8 +740,7 @@ func (p *PerField) invert(docID int, field document.IndexableField, first bool) 
 	}
 
 	if fieldType.OmitNorms() {
-		err := p.fieldInfo.SetOmitsNorms()
-		if err != nil {
+		if err := p.fieldInfo.SetOmitsNorms(); err != nil {
 			return err
 		}
 	}
@@ -857,7 +854,9 @@ func (p *PerField) Finish(docID int) error {
 				//throw new IllegalStateException("Similarity " + similarity + " return 0 for non-empty field");
 			}
 		}
-		p.norms.AddValue(docID, normValue)
+		if err := p.norms.AddValue(docID, normValue); err != nil {
+			return err
+		}
 	}
 
 	return p.termsHashPerField.Finish()

@@ -57,3 +57,8 @@ func RandomId() []byte {
 	}
 	return result
 }
+
+func StringRandomId(bs []byte) string {
+	num := big.NewInt(0)
+	return num.SetBytes(bs).String()
+}

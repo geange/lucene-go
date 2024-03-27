@@ -42,14 +42,14 @@ func (d *DataFields) Size() int {
 var _ Terms = &DataTerms{}
 
 type DataTerms struct {
-	*TermsBase
+	*BaseTerms
 
 	fieldData *FieldData
 }
 
 func NewDataTerms(fieldData *FieldData) *DataTerms {
 	terms := &DataTerms{fieldData: fieldData}
-	terms.TermsBase = NewTerms(terms)
+	terms.BaseTerms = NewTerms(terms)
 	return terms
 }
 

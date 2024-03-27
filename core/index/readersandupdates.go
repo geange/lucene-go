@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"sync/atomic"
 
@@ -8,8 +9,7 @@ import (
 )
 
 // ReadersAndUpdates
-// Used by IndexWriter to hold open SegmentReaders (for
-// searching or merging), plus pending deletes and updates,
+// Used by IndexWriter to hold open SegmentReaders (for searching or merging), plus pending deletes and updates,
 // for a given segment
 type ReadersAndUpdates struct {
 	// Not final because we replace (clone) when we need to
@@ -65,13 +65,13 @@ func NewReadersAndUpdates(indexCreatedVersionMajor int,
 	}
 }
 
-func NewReadersAndUpdatesV1(indexCreatedVersionMajor int,
-	reader *SegmentReader, pendingDeletes PendingDeletes) (*ReadersAndUpdates, error) {
-
-	updates := NewReadersAndUpdates(indexCreatedVersionMajor, reader.GetOriginalSegmentInfo(), pendingDeletes)
-	updates.reader = reader
-	err := pendingDeletes.OnNewReader(reader, updates.info)
-	if err != nil {
+// NewReadersAndUpdates
+// Init from a previously opened SegmentReader.
+// NOTE: steals incoming ref from reader.
+func (s *SegmentReader) NewReadersAndUpdates(indexCreatedVersionMajor int, pendingDeletes PendingDeletes) (*ReadersAndUpdates, error) {
+	updates := NewReadersAndUpdates(indexCreatedVersionMajor, s.GetOriginalSegmentInfo(), pendingDeletes)
+	updates.reader = s
+	if err := pendingDeletes.OnNewReader(s, updates.info); err != nil {
 		return nil, err
 	}
 	return updates, nil
@@ -93,7 +93,8 @@ func (r *ReadersAndUpdates) GetDelCount() int {
 	return r.pendingDeletes.GetDelCount()
 }
 
-// AddDVUpdate Adds a new resolved (meaning it maps docIDs to new values) doc values packet.
+// AddDVUpdate
+// Adds a new resolved (meaning it maps docIDs to new values) doc values packet.
 // We buffer these in RAM and write to disk when too much RAM is used or when a merge needs
 // to kick off, or a commit/refresh.
 func (r *ReadersAndUpdates) AddDVUpdate(update DocValuesFieldUpdates) error {
@@ -127,10 +128,10 @@ func (r *ReadersAndUpdates) GetNumDVUpdates() int {
 	return count
 }
 
-func (r *ReadersAndUpdates) GetReader(context *store.IOContext) (*SegmentReader, error) {
+func (r *ReadersAndUpdates) GetReader(ctx context.Context, ioContext *store.IOContext) (*SegmentReader, error) {
 	if r.reader == nil {
 		// We steal returned ref:
-		reader, err := NewSegmentReader(r.info, r.indexCreatedVersionMajor, context)
+		reader, err := NewSegmentReader(ctx, r.info, r.indexCreatedVersionMajor, ioContext)
 		if err != nil {
 			return nil, err
 		}
@@ -142,6 +143,12 @@ func (r *ReadersAndUpdates) GetReader(context *store.IOContext) (*SegmentReader,
 	}
 
 	// Ref for caller
-	r.reader.IncRef()
+	if err := r.reader.IncRef(); err != nil {
+		return nil, err
+	}
 	return r.reader, nil
+}
+
+func (r *ReadersAndUpdates) Release(sr *SegmentReader) error {
+	return sr.DecRef()
 }

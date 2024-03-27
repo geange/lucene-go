@@ -5,7 +5,8 @@ import (
 	"fmt"
 )
 
-// FieldType Describes the properties of a field.
+// FieldType
+// Describes the properties of a field.
 type FieldType struct {
 	stored                   bool
 	tokenized                bool
@@ -134,10 +135,7 @@ func (f *FieldType) StoreTermVectorPositions() bool {
 
 // SetStoreTermVectorPositions
 // Set to true to also store token positions into the term vector for this field.
-// value – true if this field should store term vector positions.
-//
-//	IllegalStateException – if this FieldType is frozen against future modifications.
-//	storeTermVectorPositions()
+// value: true if this field should store term vector positions.
 func (f *FieldType) SetStoreTermVectorPositions(value bool) error {
 	if err := f.checkIfFrozen(); err != nil {
 		return err

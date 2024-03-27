@@ -12,20 +12,20 @@ type QueryVisitor interface {
 
 	// ConsumeTerms
 	// Called by leaf queries that match on specific terms
-	// Params:
-	//			query – the leaf query
-	//			terms – the terms the query will match on
+	// query: the leaf query
+	// terms: the terms the query will match on
 	ConsumeTerms(query Query, terms ...*index.Term)
 
-	// ConsumeTermsMatching Called by leaf queries that match on a class of terms
-	// Params:
-	//			query – the leaf query
-	//			field – the field queried against
-	//			automaton – a supplier for an automaton defining which terms match
+	// ConsumeTermsMatching
+	// Called by leaf queries that match on a class of terms
+	// query: the leaf query
+	// field: the field queried against
+	// automaton: a supplier for an automaton defining which terms match
 	ConsumeTermsMatching(query Query, field string, automaton func() *automaton.ByteRunAutomaton)
 
-	// VisitLeaf Called by leaf queries that do not match on terms
-	// Params: query – the query
+	// VisitLeaf
+	// Called by leaf queries that do not match on terms
+	// query: the query
 	VisitLeaf(query Query) (err error)
 
 	// AcceptField
@@ -38,8 +38,7 @@ type QueryVisitor interface {
 	// Pulls a visitor instance for visiting child clauses of a query The default implementation
 	// returns this, unless occur is equal to BooleanClause.Occur.OccurMustNot in which case it
 	// returns EMPTY_VISITOR
-	// Params:
-	//			occur – the relationship between the parent and its children
-	//			parent – the query visited
+	// occur: the relationship between the parent and its children
+	// parent: the query visited
 	GetSubVisitor(occur Occur, parent Query) QueryVisitor
 }

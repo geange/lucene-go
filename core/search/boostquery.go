@@ -29,11 +29,11 @@ func (b *BoostQuery) String(field string) string {
 	return fmt.Sprintf("(%s)^%f", b.query.String(field), b.boost)
 }
 
-func (b *BoostQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+func (b *BoostQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
 	return b.query.CreateWeight(searcher, scoreMode, b.boost*boost)
 }
 
-func (b *BoostQuery) Rewrite(reader index.Reader) (Query, error) {
+func (b *BoostQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	rewritten, err := b.query.Rewrite(reader)
 	if err != nil {
 		return nil, err

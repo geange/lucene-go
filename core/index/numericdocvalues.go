@@ -10,11 +10,13 @@ import (
 	"github.com/geange/lucene-go/core/util/packed"
 )
 
-// NumericDocValues A per-document numeric item.
+// NumericDocValues
+// A per-document numeric item.
 type NumericDocValues interface {
 	types.DocValuesIterator
 
-	// LongValue Returns the numeric item for the current document ID. It is illegal to call this method
+	// LongValue
+	// Returns the numeric item for the current document ID. It is illegal to call this method
 	// after advanceExact(int) returned false.
 	// Returns: numeric item
 	LongValue() (int64, error)
@@ -78,7 +80,9 @@ func (n *NumericDocValuesWriter) AddValue(docID int, value int64) error {
 	if docID <= n.lastDocID {
 		panic("")
 	}
-	n.pending.Add(value)
+	if err := n.pending.Add(value); err != nil {
+		return err
+	}
 	if err := n.docsWithField.Add(docID); err != nil {
 		return err
 	}

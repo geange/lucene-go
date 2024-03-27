@@ -36,22 +36,20 @@ func (c *ConstantScoreScorer) GetMaxScore(upTo int) (float64, error) {
 // Constructor based on a DocIdSetIterator which will be used to drive iteration.
 // Two phase iteration will not be supported.
 //
-// Params:
-//
-//	weight – the parent weight
-//	score – the score to return on each document
-//	scoreMode – the score mode
-//	disi – the iterator that defines matching documents
+//	weight: the parent weight
+//	score: the score to return on each document
+//	scoreMode: the score mode
+//	disi: the iterator that defines matching documents
 func NewConstantScoreScorer(weight Weight, score float64,
-	scoreMode *ScoreMode, disi types.DocIdSetIterator) (*ConstantScoreScorer, error) {
+	scoreMode ScoreMode, disi types.DocIdSetIterator) (*ConstantScoreScorer, error) {
 
-	if scoreMode.Equal(TOP_SCORES) {
+	if scoreMode == TOP_SCORES {
 		//
 	}
 
 	scorer := &ConstantScoreScorer{
 		score:            score,
-		scoreMode:        *scoreMode,
+		scoreMode:        scoreMode,
 		approximation:    disi,
 		twoPhaseIterator: nil,
 		disi:             disi,
@@ -62,14 +60,14 @@ func NewConstantScoreScorer(weight Weight, score float64,
 }
 
 func NewConstantScoreScorerV1(weight Weight, score float64,
-	scoreMode *ScoreMode, twoPhaseIterator TwoPhaseIterator) (*ConstantScoreScorer, error) {
+	scoreMode ScoreMode, twoPhaseIterator TwoPhaseIterator) (*ConstantScoreScorer, error) {
 
 	scorer := &ConstantScoreScorer{
 		score:     score,
-		scoreMode: *scoreMode,
+		scoreMode: scoreMode,
 	}
 
-	if scoreMode.Equal(TOP_SCORES) {
+	if scoreMode == TOP_SCORES {
 		scorer.approximation = NewStartDISIWrapper(twoPhaseIterator.Approximation())
 		scorer.twoPhaseIterator = &constantTwoPhaseIterator{
 			approximation:    scorer.approximation,

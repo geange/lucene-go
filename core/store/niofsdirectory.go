@@ -35,6 +35,15 @@ type NIOFSDirectory struct {
 	nextTempFileCounter *atomic.Int64 // Used to generate temp file names in createTempOutput.
 }
 
+func (n *NIOFSDirectory) Sync(ctx context.Context, names []string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (n *NIOFSDirectory) CopyFrom(ctx context.Context, from Directory, src, dest string, ioContext *IOContext) error {
+	return CopyFrom(ctx, n, from, src, dest, ioContext)
+}
+
 func NewNIOFSDirectory(path string) (*NIOFSDirectory, error) {
 	dirPath, err := filepath.Abs(path)
 	if err != nil {
@@ -47,8 +56,7 @@ func NewNIOFSDirectory(path string) (*NIOFSDirectory, error) {
 			return nil, err
 		}
 
-		err := os.MkdirAll(dirPath, 0755)
-		if err != nil {
+		if err := os.MkdirAll(dirPath, 0755); err != nil {
 			return nil, err
 		}
 	} else {
@@ -111,12 +119,13 @@ func (n *NIOFSDirectory) ListAll(context.Context) ([]string, error) {
 	if !stat.IsDir() {
 		return nil, fmt.Errorf("%s is not dir", n.dir)
 	}
-	dir, err := os.ReadDir(n.dir)
+
+	entries, err := os.ReadDir(n.dir)
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(dir))
-	for _, entry := range dir {
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
 		names = append(names, entry.Name())
 	}
 	return names, nil

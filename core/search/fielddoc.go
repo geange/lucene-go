@@ -1,6 +1,6 @@
 package search
 
-var _ ScoreDoc = &FieldDocDefault{}
+var _ ScoreDoc = &BaseFieldDoc{}
 
 // FieldDoc
 // Expert: A ScoreDoc which also contains information about how to sort the referenced document.
@@ -16,48 +16,52 @@ var _ ScoreDoc = &FieldDocDefault{}
 // See Also: ScoreDoc, TopFieldDocs
 type FieldDoc interface {
 	ScoreDoc
+
 	GetFields() []any
 	SetFields(fields []any)
 }
 
-type FieldDocDefault struct {
-	// Expert: The values which are used to sort the referenced document. The order of these will match the original sort criteria given by a Sort object. Each Object will have been returned from the value method corresponding FieldComparator used to sort this field.
+type BaseFieldDoc struct {
+	// Expert: The values which are used to sort the referenced document. The order of these will
+	// match the original sort criteria given by a Sort object. Each Object will have been returned
+	// from the value method corresponding FieldComparator used to sort this field.
 	// See Also: Sort, IndexSearcher.search(Query, int, Sort)
 	fields []any
 
-	*ScoreDocDefault
+	*baseScoreDoc
 }
 
-// NewFieldDoc Expert: Creates one of these objects with empty sort information.
-func NewFieldDoc(doc int, score float64) *FieldDocDefault {
-	return &FieldDocDefault{
-		fields:          make([]any, 0),
-		ScoreDocDefault: NewScoreDoc(doc, score),
+// NewFieldDoc
+// Expert: Creates one of these objects with empty sort information.
+func NewFieldDoc(doc int, score float64) *BaseFieldDoc {
+	return &BaseFieldDoc{
+		fields:       make([]any, 0),
+		baseScoreDoc: newScoreDoc(doc, score),
 	}
 }
 
 // NewFieldDocV1
 // Expert: Creates one of these objects with the given sort information.
-func NewFieldDocV1(doc int, score float64, fields []any) *FieldDocDefault {
-	return &FieldDocDefault{
-		fields:          fields,
-		ScoreDocDefault: NewScoreDoc(doc, score),
+func NewFieldDocV1(doc int, score float64, fields []any) *BaseFieldDoc {
+	return &BaseFieldDoc{
+		fields:       fields,
+		baseScoreDoc: newScoreDoc(doc, score),
 	}
 }
 
 // NewFieldDocV2
 // Expert: Creates one of these objects with the given sort information.
-func NewFieldDocV2(doc int, score float64, fields []any, shardIndex int) *FieldDocDefault {
-	return &FieldDocDefault{
-		fields:          fields,
-		ScoreDocDefault: NewScoreDocV1(score, doc, shardIndex),
+func NewFieldDocV2(doc int, score float64, fields []any, shardIndex int) *BaseFieldDoc {
+	return &BaseFieldDoc{
+		fields:       fields,
+		baseScoreDoc: newScoreDocWIthShard(score, doc, shardIndex),
 	}
 }
 
-func (f *FieldDocDefault) GetFields() []any {
+func (f *BaseFieldDoc) GetFields() []any {
 	return f.fields
 }
 
-func (f *FieldDocDefault) SetFields(fields []any) {
+func (f *BaseFieldDoc) SetFields(fields []any) {
 	f.fields = fields
 }

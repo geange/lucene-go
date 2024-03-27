@@ -21,7 +21,8 @@ func init() {
 
 var _ index.Similarity = &BM25Similarity{}
 
-// BM25Similarity BM25 Similarity. Introduced in Stephen E. Robertson, Steve Walker, Susan Jones,
+// BM25Similarity
+// BM25 Similarity. Introduced in Stephen E. Robertson, Steve Walker, Susan Jones,
 // Micheline Hancock-Beaulieu, and Mike Gatford. Okapi at TREC-3. In Proceedings of the Third Text REtrieval
 // Conference (TREC 1994). Gaithersburg, USA, November 1994.
 type BM25Similarity struct {
@@ -32,23 +33,26 @@ type BM25Similarity struct {
 	discountOverlaps bool
 }
 
-// NewBM25Similarity BM25 with these default values:
+// NewBM25Similarity
+// BM25 with these default values:
 // * k1 = 1.2
 // * b = 0.75
 func NewBM25Similarity() (*BM25Similarity, error) {
 	return NewBM25SimilarityV1(1.2, 0.75)
 }
 
-func NewCastBM25Similarity() *BM25Similarity {
-	similarity, _ := NewBM25SimilarityV1(1.2, 0.75)
-	return similarity
+func NewCastBM25Similarity() (*BM25Similarity, error) {
+	similarity, err := NewBM25SimilarityV1(1.2, 0.75)
+	if err != nil {
+		return nil, err
+	}
+	return similarity, nil
 }
 
-// NewBM25SimilarityV1 BM25 with the supplied parameter values.
-// Params:	k1 – Controls non-linear term frequency normalization (saturation).
-//
-//	b – Controls to what degree document length normalizes tf values.
-//
+// NewBM25SimilarityV1
+// BM25 with the supplied parameter values.
+// k1: Controls non-linear term frequency normalization (saturation).
+// b: Controls to what degree document length normalizes tf values.
 // Throws: 	IllegalArgumentException – if k1 is infinite or negative, or if b is not within the range [0..1]
 func NewBM25SimilarityV1(k1, b float64) (*BM25Similarity, error) {
 	if k1 < 0 {
@@ -59,20 +63,19 @@ func NewBM25SimilarityV1(k1, b float64) (*BM25Similarity, error) {
 		return nil, fmt.Errorf("illegal b value: %f, must be between 0 and 1", b)
 	}
 
-	return &BM25Similarity{
-		k1:               k1,
-		b:                b,
-		discountOverlaps: true,
-	}, nil
+	similarity := &BM25Similarity{k1: k1, b: b, discountOverlaps: true}
+	return similarity, nil
 }
 
-// SetDiscountOverlaps Sets whether overlap tokens (Tokens with 0 position increment) are ignored when
+// SetDiscountOverlaps
+// Sets whether overlap tokens (Tokens with 0 position increment) are ignored when
 // computing norm. By default this is true, meaning overlap tokens do not count when computing norms.
 func (b *BM25Similarity) SetDiscountOverlaps(v bool) {
 	b.discountOverlaps = v
 }
 
-// GetDiscountOverlaps Returns true if overlap tokens are discounted from the document's length.
+// GetDiscountOverlaps
+// Returns true if overlap tokens are discounted from the document's length.
 // See Also: setDiscountOverlaps
 func (b *BM25Similarity) GetDiscountOverlaps() bool {
 	return b.discountOverlaps
@@ -90,7 +93,8 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 	return int64(numTerms)
 }
 
-// IdfExplain Computes a score factor for a simple term and returns an explanation for that score factor.
+// IdfExplain
+// Computes a score factor for a simple term and returns an explanation for that score factor.
 // The default implementation uses:
 //
 //	idf(docFreq, docCount);
@@ -109,50 +113,47 @@ func (b *BM25Similarity) IdfExplain(
 
 	df := termStats.DocFreq()
 	docCount := collectionStats.DocCount()
-	idf := idf(df, docCount)
+	idfValue := idf(df, docCount)
 
-	exp1 := types.NewExplanation(true, df,
-		"n, number of documents containing term")
+	exp1 := types.NewExplanation(true, df, "n, number of documents containing term")
 
-	exp2 := types.NewExplanation(true, docCount,
-		"N, total number of documents with field")
+	exp2 := types.NewExplanation(true, docCount, "N, total number of documents with field")
 
-	return types.NewExplanation(true, idf,
+	return types.NewExplanation(true, idfValue,
 		"idf, computed as log(1 + (N - n + 0.5) / (n + 0.5)) from:",
 		exp1, exp2)
 }
 
-// IdfExplainV1 Computes a score factor for a phrase.
+// IdfExplainV1
+// Computes a score factor for a phrase.
 // The default implementation sums the idf factor for each term in the phrase.
-// Params: 	collectionStats – collection-level statistics
-//
-//	termStats – term-level statistics for the terms in the phrase
-//
+// collectionStats: collection-level statistics
+// termStats: term-level statistics for the terms in the phrase
 // Returns: an Explain object that includes both an idf score factor for the phrase and an explanation for each term.
 func (b *BM25Similarity) IdfExplainV1(
 	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) *types.Explanation {
 
-	idf := 0.0
+	idfValue := 0.0
 	details := make([]*types.Explanation, 0)
 	for _, stat := range termStats {
 		idfExplain := b.IdfExplain(collectionStats, &stat)
 		details = append(details, idfExplain)
 		v, ok := idfExplain.GetValue().(float64)
 		if ok {
-			idf += v
+			idfValue += v
 		}
 	}
-	return types.NewExplanation(true, idf, "idf, sum of:", details...)
+	return types.NewExplanation(true, idfValue, "idf, sum of:", details...)
 }
 
 func (b *BM25Similarity) Scorer(boost float64,
 	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) index.SimScorer {
 
-	var idf *types.Explanation
+	var idfValue *types.Explanation
 	if len(termStats) == 1 {
-		idf = b.IdfExplain(collectionStats, &termStats[0])
+		idfValue = b.IdfExplain(collectionStats, &termStats[0])
 	} else {
-		idf = b.IdfExplainV1(collectionStats, termStats)
+		idfValue = b.IdfExplainV1(collectionStats, termStats)
 	}
 
 	avgdl := avgFieldLength(collectionStats)
@@ -162,7 +163,7 @@ func (b *BM25Similarity) Scorer(boost float64,
 		cache[i] = 1.0 / (b.k1 * ((1 - b.b) + b.b*LENGTH_TABLE[i]/avgdl))
 	}
 
-	return NewBM25Scorer(boost, b.k1, b.b, idf, avgdl, cache)
+	return NewBM25Scorer(boost, b.k1, b.b, idfValue, avgdl, cache)
 }
 
 func (b *BM25Similarity) String() string {
@@ -180,7 +181,7 @@ func (b *BM25Similarity) GetB() float64 {
 var _ index.SimScorer = &BM25Scorer{}
 
 type BM25Scorer struct {
-	*index.SimScorerDefault
+	*index.BaseSimScorer
 
 	boost  float64            // query boost
 	k1     float64            // k1 value for scale factor
@@ -201,7 +202,7 @@ func NewBM25Scorer(boost, k1, b float64, idf *types.Explanation, avgdl float64, 
 		cache:  cache,
 		weight: boost * idf.GetValue().(float64),
 	}
-	scorer.SimScorerDefault = index.NewSimScorerDefault(scorer)
+	scorer.BaseSimScorer = index.NewBaseSimScorer(scorer)
 	return scorer
 }
 

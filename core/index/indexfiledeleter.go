@@ -83,15 +83,16 @@ type IndexFileDeleter struct {
 
 	lastSegmentInfos *SegmentInfos
 
-	writer *Writer
+	writer *IndexWriter
 }
 
-// NewIndexFileDeleter Initialize the deleter: find all previous commits in the Directory,
+// NewIndexFileDeleter
+// Initialize the deleter: find all previous commits in the Directory,
 // incref the files they reference, call the policy to let it delete commits. This will remove
 // any files not referenced by any of the commits.
 // Throws: IOException – if there is a low-level IO error
 func NewIndexFileDeleter(ctx context.Context, files []string, directoryOrig, directory store.Directory,
-	policy IndexDeletionPolicy, segmentInfos *SegmentInfos, writer *Writer, initialIndexExists,
+	policy IndexDeletionPolicy, segmentInfos *SegmentInfos, writer *IndexWriter, initialIndexExists,
 	isReaderInit bool) (*IndexFileDeleter, error) {
 
 	fd := &IndexFileDeleter{
@@ -168,7 +169,7 @@ func NewIndexFileDeleter(ctx context.Context, files []string, directoryOrig, dir
 		if err != nil {
 			return nil, err
 		}
-		currentCommitPoint, err := NewCommitPoint(&fd.commitsToDelete, directoryOrig, sis)
+		currentCommitPoint, err = NewCommitPoint(&fd.commitsToDelete, directoryOrig, sis)
 		if err != nil {
 			return nil, err
 		}
@@ -222,7 +223,9 @@ func NewIndexFileDeleter(ctx context.Context, files []string, directoryOrig, dir
 
 	// Finally, give policy a chance to remove things on
 	// startup:
-	policy.OnInit(fd.commits)
+	if err := policy.OnInit(fd.commits); err != nil {
+		return nil, err
+	}
 
 	// Always protect the incoming segmentInfos since
 	// sometime it may not be the most recent commit
@@ -357,7 +360,7 @@ func (r *IndexFileDeleter) incRefFileName(fileName string) error {
 }
 
 // Checkpoint For definition of "check point" see IndexWriter comments: "Clarification:
-// Check Points (and commits)". Writer calls this when it has made a "consistent change" to the index,
+// Check Points (and commits)". IndexWriter calls this when it has made a "consistent change" to the index,
 // meaning new files are written to the index and the in-memory SegmentInfos have been modified to
 // point to those files. This may or may not be a commit (segments_N may or may not have been written).
 // We simply incref the files referenced by the new SegmentInfos and decref the files we had previously
@@ -484,6 +487,23 @@ func (r *IndexFileDeleter) deleteFiles(names map[string]struct{}) error {
 
 func (r *IndexFileDeleter) deleteFile(name string) error {
 	return r.directory.DeleteFile(nil, name)
+}
+
+func (r *IndexFileDeleter) deleteNewFiles(files map[string]struct{}) error {
+	toDelete := make(map[string]struct{})
+
+	for fileName := range files {
+		// NOTE: it's very unusual yet possible for the
+		// refCount to be present and 0: it can happen if you
+		// open IW on a crashed index, and it removes a bunch
+		// of unref'd files, and then you add new docs / do
+		// merging, and it reuses that segment name.
+		// TestCrash.testCrashAfterReopen can hit this:
+		if _, ok := r.refCounts[fileName]; !ok {
+			toDelete[fileName] = struct{}{}
+		}
+	}
+	return r.deleteFiles(toDelete)
 }
 
 type RefCount struct {

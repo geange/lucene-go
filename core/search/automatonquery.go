@@ -89,23 +89,24 @@ func (r *AutomatonQuery) String(field string) string {
 	panic("implement me")
 }
 
-func (r *AutomatonQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *AutomatonQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
+	return nil, errors.New("implement me")
 }
 
-func (r *AutomatonQuery) Rewrite(reader index.Reader) (Query, error) {
+func (r *AutomatonQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	return r, nil
 }
 
-func (r *AutomatonQuery) Visit(visitor QueryVisitor) (err error) {
+func (r *AutomatonQuery) Visit(visitor QueryVisitor) error {
 	if visitor.AcceptField(r.field) {
-		visit(r.compiled, visitor, r, r.field)
+		if err := visit(r.compiled, visitor, r, r.field); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func visit(auto *automaton.CompiledAutomaton, visitor QueryVisitor, parent Query, field string) {
+func visit(auto *automaton.CompiledAutomaton, visitor QueryVisitor, parent Query, field string) error {
 	if visitor.AcceptField(field) {
 		switch auto.Type() {
 		case automaton.AUTOMATON_TYPE_NORMAL:
@@ -117,6 +118,9 @@ func visit(auto *automaton.CompiledAutomaton, visitor QueryVisitor, parent Query
 			})
 		case automaton.AUTOMATON_TYPE_SINGLE:
 			visitor.ConsumeTerms(parent, index.NewTerm(field, auto.Term()))
+		default:
+			return errors.New("unhandled case")
 		}
 	}
+	return nil
 }

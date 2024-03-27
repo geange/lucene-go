@@ -10,13 +10,13 @@ var _ ScorerSupplier = &Boolean2ScorerSupplier{}
 type Boolean2ScorerSupplier struct {
 	weight         Weight
 	subs           map[Occur][]ScorerSupplier
-	scoreMode      *ScoreMode
+	scoreMode      ScoreMode
 	minShouldMatch int
 	cost           int64
 }
 
 func NewBoolean2ScorerSupplier(weight Weight, subs map[Occur][]ScorerSupplier,
-	scoreMode *ScoreMode, minShouldMatch int) (*Boolean2ScorerSupplier, error) {
+	scoreMode ScoreMode, minShouldMatch int) (*Boolean2ScorerSupplier, error) {
 
 	if minShouldMatch < 0 {
 		return nil, errors.New("minShouldMatch must be positive")
@@ -49,7 +49,7 @@ func (b *Boolean2ScorerSupplier) Get(leadCost int64) (Scorer, error) {
 		return nil, err
 	}
 
-	if b.scoreMode.Equal(TOP_SCORES) && len(b.subs[OccurShould]) == 0 && len(b.subs[OccurMust]) == 0 {
+	if b.scoreMode == TOP_SCORES && len(b.subs[OccurShould]) == 0 && len(b.subs[OccurMust]) == 0 {
 		// no scoring clauses but scores are needed so we wrap the scorer in
 		// a constant score in order to allow early termination
 		if scorer.TwoPhaseIterator() != nil {
@@ -192,7 +192,7 @@ func (b *Boolean2ScorerSupplier) req(requiredNoScoring, requiredScoring []Scorer
 		scoringScorers = append(scoringScorers, scorer)
 	}
 
-	if b.scoreMode.Equal(TOP_SCORES) && len(scoringScorers) > 1 {
+	if b.scoreMode == TOP_SCORES && len(scoringScorers) > 1 {
 		blockMaxScorer, err := NewBlockMaxConjunctionScorer(b.weight, scoringScorers)
 		if err != nil {
 			return nil, err
@@ -220,7 +220,7 @@ func (b *Boolean2ScorerSupplier) excl(main Scorer, prohibited []ScorerSupplier,
 }
 
 func (b *Boolean2ScorerSupplier) opt(optional []ScorerSupplier, minShouldMatch int,
-	scoreMode *ScoreMode, leadCost int64) (Scorer, error) {
+	scoreMode ScoreMode, leadCost int64) (Scorer, error) {
 
 	if len(optional) == 1 {
 		return optional[0].Get(leadCost)
@@ -242,7 +242,7 @@ func (b *Boolean2ScorerSupplier) opt(optional []ScorerSupplier, minShouldMatch i
 	//
 	// However, as WANDScorer uses more complex algorithm and data structure, we would like to
 	// still use DisjunctionSumScorer to handle exhaustive pure disjunctions, which may be faster
-	if scoreMode.Equal(TOP_SCORES) || minShouldMatch > 1 {
+	if scoreMode == TOP_SCORES || minShouldMatch > 1 {
 		return newWANDScorer(b.weight, optionalScorers, minShouldMatch, scoreMode)
 	}
 	return newDisjunctionScorer(b.weight, optionalScorers, scoreMode)

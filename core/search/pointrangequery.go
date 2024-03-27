@@ -79,7 +79,7 @@ func (p *PointRangeQuery) String(field string) string {
 	return sb.String()
 }
 
-func (p *PointRangeQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+func (p *PointRangeQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
 
 	// We don't use RandomAccessWeight here: it's no good to approximate with "match all docs".
 	// This is an inverted structure and should be used in the first pass:
@@ -88,11 +88,12 @@ func (p *PointRangeQuery) CreateWeight(searcher *IndexSearcher, scoreMode *Score
 
 type prQueryWeight struct {
 	*ConstantScoreWeight
+
 	p         *PointRangeQuery
-	scoreMode *ScoreMode
+	scoreMode ScoreMode
 }
 
-func (p *PointRangeQuery) newPrQueryWeight(boost float64, scoreMode *ScoreMode) *prQueryWeight {
+func (p *PointRangeQuery) newPrQueryWeight(boost float64, scoreMode ScoreMode) *prQueryWeight {
 	weight := &prQueryWeight{
 		ConstantScoreWeight: nil,
 		p:                   p,
@@ -260,7 +261,7 @@ func (r *invPrQueryVisitor) Grow(count int) {
 	return
 }
 
-func (r *prQueryWeight) ScorerSupplier(ctx *index.LeafReaderContext) (ScorerSupplier, error) {
+func (r *prQueryWeight) ScorerSupplier(ctx index.LeafReaderContext) (ScorerSupplier, error) {
 	reader, ok := ctx.Reader().(index.LeafReader)
 	if !ok {
 		return nil, errors.New("get reader error")
@@ -340,7 +341,7 @@ var _ ScorerSupplier = &allDocsScorerSupplier{}
 type allDocsScorerSupplier struct {
 	reader    index.LeafReader
 	weight    *prQueryWeight
-	scoreMode *ScoreMode
+	scoreMode ScoreMode
 }
 
 func (r *allDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
@@ -360,7 +361,7 @@ type notAllDocsScorerSupplier struct {
 	values    types.PointValues
 	cost      int64
 	weight    *prQueryWeight
-	scoreMode *ScoreMode
+	scoreMode ScoreMode
 }
 
 func (r *notAllDocsScorerSupplier) Get(leadCost int64) (Scorer, error) {
@@ -402,7 +403,7 @@ func (r *notAllDocsScorerSupplier) Cost() int64 {
 	return r.cost
 }
 
-func (r *prQueryWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
+func (r *prQueryWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
 	scorerSupplier, err := r.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
@@ -413,11 +414,11 @@ func (r *prQueryWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
 	return scorerSupplier.Get(math.MaxInt32)
 }
 
-func (r *prQueryWeight) IsCacheable(ctx *index.LeafReaderContext) bool {
+func (r *prQueryWeight) IsCacheable(ctx index.LeafReaderContext) bool {
 	return true
 }
 
-func (p *PointRangeQuery) Rewrite(reader index.Reader) (Query, error) {
+func (p *PointRangeQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	return p, nil
 }
 

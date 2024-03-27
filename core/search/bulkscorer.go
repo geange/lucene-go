@@ -1,12 +1,14 @@
 package search
 
 import (
+	"errors"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 	"math"
 )
 
-// BulkScorer This class is used to Score a range of documents at once, and is returned by Weight.bulkScorer.
+// BulkScorer
+// This class is used to Score a range of documents at once, and is returned by Weight.bulkScorer.
 // Only queries that have a more optimized means of scoring across a range of documents need to override this.
 // Otherwise, a default implementation is wrapped around the Scorer returned by Weight.scorer.
 //
@@ -38,24 +40,24 @@ type BulkScorerSPI interface {
 	Cost() int64
 }
 
-type BulkScorerDefault struct {
+type BaseBulkScorer struct {
 	FnScoreRange func(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error)
 	FnCost       func() int64
 }
 
-func (b *BulkScorerDefault) Score(collector LeafCollector, acceptDocs util.Bits) error {
-	_, err := b.FnScoreRange(collector, acceptDocs, 0, math.MaxInt)
-	if err != io.EOF {
-		panic("")
+func (b *BaseBulkScorer) Score(collector LeafCollector, acceptDocs util.Bits) error {
+	if _, err := b.FnScoreRange(collector, acceptDocs, 0, math.MaxInt); errors.Is(err, io.EOF) {
+		return nil
+	} else {
+		return err
 	}
-	return nil
 }
 
-func (b *BulkScorerDefault) ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
+func (b *BaseBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
 	return b.FnScoreRange(collector, acceptDocs, min, max)
 }
 
-func (b *BulkScorerDefault) Cost() int64 {
+func (b *BaseBulkScorer) Cost() int64 {
 	return b.FnCost()
 }
 
@@ -71,8 +73,10 @@ func (b *BulkScorerAnon) Score(collector LeafCollector, acceptDocs util.Bits) er
 	if b.FnScore != nil {
 		return b.FnScore(collector, acceptDocs)
 	}
-	_, err := b.ScoreRange(collector, acceptDocs, 0, math.MaxInt32)
-	return err
+	if _, err := b.ScoreRange(collector, acceptDocs, 0, math.MaxInt32); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *BulkScorerAnon) ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {

@@ -79,7 +79,7 @@ func TestSeekByTermOrd(t *testing.T) {
 	memIndexReader.GetRefCount()
 }
 
-func checkReader(t *testing.T, reader index.Reader) {
+func checkReader(t *testing.T, reader index.IndexReader) {
 	leaves, err := reader.Leaves()
 	assert.Nil(t, err)
 
@@ -88,6 +88,6 @@ func checkReader(t *testing.T, reader index.Reader) {
 	}
 }
 
-func checkReaderDoSlowChecks(t *testing.T, reader index.Reader, doSlowChecks bool) {
+func checkReaderDoSlowChecks(t *testing.T, reader index.IndexReader, doSlowChecks bool) {
 
 }

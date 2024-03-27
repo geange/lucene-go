@@ -23,8 +23,9 @@ type TopScoreDocCollector interface {
 	TopDocsCollector
 }
 
-type TopScoreDocCollectorDefault struct {
+type BaseTopScoreDocCollector struct {
 	*TopDocsCollectorDefault[ScoreDoc]
+
 	docBase              int
 	pqTop                ScoreDoc
 	hitsThresholdChecker HitsThresholdChecker
@@ -32,7 +33,7 @@ type TopScoreDocCollectorDefault struct {
 	minCompetitiveScore  float64
 }
 
-func (t *TopScoreDocCollectorDefault) updateGlobalMinCompetitiveScore(scorer Scorable) error {
+func (t *BaseTopScoreDocCollector) updateGlobalMinCompetitiveScore(scorer Scorable) error {
 	//assert minScoreAcc != null;
 	maxMinScore := t.minScoreAcc.Get()
 	if maxMinScore != nil {
@@ -55,15 +56,14 @@ func (t *TopScoreDocCollectorDefault) updateGlobalMinCompetitiveScore(scorer Sco
 	return nil
 }
 
-func (t *TopScoreDocCollectorDefault) updateMinCompetitiveScore(scorer Scorable) error {
+func (t *BaseTopScoreDocCollector) updateMinCompetitiveScore(scorer Scorable) error {
 	if t.hitsThresholdChecker.IsThresholdReached() && t.pqTop != nil && !math.IsInf(t.pqTop.GetScore(), -1) { // -Infinity is the score of sentinels
 
 		// since we tie-break on doc id and collect in doc id order, we can require
 		// the next float
 		localMinScore := t.pqTop.GetScore()
-		if localMinScore > float64(t.minCompetitiveScore) {
-			err := scorer.SetMinCompetitiveScore(localMinScore)
-			if err != nil {
+		if localMinScore > t.minCompetitiveScore {
+			if err := scorer.SetMinCompetitiveScore(localMinScore); err != nil {
 				return err
 			}
 			t.totalHitsRelation = GREATER_THAN_OR_EQUAL_TO
@@ -72,8 +72,7 @@ func (t *TopScoreDocCollectorDefault) updateMinCompetitiveScore(scorer Scorable)
 				// we don't use the next float but we register the document
 				// id so that other leaves can require it if they are after
 				// the current maximum
-				err := t.minScoreAcc.Accumulate(t.docBase, float32(t.pqTop.GetScore()))
-				if err != nil {
+				if err := t.minScoreAcc.Accumulate(t.docBase, float32(t.pqTop.GetScore())); err != nil {
 					return err
 				}
 			}
@@ -82,18 +81,17 @@ func (t *TopScoreDocCollectorDefault) updateMinCompetitiveScore(scorer Scorable)
 	return nil
 }
 
-func newTopScoreDocCollector(numHits int,
-	hitsThresholdChecker HitsThresholdChecker,
-	minScoreAcc *MaxScoreAccumulator) *TopScoreDocCollectorDefault {
+func newTopScoreDocCollector(numHits int, hitsThresholdChecker HitsThresholdChecker,
+	minScoreAcc *MaxScoreAccumulator) *BaseTopScoreDocCollector {
 
-	ts := &TopScoreDocCollectorDefault{
+	ts := &BaseTopScoreDocCollector{
 		hitsThresholdChecker: hitsThresholdChecker,
 		minScoreAcc:          minScoreAcc,
 	}
 
 	queue := structure.NewPriorityQueueV1(numHits,
 		func() ScoreDoc {
-			return NewScoreDoc(math.MaxInt32, math.Inf(-1))
+			return newScoreDoc(math.MaxInt32, math.Inf(-1))
 		},
 		func(hitA, hitB ScoreDoc) bool {
 			if hitA.GetScore() == hitB.GetScore() {
@@ -129,7 +127,7 @@ func TopScoreDocCollectorCreate(numHits int, after ScoreDoc,
 }
 
 type ScorerLeafCollector struct {
-	p      *TopScoreDocCollectorDefault
+	p      *BaseTopScoreDocCollector
 	scorer Scorable
 }
 
@@ -141,7 +139,7 @@ func (s *ScorerLeafCollector) SetScorer(scorer Scorable) error {
 var _ TopScoreDocCollector = &SimpleTopScoreDocCollector{}
 
 type SimpleTopScoreDocCollector struct {
-	*TopScoreDocCollectorDefault
+	*BaseTopScoreDocCollector
 }
 
 func NewSimpleTopScoreDocCollector(numHits int, hitsThresholdChecker HitsThresholdChecker,
@@ -174,7 +172,7 @@ func (s *simpleTopScoreDocCollectorLeafCollector) Collect(ctx context.Context, d
 		}
 	}
 
-	if float64(score) <= s.p.pqTop.GetScore() {
+	if score <= s.p.pqTop.GetScore() {
 		if s.p.totalHitsRelation == EQUAL_TO {
 			// we just reached totalHitsThreshold, we can start setting the min
 			// competitive score now
@@ -189,14 +187,13 @@ func (s *simpleTopScoreDocCollectorLeafCollector) Collect(ctx context.Context, d
 	}
 
 	s.p.pqTop.SetDoc(doc + s.p.docBase)
-	s.p.pqTop.SetScore(float64(score))
+	s.p.pqTop.SetScore(score)
 	s.p.pqTop = s.p.pq.UpdateTop()
 	return s.p.updateMinCompetitiveScore(s.scorer)
 }
 
 func (s *simpleTopScoreDocCollectorLeafCollector) SetScorer(scorer Scorable) error {
-	err := s.ScorerLeafCollector.SetScorer(scorer)
-	if err != nil {
+	if err := s.ScorerLeafCollector.SetScorer(scorer); err != nil {
 		return err
 	}
 
@@ -210,26 +207,26 @@ func (s *simpleTopScoreDocCollectorLeafCollector) CompetitiveIterator() (types.D
 	return nil, nil
 }
 
-func (s *SimpleTopScoreDocCollector) GetLeafCollector(_ context.Context,
-	readerContext *index.LeafReaderContext) (LeafCollector, error) {
+func (s *SimpleTopScoreDocCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (LeafCollector, error) {
 	// reset the minimum competitive score
 	s.minCompetitiveScore = 0
-	s.docBase = readerContext.DocBase
+	s.docBase = readerContext.DocBase()
 
 	return &simpleTopScoreDocCollectorLeafCollector{&ScorerLeafCollector{
-		p: s.TopScoreDocCollectorDefault,
+		p: s.BaseTopScoreDocCollector,
 	}}, nil
 
 }
 
-func (s *SimpleTopScoreDocCollector) ScoreMode() *ScoreMode {
+func (s *SimpleTopScoreDocCollector) ScoreMode() ScoreMode {
 	return s.hitsThresholdChecker.ScoreMode()
 }
 
 var _ TopScoreDocCollector = &PagingTopScoreDocCollector{}
 
 type PagingTopScoreDocCollector struct {
-	*TopScoreDocCollectorDefault
+	*BaseTopScoreDocCollector
+
 	after         ScoreDoc
 	collectedHits int
 }
@@ -238,6 +235,7 @@ var _ LeafCollector = &pagingTopScoreDocCollectorLeafCollector{}
 
 type pagingTopScoreDocCollectorLeafCollector struct {
 	*PagingTopScoreDocCollector
+
 	scorer   Scorable
 	afterDoc int
 }
@@ -268,25 +266,23 @@ func (p *pagingTopScoreDocCollectorLeafCollector) Collect(ctx context.Context, d
 		}
 	}
 
-	if float64(score) > p.after.GetScore() || (float64(score) == p.after.GetScore() && doc <= p.afterDoc) {
+	if score > p.after.GetScore() || (score == p.after.GetScore() && doc <= p.afterDoc) {
 		// hit was collected on a previous page
 		if p.totalHitsRelation == EQUAL_TO {
 			// we just reached totalHitsThreshold, we can start setting the min
 			// competitive score now
-			err := p.updateMinCompetitiveScore(p.scorer)
-			if err != nil {
+			if err := p.updateMinCompetitiveScore(p.scorer); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
 
-	if float64(score) <= p.pqTop.GetScore() {
+	if score <= p.pqTop.GetScore() {
 		if p.totalHitsRelation == EQUAL_TO {
 			// we just reached totalHitsThreshold, we can start setting the min
 			// competitive score now
-			err := p.updateMinCompetitiveScore(p.scorer)
-			if err != nil {
+			if err := p.updateMinCompetitiveScore(p.scorer); err != nil {
 				return err
 			}
 		}
@@ -299,7 +295,7 @@ func (p *pagingTopScoreDocCollectorLeafCollector) Collect(ctx context.Context, d
 
 	p.collectedHits++
 	p.pqTop.SetDoc(doc + p.docBase)
-	p.pqTop.SetScore(float64(score))
+	p.pqTop.SetScore(score)
 	p.pqTop = p.pq.UpdateTop()
 	return p.updateMinCompetitiveScore(p.scorer)
 }
@@ -308,11 +304,11 @@ func (p *pagingTopScoreDocCollectorLeafCollector) CompetitiveIterator() (types.D
 	return nil, nil
 }
 
-func (p *PagingTopScoreDocCollector) GetLeafCollector(ctx context.Context, leafCtx *index.LeafReaderContext) (LeafCollector, error) {
+func (p *PagingTopScoreDocCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (LeafCollector, error) {
 	// reset the minimum competitive score
 	p.minCompetitiveScore = 0
-	p.docBase = leafCtx.DocBase
-	afterDoc := p.after.GetDoc() - leafCtx.DocBase
+	p.docBase = readerContext.DocBase()
+	afterDoc := p.after.GetDoc() - readerContext.DocBase()
 
 	return &pagingTopScoreDocCollectorLeafCollector{
 		PagingTopScoreDocCollector: p,
@@ -321,7 +317,7 @@ func (p *PagingTopScoreDocCollector) GetLeafCollector(ctx context.Context, leafC
 	}, nil
 }
 
-func (p *PagingTopScoreDocCollector) ScoreMode() *ScoreMode {
+func (p *PagingTopScoreDocCollector) ScoreMode() ScoreMode {
 	//TODO implement me
 	panic("implement me")
 }

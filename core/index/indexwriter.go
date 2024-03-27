@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core/analysis/standard"
 	"math"
 	"strconv"
 	"sync"
@@ -23,34 +25,42 @@ var (
 )
 
 const (
-	// MAX_DOCS Hard limit on maximum number of documents that may be added to the index.
+	// MAX_DOCS
+	// Hard limit on maximum number of documents that may be added to the index.
 	// If you try to add more than this you'll hit IllegalArgumentException
 	MAX_DOCS = math.MaxInt32 - 128
 
-	// MAX_POSITION Maximum item of the token position in an indexed field.
+	// MAX_POSITION
+	// Maximum item of the token position in an indexed field.
 	MAX_POSITION = math.MaxInt32 - 128
 
 	UNBOUNDED_MAX_MERGE_SEGMENTS = -1
 
-	// WRITE_LOCK_NAME Name of the write lock in the index.
+	// WRITE_LOCK_NAME
+	// Name of the write lock in the index.
 	WRITE_LOCK_NAME = "write.lock"
 
-	// SOURCE key for the source of a segment in the diagnostics.
+	// SOURCE
+	// key for the source of a segment in the diagnostics.
 	SOURCE = "source"
 
-	// SOURCE_MERGE Source of a segment which results from a merge of other segments.
+	// SOURCE_MERGE
+	// Source of a segment which results from a merge of other segments.
 	SOURCE_MERGE = "merge"
 
-	// SOURCE_FLUSH Source of a segment which results from a Flush.
+	// SOURCE_FLUSH
+	// Source of a segment which results from a Flush.
 	SOURCE_FLUSH = "Flush"
 
-	// SOURCE_ADDINDEXES_READERS Source of a segment which results from a call to addIndexes(CodecReader...).
+	// SOURCE_ADDINDEXES_READERS
+	// Source of a segment which results from a call to addIndexes(CodecReader...).
 	SOURCE_ADDINDEXES_READERS = "addIndexes(CodecReader...)"
 
 	BYTE_BLOCK_SHIFT = 15
 	BYTE_BLOCK_SIZE  = 1 << BYTE_BLOCK_SHIFT
 
-	// MAX_TERM_LENGTH Absolute hard maximum length for a term, in bytes once encoded as UTF8.
+	// MAX_TERM_LENGTH
+	// Absolute hard maximum length for a term, in bytes once encoded as UTF8.
 	// If a term arrives from the analyzer longer than this length, an IllegalArgumentException
 	// is thrown and a message is printed to infoStream, if set (see IndexWriterConfig.setInfoStream(InfoStream)).
 	MAX_TERM_LENGTH = BYTE_BLOCK_SIZE - 2
@@ -58,7 +68,7 @@ const (
 	MAX_STORED_STRING_LENGTH = math.MaxInt
 )
 
-type Writer struct {
+type IndexWriter struct {
 	enableTestPoints         bool
 	directoryOrig            store.Directory      // original user directory
 	directory                store.Directory      // wrapped with additional checks
@@ -97,46 +107,51 @@ type Writer struct {
 	readerPool            *ReaderPool
 	mergeFinishedGen      *atomic.Int64
 	bufferedUpdatesStream *BufferedUpdatesStream
-	config                *WriterConfig
+	config                *IndexWriterConfig
 	startCommitTime       int64
 	pendingNumDocs        *atomic.Int64
 	softDeletesEnabled    bool
+	flushNotifications    FlushNotifications
+	boolMaybeMerge        *atomic.Bool
 }
 
-func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Writer, error) {
-	writer := &Writer{
+func NewIndexWriter(ctx context.Context, dir store.Directory, conf *IndexWriterConfig) (*IndexWriter, error) {
+	writer := &IndexWriter{
 		changeCount:           new(atomic.Int64),
 		lastCommitChangeCount: new(atomic.Int64),
 		pendingNumDocs:        new(atomic.Int64),
+		flushCount:            new(atomic.Int64),
 	}
 	conf.setIndexWriter(writer)
 	writer.config = conf
 	writer.softDeletesEnabled = conf.getSoftDeletesField() != ""
 
-	writer.directoryOrig = d
-	writer.directory = d
+	writer.directoryOrig = dir
+	writer.directory = dir
 	writer.mergeScheduler = writer.config.GetMergeScheduler()
 	writer.mergeScheduler.Initialize(writer.directoryOrig)
-	mode := conf.GetOpenMode()
 
+	mode := conf.GetOpenMode()
 	var err error
 	var indexExists, create bool
 	switch mode {
 	case CREATE:
-		indexExists, err = IndexExists(writer.directory)
+		indexExists, err = IsIndexExists(writer.directory)
 		create = true
 	case APPEND:
 		indexExists = true
 		create = false
 	default:
 		// CREATE_OR_APPEND - create only if an index does not exist
-		indexExists, err = IndexExists(writer.directory)
+		indexExists, err = IsIndexExists(writer.directory)
 		create = !indexExists
 	}
+	if err != nil {
+		return nil, err
+	}
 
-	// If index is too old, reading the segments will throw
-	// IndexFormatTooOldException.
-	files, err := writer.directory.ListAll(nil)
+	// If index is too old, reading the segments will throw IndexFormatTooOldException.
+	files, err := writer.directory.ListAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -164,19 +179,18 @@ func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Wri
 		// against an index that's currently open for
 		// searching.  In this case we write the next
 		// segments_N file with no segments:
-		sis := NewSegmentInfos(writer.config.GetIndexCreatedVersionMajor())
+		segmentInfos := NewSegmentInfos(writer.config.GetIndexCreatedVersionMajor())
 		if indexExists {
 			previous, err := ReadLatestCommit(ctx, writer.directory)
 			if err != nil {
 				return nil, err
 			}
-			sis.UpdateGenerationVersionAndCounter(previous)
+			segmentInfos.UpdateGenerationVersionAndCounter(previous)
 		}
-		writer.segmentInfos = sis
+		writer.segmentInfos = segmentInfos
 		writer.rollbackSegments = writer.segmentInfos.CreateBackupSegmentInfos()
 
-		// Record that we have a change (zero out all
-		// segments) pending:
+		// Record that we have a change (zero out all segments) pending:
 		writer.Changed()
 	} else if reader != nil {
 		// Init from an existing already opened NRT or non-NRT reader:
@@ -218,17 +232,21 @@ func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Wri
 	} else {
 		// Init from either the latest commit point, or an explicit prior commit point:
 
-		lastSegmentsFile := GetLastCommitSegmentsFileName(files)
+		lastSegmentsFile, err := GetLastCommitSegmentsFileName(files)
+		if err != nil {
+			return nil, err
+		}
 		if lastSegmentsFile == "" {
 			return nil, errors.New("no segments* file found")
 		}
 
 		// Do not use SegmentInfos.read(Directory) since the spooky
 		// retrying it does is not necessary here (we hold the write lock):
-		writer.segmentInfos, err = ReadCommit(ctx, writer.directoryOrig, lastSegmentsFile)
+		segmentInfos, err := ReadCommit(ctx, writer.directoryOrig, lastSegmentsFile)
 		if err != nil {
 			return nil, err
 		}
+		writer.segmentInfos = segmentInfos
 
 		if commit != nil {
 			// Swap out all segments, but, keep metadata in
@@ -245,7 +263,9 @@ func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Wri
 			if err != nil {
 				return nil, err
 			}
-			writer.segmentInfos.Replace(oldInfos)
+			if err := writer.segmentInfos.Replace(oldInfos); err != nil {
+				return nil, err
+			}
 			writer.Changed()
 		}
 		writer.rollbackSegments = writer.segmentInfos.CreateBackupSegmentInfos()
@@ -256,10 +276,11 @@ func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Wri
 
 	// start with previous field numbers, but new FieldInfos
 	// NOTE: this is correct even for an NRT reader because we'll pull FieldInfos even for the un-committed segments:
-	writer.globalFieldNumberMap, err = writer.getFieldNumberMap()
+	globalFieldNumberMap, err := writer.getFieldNumberMap()
 	if err != nil {
 		return nil, err
 	}
+	writer.globalFieldNumberMap = globalFieldNumberMap
 
 	if err := writer.validateIndexSort(); err != nil {
 		return nil, err
@@ -273,7 +294,10 @@ func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Wri
 	//writer.globalFieldNumberMap = writer.getFieldNumberMap()
 	writer.bufferedUpdatesStream = NewBufferedUpdatesStream()
 
-	writer.docWriter = NewDocumentsWriter(writer.segmentInfos.getIndexCreatedVersionMajor(), writer.pendingNumDocs,
+	writer.eventQueue = NewEventQueue(writer)
+	writer.flushNotifications = writer.newFlushNotifications()
+
+	writer.docWriter = NewDocumentsWriter(writer.flushNotifications, writer.segmentInfos.getIndexCreatedVersionMajor(), writer.pendingNumDocs,
 		writer.enableTestPoints, writer.newSegmentName(),
 		writer.config.liveIndexWriterConfig, writer.directoryOrig, writer.directory, writer.globalFieldNumberMap)
 
@@ -285,20 +309,20 @@ func NewWriter(ctx context.Context, d store.Directory, conf *WriterConfig) (*Wri
 		return nil, err
 	}
 
-	/*
-		writer.deleter, err = NewIndexFileDeleter(files, writer.directoryOrig, writer.directory,
-			writer.config.GetIndexDeletionPolicy(),
-			writer.segmentInfos, writer,
-			indexExists, reader != nil)
-		if err != nil {
-			return nil, err
-		}*/
+	deleter, err := NewIndexFileDeleter(ctx, files, writer.directoryOrig, writer.directory,
+		writer.config.GetIndexDeletionPolicy(),
+		writer.segmentInfos, writer,
+		indexExists, reader != nil)
+	if err != nil {
+		return nil, err
+	}
+	writer.deleter = deleter
 
 	return writer, nil
 }
 
 // Confirms that the incoming index sort (if any) matches the existing index sort (if any).
-func (w *Writer) validateIndexSort() error {
+func (w *IndexWriter) validateIndexSort() error {
 	indexSort := w.config.GetIndexSort()
 	if indexSort != nil {
 		for _, info := range w.segmentInfos.segments {
@@ -342,7 +366,8 @@ func (m *Merges) enable() {
 	m.mergesEnabled = true
 }
 
-// AddDocument Adds a document to this index.
+// AddDocument
+// Adds a document to this index.
 // Note that if an Exception is hit (for example disk full) then the index will be consistent, but this
 // document may not have been added. Furthermore, it's possible the index will have one segment in
 // non-compound format even when using compound files (when a merge has partially succeeded).
@@ -365,7 +390,7 @@ func (m *Merges) enable() {
 // Throws:  CorruptIndexException – if the index is corrupt
 //
 //	IOException – if there is a low-level IO error
-func (w *Writer) AddDocument(ctx context.Context, doc *document.Document) (int64, error) {
+func (w *IndexWriter) AddDocument(ctx context.Context, doc *document.Document) (int64, error) {
 	return w.UpdateDocument(ctx, nil, doc)
 }
 
@@ -373,12 +398,16 @@ func (w *Writer) AddDocument(ctx context.Context, doc *document.Document) (int64
 // Updates a document by first deleting the document(s) containing term and then adding
 // the new document. The delete and then add are atomic as seen by a reader on the same index
 // (Flush may happen only after the add).
-// Params: term – the term to identify the document(s) to be deleted doc – the document to be added
-// Returns: The sequence number for this operation
-// Throws: 	CorruptIndexException – if the index is corrupt
 //
+// term: the term to identify the document(s) to be deleted
+// doc: the document to be added
+//
+// Returns: The sequence number for this operation
+// Throws:
+//
+//	CorruptIndexException – if the index is corrupt
 //	IOException – if there is a low-level IO error
-func (w *Writer) UpdateDocument(ctx context.Context, term *Term, doc *document.Document) (int64, error) {
+func (w *IndexWriter) UpdateDocument(ctx context.Context, term *Term, doc *document.Document) (int64, error) {
 	var delNode *Node
 	if term != nil {
 		delNode = deleteQueueNewNode(term)
@@ -399,7 +428,7 @@ func (w *Writer) UpdateDocument(ctx context.Context, term *Term, doc *document.D
 // Returns: The sequence number for this operation
 // Throws: CorruptIndexException: if the index is corrupt
 // IOException: if there is a low-level IO error
-func (w *Writer) SoftUpdateDocument(ctx context.Context, term *Term, doc *document.Document, softDeletes ...document.IndexableField) (int64, error) {
+func (w *IndexWriter) SoftUpdateDocument(ctx context.Context, term *Term, doc *document.Document, softDeletes ...document.IndexableField) (int64, error) {
 	updates, err := w.buildDocValuesUpdate(term, softDeletes)
 	if err != nil {
 		return 0, err
@@ -411,7 +440,7 @@ func (w *Writer) SoftUpdateDocument(ctx context.Context, term *Term, doc *docume
 	return w.updateDocuments(ctx, delNode, []*document.Document{doc})
 }
 
-func (w *Writer) buildDocValuesUpdate(term *Term, updates []document.IndexableField) ([]DocValuesUpdate, error) {
+func (w *IndexWriter) buildDocValuesUpdate(term *Term, updates []document.IndexableField) ([]DocValuesUpdate, error) {
 	dvUpdates := make([]DocValuesUpdate, 0, len(updates))
 
 	for _, field := range updates {
@@ -455,18 +484,18 @@ func (w *Writer) buildDocValuesUpdate(term *Term, updates []document.IndexableFi
 	return dvUpdates, nil
 }
 
-func (w *Writer) Commit(ctx context.Context) error {
+func (w *IndexWriter) Commit(ctx context.Context) error {
 	return w.docWriter.Flush(ctx)
 }
 
-func (w *Writer) Close() error {
+func (w *IndexWriter) Close() error {
 	if w.config.GetCommitOnClose() {
 		return w.shutdown()
 	}
 	return w.shutdown()
 }
 
-func (w *Writer) updateDocuments(ctx context.Context, delNode *Node, docs []*document.Document) (int64, error) {
+func (w *IndexWriter) updateDocuments(ctx context.Context, delNode *Node, docs []*document.Document) (int64, error) {
 	seqNo, err := w.docWriter.updateDocuments(ctx, docs, delNode)
 	if err != nil {
 		return 0, err
@@ -479,7 +508,7 @@ func (w *Writer) updateDocuments(ctx context.Context, delNode *Node, docs []*doc
 	return seqNo, nil
 }
 
-func (w *Writer) maybeProcessEvents(seqNo int64) (int64, error) {
+func (w *IndexWriter) maybeProcessEvents(seqNo int64) (int64, error) {
 	if seqNo < 0 {
 		seqNo = -seqNo
 		if err := w.processEvents(true); err != nil {
@@ -489,22 +518,22 @@ func (w *Writer) maybeProcessEvents(seqNo int64) (int64, error) {
 	return seqNo, nil
 }
 
-func (w *Writer) processEvents(triggerMerge bool) error {
+func (w *IndexWriter) processEvents(triggerMerge bool) error {
 	if err := w.eventQueue.processEvents(); err != nil {
 		return err
 	}
 
 	if triggerMerge {
-		return w.maybeMerge(w.config.GetMergePolicy(), EXPLICIT, UNBOUNDED_MAX_MERGE_SEGMENTS)
+		return w.maybeMerge(w.config.GetMergePolicy(), MERGE_TRIGGER_EXPLICIT, UNBOUNDED_MAX_MERGE_SEGMENTS)
 	}
 	return nil
 }
 
-func (w *Writer) MaybeMerge() error {
-	return w.maybeMerge(w.config.GetMergePolicy(), EXPLICIT, UNBOUNDED_MAX_MERGE_SEGMENTS)
+func (w *IndexWriter) MaybeMerge() error {
+	return w.maybeMerge(w.config.GetMergePolicy(), MERGE_TRIGGER_EXPLICIT, UNBOUNDED_MAX_MERGE_SEGMENTS)
 }
 
-func (w *Writer) maybeMerge(mergePolicy MergePolicy, trigger MergeTrigger, maxNumSegments int) error {
+func (w *IndexWriter) maybeMerge(mergePolicy MergePolicy, trigger MergeTrigger, maxNumSegments int) error {
 	err := w.ensureOpenV1(false)
 	if err != nil {
 		return err
@@ -516,21 +545,21 @@ func (w *Writer) maybeMerge(mergePolicy MergePolicy, trigger MergeTrigger, maxNu
 	return nil
 }
 
-func (w *Writer) ensureOpen() error {
+func (w *IndexWriter) ensureOpen() error {
 	// TODO: fix it
 	return nil
 }
 
-func (w *Writer) ensureOpenV1(failIfClosing bool) error {
+func (w *IndexWriter) ensureOpenV1(failIfClosing bool) error {
 	// TODO: fix it
 	return nil
 }
 
-func (w *Writer) executeMerge(trigger MergeTrigger) error {
+func (w *IndexWriter) executeMerge(trigger MergeTrigger) error {
 	return w.mergeScheduler.Merge(w.mergeSource, trigger)
 }
 
-func (w *Writer) updatePendingMerges(mergePolicy MergePolicy, trigger MergeTrigger, maxNumSegments int) (*MergeSpecification, error) {
+func (w *IndexWriter) updatePendingMerges(mergePolicy MergePolicy, trigger MergeTrigger, maxNumSegments int) (*MergeSpecification, error) {
 	panic("")
 	/*
 		// In case infoStream was disabled on init, but then enabled at some
@@ -572,7 +601,7 @@ func (w *Writer) updatePendingMerges(mergePolicy MergePolicy, trigger MergeTrigg
 	*/
 }
 
-func (w *Writer) newSegmentName() string {
+func (w *IndexWriter) newSegmentName() string {
 	w.changeCount.Add(1)
 	w.segmentInfos.Changed()
 	v := w.segmentInfos.counter
@@ -580,7 +609,7 @@ func (w *Writer) newSegmentName() string {
 	return fmt.Sprintf("_%s", strconv.FormatInt(v, 36))
 }
 
-func (w *Writer) getFieldNumberMap() (*FieldNumbers, error) {
+func (w *IndexWriter) getFieldNumberMap() (*FieldNumbers, error) {
 	mp := NewFieldNumbers(w.config.softDeletesField)
 
 	for _, info := range w.segmentInfos.segments {
@@ -588,11 +617,10 @@ func (w *Writer) getFieldNumberMap() (*FieldNumbers, error) {
 		if err != nil {
 			return nil, err
 		}
-		for _, fi := range fis.values {
-			_, err := mp.AddOrGet(fi.Name(), fi.Number(), fi.GetIndexOptions(), fi.GetDocValuesType(),
+		for _, fi := range fis.fieldInfos {
+			if _, err := mp.AddOrGet(fi.Name(), fi.Number(), fi.GetIndexOptions(), fi.GetDocValuesType(),
 				fi.GetPointDimensionCount(), fi.GetPointIndexDimensionCount(),
-				fi.GetPointNumBytes(), fi.IsSoftDeletesField())
-			if err != nil {
+				fi.GetPointNumBytes(), fi.IsSoftDeletesField()); err != nil {
 				return nil, err
 			}
 		}
@@ -602,7 +630,25 @@ func (w *Writer) getFieldNumberMap() (*FieldNumbers, error) {
 
 // Gracefully closes (commits, waits for merges), but calls rollback if there's an exc so
 // the IndexWriter is always closed. This is called from close when IndexWriterConfig.commitOnClose is true.
-func (w *Writer) shutdown() error {
+func (w *IndexWriter) shutdown() error {
+	if w.pendingCommit != nil {
+		return errors.New("cannot close: prepareCommit was already called with no corresponding call to commit")
+	}
+
+	if w.shouldClose(true) {
+		if err := w.flush(true, true); err != nil {
+			return err
+		}
+		if err := w.waitForMerges(); err != nil {
+			return err
+		}
+		if _, err := w.commitInternal(w.config.GetMergePolicy()); err != nil {
+			return err
+		}
+	}
+
+	// Ensure that only one thread actually gets to do the closing
+
 	err := w.docWriter.Flush(nil)
 	if err != nil {
 		return err
@@ -610,16 +656,87 @@ func (w *Writer) shutdown() error {
 	return nil
 }
 
-func (w *Writer) Changed() {
+// Returns true if this thread should attempt to close, or
+// false if IndexWriter is now closed; else,
+// waits until another thread finishes closing
+func (w *IndexWriter) shouldClose(waitForClose bool) bool {
+	for {
+		if w.closed == false {
+			if w.closing == false {
+				// We get to close
+				w.closing = true
+				return true
+			} else if waitForClose == false {
+				return false
+			} else {
+				// Another thread is presently trying to close;
+				// wait until it finishes one way (closes
+				// successfully) or another (fails to close)
+				w.doWait()
+			}
+		} else {
+			return false
+		}
+	}
+}
+
+// Wait for any currently outstanding merges to finish.
+// It is guaranteed that any merges started prior to calling this method will have completed once this method completes.
+func (w *IndexWriter) waitForMerges() error {
+	// Give merge scheduler last chance to run, in case
+	// any pending merges are waiting. We can't hold IW's lock
+	// when going into merge because it can lead to deadlock.
+	if err := w.mergeScheduler.Merge(w.mergeSource, MERGE_TRIGGER_CLOSING); err != nil {
+		return err
+	}
+
+	// FIXME: w.runningMerges.size() > 0
+	for len(w.pendingMerges) > 0 {
+		w.doWait()
+	}
+
+	return nil
+}
+
+// FIXME: how to
+func (w *IndexWriter) doWait() {
+	// NOTE: the callers of this method should in theory
+	// be able to do simply wait(), but, as a defense
+	// against thread timing hazards where notifyAll()
+	// fails to be called, we wait for at most 1 second
+	// and then return so caller can check if wait
+	// conditions are satisfied:
+
+}
+
+func (w *IndexWriter) commitInternal(mergePolicy MergePolicy) (int64, error) {
+	var seqNo int64
+	var err error
+	if w.pendingCommit == nil {
+		seqNo, err = w.prepareCommitInternal()
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		seqNo = w.pendingSeqNo
+	}
+
+	if err := w.finishCommit(); err != nil {
+		return 0, err
+	}
+	return seqNo, nil
+}
+
+func (w *IndexWriter) Changed() {
 	w.changeCount.Add(1)
 	w.segmentInfos.Changed()
 }
 
-func (w *Writer) IsClosed() bool {
+func (w *IndexWriter) IsClosed() bool {
 	return w.closed
 }
 
-func (w *Writer) nrtIsCurrent(infos *SegmentInfos) bool {
+func (w *IndexWriter) nrtIsCurrent(infos *SegmentInfos) bool {
 	return false
 
 	// TODO: fix it
@@ -631,7 +748,7 @@ func (w *Writer) nrtIsCurrent(infos *SegmentInfos) bool {
 	//return isCurrent
 }
 
-func (w *Writer) GetReader(applyAllDeletes bool, writeAllDeletes bool) (DirectoryReader, error) {
+func (w *IndexWriter) GetReader(ctx context.Context, applyAllDeletes bool, writeAllDeletes bool) (DirectoryReader, error) {
 	if writeAllDeletes && applyAllDeletes == false {
 		return nil, errors.New("applyAllDeletes must be true when writeAllDeletes=true")
 	}
@@ -648,7 +765,7 @@ func (w *Writer) GetReader(applyAllDeletes bool, writeAllDeletes bool) (Director
 			return nil, err
 		}
 
-		segmentReader, err := rld.GetReader(nil)
+		segmentReader, err := rld.GetReader(ctx, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -661,53 +778,80 @@ func (w *Writer) GetReader(applyAllDeletes bool, writeAllDeletes bool) (Director
 	return OpenStandardDirectoryReader(w, readerFactory, w.segmentInfos, applyAllDeletes, writeAllDeletes)
 }
 
-func (w *Writer) Release(readersAndUpdates *ReadersAndUpdates) error {
+func (w *IndexWriter) Release(readersAndUpdates *ReadersAndUpdates) error {
 	return w.release(readersAndUpdates, true)
 }
 
-func (w *Writer) release(readersAndUpdates *ReadersAndUpdates, assertLiveInfo bool) error {
+func (w *IndexWriter) release(readersAndUpdates *ReadersAndUpdates, assertLiveInfo bool) error {
 	//if i.readerPool.
 	panic("")
 }
 
-func (w *Writer) doBeforeFlush() error {
+func (w *IndexWriter) doBeforeFlush() error {
 	return nil
 }
 
-func (w *Writer) getPooledInstance(info *SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
+func (w *IndexWriter) getPooledInstance(info *SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
 	return w.readerPool.Get(info, create)
 }
 
-// Publishes the flushed segment, segment-private deletes (if any) and its associated global delete (if present) to IndexWriter. The actual publishing operation is synced on IW -> BDS so that the SegmentInfo's delete generation is always GlobalPacket_deleteGeneration + 1
-// Params: forced – if true this call will block on the ticket queue if the lock is held by another thread. if false the call will try to acquire the queue lock and exits if it's held by another thread.
-func (w *Writer) publishFlushedSegments(forced bool) error {
+// Publishes the flushed segment, segment-private deletes (if any) and its associated global delete
+// (if present) to IndexWriter. The actual publishing operation is synced on IW -> BDS so that the
+// SegmentInfo's delete generation is always GlobalPacket_deleteGeneration + 1
+//
+// forced: if true this call will block on the ticket queue if the lock is held by another thread.
+// if false the call will try to acquire the queue lock and exits if it's held by another thread.
+// FIXME: 需要完善
+func (w *IndexWriter) publishFlushedSegments(forced bool) error {
+	err := w.docWriter.purgeFlushTickets(false, func(ticket *FlushTicket) error {
+		newSegment := ticket.getFlushedSegment()
+		bufferedUpdates := ticket.getFrozenUpdates()
+		ticket.markPublished()
+		if newSegment == nil { // this is a flushed global deletes package - not a segments
+			if bufferedUpdates != nil && bufferedUpdates.Any() { // TODO why can this be null?
+				w.publishFrozenUpdates(bufferedUpdates)
+			}
+		} else {
+			// now publish!
+			err := w.publishFlushedSegment(newSegment.segmentInfo, newSegment.fieldInfos, newSegment.segmentUpdates,
+				bufferedUpdates, newSegment.sortMap)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *IndexWriter) applyAllDeletesAndUpdates() error {
+	w.flushDeletesCount.Add(1)
+	return nil
+}
+
+func (w *IndexWriter) writeReaderPool(writeDeletes bool) error {
 	panic("")
 }
 
-func (w *Writer) applyAllDeletesAndUpdates() error {
-	panic("")
-}
-
-func (w *Writer) writeReaderPool(writeDeletes bool) error {
-	panic("")
-}
-
-func (w *Writer) doAfterFlush() error {
+func (w *IndexWriter) doAfterFlush() error {
 	return nil
 }
 
 // GetDirectory
 // Returns the Directory used by this index.
-func (w *Writer) GetDirectory() store.Directory {
+func (w *IndexWriter) GetDirectory() store.Directory {
 	// return the original directory the user supplied, unwrapped.
 	return w.directoryOrig
 }
 
-func (w *Writer) GetConfig() *WriterConfig {
+func (w *IndexWriter) GetConfig() *IndexWriterConfig {
 	return w.config
 }
 
-func (w *Writer) IncRefDeleter(segmentInfos *SegmentInfos) error {
+func (w *IndexWriter) IncRefDeleter(segmentInfos *SegmentInfos) error {
 	return nil
 	//return w.deleter.IncRef(segmentInfos, false)
 }
@@ -720,7 +864,7 @@ func (w *Writer) IncRefDeleter(segmentInfos *SegmentInfos) error {
 // NOTE: empty segments are dropped by this method and not added to this index.
 // NOTE: this merges all given LeafReaders in one merge. If you intend to merge a large number of readers, it may be better to call this method multiple times, each time with a small set of readers. In principle, if you use a merge policy with a mergeFactor or maxMergeAtOnce parameter, you should pass that many readers in one call.
 // NOTE: this method does not call or make use of the MergeScheduler, so any custom bandwidth throttling is at the moment ignored.
-func (w *Writer) AddIndexesFromReaders(readers ...CodecReader) (int64, error) {
+func (w *IndexWriter) AddIndexesFromReaders(readers ...CodecReader) (int64, error) {
 
 	if err := w.ensureOpen(); err != nil {
 		return 0, err
@@ -730,7 +874,7 @@ func (w *Writer) AddIndexesFromReaders(readers ...CodecReader) (int64, error) {
 	var seqNo int64
 	var numDocs int
 
-	// TODO:
+	// FIXME:
 	if err := w.flush(false, true); err != nil {
 		return 0, err
 	}
@@ -790,20 +934,109 @@ func (w *Writer) AddIndexesFromReaders(readers ...CodecReader) (int64, error) {
 }
 
 // Does a best-effort check, that the current index would accept this many additional docs, but does not actually reserve them.
-func (w *Writer) testReserveDocs(addedNumDocs int64) error {
+func (w *IndexWriter) testReserveDocs(addedNumDocs int64) error {
 	if w.pendingNumDocs.Load()+addedNumDocs > int64(actualMaxDocs) {
 		return w.tooManyDocs(addedNumDocs)
 	}
 	return nil
 }
 
-func (w *Writer) tooManyDocs(addedNumDocs int64) error {
+func (w *IndexWriter) tooManyDocs(addedNumDocs int64) error {
 	return fmt.Errorf("number of documents in the index cannot exceed %d (current document count is %d; added numDocs is %d)",
 		actualMaxDocs, w.pendingNumDocs.Load(), addedNumDocs)
 }
 
-func (w *Writer) flush(triggerMerge, applyAllDeletes bool) error {
-	panic("")
+// Flush all in-memory buffered updates (adds and deletes) to the Directory.
+func (w *IndexWriter) flush(triggerMerge, applyAllDeletes bool) error {
+	// NOTE: this method cannot be sync'd because
+	// maybeMerge() in turn calls mergeScheduler.merge which
+	// in turn can take a long time to run and we don't want
+	// to hold the lock for that.  In the case of
+	// ConcurrentMergeScheduler this can lead to deadlock
+	// when it stalls due to too many running merges.
+
+	// We can be called during close, when closing==true, so we must pass false to ensureOpen:
+	doFlush, err := w.doFlush(applyAllDeletes)
+	if err != nil {
+		return err
+	}
+	if doFlush && triggerMerge {
+		return w.maybeMerge(w.config.mergePolicy, MERGE_TRIGGER_FULL_FLUSH, UNBOUNDED_MAX_MERGE_SEGMENTS)
+	}
+	return nil
+}
+
+func (w *IndexWriter) doFlush(applyAllDeletes bool) (bool, error) {
+	err := w.doBeforeFlush()
+	if err != nil {
+		return false, err
+	}
+
+	/*
+		long seqNo = docWriter.flushAllThreads() ;
+		          if (seqNo < 0) {
+		            seqNo = -seqNo;
+		            anyChanges = true;
+		          } else {
+		            anyChanges = false;
+		          }
+		          if (!anyChanges) {
+		            // flushCount is incremented in flushAllThreads
+		            flushCount.incrementAndGet();
+		          }
+		          publishFlushedSegments(true);
+		          flushSuccess = true;
+	*/
+	anyChanges := false
+	seqNo := w.docWriter.flushAllThreads()
+	if seqNo < 0 {
+		seqNo = -seqNo
+		anyChanges = true
+	}
+
+	if !anyChanges {
+		// flushCount is incremented in flushAllThreads
+		w.flushCount.Add(1)
+	}
+	err = w.publishFlushedSegments(true)
+	if err != nil {
+		return false, err
+	}
+	err = w.docWriter.finishFullFlush(true)
+	if err != nil {
+		return false, err
+	}
+	err = w.processEvents(false)
+	if err != nil {
+		return false, err
+	}
+
+	if applyAllDeletes {
+		err = w.applyAllDeletesAndUpdates()
+		if err != nil {
+			return false, err
+		}
+	}
+
+	anyChanges = anyChanges || w.boolMaybeMerge.Swap(false)
+	if anyChanges {
+		err := w.maybeMerge(w.config.GetMergePolicy(), MERGE_TRIGGER_FULL_FLUSH, UNBOUNDED_MAX_MERGE_SEGMENTS)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return false, nil
+}
+
+// Tries to delete the given files if unreferenced
+func (w *IndexWriter) deleteNewFiles(files map[string]struct{}) error {
+	return w.deleter.deleteFiles(files)
+}
+
+func (w *IndexWriter) flushFailed(info *SegmentInfo) error {
+	files := info.Files()
+	return w.deleter.deleteNewFiles(files)
 }
 
 func getDocValuesDocIdSetIterator(field string, reader LeafReader) (types.DocIdSetIterator, error) {
@@ -817,24 +1050,169 @@ func readFieldInfos(si *SegmentCommitInfo) (*FieldInfos, error) {
 	if si.HasFieldUpdates() {
 
 	} else if si.info.GetUseCompoundFile() {
-		cfs, err := codec.CompoundFormat().GetCompoundReader(si.info.dir, si.info, nil)
+		cfs, err := codec.CompoundFormat().GetCompoundReader(nil, si.info.dir, si.info, nil)
 		if err != nil {
 			return nil, err
 		}
-		return reader.Read(cfs, si.info, "", nil)
+		return reader.Read(nil, cfs, si.info, "", nil)
 	}
 
-	return reader.Read(si.info.dir, si.info, "", nil)
+	return reader.Read(nil, si.info.dir, si.info, "", nil)
 }
 
 func GetActualMaxDocs() int {
 	return actualMaxDocs
 }
 
-// ReaderWarmer If DirectoryReader.open(IndexWriter) has been called (ie, this writer is in near real-time mode), then after a merge completes, this class can be invoked to warm the reader on the newly merged segment, before the merge commits. This is not required for near real-time search, but will reduce search latency on opening a new near real-time reader after a merge completes.
+// Walk through all files referenced by the current segmentInfos and ask the Directory to sync each file,
+// if it wasn't already. If that succeeds, then we prepare a new segments_N file but do not fully commit it.
+func (w *IndexWriter) startCommit(toSync *SegmentInfos) error {
+	panic("")
+}
+
+func (w *IndexWriter) finishCommit() error {
+	panic("")
+}
+
+func (w *IndexWriter) prepareCommitInternal() (int64, error) {
+	panic("")
+}
+
+func (w *IndexWriter) publishFrozenUpdates(updates *FrozenBufferedUpdates) int64 {
+	// TODO: fixme
+	return -1
+}
+
+func (w *IndexWriter) publishFlushedSegment(info *SegmentCommitInfo, infos *FieldInfos,
+	updates *FrozenBufferedUpdates, updates2 *FrozenBufferedUpdates, sortMap *DocMap) error {
+
+	panic("")
+}
+
+// ReaderWarmer
+// If DirectoryReader.open(IndexWriter) has been called (ie, this writer is in near real-time mode),
+// then after a merge completes, this class can be invoked to warm the reader on the newly merged segment,
+// before the merge commits. This is not required for near real-time search, but will reduce search latency
+// on opening a new near real-time reader after a merge completes.
+//
 // lucene.experimental
 //
-// NOTE: warm(LeafReader) is called before any deletes have been carried over to the merged segment.
+// NOTE: Warm(LeafReader) is called before any deletes have been carried over to the merged segment.
 type ReaderWarmer interface {
 	Warm(reader LeafReader) error
 }
+
+type IndexWriterConfig struct {
+	*liveIndexWriterConfig
+
+	//sync.Once
+
+	// indicates whether this config instance is already attached to a writer.
+	// not final so that it can be cloned properly.
+	writer *IndexWriter
+
+	flushPolicy FlushPolicy
+}
+
+func NewIndexWriterConfig(codec Codec, similarity Similarity) *IndexWriterConfig {
+	cfg := &IndexWriterConfig{}
+	analyzer := standard.NewAnalyzer(analysis.EmptySet)
+	cfg.liveIndexWriterConfig = newLiveIndexWriterConfig(analyzer, codec, similarity)
+	return cfg
+}
+
+func (c *IndexWriterConfig) setIndexWriter(writer *IndexWriter) {
+	c.writer = writer
+}
+
+func (c *IndexWriterConfig) getSoftDeletesField() string {
+	return c.softDeletesField
+}
+
+// SetIndexSort
+// Set the Sort order to use for all (flushed and merged) segments.
+func (c *IndexWriterConfig) SetIndexSort(sort *Sort) error {
+	fields := make(map[string]struct{})
+	for _, sortField := range sort.GetSort() {
+		if sortField.GetIndexSorter() == nil {
+			return fmt.Errorf("cannot sort index with sort field: %s", sortField)
+		}
+		fields[sortField.GetField()] = struct{}{}
+	}
+
+	c.indexSort = sort
+	c.indexSortFields = fields
+	return nil
+}
+
+func (c *IndexWriterConfig) GetIndexCreatedVersionMajor() int {
+	return c.createdVersionMajor
+}
+
+// GetCommitOnClose Returns true if IndexWriter.close() should first commit before closing.
+func (c *IndexWriterConfig) GetCommitOnClose() bool {
+	return c.commitOnClose
+}
+
+// GetIndexCommit Returns the IndexCommit as specified in IndexWriterConfig.setIndexCommit(IndexCommit)
+// or the default, null which specifies to open the latest index commit point.
+func (c *IndexWriterConfig) GetIndexCommit() IndexCommit {
+	return c.commit
+}
+
+func (c *IndexWriterConfig) GetMergeScheduler() MergeScheduler {
+	return c.mergeScheduler
+}
+
+func (c *IndexWriterConfig) GetOpenMode() OpenMode {
+	return c.openMode
+}
+
+func (c *IndexWriterConfig) GetFlushPolicy() FlushPolicy {
+	return c.flushPolicy
+}
+
+const (
+
+	// DISABLE_AUTO_FLUSH
+	// Denotes a Flush trigger is disabled.
+	DISABLE_AUTO_FLUSH = -1
+
+	// DEFAULT_MAX_BUFFERED_DELETE_TERMS
+	// Disabled by default (because IndexWriter flushes by RAM usage by default).
+	DEFAULT_MAX_BUFFERED_DELETE_TERMS = DISABLE_AUTO_FLUSH
+
+	// DEFAULT_MAX_BUFFERED_DOCS
+	// Disabled by default (because IndexWriter flushes by RAM usage by default).
+	DEFAULT_MAX_BUFFERED_DOCS = DISABLE_AUTO_FLUSH
+
+	// DEFAULT_RAM_BUFFER_SIZE_MB
+	// Default item is 16 MB (which means Flush when buffered docs consume approximately 16 MB RAM).
+	DEFAULT_RAM_BUFFER_SIZE_MB = 16.0
+
+	// DEFAULT_READER_POOLING
+	// Default setting (true) for setReaderPooling.
+	// We Changed this default to true with concurrent deletes/updates (LUCENE-7868),
+	// because we will otherwise need to open and close segment readers more frequently.
+	// False is still supported, but will have worse performance since readers will
+	// be forced to aggressively move all state to disk.
+	DEFAULT_READER_POOLING = true
+
+	// DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB
+	// Default item is 1945. Change using setRAMPerThreadHardLimitMB(int)
+	DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB = 1945
+
+	// DEFAULT_USE_COMPOUND_FILE_SYSTEM
+	// Default item for compound file system for newly
+	// written segments (set to true). For batch indexing with very large ram buffers use false
+	DEFAULT_USE_COMPOUND_FILE_SYSTEM = true
+
+	// DEFAULT_COMMIT_ON_CLOSE
+	// Default item for whether calls to IndexWriter.close() include a commit.
+	DEFAULT_COMMIT_ON_CLOSE = true
+
+	// DEFAULT_MAX_FULL_FLUSH_MERGE_WAIT_MILLIS
+	// Default item for time to wait for merges
+	// on commit or getReader (when using a MergePolicy that implements MergePolicy.findFullFlushMerges).
+	DEFAULT_MAX_FULL_FLUSH_MERGE_WAIT_MILLIS = 0
+)

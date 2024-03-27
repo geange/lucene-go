@@ -22,28 +22,34 @@ const (
 // Since: lucene 1.4
 // See Also: Sort
 type SortField interface {
-	// GetMissingValue Return the item to use for documents that don't have a item.
+	// GetMissingValue
+	// Return the item to use for documents that don't have a item.
 	// A item of null indicates that default should be used.
 	GetMissingValue() any
 
-	// SetMissingValue Set the item to use for documents that don't have a item.
+	// SetMissingValue
+	// Set the item to use for documents that don't have a item.
 	SetMissingValue(missingValue any) error
 
-	// GetField Returns the name of the field. Could return null if the sort is by SCORE or DOC.
+	// GetField
+	// Returns the name of the field. Could return null if the sort is by SCORE or DOC.
 	// Returns: Name of field, possibly null.
 	GetField() string
 
-	// GetType Returns the type of contents in the field.
+	// GetType
+	// Returns the type of contents in the field.
 	// Returns: One of the constants SCORE, DOC, STRING, INT or FLOAT.
 	GetType() SortFieldType
 
-	// GetReverse Returns whether the sort should be reversed.
+	// GetReverse
+	// Returns whether the sort should be reversed.
 	// Returns: True if natural order should be reversed.
 	GetReverse() bool
 
 	GetComparatorSource() FieldComparatorSource
 
-	// SetCanUsePoints For numeric sort fields, setting this field, indicates that the same numeric data
+	// SetCanUsePoints
+	// For numeric sort fields, setting this field, indicates that the same numeric data
 	// has been indexed with two fields: doc values and points and that these fields have the same name.
 	// This allows to use sort optimization and skip non-competitive documents.
 	SetCanUsePoints()
@@ -54,13 +60,13 @@ type SortField interface {
 
 	GetBytesComparator() BytesComparator
 
-	// GetComparator Returns the FieldComparator to use for sorting.
-	//Params: 	numHits – number of top hits the queue will store
-	//			sortPos – position of this SortField within Sort. The comparator is primary if
-	//			sortPos==0, secondary if sortPos==1, etc. Some comparators can optimize
-	//			themselves when they are the primary sort.
-	//Returns: FieldComparator to use when sorting
-	//lucene.experimental
+	// GetComparator
+	// Returns the FieldComparator to use for sorting.
+	// - numHits: number of top hits the queue will store
+	// - sortPos: position of this SortField within Sort. The comparator is primary if sortPos==0, secondary
+	//		if sortPos==1, etc. Some comparators can optimize themselves when they are the primary sort.
+	// Returns: FieldComparator to use when sorting
+	// lucene.experimental
 	GetComparator(numHits, sortPos int) FieldComparator
 
 	//rewrite(searcher search.IndexSearcher)

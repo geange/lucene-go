@@ -119,7 +119,7 @@ func (s *FieldsReader) GetMergeInstance() index.FieldsProducer {
 var _ index.Terms = &simpleTextTerms{}
 
 type simpleTextTerms struct {
-	*index.TermsBase
+	*index.BaseTerms
 
 	r                *FieldsReader
 	termsStart       int64
@@ -143,7 +143,7 @@ func (s *FieldsReader) newFieldsReaderTerm(ctx context.Context, field string, te
 		scratch:    new(bytes.Buffer),
 	}
 
-	term.TermsBase = index.NewTerms(term)
+	term.BaseTerms = index.NewTerms(term)
 
 	if err := s.loadTerms(ctx, term); err != nil {
 		return nil, err

@@ -25,7 +25,7 @@ type BlockPool struct {
 	buffer []int
 
 	// Current head offset
-	IntOffset int
+	intOffset int
 
 	allocator IntsAllocator
 }
@@ -47,7 +47,7 @@ func NewBlockPool(allocator IntsAllocator) *BlockPool {
 		bufferUpto: -1,
 		intUpto:    INT_BLOCK_SIZE,
 		buffer:     make([]int, 0),
-		IntOffset:  -INT_BLOCK_SIZE,
+		intOffset:  -INT_BLOCK_SIZE,
 		allocator:  allocator,
 	}
 	if allocator == nil {
@@ -56,16 +56,20 @@ func NewBlockPool(allocator IntsAllocator) *BlockPool {
 	return pool
 }
 
-func (i *BlockPool) Get(index int) []int {
-	return i.buffers[index]
+func (b *BlockPool) IntOffset() int {
+	return b.intOffset
 }
 
-func (i *BlockPool) IntUpto() int {
-	return i.intUpto
+func (b *BlockPool) Get(index int) []int {
+	return b.buffers[index]
 }
 
-func (i *BlockPool) AddIntUpto(v int) {
-	i.intUpto += v
+func (b *BlockPool) IntUpto() int {
+	return b.intUpto
+}
+
+func (b *BlockPool) AddIntUpto(v int) {
+	b.intUpto += v
 }
 
 // Reset Expert: Resets the pool to its initial state reusing the first buffer.
@@ -74,43 +78,43 @@ func (i *BlockPool) AddIntUpto(v int) {
 //	is used with IntBlockPool.SliceWriter.
 //	reuseFirst – if true the first buffer will be reused and calling nextBuffer() is not needed after
 //	reset iff the block pool was used before ie. nextBuffer() was called before.
-func (i *BlockPool) Reset(zeroFillBuffers, reuseFirst bool) {
-	if i.bufferUpto != -1 {
+func (b *BlockPool) Reset(zeroFillBuffers, reuseFirst bool) {
+	if b.bufferUpto != -1 {
 		// We allocated at least one buffer
 		if zeroFillBuffers {
-			for idx := range i.buffers {
+			for idx := range b.buffers {
 				// Fully zero fill buffers that we fully used
-				for k := range i.buffers[idx] {
-					i.buffers[idx][k] = 0
+				for k := range b.buffers[idx] {
+					b.buffers[idx][k] = 0
 				}
 			}
 			// Partial zero fill the final buffer
 		}
 
-		if i.bufferUpto > 0 || !reuseFirst {
+		if b.bufferUpto > 0 || !reuseFirst {
 			offset := 0
 			if reuseFirst {
 				offset = 1
 			}
-			i.allocator.RecycleIntBlocks(i.buffers, offset, 1+i.bufferUpto)
-			for idx := range i.buffers {
+			b.allocator.RecycleIntBlocks(b.buffers, offset, 1+b.bufferUpto)
+			for idx := range b.buffers {
 				if idx >= offset {
-					i.buffers[idx] = nil
+					b.buffers[idx] = nil
 				}
 			}
 		}
 
 		if reuseFirst {
 			// Re-use the first buffer
-			i.bufferUpto = 0
-			i.intUpto = 0
-			i.IntOffset = 0
-			i.buffer = i.buffers[0]
+			b.bufferUpto = 0
+			b.intUpto = 0
+			b.intOffset = 0
+			b.buffer = b.buffers[0]
 		} else {
-			i.bufferUpto = -1
-			i.intUpto = INT_BLOCK_SIZE
-			i.IntOffset = -INT_BLOCK_SIZE
-			i.buffer = nil
+			b.bufferUpto = -1
+			b.intUpto = INT_BLOCK_SIZE
+			b.intOffset = -INT_BLOCK_SIZE
+			b.buffer = nil
 		}
 	}
 }
@@ -118,24 +122,24 @@ func (i *BlockPool) Reset(zeroFillBuffers, reuseFirst bool) {
 // NextBuffer Advances the pool to its next buffer. This method should be called once after the constructor
 // to initialize the pool. In contrast to the constructor a reset() call will advance the pool to its first
 // buffer immediately.
-func (i *BlockPool) NextBuffer() {
-	i.buffers = append(i.buffers, i.allocator.GetIntBlock())
-	i.buffer = i.buffers[i.bufferUpto+1]
-	i.bufferUpto++
-	i.intUpto = 0
-	i.IntOffset += INT_BLOCK_SIZE
+func (b *BlockPool) NextBuffer() {
+	b.buffers = append(b.buffers, b.allocator.GetIntBlock())
+	b.buffer = b.buffers[b.bufferUpto+1]
+	b.bufferUpto++
+	b.intUpto = 0
+	b.intOffset += INT_BLOCK_SIZE
 }
 
 // Creates a new int slice with the given starting size and returns the slices offset in the pool.
 // See Also: IntBlockPool.SliceReader
-func (i *BlockPool) newSlice(size int) int {
-	if i.intUpto > INT_BLOCK_SIZE-size {
-		i.NextBuffer()
+func (b *BlockPool) newSlice(size int) int {
+	if b.intUpto > INT_BLOCK_SIZE-size {
+		b.NextBuffer()
 	}
 
-	upto := i.intUpto
-	i.intUpto += size
-	i.buffer[i.intUpto-1] = 16
+	upto := b.intUpto
+	b.intUpto += size
+	b.buffer[b.intUpto-1] = 16
 	return upto
 }
 
@@ -151,28 +155,28 @@ var (
 )
 
 // Allocates a new slice from the given offset
-func (i *BlockPool) allocSlice(slice []int, sliceOffset int) int {
+func (b *BlockPool) allocSlice(slice []int, sliceOffset int) int {
 	level := slice[sliceOffset] & 15
 	newLevel := INT_NEXT_LEVEL_ARRAY[level]
 	newSize := INT_LEVEL_SIZE_ARRAY[newLevel]
-	if i.intUpto > INT_BLOCK_SIZE-newSize {
-		i.NextBuffer()
+	if b.intUpto > INT_BLOCK_SIZE-newSize {
+		b.NextBuffer()
 	}
 
-	newUpto := i.intUpto
-	offset := newUpto + i.IntOffset
-	i.intUpto += newSize
+	newUpto := b.intUpto
+	offset := newUpto + b.intOffset
+	b.intUpto += newSize
 	// Write forwarding address at end of last slice:
 	slice[sliceOffset] = offset
 
 	// Write new level:
-	i.buffer[i.intUpto-1] = 16 | newLevel
+	b.buffer[b.intUpto-1] = 16 | newLevel
 
 	return newUpto
 }
 
-func (i *BlockPool) Buffer() []int {
-	return i.buffer
+func (b *BlockPool) Buffer() []int {
+	return b.buffer
 }
 
 // SliceWriter A IntBlockPool.SliceWriter that allows to write multiple integer slices into a given BlockPool.
@@ -198,7 +202,7 @@ func (s *SliceWriter) WriteInt(value int) {
 
 		relativeOffset = s.pool.allocSlice(ints, relativeOffset)
 		ints = s.pool.buffer
-		s.offset = relativeOffset + s.pool.IntOffset
+		s.offset = relativeOffset + s.pool.intOffset
 	}
 
 	ints[relativeOffset] = value
@@ -208,7 +212,7 @@ func (s *SliceWriter) WriteInt(value int) {
 // StartNewSlice starts a new slice and returns the start offset. The returned value should be used as the
 // start offset to initialize a IntBlockPool.SliceReader.
 func (s *SliceWriter) StartNewSlice() int {
-	s.offset = s.pool.newSlice(INT_FIRST_LEVEL_SIZE) + s.pool.IntOffset
+	s.offset = s.pool.newSlice(INT_FIRST_LEVEL_SIZE) + s.pool.intOffset
 	return s.offset
 }
 

@@ -1,8 +1,9 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/types"
 	"sort"
+
+	"github.com/geange/lucene-go/core/types"
 )
 
 type DocValues struct {
@@ -57,4 +58,16 @@ func (d *DocValueSorter) Swap(i, j int) {
 type DocValuesWriter interface {
 	Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error
 	GetDocValues() types.DocIdSetIterator
+}
+
+// IsCacheable
+// Returns true if the specified docvalues fields have not been updated
+func IsCacheable(ctx LeafReaderContext, fields ...string) bool {
+	for _, field := range fields {
+		fi := ctx.LeafReader().GetFieldInfos().FieldInfo(field)
+		if fi != nil && fi.GetDocValuesGen() > -1 {
+			return false
+		}
+	}
+	return true
 }

@@ -8,58 +8,90 @@ import (
 
 var _ DirectoryReader = &StandardDirectoryReader{}
 
-// StandardDirectoryReader Default implementation of DirectoryReader.
+// StandardDirectoryReader
+// Default implementation of DirectoryReader.
 type StandardDirectoryReader struct {
-	*DirectoryReaderDefault
+	*baseDirectoryReader
 
-	writer          *Writer
+	writer          *IndexWriter
 	segmentInfos    *SegmentInfos
 	applyAllDeletes bool
 	writeAllDeletes bool
 }
 
-// NewStandardDirectoryReader package private constructor, called only from static open() methods
-func NewStandardDirectoryReader(directory store.Directory, readers []Reader, writer *Writer,
-	sis *SegmentInfos, leafSorter func(a, b LeafReader) int,
-	applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
+// NewStandardDirectoryReader
+// package private constructor, called only from static open() methods
+func NewStandardDirectoryReader(directory store.Directory, readers []IndexReader, writer *IndexWriter,
+	sis *SegmentInfos, compareFunc CompareLeafReader, applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
 
-	reader, err := NewDirectoryReader(directory, readers, leafSorter)
+	reader, err := newBaseDirectoryReader(directory, readers, compareFunc)
 	if err != nil {
 		return nil, err
 	}
 
 	return &StandardDirectoryReader{
-		DirectoryReaderDefault: reader,
-		writer:                 writer,
-		segmentInfos:           sis,
-		applyAllDeletes:        applyAllDeletes,
-		writeAllDeletes:        writeAllDeletes,
+		baseDirectoryReader: reader,
+		writer:              writer,
+		segmentInfos:        sis,
+		applyAllDeletes:     applyAllDeletes,
+		writeAllDeletes:     writeAllDeletes,
 	}, nil
 }
 
+type CompareIndexReader func(a, b IndexReader) int
+type CompareLeafReader func(a, b LeafReader) int
+
 // OpenDirectoryReader
 // called from DirectoryReader.open(...) methods
-func OpenDirectoryReader(directory store.Directory,
-	commit IndexCommit, leafSorter func(a, b Reader) int) (DirectoryReader, error) {
+func OpenDirectoryReader(ctx context.Context, directory store.Directory,
+	commit IndexCommit, compareFunc CompareLeafReader) (DirectoryReader, error) {
 
-	reader, err := NewFindSegmentsFile(directory).RunV1(commit)
+	segmentsFile := NewFindSegmentsFile[DirectoryReader](directory)
+	fnDoBody := func(ctx context.Context, segmentFileName string) (DirectoryReader, error) {
+		sis, err := ReadCommit(ctx, segmentsFile.directory, segmentFileName)
+		if err != nil {
+			return nil, err
+		}
+
+		readers := make([]IndexReader, sis.Size())
+
+		for i := sis.Size() - 1; i >= 0; i-- {
+			reader, err := NewSegmentReader(ctx, sis.Info(i), sis.getIndexCreatedVersionMajor(), store.READ)
+			if err != nil {
+				return nil, err
+			}
+			readers[i] = reader
+		}
+
+		// This may throw CorruptIndexException if there are too many docs, so
+		// it must be inside try clause so we close readers in that case:
+		reader, err := NewStandardDirectoryReader(directory, readers, nil, sis, compareFunc,
+			false, false)
+		if err != nil {
+			return nil, err
+		}
+		return reader, nil
+	}
+	segmentsFile.SetFuncDoBody(fnDoBody)
+
+	reader, err := segmentsFile.RunWithCommit(ctx, commit)
 	if err != nil {
 		return nil, err
 	}
-	return reader.(DirectoryReader), nil
+	return reader, nil
 }
 
-// OpenStandardDirectoryReader Used by near real-time search
-func OpenStandardDirectoryReader(writer *Writer,
-	readerFunction func(*SegmentCommitInfo) (*SegmentReader, error), infos *SegmentInfos,
-	applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
+// OpenStandardDirectoryReader
+// Used by near real-time search
+func OpenStandardDirectoryReader(writer *IndexWriter, readerFunction func(*SegmentCommitInfo) (*SegmentReader, error),
+	infos *SegmentInfos, applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
 
 	// IndexWriter synchronizes externally before calling
 	// us, which ensures infos will not change; so there's
 	// no need to process segments in reverse order
 	numSegments := infos.Size()
 
-	readers := make([]Reader, 0)
+	readers := make([]IndexReader, 0)
 	dir := writer.GetDirectory()
 	segmentInfos := infos.Clone()
 	infosUpto := 0
@@ -104,12 +136,10 @@ func OpenStandardDirectoryReader(writer *Writer,
 }
 
 func (s *StandardDirectoryReader) GetVersion() int64 {
-	//ensureOpen();
 	return s.segmentInfos.GetVersion()
 }
 
 func (s *StandardDirectoryReader) IsCurrent(ctx context.Context) (bool, error) {
-	//ensureOpen();
 	if s.writer == nil || s.writer.IsClosed() {
 		// Fully read the segments file: this ensures that it's
 		// completely written so that if

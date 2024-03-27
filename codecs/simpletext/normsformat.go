@@ -1,6 +1,7 @@
 package simpletext
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 )
@@ -20,11 +21,11 @@ func NewNormsFormat() *NormsFormat {
 	return &NormsFormat{}
 }
 
-func (s *NormsFormat) NormsConsumer(state *index.SegmentWriteState) (index.NormsConsumer, error) {
-	return NewSimpleTextNormsConsumer(state)
+func (s *NormsFormat) NormsConsumer(ctx context.Context, state *index.SegmentWriteState) (index.NormsConsumer, error) {
+	return NewSimpleTextNormsConsumer(nil, state)
 }
 
-func (s *NormsFormat) NormsProducer(state *index.SegmentReadState) (index.NormsProducer, error) {
+func (s *NormsFormat) NormsProducer(ctx context.Context, state *index.SegmentReadState) (index.NormsProducer, error) {
 	return NewSimpleTextNormsProducer(state)
 }
 
@@ -35,7 +36,7 @@ type SimpleTextNormsProducer struct {
 }
 
 func NewSimpleTextNormsProducer(state *index.SegmentReadState) (*SimpleTextNormsProducer, error) {
-	reader, err := NewDocValuesReader(state, NORMS_SEG_EXTENSION)
+	reader, err := NewDocValuesReader(context.TODO(), state, NORMS_SEG_EXTENSION)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +44,7 @@ func NewSimpleTextNormsProducer(state *index.SegmentReadState) (*SimpleTextNorms
 }
 
 func (s *SimpleTextNormsProducer) GetNorms(field *document.FieldInfo) (index.NumericDocValues, error) {
-	return s.impl.GetNumeric(field)
+	return s.impl.GetNumeric(nil, field)
 }
 
 func (s *SimpleTextNormsProducer) Close() error {
@@ -60,7 +61,8 @@ func (s *SimpleTextNormsProducer) GetMergeInstance() index.NormsProducer {
 
 var _ index.NormsConsumer = &SimpleTextNormsConsumer{}
 
-// SimpleTextNormsConsumer Writes plain-text norms.
+// SimpleTextNormsConsumer
+// Writes plain-text norms.
 // FOR RECREATIONAL USE ONLY
 type SimpleTextNormsConsumer struct {
 	*index.NormsConsumerDefault
@@ -68,11 +70,12 @@ type SimpleTextNormsConsumer struct {
 	impl *DocValuesWriter
 }
 
-func NewSimpleTextNormsConsumer(state *index.SegmentWriteState) (*SimpleTextNormsConsumer, error) {
-	writer, err := NewDocValuesWriter(state, NORMS_SEG_EXTENSION)
+func NewSimpleTextNormsConsumer(ctx context.Context, state *index.SegmentWriteState) (*SimpleTextNormsConsumer, error) {
+	writer, err := NewDocValuesWriter(ctx, state, NORMS_SEG_EXTENSION)
 	if err != nil {
 		return nil, err
 	}
+
 	consumer := &SimpleTextNormsConsumer{
 		impl: writer,
 	}
@@ -86,13 +89,13 @@ func (s *SimpleTextNormsConsumer) Close() error {
 	return s.impl.Close()
 }
 
-func (s *SimpleTextNormsConsumer) AddNormsField(field *document.FieldInfo, normsProducer index.NormsProducer) error {
+func (s *SimpleTextNormsConsumer) AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer index.NormsProducer) error {
 	producer := struct {
 		*index.EmptyDocValuesProducer
 	}{}
-	producer.FnGetNumeric = func(field *document.FieldInfo) (index.NumericDocValues, error) {
+	producer.FnGetNumeric = func(ctx context.Context, field *document.FieldInfo) (index.NumericDocValues, error) {
 		return normsProducer.GetNorms(field)
 	}
 
-	return s.impl.AddNumericField(nil, field, producer)
+	return s.impl.AddNumericField(ctx, field, producer)
 }

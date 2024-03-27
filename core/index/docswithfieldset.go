@@ -10,6 +10,9 @@ import (
 
 var _ DocIdSet = &DocsWithFieldSet{}
 
+// DocsWithFieldSet
+// Accumulator for documents that have a value for a field.
+// This is optimized for the case that all documents have a value.
 type DocsWithFieldSet struct {
 	set       *bitset.BitSet
 	cost      int

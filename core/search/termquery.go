@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/geange/gods-generic/sets/treeset"
 	"reflect"
 
 	"github.com/geange/lucene-go/core/index"
@@ -50,13 +51,13 @@ func (t *TermQuery) GetTerm() *index.Term {
 	return t.term
 }
 
-func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
-	context := searcher.GetTopReaderContext()
+func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
+	readerContext := searcher.GetTopReaderContext()
 
 	var termState *index.TermStates
 	var err error
-	if t.perReaderTermState == nil || !t.perReaderTermState.WasBuiltFor(context) {
-		termState, err = index.BuildTermStates(context, t.term, scoreMode.NeedsScores())
+	if t.perReaderTermState == nil || !t.perReaderTermState.WasBuiltFor(readerContext) {
+		termState, err = index.BuildTermStates(readerContext, t.term, scoreMode.NeedsScores())
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +68,7 @@ func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, 
 	return t.NewTermWeight(searcher, scoreMode, boost, termState)
 }
 
-func (t *TermQuery) Rewrite(reader index.Reader) (Query, error) {
+func (t *TermQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	return t, nil
 }
 
@@ -81,17 +82,25 @@ func (t *TermQuery) Visit(visitor QueryVisitor) error {
 var _ Weight = &TermWeight{}
 
 type TermWeight struct {
-	*WeightDefault
+	*BaseWeight
+	*TermQuery
 
 	similarity index.Similarity
 	simScorer  index.SimScorer
 	termStates *index.TermStates
-	scoreMode  *ScoreMode
-
-	*TermQuery
+	scoreMode  ScoreMode
 }
 
-func (t *TermWeight) Explain(context *index.LeafReaderContext, doc int) (*types.Explanation, error) {
+func (t *TermWeight) IsCacheable(ctx index.LeafReaderContext) bool {
+	return true
+}
+
+func (t *TermWeight) ExtractTerms(terms *treeset.Set[*index.Term]) error {
+	terms.Add(t.GetTerm())
+	return nil
+}
+
+func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (*types.Explanation, error) {
 	scorer, err := t.Scorer(context)
 	if err != nil {
 		return nil, err
@@ -100,20 +109,21 @@ func (t *TermWeight) Explain(context *index.LeafReaderContext, doc int) (*types.
 		return nil, errors.New("no matching term")
 	}
 
-	tscorer, ok := scorer.(*TermScorer)
+	tScorer, ok := scorer.(*TermScorer)
 	if !ok {
 		return nil, errors.New("no matching term")
 	}
 
-	newDoc, err := tscorer.Iterator().Advance(doc)
+	newDoc, err := tScorer.Iterator().Advance(doc)
 	if err != nil {
 		return nil, err
 	}
 	if newDoc == doc {
-		freq, err := tscorer.Freq()
+		freq, err := tScorer.Freq()
 		if err != nil {
 			return nil, err
 		}
+
 		docScorer, err := NewLeafSimScorer(t.simScorer, context.Reader().(index.LeafReader), t.term.Field(), true)
 		if err != nil {
 			return nil, err
@@ -124,6 +134,7 @@ func (t *TermWeight) Explain(context *index.LeafReaderContext, doc int) (*types.
 		if err != nil {
 			return nil, err
 		}
+
 		return types.ExplanationMatch(scoreExplanation.GetValue().(float64),
 			fmt.Sprintf(`weight(%s in %d) [%s]`, t.GetQuery(), doc, reflect.TypeOf(t.similarity).Name()),
 			scoreExplanation), nil
@@ -137,7 +148,7 @@ func (t *TermWeight) GetQuery() Query {
 	panic("implement me")
 }
 
-func (t *TermWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
+func (t *TermWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
 	termsEnum, err := t.getTermsEnum(ctx)
 	if err != nil {
 		return nil, err
@@ -152,7 +163,7 @@ func (t *TermWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
 		return nil, err
 	}
 
-	if t.scoreMode.Equal(TOP_SCORES) {
+	if t.scoreMode == TOP_SCORES {
 		impacts, err := termsEnum.Impacts(index.POSTINGS_ENUM_FREQS)
 		if err != nil {
 			return nil, err
@@ -173,7 +184,7 @@ func (t *TermWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
 }
 
 // Returns a TermsEnum positioned at this weights Term or null if the term does not exist in the given context
-func (t *TermWeight) getTermsEnum(context *index.LeafReaderContext) (index.TermsEnum, error) {
+func (t *TermWeight) getTermsEnum(context index.LeafReaderContext) (index.TermsEnum, error) {
 	state, err := t.termStates.Get(context)
 	if err != nil {
 		return nil, err
@@ -181,23 +192,25 @@ func (t *TermWeight) getTermsEnum(context *index.LeafReaderContext) (index.Terms
 	if state == nil { // term is not present in that reader
 		return nil, nil
 	}
+
 	terms, err := context.LeafReader().Terms(t.term.Field())
 	if err != nil {
 		return nil, err
 	}
+
 	termsEnum, err := terms.Iterator()
 	if err != nil {
 		return nil, err
 	}
 
-	err = termsEnum.SeekExactExpert(nil, t.term.Bytes(), state)
-	if err != nil {
+	if err := termsEnum.SeekExactExpert(nil, t.term.Bytes(), state); err != nil {
 		return nil, err
 	}
+
 	return termsEnum, nil
 }
 
-func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
+func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode ScoreMode,
 	boost float64, termStates *index.TermStates) (*TermWeight, error) {
 	weight := &TermWeight{
 		similarity: searcher.GetSimilarity(),
@@ -206,7 +219,7 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 		TermQuery:  t,
 	}
 
-	weight.WeightDefault = NewWeight(weight, weight)
+	weight.BaseWeight = NewBaseWeight(weight, weight)
 
 	var collectionStats *types.CollectionStatistics
 	var termStats *types.TermStatistics
@@ -238,7 +251,6 @@ func (t *TermQuery) NewTermWeight(searcher *IndexSearcher, scoreMode *ScoreMode,
 			}
 		}
 	} else {
-		var err error
 		collectionStats, err = types.NewCollectionStatistics(t.term.Field(), 1, 1, 1, 1)
 		if err != nil {
 			return nil, err

@@ -52,7 +52,7 @@ func (p *PointValuesWriter) AddPackedValue(docID int, value []byte) error {
 	return nil
 }
 
-func (p *PointValuesWriter) Flush(state *SegmentWriteState, docMap *DocMap, writer PointsWriter) error {
+func (p *PointValuesWriter) Flush(ctx context.Context, state *SegmentWriteState, docMap *DocMap, writer PointsWriter) error {
 	bytesReader, err := p.bytes.Freeze(false)
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func (p *PointValuesWriter) Flush(state *SegmentWriteState, docMap *DocMap, writ
 		points.ords[i] = i
 	}
 	reader := &innerReader{values: points}
-	return writer.WriteField(nil, p.fieldInfo, reader)
+	return writer.WriteField(ctx, p.fieldInfo, reader)
 }
 
 var _ PointsReader = &innerReader{}
@@ -89,7 +89,7 @@ func (i *innerReader) CheckIntegrity() error {
 	panic("implement me")
 }
 
-func (i *innerReader) GetValues(field string) (types.PointValues, error) {
+func (i *innerReader) GetValues(ctx context.Context, field string) (types.PointValues, error) {
 	return i.values, nil
 }
 

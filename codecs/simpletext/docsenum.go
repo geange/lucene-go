@@ -14,32 +14,30 @@ import (
 var _ index.ImpactsEnum = &DocsEnum{}
 
 type DocsEnum struct {
-	inStart      store.IndexInput
-	in           store.IndexInput
-	omitTF       bool
-	docID        int
-	tf           int
-	scratch      *bytes.Buffer
-	scratchUTF16 *bytes.Buffer
-	cost         int
-	skipReader   *SkipReader
-	nextSkipDoc  int
-	seekTo       int64
+	inStart     store.IndexInput
+	in          store.IndexInput
+	omitTF      bool
+	docID       int
+	tf          int
+	scratch     *bytes.Buffer
+	cost        int
+	skipReader  *SkipReader
+	nextSkipDoc int
+	seekTo      int64
 }
 
 func (s *FieldsReader) NewSimpleTextDocsEnum() *DocsEnum {
 	return &DocsEnum{
-		inStart:      s.in,
-		in:           s.in.Clone().(store.IndexInput),
-		omitTF:       false,
-		docID:        -1,
-		tf:           0,
-		scratch:      nil,
-		scratchUTF16: nil,
-		cost:         0,
-		skipReader:   NewSkipReader(s.in.Clone().(store.IndexInput)),
-		nextSkipDoc:  0,
-		seekTo:       -1,
+		inStart:     s.in,
+		in:          s.in.Clone().(store.IndexInput),
+		omitTF:      false,
+		docID:       -1,
+		tf:          0,
+		scratch:     new(bytes.Buffer),
+		cost:        0,
+		skipReader:  NewSkipReader(s.in.Clone().(store.IndexInput)),
+		nextSkipDoc: 0,
+		seekTo:      -1,
 	}
 }
 

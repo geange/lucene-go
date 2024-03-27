@@ -16,7 +16,7 @@ import (
 var _ index.Terms = &textTerms{}
 
 type textTerms struct {
-	*index.TermsBase
+	*index.BaseTerms
 
 	reader           *FieldsReader
 	termsStart       int64
@@ -43,7 +43,7 @@ func (s *FieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc
 		termCount:        0,
 		scratch:          new(bytes.Buffer),
 	}
-	terms.TermsBase = index.NewTerms(terms)
+	terms.BaseTerms = index.NewTerms(terms)
 	return terms
 }
 

@@ -4,7 +4,8 @@ import "reflect"
 
 var MATCH_WITH_NO_TERMS Matches
 
-// MatchesFromSubMatches Amalgamate a collection of Matches into a single object
+// MatchesFromSubMatches
+// Amalgamate a collection of Matches into a single object
 func MatchesFromSubMatches(subMatches []Matches) (Matches, error) {
 	sm := make([]Matches, 0)
 	for i, match := range subMatches {
@@ -24,16 +25,16 @@ func MatchesFromSubMatches(subMatches []Matches) (Matches, error) {
 
 	return &MatchesAnon{
 		FnStrings: func() []string {
-			strs := make([]string, 0)
-			for _, matches := range sm {
-				strs = append(strs, matches.Strings()...)
+			values := make([]string, 0)
+			for _, v := range sm {
+				values = append(values, v.Strings()...)
 			}
-			return strs
+			return values
 		},
 		FnGetMatches: func(field string) (MatchesIterator, error) {
 			subIterators := make([]MatchesIterator, 0)
-			for _, matches := range sm {
-				iterator, err := matches.GetMatches(field)
+			for _, v := range sm {
+				iterator, err := v.GetMatches(field)
 				if err != nil {
 					return nil, err
 				}

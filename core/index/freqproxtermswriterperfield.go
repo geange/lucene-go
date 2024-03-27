@@ -12,8 +12,10 @@ import (
 
 var _ TermsHashPerField = &FreqProxTermsWriterPerField{}
 
+// FreqProxTermsWriterPerField
+// TODO: break into separate freq and prox writers as codecs; make separate container (tii/tis/skip/*) that can be configured as any number of files 1..N
 type FreqProxTermsWriterPerField struct {
-	*TermsHashPerFieldDefault
+	*baseTermsHashPerField
 
 	freqProxPostingsArray *FreqProxPostingsArray
 
@@ -41,25 +43,25 @@ func NewFreqProxTermsWriterPerField(invertState *FieldInvertState, termsHash Ter
 	indexOptions := fieldInfo.GetIndexOptions()
 	termBytePool := termsHash.GetTermBytePool()
 
-	perfield := &FreqProxTermsWriterPerField{
-		TermsHashPerFieldDefault: nil,
-		freqProxPostingsArray:    nil,
-		fieldState:               invertState,
-		fieldInfo:                fieldInfo,
-		hasFreq:                  indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS,
-		hasProx:                  indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS,
-		hasOffsets:               indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS,
-		payloadAttribute:         nil,
-		offsetAttribute:          nil,
-		termFreqAtt:              nil,
-		sawPayloads:              false,
+	perField := &FreqProxTermsWriterPerField{
+		baseTermsHashPerField: nil,
+		freqProxPostingsArray: nil,
+		fieldState:            invertState,
+		fieldInfo:             fieldInfo,
+		hasFreq:               indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS,
+		hasProx:               indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS,
+		hasOffsets:            indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS,
+		payloadAttribute:      nil,
+		offsetAttribute:       nil,
+		termFreqAtt:           nil,
+		sawPayloads:           false,
 	}
 
-	perfield.TermsHashPerFieldDefault = NewTermsHashPerFieldDefault(streamCount,
+	perField.baseTermsHashPerField = newBaseTermsHashPerField(streamCount,
 		termsHash.GetIntPool(), termsHash.GetBytePool(), termsHash.GetTermBytePool(),
-		nextPerField, fieldInfo.Name(), indexOptions, perfield)
+		nextPerField, fieldInfo.Name(), indexOptions, perField)
 
-	byteStarts := NewPostingsBytesStartArray(perfield)
+	byteStarts := NewPostingsBytesStartArray(perField)
 	bytesHash, err := bytesref.NewBytesHash(termBytePool,
 		bytesref.WithCapacity(HASH_INIT_SIZE),
 		bytesref.WithStartArray(byteStarts))
@@ -67,12 +69,12 @@ func NewFreqProxTermsWriterPerField(invertState *FieldInvertState, termsHash Ter
 		return nil, err
 	}
 
-	perfield.bytesHash = bytesHash
-	return perfield, nil
+	perField.bytesHash = bytesHash
+	return perField, nil
 }
 
 func (f *FreqProxTermsWriterPerField) Finish() error {
-	err := f.TermsHashPerFieldDefault.Finish()
+	err := f.baseTermsHashPerField.Finish()
 	if err != nil {
 		return err
 	}
@@ -83,7 +85,7 @@ func (f *FreqProxTermsWriterPerField) Finish() error {
 }
 
 func (f *FreqProxTermsWriterPerField) Start(field document.IndexableField, first bool) bool {
-	f.TermsHashPerFieldDefault.Start(field, first)
+	f.baseTermsHashPerField.Start(field, first)
 	f.termFreqAtt = f.fieldState.termFreqAttribute
 	f.payloadAttribute = f.fieldState.payloadAttribute
 	f.offsetAttribute = f.fieldState.offsetAttribute

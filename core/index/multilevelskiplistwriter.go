@@ -62,21 +62,19 @@ type MultiLevelSkipListWriter interface {
 
 //var _ MultiLevelSkipListWriterExt = &MultiLevelSkipListWriterImp{}
 
-type MultiLevelSkipListWriterDefaultConfig struct {
-	SkipInterval   int
-	SkipMultiplier int
-	MaxSkipLevels  int
-	DF             int
-
-	WriteSkipData func(level int, skipBuffer store.IndexOutput) error
-
+type BaseMultiLevelSkipListWriterConfig struct {
+	SkipInterval      int
+	SkipMultiplier    int
+	MaxSkipLevels     int
+	DF                int
+	WriteSkipData     func(level int, skipBuffer store.IndexOutput) error
 	WriteLevelLength  func(levelLength int64, output store.IndexOutput) error
 	WriteChildPointer func(childPointer int64, skipBuffer store.DataOutput) error
 }
 
-type MultiLevelSkipListWriterDefault struct {
+type BaseMultiLevelSkipListWriter struct {
 	// number of levels in this skip list
-	NumberOfSkipLevels int
+	numberOfSkipLevels int
 
 	// the skip interval in the list with level = 0
 	skipInterval int
@@ -89,16 +87,16 @@ type MultiLevelSkipListWriterDefault struct {
 	//skipBuffer []*store.RAMOutputStream
 
 	// Subclasses must implement the actual skip data encoding in this method.
-	// level – the level skip data shall be writing for
-	// skipBuffer – the skip buffer to write to
+	// level: the level skip data shall be writing for
+	// skipBuffer: the skip buffer to write to
 	writeSkipData func(level int, skipBuffer store.IndexOutput) error
 
 	fnWriteLevelLength  func(levelLength int64, output store.IndexOutput) error
 	fnWriteChildPointer func(childPointer int64, skipBuffer store.DataOutput) error
 }
 
-func NewMultiLevelSkipListWriterDefault(cfg *MultiLevelSkipListWriterDefaultConfig) *MultiLevelSkipListWriterDefault {
-	this := &MultiLevelSkipListWriterDefault{}
+func NewBaseMultiLevelSkipListWriter(cfg *BaseMultiLevelSkipListWriterConfig) *BaseMultiLevelSkipListWriter {
+	this := &BaseMultiLevelSkipListWriter{}
 
 	this.skipInterval = cfg.SkipInterval
 	this.skipMultiplier = cfg.SkipMultiplier
@@ -115,8 +113,16 @@ func NewMultiLevelSkipListWriterDefault(cfg *MultiLevelSkipListWriterDefaultConf
 	if numberOfSkipLevels > cfg.MaxSkipLevels {
 		numberOfSkipLevels = cfg.MaxSkipLevels
 	}
-	this.NumberOfSkipLevels = numberOfSkipLevels
+	this.SetNumberOfSkipLevels(numberOfSkipLevels)
 	return this
+}
+
+func (m *BaseMultiLevelSkipListWriter) NumberOfSkipLevels() int {
+	return m.numberOfSkipLevels
+}
+
+func (m *BaseMultiLevelSkipListWriter) SetNumberOfSkipLevels(numberOfSkipLevels int) {
+	m.numberOfSkipLevels = numberOfSkipLevels
 }
 
 /*

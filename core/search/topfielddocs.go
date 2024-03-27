@@ -3,7 +3,7 @@ package search
 import "github.com/geange/lucene-go/core/index"
 
 type TopFieldDocs struct {
-	*TopDocsDefault
+	*BaseTopDocs
 
 	fields []index.SortField
 }
@@ -17,8 +17,8 @@ type TopFieldDocs struct {
 //	fields – The sort criteria used to find the top hits.
 func NewTopFieldDocs(totalHits *TotalHits, scoreDocs []ScoreDoc, fields []index.SortField) *TopFieldDocs {
 	return &TopFieldDocs{
-		TopDocsDefault: NewTopDocs(totalHits, scoreDocs),
-		fields:         fields,
+		BaseTopDocs: NewTopDocs(totalHits, scoreDocs),
+		fields:      fields,
 	}
 }
 

@@ -114,6 +114,10 @@ func (v *Version) OnOrAfter(other *Version) bool {
 }
 
 func (v *Version) Clone() *Version {
+	if v == nil {
+		return nil
+	}
+
 	return &Version{
 		major:        v.major,
 		minor:        v.minor,

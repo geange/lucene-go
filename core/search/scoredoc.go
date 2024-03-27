@@ -9,11 +9,11 @@ type ScoreDoc interface {
 	SetShardIndex(shardIndex int)
 }
 
-var _ ScoreDoc = &ScoreDocDefault{}
+var _ ScoreDoc = &baseScoreDoc{}
 
-// ScoreDocDefault
+// baseScoreDoc
 // Holds one hit in TopDocs.
-type ScoreDocDefault struct {
+type baseScoreDoc struct {
 	// The score of this document for the query.
 	score float64
 
@@ -25,34 +25,34 @@ type ScoreDocDefault struct {
 	shardIndex int
 }
 
-func (s *ScoreDocDefault) GetScore() float64 {
+func (s *baseScoreDoc) GetScore() float64 {
 	return s.score
 }
 
-func (s *ScoreDocDefault) SetScore(score float64) {
+func (s *baseScoreDoc) SetScore(score float64) {
 	s.score = score
 }
 
-func (s *ScoreDocDefault) GetDoc() int {
+func (s *baseScoreDoc) GetDoc() int {
 	return s.doc
 }
 
-func (s *ScoreDocDefault) SetDoc(doc int) {
+func (s *baseScoreDoc) SetDoc(doc int) {
 	s.doc = doc
 }
 
-func (s *ScoreDocDefault) GetShardIndex() int {
+func (s *baseScoreDoc) GetShardIndex() int {
 	return s.shardIndex
 }
 
-func (s *ScoreDocDefault) SetShardIndex(shardIndex int) {
+func (s *baseScoreDoc) SetShardIndex(shardIndex int) {
 	s.shardIndex = shardIndex
 }
 
-func NewScoreDoc(doc int, score float64) *ScoreDocDefault {
-	return &ScoreDocDefault{score: score, doc: doc, shardIndex: -1}
+func newScoreDoc(doc int, score float64) *baseScoreDoc {
+	return &baseScoreDoc{score: score, doc: doc, shardIndex: -1}
 }
 
-func NewScoreDocV1(score float64, doc int, shardIndex int) *ScoreDocDefault {
-	return &ScoreDocDefault{score: score, doc: doc, shardIndex: shardIndex}
+func newScoreDocWIthShard(score float64, doc int, shardIndex int) *baseScoreDoc {
+	return &baseScoreDoc{score: score, doc: doc, shardIndex: shardIndex}
 }

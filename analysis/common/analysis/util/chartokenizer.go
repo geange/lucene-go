@@ -8,7 +8,8 @@ import (
 	"github.com/geange/lucene-go/core/util/attribute"
 )
 
-// CharTokenizer An abstract base class for simple, character-oriented tokenizers.
+// CharTokenizer
+// An abstract base class for simple, character-oriented tokenizers.
 // The base class also provides factories to create instances of CharTokenizer using Java 8 lambdas or method
 // references. It is possible to create an instance which behaves exactly like LetterTokenizer:
 // Tokenizer tok = CharTokenizer.fromTokenCharPredicate(Character::isLetter);

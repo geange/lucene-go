@@ -3,6 +3,8 @@ package index
 import (
 	"math"
 	"sync"
+
+	"github.com/geange/lucene-go/core/util"
 )
 
 const (
@@ -120,24 +122,24 @@ type MergePolicy interface {
 
 	KeepFullyDeletedSegment(func() CodecReader) bool
 
-	MergePolicyInner
+	MergePolicySPI
 }
 
-type MergePolicyInner interface {
+type MergePolicySPI interface {
 	Size(info *SegmentCommitInfo, mergeContext MergeContext) (int64, error)
 	GetNoCFSRatio() float64
 }
 
-func NewMergePolicy(inner MergePolicyInner) *MergePolicyBase {
+func NewMergePolicy(spi MergePolicySPI) *MergePolicyBase {
 	return &MergePolicyBase{
-		MergePolicyInner:  inner,
+		MergePolicySPI:    spi,
 		noCFSRatio:        DEFAULT_NO_CFS_RATIO,
 		maxCFSSegmentSize: DEFAULT_MAX_CFS_SEGMENT_SIZE,
 	}
 }
 
 type MergePolicyBase struct {
-	MergePolicyInner
+	MergePolicySPI
 
 	noCFSRatio        float64
 	maxCFSSegmentSize int64
@@ -231,6 +233,8 @@ type MergeContext interface {
 // OneMerge provides the information necessary to perform an individual primitive merge operation,
 // resulting in a single new segment. The merge spec includes the subset of segments to be merged
 // as well as whether the new segment should use the compound file format.
+// OneMerge提供了执行单个基元合并操作所需的信息，从而产生单个新段。
+// 合并规范包括要合并的线段的子集，以及新线段是否应使用复合文件格式。
 // lucene.experimental
 type OneMerge struct {
 	info           *SegmentCommitInfo // used by IndexWriter
@@ -238,6 +242,23 @@ type OneMerge struct {
 	mergeGen       bool               // used by IndexWriter
 	isExternal     bool               // used by IndexWriter
 	maxNumSegments int                // used by IndexWriter
+
+	// Estimated size in bytes of the merged segment.
+	estimatedMergeBytes int64 // used by IndexWriter
+
+	// Sum of sizeInBytes of all SegmentInfos; set by IW.mergeInit
+	totalMergeBytes int64
+
+	mergeReaders []MergeReader // used by IndexWriter
+	segments     []*SegmentCommitInfo
+
+	// Control used to pause/ stop/ resume the merge thread.
+	mergeProgress OneMergeProgress
+
+	mergeStartNS int64
+
+	// Total number of documents in segments to be merged, not accounting for deletions.
+	totalMaxDoc int64
 }
 
 // A MergeSpecification instance provides the information necessary to perform multiple merges.
@@ -310,4 +331,13 @@ func (n *NoMergePolicy) Size(info *SegmentCommitInfo, mergeContext MergeContext)
 
 func (n *NoMergePolicy) GetNoCFSRatio() float64 {
 	return n.MergePolicyBase.getNoCFSRatio()
+}
+
+type MergeReader struct {
+	reader       *SegmentReader
+	hardLiveDocs util.Bits
+}
+
+func NewMergeReader(reader *SegmentReader, hardLiveDocs util.Bits) *MergeReader {
+	return &MergeReader{reader: reader, hardLiveDocs: hardLiveDocs}
 }

@@ -153,6 +153,14 @@ func (d *DocumentsWriterDeleteQueue) anyChanges() bool {
 	return false
 }
 
+func (d *DocumentsWriterDeleteQueue) freezeGlobalBuffer(slice *DeleteSlice) *FrozenBufferedUpdates {
+	panic("")
+}
+
+func (d *DocumentsWriterDeleteQueue) Close() {
+
+}
+
 type DeleteSlice struct {
 	// No need to be volatile, slices are thread captive (only accessed by one thread)!
 	sliceHead *Node
@@ -166,9 +174,10 @@ func NewDeleteSlice(currentTail *Node) *DeleteSlice {
 	}
 }
 
-func (d *DeleteSlice) Apply(del *BufferedUpdates, docIDUpto int) {
+func (d *DeleteSlice) Apply(del *BufferedUpdates, docIDUpto int) error {
+
 	if d.sliceHead == d.sliceTail {
-		return
+		return nil
 	}
 
 	// When we apply a slice we take the head and get its next as our first
@@ -178,13 +187,16 @@ func (d *DeleteSlice) Apply(del *BufferedUpdates, docIDUpto int) {
 	current := d.sliceHead
 	for {
 		current = current.next
-		current.Apply(del, docIDUpto)
+		if err := current.Apply(del, docIDUpto); err != nil {
+			return err
+		}
 
 		if current == d.sliceTail {
 			break
 		}
 	}
 	d.Reset()
+	return nil
 }
 
 func (d *DeleteSlice) Reset() {

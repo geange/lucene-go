@@ -47,9 +47,9 @@ type PointsWriter struct {
 	indexFPs   map[string]int64
 }
 
-func NewSimpleTextPointsWriter(writeState *index.SegmentWriteState) (*PointsWriter, error) {
+func NewSimpleTextPointsWriter(ctx context.Context, writeState *index.SegmentWriteState) (*PointsWriter, error) {
 	fileName := store.SegmentFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix, POINT_EXTENSION)
-	out, err := writeState.Directory.CreateOutput(nil, fileName)
+	out, err := writeState.Directory.CreateOutput(ctx, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +118,7 @@ func (s *PointsWriter) Close() error {
 			return err
 		}
 	}
+
 	if err := w.Checksum(); err != nil {
 		return err
 	}
@@ -125,7 +126,7 @@ func (s *PointsWriter) Close() error {
 }
 
 func (s *PointsWriter) WriteField(ctx context.Context, fieldInfo *document.FieldInfo, reader index.PointsReader) error {
-	values, err := reader.GetValues(fieldInfo.Name())
+	values, err := reader.GetValues(nil, fieldInfo.Name())
 	if err != nil {
 		return err
 	}
@@ -151,7 +152,7 @@ func (s *PointsWriter) WriteField(ctx context.Context, fieldInfo *document.Field
 		DEFAULT_MAX_MB_SORT_IN_HEAP,
 		values.Size())
 
-	err = values.Intersect(ctx, &types.BytesVisitor{
+	if err := values.Intersect(ctx, &types.BytesVisitor{
 		VisitFn: func(docID int) error {
 			return errors.New("illegal State")
 		},
@@ -163,8 +164,7 @@ func (s *PointsWriter) WriteField(ctx context.Context, fieldInfo *document.Field
 		},
 		GrowFn: func(count int) {
 		},
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 

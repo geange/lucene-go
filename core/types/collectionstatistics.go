@@ -2,12 +2,14 @@ package types
 
 import "fmt"
 
-// CollectionStatistics Contains statistics for a collection (field).
+// CollectionStatistics
+// Contains statistics for a collection (field).
 // This class holds statistics across all documents for scoring purposes:
-// * maxDoc(): number of documents.
-// * docCount(): number of documents that contain this field.
-// * sumDocFreq(): number of postings-list entries.
-// * sumTotalTermFreq(): number of tokens.
+// - maxDoc(): number of documents.
+// - docCount(): number of documents that contain this field.
+// - sumDocFreq(): number of postings-list entries.
+// - sumTotalTermFreq(): number of tokens.
+//
 // The following conditions are always true:
 // All statistics are positive integers: never zero or negative.
 // docCount <= maxDoc

@@ -22,7 +22,7 @@ type BufferedUpdates struct {
 	fieldUpdates    map[string]*FieldUpdatesBuffer
 	gen             int64
 	segmentName     string
-	//deleteQueries   *treemap.Map
+	deleteQueries   map[Query]int
 }
 
 type bufferedUpdatesOption struct {
@@ -79,4 +79,24 @@ func (b *BufferedUpdates) AddNumericUpdate(update *NumericDocValuesUpdate, docID
 
 func (b *BufferedUpdates) AddBinaryUpdate(update *BinaryDocValuesUpdate, docIDUpto int) error {
 	panic("")
+}
+
+func (b *BufferedUpdates) ClearDeleteTerms() {
+	b.numTermDeletes.Store(0)
+	//b.termsBytesUsed.addAndGet(-termsBytesUsed.get());
+	b.deleteTerms.Clear()
+}
+
+func (b *BufferedUpdates) Clear() {
+	b.deleteTerms.Clear()
+	clear(b.deleteQueries)
+	b.numTermDeletes.Store(0)
+	b.numFieldUpdates.Store(0)
+	clear(b.fieldUpdates)
+}
+
+func (b *BufferedUpdates) Any() bool {
+	return b.deleteTerms.Size() > 0 ||
+		len(b.deleteQueries) > 0 ||
+		b.numFieldUpdates.Load() > 0
 }

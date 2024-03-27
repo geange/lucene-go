@@ -1,6 +1,7 @@
 package simpletext
 
 import (
+	"context"
 	"errors"
 
 	"github.com/geange/lucene-go/codecs/utils"
@@ -42,11 +43,10 @@ type TermVectorsWriter struct {
 	payloads       bool
 }
 
-func NewTermVectorsWriter(dir store.Directory,
-	segment string, context *store.IOContext) (*TermVectorsWriter, error) {
+func NewTermVectorsWriter(ctx context.Context, dir store.Directory, segment string, ioContext *store.IOContext) (*TermVectorsWriter, error) {
 
 	fileName := store.SegmentFileName(segment, "", VECTORS_EXTENSION)
-	out, err := dir.CreateOutput(nil, fileName)
+	out, err := dir.CreateOutput(ctx, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (s *TermVectorsWriter) Close() error {
 	return s.out.Close()
 }
 
-func (s *TermVectorsWriter) StartDocument(numVectorFields int) error {
+func (s *TermVectorsWriter) StartDocument(ctx context.Context, numVectorFields int) error {
 	if err := writeValue(s.out, VECTORS_DOC, s.numDocsWritten); err != nil {
 		return err
 	}
@@ -77,11 +77,11 @@ func (s *TermVectorsWriter) StartDocument(numVectorFields int) error {
 	return nil
 }
 
-func (s *TermVectorsWriter) FinishDocument() error {
+func (s *TermVectorsWriter) FinishDocument(context.Context) error {
 	return nil
 }
 
-func (s *TermVectorsWriter) StartField(info *document.FieldInfo, numTerms int, positions, offsets, payloads bool) error {
+func (s *TermVectorsWriter) StartField(ctx context.Context, info *document.FieldInfo, numTerms int, positions, offsets, payloads bool) error {
 	if err := writeValue(s.out, VECTORS_FIELD, info.Number()); err != nil {
 		return err
 	}
@@ -107,11 +107,11 @@ func (s *TermVectorsWriter) StartField(info *document.FieldInfo, numTerms int, p
 	return nil
 }
 
-func (s *TermVectorsWriter) FinishField() error {
+func (s *TermVectorsWriter) FinishField(context.Context) error {
 	return nil
 }
 
-func (s *TermVectorsWriter) StartTerm(term []byte, freq int) error {
+func (s *TermVectorsWriter) StartTerm(ctx context.Context, term []byte, freq int) error {
 	if err := writeValue(s.out, VECTORS_TERMTEXT, term); err != nil {
 		return err
 	}
@@ -122,11 +122,11 @@ func (s *TermVectorsWriter) StartTerm(term []byte, freq int) error {
 	return nil
 }
 
-func (s *TermVectorsWriter) FinishTerm() error {
+func (s *TermVectorsWriter) FinishTerm(context.Context) error {
 	return nil
 }
 
-func (s *TermVectorsWriter) AddPosition(position, startOffset, endOffset int, payload []byte) error {
+func (s *TermVectorsWriter) AddPosition(ctx context.Context, position, startOffset, endOffset int, payload []byte) error {
 	if s.positions {
 		if err := writeValue(s.out, VECTORS_POSITION, position); err != nil {
 			return err
@@ -152,7 +152,7 @@ func (s *TermVectorsWriter) AddPosition(position, startOffset, endOffset int, pa
 	return nil
 }
 
-func (s *TermVectorsWriter) Finish(fis *index.FieldInfos, numDocs int) error {
+func (s *TermVectorsWriter) Finish(ctx context.Context, fis *index.FieldInfos, numDocs int) error {
 	if s.numDocsWritten != numDocs {
 		return errors.New("mergeVectors produced an invalid result")
 	}
