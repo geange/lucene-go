@@ -2,7 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
@@ -35,7 +35,7 @@ type MultiTermQuery interface {
 	// The given AttributeSource is passed by the MultiTermQuery.RewriteMethod to
 	// share information between segments, for example TopTermsRewrite uses it to
 	// share maximum competitive boosts
-	GetTermsEnum(terms index.Terms, atts *tokenattr.AttributeSource) (index.TermsEnum, error)
+	GetTermsEnum(terms index.Terms, atts *attribute.Source) (index.TermsEnum, error)
 
 	// GetRewriteMethod See Also: setRewriteMethod
 	GetRewriteMethod() RewriteMethod
@@ -54,7 +54,7 @@ type RewriteMethod interface {
 
 	// GetTermsEnum Returns the MultiTermQuerys TermsEnum
 	// See Also: getTermsEnum(Terms, AttributeSource)
-	GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *tokenattr.AttributeSource) (index.TermsEnum, error)
+	GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *attribute.Source) (index.TermsEnum, error)
 }
 
 var _ RewriteMethod = &constantScoreRewrite{}
@@ -67,7 +67,7 @@ func (c *constantScoreRewrite) Rewrite(reader index.Reader, query MultiTermQuery
 	panic("implement me")
 }
 
-func (c *constantScoreRewrite) GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *tokenattr.AttributeSource) (index.TermsEnum, error) {
+func (c *constantScoreRewrite) GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *attribute.Source) (index.TermsEnum, error) {
 	return query.GetTermsEnum(terms, atts)
 }
 
@@ -135,7 +135,7 @@ func (r *wrapperConstantScoreWeight) Matches(context *index.LeafReaderContext, d
 		return r.ConstantScoreWeight.Matches(context, doc)
 	}
 
-	termsEnum, err := r.p.query.GetTermsEnum(terms, tokenattr.NewAttributeSource())
+	termsEnum, err := r.p.query.GetTermsEnum(terms, attribute.NewSource())
 	if err != nil {
 		return nil, err
 	}

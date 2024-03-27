@@ -1,16 +1,16 @@
-package tokenattr
+package attribute
 
 import (
 	"errors"
 )
 
-type AttributeFactory interface {
+type Factory interface {
 	// CreateAttributeInstance Returns an AttributeImpl for the supplied Attribute interface class.
 	CreateAttributeInstance(class string) (Attribute, error)
 }
 
 var (
-	DEFAULT_ATTRIBUTE_FACTORY AttributeFactory = &DefaultAttributeFactory{}
+	DEFAULT_ATTRIBUTE_FACTORY Factory = &DefaultAttributeFactory{}
 )
 
 type DefaultAttributeFactory struct {

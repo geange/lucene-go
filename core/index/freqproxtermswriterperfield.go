@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
@@ -22,9 +22,9 @@ type FreqProxTermsWriterPerField struct {
 	hasFreq          bool
 	hasProx          bool
 	hasOffsets       bool
-	payloadAttribute tokenattr.PayloadAttr
-	offsetAttribute  tokenattr.OffsetAttr
-	termFreqAtt      tokenattr.TermFreqAttr
+	payloadAttribute attribute.PayloadAttr
+	offsetAttribute  attribute.OffsetAttr
+	termFreqAtt      attribute.TermFreqAttr
 
 	// Set to true if any token had a payload in the current segment.
 	sawPayloads bool

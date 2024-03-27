@@ -1,4 +1,4 @@
-package tokenattr
+package attribute
 
 import (
 	"testing"

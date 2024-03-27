@@ -1,12 +1,13 @@
-package tokenattr
+package attribute
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAttributeSource(t *testing.T) {
-	source := NewAttributeSource()
+	source := NewSource()
 
 	assert.ElementsMatch(t, []string{ClassBytesTerm, ClassTermToBytesRef}, source.BytesTerm().Interfaces())
 	assert.ElementsMatch(t, []string{ClassCharTerm, ClassTermToBytesRef}, source.CharTerm().Interfaces())

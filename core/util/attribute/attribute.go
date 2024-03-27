@@ -1,4 +1,4 @@
-package tokenattr
+package attribute
 
 const (
 	ClassBytesTerm         = "BytesTerm"
@@ -9,6 +9,7 @@ const (
 	ClassPositionLength    = "PositionLength"
 	ClassTermFrequency     = "TermFrequency"
 	ClassTermToBytesRef    = "TermToBytesRef"
+	ClassType              = "Type"
 )
 
 // Attribute

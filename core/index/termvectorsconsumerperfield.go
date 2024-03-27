@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
@@ -24,9 +24,9 @@ type TermVectorsConsumerPerField struct {
 	doVectorPositions bool
 	doVectorOffsets   bool
 	doVectorPayloads  bool
-	offsetAttribute   tokenattr.OffsetAttr
-	payloadAttribute  tokenattr.PayloadAttr
-	termFreqAtt       tokenattr.TermFreqAttr
+	offsetAttribute   attribute.OffsetAttr
+	payloadAttribute  attribute.PayloadAttr
+	termFreqAtt       attribute.TermFreqAttr
 	termBytePool      *bytesref.BlockPool
 	hasPayloads       bool // if enabled, and we actually saw any for this field
 }

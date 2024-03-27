@@ -257,13 +257,13 @@ func (f *FieldType) PointNumBytes() int {
 	return f.dimensionNumBytes
 }
 
-// PutAttribute Puts an attribute value.
+// PutAttribute
+// Puts an attribute value.
 // This is a key-value mapping for the field that the codec can use to store additional metadata.
 // If a value already exists for the field, it will be replaced with the new value. This method is not thread-safe,
 // user must not add attributes while other threads are indexing documents with this field types.
 func (f *FieldType) PutAttribute(key, value string) {
-	err := f.checkIfFrozen()
-	if err != nil {
+	if err := f.checkIfFrozen(); err != nil {
 		return
 	}
 

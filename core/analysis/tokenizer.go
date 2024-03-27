@@ -1,8 +1,9 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattr"
 	"io"
+
+	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 type Tokenizer interface {
@@ -15,19 +16,19 @@ type Tokenizer interface {
 
 func NewBaseTokenizer() *BaseTokenizer {
 	return &BaseTokenizer{
-		source:       tokenattr.NewAttributeSource(),
+		source:       attribute.NewSource(),
 		input:        nil,
 		inputPending: nil,
 	}
 }
 
 type BaseTokenizer struct {
-	source       *tokenattr.AttributeSource
+	source       *attribute.Source
 	input        io.Reader // The text source for this Tokenizer.
 	inputPending io.Reader // Pending reader: not actually assigned to input until reset()
 }
 
-func (t *BaseTokenizer) AttributeSource() *tokenattr.AttributeSource {
+func (t *BaseTokenizer) AttributeSource() *attribute.Source {
 	return t.source
 }
 

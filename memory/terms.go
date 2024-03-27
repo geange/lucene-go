@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/geange/lucene-go/core/index"
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
@@ -77,7 +77,7 @@ type memTermsEnum struct {
 	info     *info
 	termUpto int
 	content  []byte
-	atts     *tokenattr.AttributeSource
+	atts     *attribute.Source
 	index    *Index
 }
 
@@ -87,7 +87,7 @@ func (r *Index) newTermsEnum(info *info) *memTermsEnum {
 		info:     info,
 		termUpto: -1,
 		content:  nil,
-		atts:     tokenattr.NewAttributeSource(),
+		atts:     attribute.NewSource(),
 		index:    r,
 	}
 }
@@ -126,7 +126,7 @@ func (m *memTermsEnum) Next(ctx context.Context) ([]byte, error) {
 	return m.content, nil
 }
 
-func (m *memTermsEnum) Attributes() *tokenattr.AttributeSource {
+func (m *memTermsEnum) Attributes() *attribute.Source {
 	return m.atts
 }
 

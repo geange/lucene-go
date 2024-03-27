@@ -2,7 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 // FieldInvertState
@@ -22,12 +22,12 @@ type FieldInvertState struct {
 	lastStartOffset int
 	lastPosition    int
 
-	attributeSource   *tokenattr.AttributeSource
-	offsetAttribute   tokenattr.OffsetAttr
-	posIncrAttribute  tokenattr.PositionIncrAttr
-	payloadAttribute  tokenattr.PayloadAttr
-	termAttribute     tokenattr.Term2BytesAttr
-	termFreqAttribute tokenattr.TermFreqAttr
+	attributeSource   *attribute.Source
+	offsetAttribute   attribute.OffsetAttr
+	posIncrAttribute  attribute.PositionIncrAttr
+	payloadAttribute  attribute.PayloadAttr
+	termAttribute     attribute.Term2BytesAttr
+	termFreqAttribute attribute.TermFreqAttr
 }
 
 // NewFieldInvertState Creates {code FieldInvertState} for the specified field name and values for all fields.
@@ -64,7 +64,7 @@ func (f *FieldInvertState) Reset() {
 	f.lastPosition = 0
 }
 
-func (f *FieldInvertState) SetAttributeSource(attributeSource *tokenattr.AttributeSource) {
+func (f *FieldInvertState) SetAttributeSource(attributeSource *attribute.Source) {
 	if f.attributeSource != attributeSource {
 		f.attributeSource = attributeSource
 		f.termAttribute = attributeSource.Term2Bytes()
@@ -121,7 +121,7 @@ func (f *FieldInvertState) GetUniqueTermCount() int {
 }
 
 // GetAttributeSource Returns the AttributeSourceV2 from the TokenStream that provided the indexed tokens for this field.
-func (f *FieldInvertState) GetAttributeSource() *tokenattr.AttributeSource {
+func (f *FieldInvertState) GetAttributeSource() *attribute.Source {
 	return f.attributeSource
 }
 

@@ -1,15 +1,16 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattr"
 	"strings"
+
+	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 // LowerCaseFilter Normalizes token text to lower case.
 type LowerCaseFilter struct {
 	*BaseTokenFilter
 
-	termAtt tokenattr.CharTermAttr
+	termAtt attribute.CharTermAttr
 }
 
 func NewLowerCaseFilter(in TokenStream) *LowerCaseFilter {

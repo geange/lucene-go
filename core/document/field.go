@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/geange/lucene-go/core/analysis"
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 // Field
@@ -52,7 +52,7 @@ func (r *Field[T]) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenS
 				return stream, nil
 			}
 
-			stream, err := NewStringTokenStream(tokenattr.NewAttributeSource())
+			stream, err := NewStringTokenStream(attribute.NewSource())
 			if err != nil {
 				return nil, err
 			}
@@ -65,7 +65,7 @@ func (r *Field[T]) TokenStream(analyzer analysis.Analyzer, reuse analysis.TokenS
 				return stream, nil
 			}
 
-			stream, err := NewBinaryTokenStream(tokenattr.NewAttributeSource())
+			stream, err := NewBinaryTokenStream(attribute.NewSource())
 			if err != nil {
 				return nil, err
 			}
@@ -118,7 +118,7 @@ func (r *Field[T]) Number() (any, bool) {
 
 var _ analysis.TokenStream = &StringTokenStream{}
 
-func NewStringTokenStream(source *tokenattr.AttributeSource) (*StringTokenStream, error) {
+func NewStringTokenStream(source *attribute.Source) (*StringTokenStream, error) {
 	stream := &StringTokenStream{
 		source:          source,
 		termAttribute:   source.CharTerm(),
@@ -130,14 +130,14 @@ func NewStringTokenStream(source *tokenattr.AttributeSource) (*StringTokenStream
 }
 
 type StringTokenStream struct {
-	source          *tokenattr.AttributeSource
-	termAttribute   tokenattr.CharTermAttr
-	offsetAttribute tokenattr.OffsetAttr
+	source          *attribute.Source
+	termAttribute   attribute.CharTermAttr
+	offsetAttribute attribute.OffsetAttr
 	used            *atomic.Bool
 	value           string
 }
 
-func (s *StringTokenStream) AttributeSource() *tokenattr.AttributeSource {
+func (s *StringTokenStream) AttributeSource() *attribute.Source {
 	return s.source
 }
 
@@ -181,7 +181,7 @@ func (s *StringTokenStream) SetValue(value string) {
 
 var _ analysis.TokenStream = &BinaryTokenStream{}
 
-func NewBinaryTokenStream(source *tokenattr.AttributeSource) (*BinaryTokenStream, error) {
+func NewBinaryTokenStream(source *attribute.Source) (*BinaryTokenStream, error) {
 	stream := &BinaryTokenStream{
 		source:   source,
 		bytesAtt: source.BytesTerm(),
@@ -192,13 +192,13 @@ func NewBinaryTokenStream(source *tokenattr.AttributeSource) (*BinaryTokenStream
 }
 
 type BinaryTokenStream struct {
-	source   *tokenattr.AttributeSource
-	bytesAtt tokenattr.BytesTermAttr
+	source   *attribute.Source
+	bytesAtt attribute.BytesTermAttr
 	used     bool
 	value    []byte
 }
 
-func (r *BinaryTokenStream) AttributeSource() *tokenattr.AttributeSource {
+func (r *BinaryTokenStream) AttributeSource() *attribute.Source {
 	return r.source
 }
 

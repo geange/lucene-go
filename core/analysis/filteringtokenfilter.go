@@ -1,6 +1,8 @@
 package analysis
 
-import "github.com/geange/lucene-go/core/tokenattr"
+import (
+	"github.com/geange/lucene-go/core/util/attribute"
+)
 
 // FilteringTokenFilter Abstract base class for TokenFilters that may remove tokens. You have to implement
 // accept and return a boolean if the current token should be preserved. incrementToken uses this method to
@@ -19,7 +21,7 @@ type BaseFilteringTokenFilter struct {
 	*BaseTokenFilter
 
 	acceptable       Acceptable
-	posIncrAtt       tokenattr.PositionIncrAttr
+	posIncrAtt       attribute.PositionIncrAttr
 	skippedPositions int
 }
 

@@ -29,24 +29,24 @@ func NewLongPoint(name string, points ...int64) LongPoint {
 }
 
 func (r *LongPoint) String() string {
-	result := new(bytes.Buffer)
-	result.WriteString("LongPoint")
-	result.WriteString(" <")
-	result.WriteString(r.name)
-	result.WriteString(":")
+	buf := new(bytes.Buffer)
+	buf.WriteString("LongPoint")
+	buf.WriteString(" <")
+	buf.WriteString(r.name)
+	buf.WriteString(":")
 
 	packed := r.fieldsData
 	count := r.fieldType.PointDimensionCount()
 	for dim := 0; dim < count; dim++ {
 		if dim > 0 {
-			result.WriteString(",")
+			buf.WriteString(",")
 		}
 		offset := dim * LONG_BYTES
 		num := fmt.Sprintf("%d", numeric.SortableBytesToLong(packed[offset:]))
-		result.WriteString(num)
+		buf.WriteString(num)
 	}
-	result.WriteString(">")
-	return result.String()
+	buf.WriteString(">")
+	return buf.String()
 }
 
 func (r *LongPoint) Number() (any, bool) {
