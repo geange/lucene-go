@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/geange/lucene-go/core/analysis"
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 // CharTokenizer An abstract base class for simple, character-oriented tokenizers.
@@ -27,7 +27,7 @@ func NewCharTokenizerImpl(ext CharTokenizerInner, input io.Reader) *CharTokenize
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 
-	attr := tokenattr.NewPackedTokenAttr()
+	attr := attribute.NewPackedTokenAttr()
 
 	return &CharTokenizerBase{
 		inner:         ext,
@@ -50,8 +50,8 @@ type CharTokenizerBase struct {
 	finalOffset int
 	maxTokenLen int
 
-	termAtt   tokenattr.CharTermAttr
-	offsetAtt tokenattr.OffsetAttr
+	termAtt   attribute.CharTermAttr
+	offsetAtt attribute.OffsetAttr
 
 	reader *bufio.Reader
 

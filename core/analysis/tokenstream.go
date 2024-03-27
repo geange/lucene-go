@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/geange/lucene-go/core/tokenattr"
+	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
@@ -31,7 +31,7 @@ import (
 // The TokenStream-API in Lucene is based on the decorator pattern. Therefore all non-abstract subclasses must
 // be final or have at least a final implementation of incrementToken! This is checked when Java assertions are enabled.
 type TokenStream interface {
-	AttributeSource() *tokenattr.AttributeSource
+	AttributeSource() *attribute.Source
 
 	// IncrementToken
 	// Consumers (i.e., IndexWriter) use this method to advance the stream to the next token.

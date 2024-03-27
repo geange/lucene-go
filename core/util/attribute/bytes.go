@@ -1,4 +1,4 @@
-package tokenattr
+package attribute
 
 import (
 	"bytes"
@@ -164,10 +164,8 @@ func (b *bytesAttr) CopyTo(target Attribute) error {
 }
 
 func (b *bytesAttr) Clone() Attribute {
-	attr := &bytesAttr{
+	return &bytesAttr{
 		classes: slices.Clone(b.classes),
-		buf:     new(bytes.Buffer),
+		buf:     bytes.NewBuffer(b.GetBytes()),
 	}
-	_ = attr.SetBytes(b.GetBytes())
-	return attr
 }

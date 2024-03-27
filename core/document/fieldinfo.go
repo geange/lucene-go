@@ -5,20 +5,21 @@ import (
 	"fmt"
 )
 
-// FieldInfo Access to the Field Info file that describes document fields and whether or not they are indexed.
+// FieldInfo
+// Access to the Field Info file that describes document fields and whether or not they are indexed.
 // Each segment has a separate Field Info file. Objects of this class are thread-safe for multiple readers,
 // but only one thread can be adding documents at a time, with no other reader or writer threads accessing this object.
 type FieldInfo struct {
-	name             string // Field's name
-	number           int    // Internal field number
-	docValuesType    DocValuesType
-	storeTermVector  bool // True if any document indexed term vectors
-	omitNorms        bool // omit norms associated with indexed fields
-	indexOptions     IndexOptions
-	storePayloads    bool // whether this field stores payloads together with term positions
-	attributes       map[string]string
-	dvGen            int64
-	softDeletesField bool // whether this field is used as the soft-deletes field
+	name             string            // Field's name
+	number           int               // Internal field number
+	docValuesType    DocValuesType     //
+	storeTermVector  bool              // True if any document indexed term vectors
+	omitNorms        bool              // omit norms associated with indexed fields
+	indexOptions     IndexOptions      //
+	storePayloads    bool              // whether this field stores payloads together with term positions
+	attributes       map[string]string //
+	dvGen            int64             //
+	softDeletesField bool              // whether this field is used as the soft-deletes field
 
 	// If both of these are positive it means this field indexed points (see org.apache.lucene.codecs.PointsFormat).
 	pointDimensionCount      int

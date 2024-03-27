@@ -1,6 +1,7 @@
 package document
 
-// StoredFieldVisitor Expert: provides a low-level means of accessing the stored field values in an index.
+// StoredFieldVisitor
+// Expert: provides a low-level means of accessing the stored field values in an index.
 // See IndexReader.document(int, StoredFieldVisitor).
 //
 // NOTE: a StoredFieldVisitor implementation should not try to load or visit other stored documents in

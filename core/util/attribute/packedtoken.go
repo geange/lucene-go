@@ -1,4 +1,4 @@
-package tokenattr
+package attribute
 
 import (
 	"errors"
@@ -210,11 +210,11 @@ func (p *packedTokenAttr) SetType(_type string) {
 
 func (p *packedTokenAttr) Interfaces() []string {
 	values := []string{
-		"Type",
-		"PositionIncrement",
-		"PositionLength",
-		"Offset",
-		"TermFrequency",
+		ClassType,
+		ClassPositionIncrement,
+		ClassPositionLength,
+		ClassOffset,
+		ClassTermFrequency,
 	}
 	return append(p.bytesAttr.Interfaces(), values...)
 }

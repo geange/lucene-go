@@ -2,7 +2,8 @@ package index
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/tokenattr"
+
+	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 // TermsEnum DVFUIterator to seek (seekCeil(), seekExact()) or step through (next terms to obtain
@@ -15,7 +16,7 @@ type TermsEnum interface {
 	Next(context.Context) ([]byte, error)
 
 	// Attributes Returns the related attributes.
-	Attributes() *tokenattr.AttributeSource
+	Attributes() *attribute.Source
 
 	// SeekExact Attempts to seek to the exact term, returning true if the term is found. If this returns false,
 	// the enum is unpositioned. For some codecs, seekExact may be substantially faster than seekCeil.
@@ -105,16 +106,16 @@ var _ TermsEnum = &emptyTermsEnum{}
 var EmptyTermsEnum = &emptyTermsEnum{}
 
 type emptyTermsEnum struct {
-	atts *tokenattr.AttributeSource
+	atts *attribute.Source
 }
 
 func (e *emptyTermsEnum) Next(context.Context) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (e *emptyTermsEnum) Attributes() *tokenattr.AttributeSource {
+func (e *emptyTermsEnum) Attributes() *attribute.Source {
 	if e.atts == nil {
-		e.atts = tokenattr.NewAttributeSource()
+		e.atts = attribute.NewSource()
 	}
 	return e.atts
 }
