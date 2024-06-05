@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,17 +12,19 @@ import (
 	"github.com/geange/lucene-go/core/util/packed"
 )
 
-// BinaryDocValues A per-document numeric item.
+// BinaryDocValues
+// A per-document numeric item.
 type BinaryDocValues interface {
 	types.DocValuesIterator
 
-	// BinaryValue Returns the binary item for the current document ID. It is illegal to call this method after
+	// BinaryValue
+	// Returns the binary item for the current document ID. It is illegal to call this method after
 	// advanceExact(int) returned false.
 	// Returns: binary item
 	BinaryValue() ([]byte, error)
 }
 
-type BinaryDocValuesDefault struct {
+type BaseBinaryDocValues struct {
 	FnDocID        func() int
 	FnNextDoc      func() (int, error)
 	FnAdvance      func(target int) (int, error)
@@ -31,34 +34,34 @@ type BinaryDocValuesDefault struct {
 	FnBinaryValue  func() ([]byte, error)
 }
 
-func (n *BinaryDocValuesDefault) DocID() int {
+func (n *BaseBinaryDocValues) DocID() int {
 	return n.FnDocID()
 }
 
-func (n *BinaryDocValuesDefault) NextDoc() (int, error) {
+func (n *BaseBinaryDocValues) NextDoc() (int, error) {
 	return n.FnNextDoc()
 }
 
-func (n *BinaryDocValuesDefault) Advance(target int) (int, error) {
+func (n *BaseBinaryDocValues) Advance(target int) (int, error) {
 	return n.FnAdvance(target)
 }
 
-func (n *BinaryDocValuesDefault) SlowAdvance(target int) (int, error) {
+func (n *BaseBinaryDocValues) SlowAdvance(target int) (int, error) {
 	if n.FnSlowAdvance != nil {
 		return n.FnSlowAdvance(target)
 	}
 	return types.SlowAdvance(n, target)
 }
 
-func (n *BinaryDocValuesDefault) Cost() int64 {
+func (n *BaseBinaryDocValues) Cost() int64 {
 	return n.FnCost()
 }
 
-func (n *BinaryDocValuesDefault) AdvanceExact(target int) (bool, error) {
+func (n *BaseBinaryDocValues) AdvanceExact(target int) (bool, error) {
 	return n.FnAdvanceExact(target)
 }
 
-func (n *BinaryDocValuesDefault) BinaryValue() ([]byte, error) {
+func (n *BaseBinaryDocValues) BinaryValue() ([]byte, error) {
 	return n.FnBinaryValue()
 }
 
@@ -68,7 +71,7 @@ var _ DocValuesFieldUpdates = &BinaryDocValuesFieldUpdates{}
 // A DocValuesFieldUpdates which holds updates of documents, of a single BinaryDocValuesField.
 // lucene.experimental
 type BinaryDocValuesFieldUpdates struct {
-	*DocValuesFieldUpdatesDefault
+	*BaseDocValuesFieldUpdates
 
 	offsets, lengths *packed.PagedGrowableWriter
 
@@ -114,7 +117,7 @@ func (b *BinaryDocValuesFieldUpdates) Reset(doc int) error {
 }
 
 func (b *BinaryDocValuesFieldUpdates) Swap(i, j int) error {
-	if err := b.DocValuesFieldUpdatesDefault.Swap(i, j); err != nil {
+	if err := b.BaseDocValuesFieldUpdates.Swap(i, j); err != nil {
 		return err
 	}
 
@@ -143,7 +146,7 @@ func (b *BinaryDocValuesFieldUpdates) Swap(i, j int) error {
 }
 
 func (b *BinaryDocValuesFieldUpdates) Grow(size int) error {
-	if err := b.DocValuesFieldUpdatesDefault.Grow(size); err != nil {
+	if err := b.BaseDocValuesFieldUpdates.Grow(size); err != nil {
 		return err
 	}
 	b.offsets = b.offsets.Grow(size).(*packed.PagedGrowableWriter)
@@ -152,7 +155,7 @@ func (b *BinaryDocValuesFieldUpdates) Grow(size int) error {
 }
 
 func (b *BinaryDocValuesFieldUpdates) Resize(size int) error {
-	err := b.DocValuesFieldUpdatesDefault.Resize(size)
+	err := b.BaseDocValuesFieldUpdates.Resize(size)
 	if err != nil {
 		return err
 	}
@@ -195,8 +198,8 @@ func (b *BinaryDocValuesWriter) AddValue(docID int, value []byte) error {
 }
 
 func (b *BinaryDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
-	return consumer.AddBinaryField(nil, b.fieldInfo, &EmptyDocValuesProducer{
-		FnGetBinary: func(field *document.FieldInfo) (BinaryDocValues, error) {
+	return consumer.AddBinaryField(context.TODO(), b.fieldInfo, &EmptyDocValuesProducer{
+		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (BinaryDocValues, error) {
 			iterator, err := b.docsWithField.Iterator()
 			if err != nil {
 				return nil, err

@@ -14,36 +14,41 @@ import (
 //   - Once a file is created it must only be opened for input (openInput), or deleted (deleteFile). Calling
 //     createOutput on an existing file must throw java.nio.file.FileAlreadyExistsException.
 //
-// See Also: 	* FSDirectory
+// See Also: FSDirectory
 //   - RAMDirectory
 //   - FilterDirectory
 type Directory interface {
 
-	// ListAll Returns names of all files stored in this directory. The output must be in sorted
+	// ListAll
+	// Returns names of all files stored in this directory. The output must be in sorted
 	// (UTF-16, java's String.compareTo) order.
 	// Throws: IOException – in case of I/O error
 	ListAll(ctx context.Context) ([]string, error)
 
-	// DeleteFile Removes an existing file in the directory. This method must throw either
+	// DeleteFile
+	// Removes an existing file in the directory. This method must throw either
 	// NoSuchFileException or FileNotFoundException if name points to a non-existing file.
 	// Params: name – the name of an existing file.
 	// Throws: IOException – in case of I/O error
 	DeleteFile(ctx context.Context, name string) error
 
-	// FileLength Returns the byte length of a file in the directory. This method must throw either
+	// FileLength
+	// Returns the byte length of a file in the directory. This method must throw either
 	// NoSuchFileException or FileNotFoundException if name points to a non-existing file.
-	// Params: name – the name of an existing file.
+	// name: the name of an existing file.
 	// Throws: IOException – in case of I/O error
 	FileLength(ctx context.Context, name string) (int64, error)
 
-	// CreateOutput Creates a new, empty file in the directory and returns an IndexOutput instance for
+	// CreateOutput
+	// Creates a new, empty file in the directory and returns an IndexOutput instance for
 	// appending data to this file. This method must throw java.nio.file.FileAlreadyExistsException if
 	// the file already exists.
 	// Params: name – the name of the file to create.
 	// Throws: IOException – in case of I/O error
 	CreateOutput(ctx context.Context, name string) (IndexOutput, error)
 
-	// CreateTempOutput Creates a new, empty, temporary file in the directory and returns an IndexOutput
+	// CreateTempOutput
+	// Creates a new, empty, temporary file in the directory and returns an IndexOutput
 	// instance for appending data to this file. The temporary file name
 	// (accessible via IndexOutput.getName()) will start with prefix, end with suffix and have a reserved
 	// file extension .tmp.
@@ -60,7 +65,8 @@ type Directory interface {
 	// See Also: sync(Collection)
 	//SyncMetaData(ctx context.Context) error
 
-	// Rename Renames source file to dest file where dest must not already exist in the directory.
+	// Rename
+	// Renames source file to dest file where dest must not already exist in the directory.
 	// It is permitted for this operation to not be truly atomic, for example both source and dest can
 	// be visible temporarily in listAll(). However, the implementation of this method must ensure the
 	// content of dest appears as the entire source atomically. So once dest is visible for readers,
@@ -90,7 +96,7 @@ type Directory interface {
 	io.Closer
 
 	// CopyFrom Copies an existing src file from directory from to a non-existent file dest in this directory.
-	//CopyFrom(from Directory, src, dest string, context *IOContext) error
+	CopyFrom(ctx context.Context, from Directory, src, dest string, ioContext *IOContext) error
 
 	// EnsureOpen Ensures this directory is still open.
 	// Throws: AlreadyClosedException – if this directory is closed.
@@ -108,15 +114,15 @@ func OpenChecksumInput(dir Directory, name string) (ChecksumIndexInput, error) {
 	return NewBufferedChecksumIndexInput(input), nil
 }
 
-type DirectoryDefault struct {
+type BaseDirectory struct {
 	DeleteFile func(ctx context.Context, name string) error
 }
 
-type DirectorySPI interface {
+type DirectoryDeleter interface {
 	DeleteFile(ctx context.Context, name string) error
 }
 
-func (d *DirectoryDefault) CopyFrom(ctx context.Context, from Directory, src, dest string) error {
+func CopyFrom(ctx context.Context, d DirectoryDeleter, from Directory, src, dest string, ioContext *IOContext) error {
 	is, err := from.OpenInput(ctx, src)
 	if err != nil {
 		return err
@@ -149,6 +155,7 @@ func genTempFileName(prefix, suffix string, counter int64) string {
 type FSDirectory interface {
 	Directory
 
-	// GetDirectory Returns: the underlying filesystem directory
+	// GetDirectory
+	// Returns: the underlying filesystem directory
 	GetDirectory() (string, error)
 }

@@ -206,8 +206,6 @@ func ReadValue(out store.IndexInput, label []byte, buf *bytes.Buffer) (string, e
 		return "", fmt.Errorf("label not found:%s", string(label))
 	}
 	buf.Next(len(label))
-	//
-	//buf.Truncate(len(label))
 
 	return buf.String(), nil
 }
@@ -220,9 +218,6 @@ func WriteBytes(out store.DataOutput, bs []byte) error {
 	for i := range bs {
 		if bs[i] == NEWLINE || bs[i] == ESCAPE {
 			if err := out.WriteByte(ESCAPE); err != nil {
-				return err
-			}
-			if err := out.WriteByte(bs[i]); err != nil {
 				return err
 			}
 		}
@@ -269,9 +264,6 @@ func WriteChecksum(out store.IndexOutput) error {
 	}
 
 	if err := WriteBytes(out, CHECKSUM); err != nil {
-		return err
-	}
-	if err != nil {
 		return err
 	}
 	if err := WriteString(out, fmt.Sprintf("%020d", checksum)); err != nil {

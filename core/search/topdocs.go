@@ -11,9 +11,9 @@ type TopDocs interface {
 	GetScoreDocs() []ScoreDoc
 }
 
-// TopDocsDefault
+// BaseTopDocs
 // Represents hits returned by IndexSearcher.search(Query, int).
-type TopDocsDefault struct {
+type BaseTopDocs struct {
 	// The total number of hits for the query.
 	totalHits *TotalHits
 
@@ -21,17 +21,17 @@ type TopDocsDefault struct {
 	scoreDocs []ScoreDoc
 }
 
-func (t *TopDocsDefault) GetTotalHits() *TotalHits {
+func (t *BaseTopDocs) GetTotalHits() *TotalHits {
 	return t.totalHits
 }
 
-func (t *TopDocsDefault) GetScoreDocs() []ScoreDoc {
+func (t *BaseTopDocs) GetScoreDocs() []ScoreDoc {
 	return t.scoreDocs
 }
 
 // NewTopDocs Constructs a TopDocs.
-func NewTopDocs(totalHits *TotalHits, scoreDocs []ScoreDoc) *TopDocsDefault {
-	return &TopDocsDefault{totalHits: totalHits, scoreDocs: scoreDocs}
+func NewTopDocs(totalHits *TotalHits, scoreDocs []ScoreDoc) *BaseTopDocs {
+	return &BaseTopDocs{totalHits: totalHits, scoreDocs: scoreDocs}
 }
 
 func MergeTopDocs(start, topN int, shardHits []TopDocs, setShardIndex bool) (TopDocs, error) {
@@ -143,6 +143,7 @@ func (s *ShardRef) GetShardIndex(scoreDoc ScoreDoc) int {
 
 type ScoreMergeSortQueue struct {
 	*structure.PriorityQueue[*ShardRef]
+
 	shardHits [][]ScoreDoc
 }
 

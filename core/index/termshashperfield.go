@@ -51,7 +51,7 @@ type TermsHashPerField interface {
 	SetPostingsArray(v ParallelPostingsArray)
 }
 
-type TermsHashPerFieldDefault struct {
+type baseTermsHashPerField struct {
 	nextPerField TermsHashPerField
 	intPool      *ints.BlockPool
 	bytePool     *bytesref.BlockPool
@@ -88,11 +88,11 @@ type TermsHashPerFieldDefault struct {
 	// Called when the postings array is initialized or resized.
 }
 
-func NewTermsHashPerFieldDefault(streamCount int,
+func newBaseTermsHashPerField(streamCount int,
 	intPool *ints.BlockPool, bytePool, termBytePool *bytesref.BlockPool,
-	nextPerField TermsHashPerField, fieldName string, indexOptions document.IndexOptions, perField TermsHashPerField) *TermsHashPerFieldDefault {
+	nextPerField TermsHashPerField, fieldName string, indexOptions document.IndexOptions, perField TermsHashPerField) *baseTermsHashPerField {
 
-	res := &TermsHashPerFieldDefault{
+	res := &baseTermsHashPerField{
 		nextPerField:  nextPerField,
 		intPool:       intPool,
 		bytePool:      bytePool,
@@ -111,15 +111,15 @@ func NewTermsHashPerFieldDefault(streamCount int,
 	return res
 }
 
-func (t *TermsHashPerFieldDefault) GetPostingsArray() ParallelPostingsArray {
+func (t *baseTermsHashPerField) GetPostingsArray() ParallelPostingsArray {
 	return t.postingsArray
 }
 
-func (t *TermsHashPerFieldDefault) SetPostingsArray(v ParallelPostingsArray) {
+func (t *baseTermsHashPerField) SetPostingsArray(v ParallelPostingsArray) {
 	t.postingsArray = v
 }
 
-func (t *TermsHashPerFieldDefault) Reset() error {
+func (t *baseTermsHashPerField) Reset() error {
 	t.bytesHash.Clear(false)
 	t.sortedTermIDs = t.sortedTermIDs[:0]
 	if t.nextPerField != nil {
@@ -128,7 +128,7 @@ func (t *TermsHashPerFieldDefault) Reset() error {
 	return nil
 }
 
-func (t *TermsHashPerFieldDefault) initReader(reader *ByteSliceReader, termID, stream int) error {
+func (t *baseTermsHashPerField) initReader(reader *ByteSliceReader, termID, stream int) error {
 	streamStartOffset := t.postingsArray.GetAddressOffset(termID)
 	streamAddressBuffer := t.intPool.Get(streamStartOffset >> ints.INT_BLOCK_SHIFT)
 	offsetInAddressBuffer := streamStartOffset & ints.INT_BLOCK_MASK
@@ -140,16 +140,16 @@ func (t *TermsHashPerFieldDefault) initReader(reader *ByteSliceReader, termID, s
 }
 
 // Collapse the hash table and sort in-place; also sets this.sortedTermIDs to the results This method must not be called twice unless reset() or reinitHash() was called.
-func (t *TermsHashPerFieldDefault) sortTerms() {
+func (t *baseTermsHashPerField) sortTerms() {
 	t.sortedTermIDs = t.bytesHash.Sort()
 }
 
 // Returns the sorted term IDs. sortTerms() must be called before
-func (t *TermsHashPerFieldDefault) getSortedTermIDs() []int {
+func (t *baseTermsHashPerField) getSortedTermIDs() []int {
 	return t.sortedTermIDs
 }
 
-func (t *TermsHashPerFieldDefault) reinitHash() {
+func (t *baseTermsHashPerField) reinitHash() {
 	t.bytesHash.ReInit()
 }
 
@@ -157,7 +157,7 @@ func (t *TermsHashPerFieldDefault) reinitHash() {
 // because token text has already been "interned" into
 // textStart, so we hash by textStart.  term vectors use
 // this API.
-func (t *TermsHashPerFieldDefault) add(textStart, docID int) error {
+func (t *baseTermsHashPerField) add(textStart, docID int) error {
 	termID := t.bytesHash.AddByPoolOffset(uint32(textStart))
 	if termID >= 0 {
 		// First time we are seeing this token since we last
@@ -168,7 +168,7 @@ func (t *TermsHashPerFieldDefault) add(textStart, docID int) error {
 	return err
 }
 
-func (t *TermsHashPerFieldDefault) initStreamSlices(termID, docID int) error {
+func (t *baseTermsHashPerField) initStreamSlices(termID, docID int) error {
 	// Init stream slices
 	if t.streamCount+t.intPool.IntUpto() > ints.INT_BLOCK_SIZE {
 		// not enough space remaining in this buffer -- jump to next buffer and lose this remaining
@@ -185,7 +185,7 @@ func (t *TermsHashPerFieldDefault) initStreamSlices(termID, docID int) error {
 	t.streamAddressOffset = t.intPool.IntUpto()
 	t.intPool.AddIntUpto(t.streamCount) // advance the pool to reserve the N streams for this term
 
-	t.postingsArray.SetAddressOffset(termID, t.streamAddressOffset+t.intPool.IntOffset)
+	t.postingsArray.SetAddressOffset(termID, t.streamAddressOffset+t.intPool.IntOffset())
 
 	for i := 0; i < t.streamCount; i++ {
 		// initialize each stream with a slice we start with ByteBlockPool.FIRST_LEVEL_SIZE)
@@ -197,7 +197,7 @@ func (t *TermsHashPerFieldDefault) initStreamSlices(termID, docID int) error {
 	return t.fnNewTerm(termID, docID)
 }
 
-func (t *TermsHashPerFieldDefault) positionStreamSlice(termID, docID int) (int, error) {
+func (t *baseTermsHashPerField) positionStreamSlice(termID, docID int) (int, error) {
 	termID = (-termID) - 1
 	intStart := t.postingsArray.GetAddressOffset(termID)
 	t.termStreamAddressBuffer = t.intPool.Get(intStart >> ints.INT_BLOCK_SHIFT)
@@ -208,17 +208,17 @@ func (t *TermsHashPerFieldDefault) positionStreamSlice(termID, docID int) (int, 
 	return termID, nil
 }
 
-func (t *TermsHashPerFieldDefault) getNumTerms() int {
+func (t *baseTermsHashPerField) getNumTerms() int {
 	return t.bytesHash.Size()
 }
 
-func (t *TermsHashPerFieldDefault) GetNextPerField() TermsHashPerField {
+func (t *baseTermsHashPerField) GetNextPerField() TermsHashPerField {
 	return t.nextPerField
 }
 
 // Start adding a new field instance; first is true if this is the first time this field
 // name was seen in the document.
-func (t *TermsHashPerFieldDefault) Start(field document.IndexableField, first bool) bool {
+func (t *baseTermsHashPerField) Start(field document.IndexableField, first bool) bool {
 	if t.nextPerField != nil {
 		t.doNextCall = t.nextPerField.Start(field, first)
 	}
@@ -229,7 +229,7 @@ func (t *TermsHashPerFieldDefault) Start(field document.IndexableField, first bo
 // because token text has already been "interned" into
 // textStart, so we hash by textStart.  term vectors use
 // this API.
-func (t *TermsHashPerFieldDefault) Add2nd(textStart, docID int) error {
+func (t *baseTermsHashPerField) Add2nd(textStart, docID int) error {
 	termID := t.bytesHash.AddByPoolOffset(uint32(textStart))
 	if termID >= 0 {
 		// First time we are seeing this token since we last
@@ -242,7 +242,7 @@ func (t *TermsHashPerFieldDefault) Add2nd(textStart, docID int) error {
 }
 
 // Add Called once per inverted token. This is the primary entry point (for first TermsHash); postings use this API.
-func (t *TermsHashPerFieldDefault) Add(termBytes []byte, docID int) error {
+func (t *baseTermsHashPerField) Add(termBytes []byte, docID int) error {
 	// We are first in the chain so we must "intern" the
 	// term text into textStart address
 	// Get the text & hash of this term.
@@ -268,20 +268,20 @@ func (t *TermsHashPerFieldDefault) Add(termBytes []byte, docID int) error {
 
 // Finish adding all instances of this field to the
 // current document.
-func (t *TermsHashPerFieldDefault) Finish() error {
+func (t *baseTermsHashPerField) Finish() error {
 	if t.nextPerField != nil {
 		return t.nextPerField.Finish()
 	}
 	return nil
 }
 
-func (t *TermsHashPerFieldDefault) writeBytes(stream int, bs []byte) {
+func (t *baseTermsHashPerField) writeBytes(stream int, bs []byte) {
 	for _, b := range bs {
 		t.writeByte(stream, b)
 	}
 }
 
-func (t *TermsHashPerFieldDefault) writeVInt(stream, i int) {
+func (t *baseTermsHashPerField) writeVInt(stream, i int) {
 	buf := make([]byte, 10)
 	num := binary.PutUvarint(buf, uint64(i))
 
@@ -290,7 +290,7 @@ func (t *TermsHashPerFieldDefault) writeVInt(stream, i int) {
 	}
 }
 
-func (t *TermsHashPerFieldDefault) writeByte(stream int, b byte) {
+func (t *baseTermsHashPerField) writeByte(stream int, b byte) {
 	streamAddress := t.streamAddressOffset + stream
 	upto := t.termStreamAddressBuffer[streamAddress]
 	bytes := t.bytePool.Get(upto >> bytesref.BYTE_BLOCK_SHIFT)

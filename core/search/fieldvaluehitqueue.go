@@ -36,7 +36,7 @@ type FieldValueHitQueue[T ScoreDoc] interface {
 	Remove(element T) bool
 	Iterator() structure.Iterator[T]
 	GetReverseMul() []int
-	GetComparators(ctx *index.LeafReaderContext) ([]index.LeafFieldComparator, error)
+	GetComparators(ctx index.LeafReaderContext) ([]index.LeafFieldComparator, error)
 	GetComparatorsList() []index.FieldComparator
 }
 
@@ -78,7 +78,7 @@ func newFieldValueHitQueue[T any](fields []index.SortField, size int, lessThan f
 	return queue
 }
 
-func (f *FieldValueHitQueueDefault[T]) GetComparators(ctx *index.LeafReaderContext) ([]index.LeafFieldComparator, error) {
+func (f *FieldValueHitQueueDefault[T]) GetComparators(ctx index.LeafReaderContext) ([]index.LeafFieldComparator, error) {
 	comparators := make([]index.LeafFieldComparator, 0)
 	for _, comparator := range f.comparators {
 		leafComparator, err := comparator.GetLeafComparator(ctx)
@@ -99,14 +99,15 @@ func (f *FieldValueHitQueueDefault[T]) GetComparatorsList() []index.FieldCompara
 }
 
 type Entry struct {
-	*ScoreDocDefault
+	*baseScoreDoc
+
 	slot int
 }
 
 func NewEntry(slot, doc int) *Entry {
 	return &Entry{
-		ScoreDocDefault: NewScoreDoc(doc, math.NaN()),
-		slot:            slot,
+		baseScoreDoc: newScoreDoc(doc, math.NaN()),
+		slot:         slot,
 	}
 }
 

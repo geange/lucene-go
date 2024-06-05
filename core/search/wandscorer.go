@@ -26,7 +26,7 @@ type WANDScorer struct {
 	// TODO
 }
 
-func newWANDScorer(weight Weight, scorers []Scorer, minShouldMatch int, scoreMode *ScoreMode) (*WANDScorer, error) {
+func newWANDScorer(weight Weight, scorers []Scorer, minShouldMatch int, scoreMode ScoreMode) (*WANDScorer, error) {
 	panic("")
 }
 

@@ -60,7 +60,7 @@ type TopDocsCollector interface {
 	TopDocsRange(start, howMany int) (TopDocs, error)
 }
 
-var EMPTY_TOPDOCS = &TopDocsDefault{
+var EMPTY_TOPDOCS = &BaseTopDocs{
 	totalHits: NewTotalHits(0, EQUAL_TO),
 	scoreDocs: make([]ScoreDoc, 0),
 }

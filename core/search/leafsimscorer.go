@@ -15,12 +15,12 @@ type LeafSimScorer struct {
 func NewLeafSimScorer(scorer index.SimScorer, reader index.LeafReader,
 	field string, needsScores bool) (*LeafSimScorer, error) {
 	leafSimScorer := &LeafSimScorer{scorer: scorer}
-	var err error
 	if needsScores {
-		leafSimScorer.norms, err = reader.GetNormValues(field)
+		norms, err := reader.GetNormValues(field)
 		if err != nil {
 			return nil, err
 		}
+		leafSimScorer.norms = norms
 	}
 	return leafSimScorer, nil
 }
@@ -53,8 +53,7 @@ func (r *LeafSimScorer) Explain(doc int, freqExp *types.Explanation) (*types.Exp
 
 func (r *LeafSimScorer) getNormValue(doc int) (int64, error) {
 	if r.norms != nil {
-		_, err := r.norms.AdvanceExact(doc)
-		if err != nil {
+		if _, err := r.norms.AdvanceExact(doc); err != nil {
 			return 0, err
 		}
 		return r.norms.LongValue()

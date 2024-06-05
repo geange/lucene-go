@@ -47,15 +47,17 @@ func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayl
 		softDeletesField:         softDeletesField,
 	}
 
-	if info.indexOptions != INDEX_OPTIONS_NONE {
-		info.storeTermVector = storeTermVector
-		info.storePayloads = storePayloads
-		info.omitNorms = omitNorms
-	} else {
+	switch info.indexOptions {
+	case INDEX_OPTIONS_NONE:
 		info.storeTermVector = false
 		info.storePayloads = false
 		info.omitNorms = false
+	default:
+		info.storeTermVector = storeTermVector
+		info.storePayloads = storePayloads
+		info.omitNorms = omitNorms
 	}
+
 	return info
 }
 
@@ -72,7 +74,8 @@ func (f *FieldInfo) Number() int {
 	return f.number
 }
 
-// SetPointDimensions Record that this field is indexed with points, with the specified number of
+// SetPointDimensions
+// Record that this field is indexed with points, with the specified number of
 // dimensions and bytes per dimension.
 func (f *FieldInfo) SetPointDimensions(dimensionCount, indexDimensionCount, numBytes int) error {
 

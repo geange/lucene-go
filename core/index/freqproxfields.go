@@ -3,6 +3,7 @@ package index
 import (
 	"bytes"
 	"context"
+	"golang.org/x/exp/maps"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
@@ -11,6 +12,9 @@ import (
 
 var _ Fields = &FreqProxFields{}
 
+// FreqProxFields
+// Implements limited (iterators only, no stats) Fields interface over the in-RAM
+// buffered fields/terms/postings, to flush postings through the PostingsFormat.
 type FreqProxFields struct {
 	fields map[string]*FreqProxTermsWriterPerField
 }
@@ -24,8 +28,7 @@ func NewFreqProxFields(fieldList []*FreqProxTermsWriterPerField) *FreqProxFields
 }
 
 func (f *FreqProxFields) Names() []string {
-	//TODO implement me
-	panic("implement me")
+	return maps.Keys(f.fields)
 }
 
 func (f *FreqProxFields) Terms(field string) (Terms, error) {

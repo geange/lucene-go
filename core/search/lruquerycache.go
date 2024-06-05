@@ -3,7 +3,18 @@ package search
 var _ QueryCache = &LRUQueryCache{}
 
 // LRUQueryCache
-// A QueryCache that evicts queries using a LRU (least-recently-used) eviction policy in order to remain under a given maximum size and number of bytes used. This class is thread-safe. Note that query eviction runs in linear time with the total number of segments that have cache entries so this cache works best with caching policies that only cache on "large" segments, and it is advised to not share this cache across too many indices. A default query cache and policy instance is used in IndexSearcher. If you want to replace those defaults it is typically done like this:
+// A QueryCache that evicts queries using a LRU (least-recently-used) eviction policy in order to remain
+// under a given maximum size and number of bytes used. This class is thread-safe. Note that query eviction
+// runs in linear time with the total number of segments that have cache entries so this cache works best
+// with caching policies that only cache on "large" segments, and it is advised to not share this cache
+// across too many indices. A default query cache and policy instance is used in IndexSearcher. If you want
+// to replace those defaults it is typically done like this:
+//
+// ```
+//
+//	maxNumberOfCachedQueries := 256
+//
+// ```
 //
 //	final int maxNumberOfCachedQueries = 256;
 //	final long maxRamBytesUsed = 50 * 1024L * 1024L; // 50MB

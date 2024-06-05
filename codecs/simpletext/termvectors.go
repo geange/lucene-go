@@ -14,7 +14,7 @@ import (
 var _ index.Terms = &SimpleTVTerms{}
 
 type SimpleTVTerms struct {
-	*index.TermsBase
+	*index.BaseTerms
 
 	terms        *treemap.Map[[]byte, *SimpleTVPostings]
 	hasOffsets   bool
@@ -29,7 +29,7 @@ func NewSimpleTVTerms(hasOffsets, hasPositions, hasPayloads bool) *SimpleTVTerms
 		hasPositions: hasPositions,
 		hasPayloads:  hasPayloads,
 	}
-	terms.TermsBase = index.NewTerms(terms)
+	terms.BaseTerms = index.NewTerms(terms)
 	return terms
 }
 

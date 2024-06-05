@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -38,21 +39,23 @@ func NewOneField() *OneField {
 	return &OneField{}
 }
 
-func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesReader, error) {
+func NewDocValuesReader(ctx context.Context, state *index.SegmentReadState, ext string) (*DocValuesReader, error) {
 	r := &DocValuesReader{
 		fields:  map[string]*OneField{},
 		scratch: new(bytes.Buffer),
 	}
 
-	var err error
-	r.data, err = state.Directory.OpenInput(nil, store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, ext))
+	data, err := state.Directory.OpenInput(ctx, store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, ext))
 	if err != nil {
 		return nil, err
 	}
-	r.maxDoc, err = state.SegmentInfo.MaxDoc()
+	r.data = data
+
+	maxDoc, err := state.SegmentInfo.MaxDoc()
 	if err != nil {
 		return nil, err
 	}
+	r.maxDoc = maxDoc
 
 	reader := utils.NewTextReader(r.data, r.scratch)
 
@@ -73,12 +76,12 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 		field := NewOneField()
 		r.fields[fieldName] = field
 
-		value, err := reader.ReadLabel(DOC_VALUES_TYPE)
+		docValuesType, err := reader.ReadLabel(DOC_VALUES_TYPE)
 		if err != nil {
 			return nil, err
 		}
 
-		dvType := document.StringToDocValuesType(value)
+		dvType := document.StringToDocValuesType(docValuesType)
 		if dvType == document.DOC_VALUES_TYPE_NONE {
 			return nil, errors.New("dvType is NONE")
 		}
@@ -90,15 +93,15 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 			}
 			field.minValue = minValue
 
-			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
+			pattern, err := reader.ReadLabel(DOC_VALUES_PATTERN)
 			if err != nil {
 				return nil, err
 			}
-			field.pattern = value
+			field.pattern = pattern
 
 			field.dataStartFilePointer = r.data.GetFilePointer()
 			offset := r.data.GetFilePointer() + int64((1+len(field.pattern)+2)*r.maxDoc)
-			if _, err = r.data.Seek(offset, io.SeekStart); err != nil {
+			if _, err := r.data.Seek(offset, io.SeekStart); err != nil {
 				return nil, err
 			}
 		case document.DOC_VALUES_TYPE_BINARY:
@@ -118,7 +121,7 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 
 			offset := r.data.GetFilePointer() + int64((1+len(field.pattern)+2)*r.maxDoc)
 
-			if _, err = r.data.Seek(offset, io.SeekStart); err != nil {
+			if _, err := r.data.Seek(offset, io.SeekStart); err != nil {
 				return nil, err
 			}
 
@@ -135,17 +138,17 @@ func NewDocValuesReader(state *index.SegmentReadState, ext string) (*DocValuesRe
 			}
 			field.maxLength = maxLength
 
-			value, err = reader.ReadLabel(DOC_VALUES_PATTERN)
+			pattern, err := reader.ReadLabel(DOC_VALUES_PATTERN)
 			if err != nil {
 				return nil, err
 			}
-			field.pattern = value
+			field.pattern = pattern
 
-			value, err = reader.ReadLabel(DOC_VALUES_ORDPATTERN)
+			ordPattern, err := reader.ReadLabel(DOC_VALUES_ORDPATTERN)
 			if err != nil {
 				return nil, err
 			}
-			field.ordPattern = value
+			field.ordPattern = ordPattern
 
 			field.dataStartFilePointer = r.data.GetFilePointer()
 
@@ -173,7 +176,7 @@ func (s *DocValuesReader) Close() error {
 	panic("implement me")
 }
 
-func (s *DocValuesReader) GetNumeric(fieldInfo *document.FieldInfo) (index.NumericDocValues, error) {
+func (s *DocValuesReader) GetNumeric(ctx context.Context, fieldInfo *document.FieldInfo) (index.NumericDocValues, error) {
 	numFn, err := s.getNumericNonIterator(fieldInfo)
 	if err != nil {
 		return nil, err
@@ -227,12 +230,14 @@ func (s *DocValuesReader) getNumericNonIterator(fieldInfo *document.FieldInfo) (
 		if docID < 0 || docID >= s.maxDoc {
 			return 0, fmt.Errorf("docID must be 0 .. %d; got %d", s.maxDoc-1, docID)
 		}
-		_, err := in.Seek(field.dataStartFilePointer+int64((1+(len(field.pattern))+2)*docID), io.SeekStart)
-		if err != nil {
+
+		if _, err := in.Seek(field.dataStartFilePointer+int64((1+(len(field.pattern))+2)*docID), io.SeekStart); err != nil {
 			return 0, err
 		}
 
-		utils.ReadLine(in, scratch)
+		if err := utils.ReadLine(in, scratch); err != nil {
+			return 0, err
+		}
 
 		num, err := strconv.Atoi(scratch.String())
 		if err != nil {
@@ -240,7 +245,9 @@ func (s *DocValuesReader) getNumericNonIterator(fieldInfo *document.FieldInfo) (
 		}
 
 		// read the line telling us if it's real or not
-		utils.ReadLine(in, scratch)
+		if err := utils.ReadLine(in, scratch); err != nil {
+			return 0, err
+		}
 
 		return field.minValue + int64(num), nil
 	}, nil
@@ -276,8 +283,8 @@ func (i *innerDocValuesIterator1) NextDoc() (int, error) {
 
 func (i *innerDocValuesIterator1) Advance(target int) (int, error) {
 	for idx := target; idx < i.reader.maxDoc; idx++ {
-		_, err := i.in.Seek(i.field.dataStartFilePointer+int64((1+len(i.field.pattern)+2)*idx), io.SeekStart)
-		if err != nil {
+		offset := i.field.dataStartFilePointer + int64((1+len(i.field.pattern)+2)*idx)
+		if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
 			return 0, err
 		}
 
@@ -309,8 +316,8 @@ func (i *innerDocValuesIterator1) Cost() int64 {
 
 func (i *innerDocValuesIterator1) AdvanceExact(target int) (bool, error) {
 	i.doc = target
-	_, err := i.in.Seek(i.field.dataStartFilePointer+int64((1+len(i.field.pattern)+2)*target), io.SeekStart)
-	if err != nil {
+	offset := i.field.dataStartFilePointer + int64((1+len(i.field.pattern)+2)*target)
+	if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
 		return false, err
 	}
 
@@ -327,7 +334,7 @@ func (i *innerDocValuesIterator1) AdvanceExact(target int) (bool, error) {
 
 }
 
-func (s *DocValuesReader) GetBinary(fieldInfo *document.FieldInfo) (index.BinaryDocValues, error) {
+func (s *DocValuesReader) GetBinary(ctx context.Context, fieldInfo *document.FieldInfo) (index.BinaryDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
@@ -370,7 +377,7 @@ func (s *DocValuesReader) GetBinary(fieldInfo *document.FieldInfo) (index.Binary
 		return bs, nil
 	}
 
-	return &index.BinaryDocValuesDefault{
+	return &index.BaseBinaryDocValues{
 		FnDocID:        docsWithField.DocID,
 		FnNextDoc:      docsWithField.NextDoc,
 		FnAdvance:      docsWithField.Advance,
@@ -492,7 +499,7 @@ func (i *innerDocValuesIterator2) AdvanceExact(target int) (bool, error) {
 	return i.scratch.Bytes()[0] == 'T', nil
 }
 
-func (s *DocValuesReader) GetSorted(fieldInfo *document.FieldInfo) (index.SortedDocValues, error) {
+func (s *DocValuesReader) GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
@@ -546,8 +553,7 @@ func (i *innerSortedDocValues) LookupOrd(ord int) ([]byte, error) {
 
 	offset := i.field.dataStartFilePointer + int64(ord*(9+len(i.field.pattern)+i.field.maxLength))
 
-	_, err := i.in.Seek(offset, io.SeekStart)
-	if err != nil {
+	if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
 		return nil, err
 	}
 
@@ -562,8 +568,7 @@ func (i *innerSortedDocValues) LookupOrd(ord int) ([]byte, error) {
 	}
 
 	bs := make([]byte, size)
-	_, err = i.in.Read(bs)
-	if err != nil {
+	if _, err = i.in.Read(bs); err != nil {
 		return nil, err
 	}
 	return bs, nil
@@ -638,8 +643,8 @@ func (i *innerSortedDocValues) TermsEnum() (index.TermsEnum, error) {
 	return index.NewSortedDocValuesTermsEnum(i), nil
 }
 
-func (s *DocValuesReader) GetSortedNumeric(fieldInfo *document.FieldInfo) (index.SortedNumericDocValues, error) {
-	binary, err := s.GetBinary(fieldInfo)
+func (s *DocValuesReader) GetSortedNumeric(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedNumericDocValues, error) {
+	binary, err := s.GetBinary(ctx, fieldInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -671,6 +676,7 @@ func (i *innerSortedNumericDocValues) NextDoc() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	if err := i.setCurrentDoc(); err != nil {
 		return 0, err
 	}
@@ -682,6 +688,7 @@ func (i *innerSortedNumericDocValues) Advance(target int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	if err := i.setCurrentDoc(); err != nil {
 		return 0, err
 	}
@@ -750,11 +757,12 @@ func (i *innerSortedNumericDocValues) setCurrentDoc() error {
 	return nil
 }
 
-func (s *DocValuesReader) GetSortedSet(fieldInfo *document.FieldInfo) (index.SortedSetDocValues, error) {
+func (s *DocValuesReader) GetSortedSet(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedSetDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
 	}
+
 	return &innerSortedSetDocValues{
 		field:        field,
 		in:           s.data.Clone().(store.IndexInput),
@@ -893,9 +901,11 @@ func (i *innerSortedSetDocValues) GetValueCount() int64 {
 func (s *DocValuesReader) CheckIntegrity() error {
 	scratch := new(bytes.Buffer)
 	clone := s.data.Clone().(store.IndexInput)
+
 	if _, err := clone.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
+
 	// checksum is fixed-width encoded with 20 bytes,
 	// plus 1 byte for newline (the space is included in SimpleTextUtil.CHECKSUM):
 	footerStartPos := s.data.Length() - int64(len(utils.CHECKSUM)+21)

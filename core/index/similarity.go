@@ -44,7 +44,8 @@ import (
 // org.apache.lucene.index.IndexWriterConfig.setSimilarity(Similarity), IndexSearcher.setSimilarity(Similarity)
 type Similarity interface {
 
-	// ComputeNorm Computes the normalization item for a field, given the accumulated state of term processing
+	// ComputeNorm
+	// Computes the normalization item for a field, given the accumulated state of term processing
 	// for this field (see FieldInvertState).
 	// Matches in longer fields are less precise, so implementations of this method usually set smaller values
 	// when state.getLength() is large, and larger values when state.getLength() is small.
@@ -52,14 +53,16 @@ type Similarity interface {
 	// lower or equal, ie. for two encoded norms n1 and n2 so that Long.compareUnsigned(n1, n2) > 0 then
 	// SimScorer.Score(freq, n1) <= SimScorer.Score(freq, n2) for any legal freq.
 	// 0 is not a legal norm, so 1 is the norm that produces the highest scores.
-	// Params: state – current processing state for this field
+	//
+	// state: current processing state for this field
 	// Returns: computed norm item
 	ComputeNorm(state *FieldInvertState) int64
 
-	// Scorer Compute any collection-level weight (e.g. IDF, average document length, etc) needed for scoring a query.
-	// Params: 	boost – a multiplicative factor to apply to the produces scores
-	//			collectionStats – collection-level statistics, such as the number of tokens in the collection.
-	//			termStats – term-level statistics, such as the document frequency of a term across the collection.
+	// Scorer
+	// Compute any collection-level weight (e.g. IDF, average document length, etc) needed for scoring a query.
+	// boost: a multiplicative factor to apply to the produces scores
+	// collectionStats: collection-level statistics, such as the number of tokens in the collection.
+	// termStats: term-level statistics, such as the document frequency of a term across the collection.
 	// Returns: SimWeight object with the information this Similarity needs to score a query.
 	Scorer(boost float64, collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) SimScorer
 }
@@ -89,15 +92,15 @@ type SimScorerSPI interface {
 	Score(freq float64, norm int64) float64
 }
 
-type SimScorerDefault struct {
+type BaseSimScorer struct {
 	SimScorerSPI
 }
 
-func NewSimScorerDefault(simScorerSPI SimScorerSPI) *SimScorerDefault {
-	return &SimScorerDefault{SimScorerSPI: simScorerSPI}
+func NewBaseSimScorer(simScorerSPI SimScorerSPI) *BaseSimScorer {
+	return &BaseSimScorer{SimScorerSPI: simScorerSPI}
 }
 
-func (s *SimScorerDefault) Explain(freq *types.Explanation, norm int64) (*types.Explanation, error) {
+func (s *BaseSimScorer) Explain(freq *types.Explanation, norm int64) (*types.Explanation, error) {
 	return types.ExplanationMatch(
 		s.Score(freq.GetValue().(float64), norm),
 		fmt.Sprintf(`score(freq="%v"), with freq of:`, freq.GetValue()),

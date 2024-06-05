@@ -97,7 +97,7 @@ func matchCost(reqApproximation types.DocIdSetIterator, reqTwoPhaseIterator TwoP
 }
 
 func (r *ReqExclScorer) TwoPhaseIterator() TwoPhaseIterator {
-	matchCost := matchCost(r.reqApproximation, r.reqTwoPhaseIterator, r.exclApproximation, r.exclTwoPhaseIterator)
+	cost := matchCost(r.reqApproximation, r.reqTwoPhaseIterator, r.exclApproximation, r.exclTwoPhaseIterator)
 
 	if r.reqTwoPhaseIterator == nil ||
 		(r.exclTwoPhaseIterator != nil && r.reqTwoPhaseIterator.MatchCost() <= r.exclTwoPhaseIterator.MatchCost()) {
@@ -107,7 +107,7 @@ func (r *ReqExclScorer) TwoPhaseIterator() TwoPhaseIterator {
 			reqTwoPhaseIterator:  r.reqTwoPhaseIterator,
 			exclApproximation:    r.exclApproximation,
 			exclTwoPhaseIterator: r.exclTwoPhaseIterator,
-			matchCost:            matchCost,
+			matchCost:            cost,
 		}
 	} else {
 		// reqTwoPhaseIterator is MORE costly than exclTwoPhaseIterator, check it last
@@ -116,7 +116,7 @@ func (r *ReqExclScorer) TwoPhaseIterator() TwoPhaseIterator {
 			reqTwoPhaseIterator:  r.reqTwoPhaseIterator,
 			exclApproximation:    r.exclApproximation,
 			exclTwoPhaseIterator: r.exclTwoPhaseIterator,
-			matchCost:            matchCost,
+			matchCost:            cost,
 		}
 	}
 }
@@ -168,11 +168,15 @@ func (t *twoPhaseIterator1) MatchCost() float64 {
 
 // Confirms whether or not the given TwoPhaseIterator matches on the current document.
 func matchesOrNull(it TwoPhaseIterator) (bool, error) {
+	if it == nil {
+		return false, nil
+	}
+
 	ok, err := it.Matches()
 	if err != nil {
 		return false, err
 	}
-	return it == nil || ok, nil
+	return ok, nil
 }
 
 var _ TwoPhaseIterator = &twoPhaseIterator2{}

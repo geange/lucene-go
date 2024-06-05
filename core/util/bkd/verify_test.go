@@ -19,7 +19,7 @@ func getDirectory(numPoints int64) (store.Directory, error) {
 
 func verify(t *testing.T, config *Config, dir store.Directory,
 	points PointWriter, start, end, middle int, sortedOnHeap int) {
-	radixSelector := NewRadixSelector(config, sortedOnHeap, dir, "test")
+	selector := NewRadixSelector(config, sortedOnHeap, dir, "test")
 
 	//dataOnlyDims := config.numDims - config.numIndexDims
 
@@ -30,14 +30,15 @@ func verify(t *testing.T, config *Config, dir store.Directory,
 		if !assert.Nil(t, err) {
 			t.FailNow()
 		}
-		writer.Close()
+		err = writer.Close()
+		assert.Nil(t, err)
 
 		inputSlice := NewPathSlice(writer, 0, points.Count())
 		commonPrefixLengthInput, err := getRandomCommonPrefix(config, inputSlice, splitDim)
 		assert.Nil(t, err)
 
 		slices := make([]*PathSlice, 2)
-		partitionPoint, err := radixSelector.Select(inputSlice, slices, start, end, middle, splitDim, commonPrefixLengthInput)
+		partitionPoint, err := selector.Select(inputSlice, slices, start, end, middle, splitDim, commonPrefixLengthInput)
 		assert.Nil(t, err)
 		assert.Equal(t, middle-start, slices[0].count)
 		assert.Equal(t, end-middle, slices[1].count)
@@ -61,9 +62,9 @@ func verify(t *testing.T, config *Config, dir store.Directory,
 			minDataDim, err := getMinDataDimension(config, slices[1], minDim, splitDim)
 			assert.Nil(t, err)
 
-			cmp := bytes.Compare(maxDataDim, minDataDim)
-			assert.True(t, cmp <= 0)
-			if cmp == 0 {
+			cmpCode := bytes.Compare(maxDataDim, minDataDim)
+			assert.True(t, cmpCode <= 0)
+			if cmpCode == 0 {
 				maxDocID, err := getMaxDocId(config, slices[0], splitDim, partitionPoint, maxDataDim)
 				assert.Nil(t, err)
 				minDocId, err := getMinDocId(config, slices[1], splitDim, partitionPoint, minDataDim)

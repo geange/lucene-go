@@ -4,7 +4,8 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
-// Scorer Expert: Common scoring functionality for different types of queries.
+// Scorer
+// Expert: Common scoring functionality for different types of queries.
 // 不同类型查询的通用评分功能。
 //
 // A Scorer exposes an iterator() over documents matching a query in increasing order of doc Id.
@@ -16,17 +17,20 @@ import (
 type Scorer interface {
 	Scorable
 
-	// GetWeight returns parent Weight
+	// GetWeight
+	// returns parent Weight
 	GetWeight() Weight
 
-	// Iterator Return a DocIdSetIterator over matching documents. The returned iterator will either
+	// Iterator
+	// Return a DocIdSetIterator over matching documents. The returned iterator will either
 	// be positioned on -1 if no documents have been scored yet, DocIdSetIterator.NO_MORE_DOCS if all
 	// documents have been scored already, or the last document id that has been scored otherwise.
 	// The returned iterator is a view: calling this method several times will return iterators
 	// that have the same state.
 	Iterator() types.DocIdSetIterator
 
-	// TwoPhaseIterator Optional method: Return a TwoPhaseIterator view of this Scorer. A return value
+	// TwoPhaseIterator
+	// Optional method: Return a TwoPhaseIterator view of this Scorer. A return value
 	// of null indicates that two-phase iteration is not supported. Note that the returned
 	// TwoPhaseIterator's approximation must advance synchronously with the iterator(): advancing
 	// the approximation must advance the iterator and vice-versa. Implementing this method is
@@ -43,7 +47,8 @@ type Scorer interface {
 	// target must be >= docID() as well as all targets that have been passed to advanceShallow(int) so far.
 	AdvanceShallow(target int) (int, error)
 
-	// GetMaxScore Return the maximum score that documents between the last target that this iterator
+	// GetMaxScore
+	// Return the maximum score that documents between the last target that this iterator
 	// was shallow-advanced to included and upTo included.
 	GetMaxScore(upTo int) (float64, error)
 }

@@ -100,10 +100,10 @@ type TopFieldCollector struct {
 
 	needsScores bool
 
-	scoreMode *ScoreMode
+	scoreMode ScoreMode
 }
 
-func (t *TopFieldCollector) ScoreMode() *ScoreMode {
+func (t *TopFieldCollector) ScoreMode() ScoreMode {
 	return t.scoreMode
 }
 
@@ -160,14 +160,14 @@ func NewSimpleFieldCollector(sort *index.Sort, queue FieldValueHitQueue[*Entry],
 	panic("")
 }
 
-func (s *SimpleFieldCollector) GetLeafCollector(ctx context.Context, leafCtx *index.LeafReaderContext) (LeafCollector, error) {
+func (s *SimpleFieldCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (LeafCollector, error) {
 	// reset the minimum competitive score
 	s.minCompetitiveScore = 0
-	s.docBase = leafCtx.DocBase
+	s.docBase = readerContext.DocBase()
 
 	// as all segments are sorted in the same way, enough to check only the 1st segment for indexSort
 	if s.searchSortPartOfIndexSort == nil {
-		indexSort := leafCtx.Reader().GetMetaData().GetSort()
+		indexSort := readerContext.Reader().GetMetaData().GetSort()
 		can := canEarlyTerminate(s.sort, indexSort)
 		s.searchSortPartOfIndexSort = NewBox(can)
 		if s.searchSortPartOfIndexSort.Value() {
@@ -175,7 +175,7 @@ func (s *SimpleFieldCollector) GetLeafCollector(ctx context.Context, leafCtx *in
 		}
 	}
 
-	comparators, err := s.queue.GetComparators(leafCtx)
+	comparators, err := s.queue.GetComparators(readerContext)
 	if err != nil {
 		return nil, err
 	}
@@ -203,8 +203,7 @@ func (s *simpleLeafCollector) Collect(ctx context.Context, doc int) error {
 	s.hitsThresholdChecker.IncrementHitCount()
 
 	if s.minScoreAcc != nil && (int64(s.totalHits)&s.minScoreAcc.modInterval) == 0 {
-		err := s.updateGlobalMinCompetitiveScore(s.scorer)
-		if err != nil {
+		if err := s.updateGlobalMinCompetitiveScore(s.scorer); err != nil {
 			return err
 		}
 	}
@@ -212,8 +211,7 @@ func (s *simpleLeafCollector) Collect(ctx context.Context, doc int) error {
 	if s.scoreMode.IsExhaustive() == false && s.totalHitsRelation == EQUAL_TO &&
 		s.hitsThresholdChecker.IsThresholdReached() {
 		// for the first time hitsThreshold is reached, notify comparator about this
-		err := s.comparator.SetHitsThresholdReached()
-		if err != nil {
+		if err := s.comparator.SetHitsThresholdReached(); err != nil {
 			return err
 		}
 		s.totalHitsRelation = GREATER_THAN_OR_EQUAL_TO
@@ -238,8 +236,7 @@ func (s *simpleLeafCollector) Collect(ctx context.Context, doc int) error {
 			} else if s.totalHitsRelation == EQUAL_TO {
 				// we can start setting the min competitive score if the
 				// threshold is reached for the first time here.
-				err := s.updateMinCompetitiveScore(s.scorer)
-				if err != nil {
+				if err := s.updateMinCompetitiveScore(s.scorer); err != nil {
 					return err
 				}
 			}
@@ -247,13 +244,11 @@ func (s *simpleLeafCollector) Collect(ctx context.Context, doc int) error {
 		}
 
 		// This hit is competitive - replace bottom element in queue & adjustTop
-		err = s.comparator.Copy(s.bottom.slot, doc)
-		if err != nil {
+		if err := s.comparator.Copy(s.bottom.slot, doc); err != nil {
 			return err
 		}
 		s.updateBottom(doc)
-		err = s.comparator.SetBottom(s.bottom.slot)
-		if err != nil {
+		if err := s.comparator.SetBottom(s.bottom.slot); err != nil {
 			return err
 		}
 		return s.updateMinCompetitiveScore(s.scorer)
@@ -262,18 +257,15 @@ func (s *simpleLeafCollector) Collect(ctx context.Context, doc int) error {
 		slot := s.totalHits - 1
 
 		// Copy hit into queue
-		err := s.comparator.Copy(slot, doc)
-		if err != nil {
+		if err := s.comparator.Copy(slot, doc); err != nil {
 			return err
 		}
 		s.add(slot, doc)
 		if s.queueFull {
-			err := s.comparator.SetBottom(s.bottom.slot)
-			if err != nil {
+			if err := s.comparator.SetBottom(s.bottom.slot); err != nil {
 				return err
 			}
-			err = s.updateMinCompetitiveScore(s.scorer)
-			if err != nil {
+			if err := s.updateMinCompetitiveScore(s.scorer); err != nil {
 				return err
 			}
 		}
@@ -293,13 +285,13 @@ func (s *simpleLeafCollector) add(slot int, doc int) {
 var _ TopDocsCollector = &PagingFieldCollector{}
 
 type PagingFieldCollector struct {
+	*TopFieldCollector
+	*TopDocsCollectorDefault[*Entry]
+
 	sort          *index.Sort
 	collectedHits int
 	queue         *FieldValueHitQueueDefault[*Entry]
 	after         FieldDoc
-
-	*TopFieldCollector
-	*TopDocsCollectorDefault[*Entry]
 }
 
 func NewPagingFieldCollector(sort *index.Sort, queue FieldValueHitQueue[*Entry], after FieldDoc, numHits int,
@@ -308,21 +300,21 @@ func NewPagingFieldCollector(sort *index.Sort, queue FieldValueHitQueue[*Entry],
 	panic("")
 }
 
-func (p *PagingFieldCollector) GetLeafCollector(ctx context.Context, leafCtx *index.LeafReaderContext) (LeafCollector, error) {
+func (p *PagingFieldCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (LeafCollector, error) {
 	// reset the minimum competitive score
 	p.minCompetitiveScore = 0
-	p.docBase = leafCtx.DocBase
+	p.docBase = readerContext.DocBase()
 	afterDoc := p.after.GetDoc() - p.docBase
 	// as all segments are sorted in the same way, enough to check only the 1st segment for indexSort
 	if p.searchSortPartOfIndexSort == nil {
-		indexSort := leafCtx.Reader().GetMetaData().GetSort()
+		indexSort := readerContext.Reader().GetMetaData().GetSort()
 		p.searchSortPartOfIndexSort = NewBox[bool](canEarlyTerminate(p.sort, indexSort))
 		if p.searchSortPartOfIndexSort.Value() {
 			p.firstComparator.DisableSkipping()
 		}
 	}
 
-	comparators, err := p.queue.GetComparators(leafCtx)
+	comparators, err := p.queue.GetComparators(readerContext)
 	if err != nil {
 		return nil, err
 	}
@@ -347,18 +339,16 @@ type pagingLeafCollector struct {
 }
 
 func (p *pagingLeafCollector) SetScorer(scorer Scorable) error {
-	err := p.MultiComparatorLeafCollector.SetScorer(scorer)
-	if err != nil {
+	if err := p.MultiComparatorLeafCollector.SetScorer(scorer); err != nil {
 		return err
 	}
+
 	if p.minScoreAcc == nil {
-		err := p.updateMinCompetitiveScore(scorer)
-		if err != nil {
+		if err := p.updateMinCompetitiveScore(scorer); err != nil {
 			return err
 		}
 	} else {
-		err := p.updateGlobalMinCompetitiveScore(scorer)
-		if err != nil {
+		if err := p.updateGlobalMinCompetitiveScore(scorer); err != nil {
 			return err
 		}
 	}
@@ -372,8 +362,7 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 	p.hitsThresholdChecker.IncrementHitCount()
 
 	if p.minScoreAcc != nil && (int64(p.totalHits)&p.minScoreAcc.modInterval) == 0 {
-		err := p.updateGlobalMinCompetitiveScore(p.scorer)
-		if err != nil {
+		if err := p.updateGlobalMinCompetitiveScore(p.scorer); err != nil {
 			return err
 		}
 	}
@@ -381,7 +370,9 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 	if p.scoreMode.IsExhaustive() == false && p.totalHitsRelation == EQUAL_TO &&
 		p.hitsThresholdChecker.IsThresholdReached() {
 		// for the first time hitsThreshold is reached, notify comparator about this
-		p.comparator.SetHitsThresholdReached()
+		if err := p.comparator.SetHitsThresholdReached(); err != nil {
+			return err
+		}
 		p.totalHitsRelation = GREATER_THAN_OR_EQUAL_TO
 	}
 
@@ -406,7 +397,9 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 			} else if p.totalHitsRelation == EQUAL_TO {
 				// we can start setting the min competitive score if the
 				// threshold is reached for the first time here.
-				p.updateMinCompetitiveScore(p.scorer)
+				if err := p.updateMinCompetitiveScore(p.scorer); err != nil {
+					return err
+				}
 			}
 			return nil
 		}
@@ -422,18 +415,24 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 		if p.totalHitsRelation == EQUAL_TO {
 			// check if totalHitsThreshold is reached and we can update competitive score
 			// necessary to account for possible update to global min competitive score
-			p.updateMinCompetitiveScore(p.scorer)
+			if err := p.updateMinCompetitiveScore(p.scorer); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
 
 	if p.queueFull {
 		// This hit is competitive - replace bottom element in queue & adjustTop
-		p.comparator.Copy(p.bottom.slot, doc)
+		if err := p.comparator.Copy(p.bottom.slot, doc); err != nil {
+			return err
+		}
 
 		p.updateBottom(doc)
 
-		p.comparator.SetBottom(p.bottom.slot)
+		if err := p.comparator.SetBottom(p.bottom.slot); err != nil {
+			return err
+		}
 		return p.updateMinCompetitiveScore(p.scorer)
 	} else {
 		p.collectedHits++
@@ -442,12 +441,16 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 		slot := p.collectedHits - 1
 		//System.out.println("    slot=" + slot);
 		// Copy hit into queue
-		p.comparator.Copy(slot, doc)
+		if err := p.comparator.Copy(slot, doc); err != nil {
+			return err
+		}
 
 		p.bottom = p.pq.Add(NewEntry(slot, p.docBase+doc))
 		p.queueFull = p.collectedHits == p.numHits
 		if p.queueFull {
-			p.comparator.SetBottom(p.bottom.slot)
+			if err := p.comparator.SetBottom(p.bottom.slot); err != nil {
+				return err
+			}
 			return p.updateMinCompetitiveScore(p.scorer)
 		}
 		return nil

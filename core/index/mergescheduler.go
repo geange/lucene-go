@@ -5,7 +5,9 @@ import (
 	"io"
 )
 
-// MergeScheduler Expert: IndexWriter uses an instance implementing this interface to execute the merges selected by a MergePolicy. The default MergeScheduler is ConcurrentMergeScheduler.
+// MergeScheduler
+// Expert: IndexWriter uses an instance implementing this interface to execute the merges selected by a MergePolicy.
+// The default MergeScheduler is ConcurrentMergeScheduler.
 // lucene.experimental
 type MergeScheduler interface {
 	io.Closer
@@ -36,4 +38,34 @@ type MergeSource interface {
 	// Merge
 	// merges the indicated segments, replacing them in the stack with a single segment.
 	Merge(merge *OneMerge) error
+}
+
+var _ MergeSource = &indexWriterMergeSource{}
+
+type indexWriterMergeSource struct {
+	writer *IndexWriter
+}
+
+func (i *indexWriterMergeSource) GetNextMerge() (*OneMerge, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (i *indexWriterMergeSource) OnMergeFinished(merge *OneMerge) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (i *indexWriterMergeSource) HasPendingMerges() bool {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (i *indexWriterMergeSource) Merge(merge *OneMerge) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func newIndexWriterMergeSource(writer *IndexWriter) *indexWriterMergeSource {
+	return &indexWriterMergeSource{writer: writer}
 }

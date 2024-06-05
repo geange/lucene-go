@@ -21,8 +21,10 @@ func newReqExclBulkScorer(req BulkScorer, excl types.DocIdSetIterator) *ReqExclB
 }
 
 func (r *ReqExclBulkScorer) Score(collector LeafCollector, acceptDocs util.Bits) error {
-	_, err := r.ScoreRange(collector, acceptDocs, 0, math.MaxInt32)
-	return err
+	if _, err := r.ScoreRange(collector, acceptDocs, 0, math.MaxInt32); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *ReqExclBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.Bits, minDoc, maxDoc int) (int, error) {
@@ -35,7 +37,7 @@ func (r *ReqExclBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.
 		if exclDoc < upTo {
 			exclDoc, err = r.excl.Advance(upTo)
 			if err != nil {
-
+				return 0, err
 			}
 		}
 		if exclDoc == upTo {

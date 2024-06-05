@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strconv"
 
@@ -29,7 +30,8 @@ var (
 
 var _ index.CompoundFormat = &CompoundFormat{}
 
-// CompoundFormat plain text compound format.
+// CompoundFormat
+// plain text compound format.
 // FOR RECREATIONAL USE ONLY
 // lucene.experimental
 type CompoundFormat struct {
@@ -39,7 +41,7 @@ func NewCompoundFormat() *CompoundFormat {
 	return &CompoundFormat{}
 }
 
-func (s *CompoundFormat) Write(dir store.Directory, si *index.SegmentInfo, context *store.IOContext) error {
+func (s *CompoundFormat) Write(ctx context.Context, dir store.Directory, si *index.SegmentInfo, ioContext *store.IOContext) error {
 	dataFile := store.SegmentFileName(si.Name(), "", DATA_EXTENSION)
 
 	numFiles := len(si.Files())
@@ -50,9 +52,9 @@ func (s *CompoundFormat) Write(dir store.Directory, si *index.SegmentInfo, conte
 	for k := range si.Files() {
 		names = append(names, k)
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 
-	out, err := dir.CreateOutput(nil, dataFile)
+	out, err := dir.CreateOutput(ctx, dataFile)
 	if err != nil {
 		return err
 	}
@@ -72,11 +74,11 @@ func (s *CompoundFormat) Write(dir store.Directory, si *index.SegmentInfo, conte
 		// write bytes for file
 		startOffsets[i] = out.GetFilePointer()
 
-		in, err := dir.OpenInput(nil, name)
+		in, err := dir.OpenInput(ctx, name)
 		if err != nil {
 			return err
 		}
-		if err := out.CopyBytes(nil, in, int(in.Length())); err != nil {
+		if err := out.CopyBytes(ctx, in, int(in.Length())); err != nil {
 			return err
 		}
 		endOffsets[i] = out.GetFilePointer()
@@ -129,17 +131,20 @@ func (s *CompoundFormat) Write(dir store.Directory, si *index.SegmentInfo, conte
 	if err := utils.WriteBytes(out, COMPOUND_FORMAT_TABLEPOS); err != nil {
 		return err
 	}
-	fmtStr := fmt.Sprintf("%%0%dd", len(OFFSETPATTERN))
-	if err := utils.WriteString(out, fmt.Sprintf(fmtStr, tocPos)); err != nil {
+	pattern := fmt.Sprintf("%%0%dd", len(OFFSETPATTERN))
+	if err := utils.WriteString(out, fmt.Sprintf(pattern, tocPos)); err != nil {
 		return err
 	}
-	return utils.NewLine(out)
+	if err := utils.NewLine(out); err != nil {
+		return err
+	}
+	return out.Close()
 }
 
-func (s *CompoundFormat) GetCompoundReader(dir store.Directory, si *index.SegmentInfo, context *store.IOContext) (index.CompoundDirectory, error) {
+func (s *CompoundFormat) GetCompoundReader(ctx context.Context, dir store.Directory, si *index.SegmentInfo, context *store.IOContext) (index.CompoundDirectory, error) {
 
 	dataFile := store.SegmentFileName(si.Name(), "", DATA_EXTENSION)
-	in, err := dir.OpenInput(nil, dataFile)
+	in, err := dir.OpenInput(ctx, dataFile)
 	if err != nil {
 		return nil, err
 	}
@@ -181,32 +186,32 @@ func (s *CompoundFormat) GetCompoundReader(dir store.Directory, si *index.Segmen
 	endOffsets := make([]int64, 0, numEntries)
 
 	for i := 0; i < numEntries; i++ {
-		value, err := reader.ReadLabel(COMPOUND_FORMAT_TABLENAME)
+		tableNameValue, err := reader.ReadLabel(COMPOUND_FORMAT_TABLENAME)
 		if err != nil {
 			return nil, err
 		}
-		fileNames = append(fileNames, si.Name()+index.StripSegmentName(value))
+		fileNames = append(fileNames, si.Name()+index.StripSegmentName(tableNameValue))
 
 		if i > 0 {
 			// files must be unique and in sorted order
 			//assert fileNames[i].compareTo(fileNames[i-1]) > 0;
 		}
 
-		value, err = reader.ReadLabel(COMPOUND_FORMAT_TABLESTART)
+		startOffsetValue, err := reader.ReadLabel(COMPOUND_FORMAT_TABLESTART)
 		if err != nil {
 			return nil, err
 		}
-		startOffset, err := strconv.Atoi(value)
+		startOffset, err := strconv.Atoi(startOffsetValue)
 		if err != nil {
 			return nil, err
 		}
 		startOffsets = append(startOffsets, int64(startOffset))
 
-		value, err = reader.ReadLabel(COMPOUND_FORMAT_TABLEEND)
+		endOffsetValue, err := reader.ReadLabel(COMPOUND_FORMAT_TABLEEND)
 		if err != nil {
 			return nil, err
 		}
-		endOffset, err := strconv.Atoi(value)
+		endOffset, err := strconv.Atoi(endOffsetValue)
 		if err != nil {
 			return nil, err
 		}
@@ -214,23 +219,27 @@ func (s *CompoundFormat) GetCompoundReader(dir store.Directory, si *index.Segmen
 	}
 
 	return &innerCompoundDirectory{
-		CompoundDirectoryDefault: &index.CompoundDirectoryDefault{},
-		in:                       in,
-		fileNames:                fileNames,
-		startOffsets:             startOffsets,
-		endOffsets:               endOffsets,
+		BaseCompoundDirectory: &index.BaseCompoundDirectory{},
+		in:                    in,
+		fileNames:             fileNames,
+		startOffsets:          startOffsets,
+		endOffsets:            endOffsets,
 	}, nil
 }
 
 var _ index.CompoundDirectory = &innerCompoundDirectory{}
 
 type innerCompoundDirectory struct {
-	*index.CompoundDirectoryDefault
+	*index.BaseCompoundDirectory
 
 	in           store.IndexInput
 	fileNames    []string
 	startOffsets []int64
 	endOffsets   []int64
+}
+
+func (i *innerCompoundDirectory) CopyFrom(ctx context.Context, from store.Directory, src, dest string, ioContext *store.IOContext) error {
+	return store.CopyFrom(ctx, i, from, src, dest, ioContext)
 }
 
 func (i *innerCompoundDirectory) ListAll(ctx context.Context) ([]string, error) {

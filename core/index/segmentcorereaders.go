@@ -1,7 +1,10 @@
 package index
 
 import (
+	"context"
+	"errors"
 	"github.com/geange/lucene-go/core/store"
+	"io"
 	"sync/atomic"
 )
 
@@ -38,27 +41,17 @@ type SegmentCoreReaders struct {
 	coreClosedListeners ClosedListener
 }
 
-func (r *SegmentCoreReaders) DecRef() error {
-	if r.ref.Add(-1) == 0 {
-		// TODO: close
-
-	}
-	return nil
-}
-
-func NewSegmentCoreReaders(dir store.Directory,
-	si *SegmentCommitInfo, context *store.IOContext) (*SegmentCoreReaders, error) {
+func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si *SegmentCommitInfo, ioContext *store.IOContext) (*SegmentCoreReaders, error) {
 
 	codec := si.info.GetCodec()
 
 	// confusing name: if (cfs) it's the cfsdir, otherwise it's the segment's directory.
 	var cfsDir store.Directory
-	//success := false
 
 	r := &SegmentCoreReaders{}
 
 	if si.info.GetUseCompoundFile() {
-		reader, err := codec.CompoundFormat().GetCompoundReader(dir, si.info, context)
+		reader, err := codec.CompoundFormat().GetCompoundReader(ctx, dir, si.info, ioContext)
 		if err != nil {
 			return nil, err
 		}
@@ -69,55 +62,58 @@ func NewSegmentCoreReaders(dir store.Directory,
 		cfsDir = dir
 	}
 
-	var err error
-
-	r.segment = si.info.name
-	r.coreFieldInfos, err = codec.FieldInfosFormat().Read(cfsDir, si.info, "", context)
+	r.segment = si.info.Name()
+	coreFieldInfos, err := codec.FieldInfosFormat().Read(ctx, cfsDir, si.info, "", ioContext)
 	if err != nil {
 		return nil, err
 	}
+	r.coreFieldInfos = coreFieldInfos
 
-	segmentReadState := NewSegmentReadState(cfsDir, si.info, r.coreFieldInfos, context, "")
-	format := codec.PostingsFormat()
+	segmentReadState := NewSegmentReadState(cfsDir, si.info, r.coreFieldInfos, ioContext, "")
+
 	// Ask codec for its Fields
-	r.fields, err = format.FieldsProducer(segmentReadState)
+	fields, err := codec.PostingsFormat().FieldsProducer(ctx, segmentReadState)
 	if err != nil {
 		return nil, err
 	}
+	r.fields = fields
 
 	// ask codec for its Norms:
 	// TODO: since we don't write any norms file if there are no norms,
 	// kinda jaky to assume the codec handles the case of no norms file at all gracefully?!
 
 	if r.coreFieldInfos.HasNorms() {
-		r.normsProducer, err = codec.NormsFormat().NormsProducer(segmentReadState)
+		normsProducer, err := codec.NormsFormat().NormsProducer(ctx, segmentReadState)
 		if err != nil {
 			return nil, err
 		}
+		r.normsProducer = normsProducer
 		//assert normsProducer != null;
 	} else {
 		r.normsProducer = nil
 	}
 
-	r.fieldsReaderOrig, err = si.info.GetCodec().StoredFieldsFormat().FieldsReader(cfsDir, si.info, r.coreFieldInfos, context)
+	fieldsReaderOrig, err := si.info.GetCodec().StoredFieldsFormat().FieldsReader(ctx, cfsDir, si.info, r.coreFieldInfos, ioContext)
 	if err != nil {
 		return nil, err
 	}
-	r.fieldsReaderLocal = r.fieldsReaderOrig.Clone()
+	r.fieldsReaderOrig = fieldsReaderOrig
+	r.fieldsReaderLocal = fieldsReaderOrig.Clone(ctx)
 
 	if r.coreFieldInfos.HasVectors() { // open term vector files only as needed
-		r.termVectorsReaderOrig, err = si.info.GetCodec().TermVectorsFormat().
-			VectorsReader(cfsDir, si.info, r.coreFieldInfos, context)
+		termVectorsReaderOrig, err := si.info.GetCodec().TermVectorsFormat().
+			VectorsReader(nil, cfsDir, si.info, r.coreFieldInfos, ioContext)
 		if err != nil {
 			return nil, err
 		}
-		r.termVectorsLocal = r.termVectorsReaderOrig.Clone()
+		r.termVectorsReaderOrig = termVectorsReaderOrig
+		r.termVectorsLocal = termVectorsReaderOrig.Clone(ctx)
 	} else {
 		r.termVectorsReaderOrig = nil
 	}
 
 	if r.coreFieldInfos.HasPointValues() {
-		r.pointsReader, err = codec.PointsFormat().FieldsReader(segmentReadState)
+		r.pointsReader, err = codec.PointsFormat().FieldsReader(ctx, segmentReadState)
 		if err != nil {
 			return nil, err
 		}
@@ -126,4 +122,42 @@ func NewSegmentCoreReaders(dir store.Directory,
 	}
 
 	return r, nil
+}
+
+func (s *SegmentCoreReaders) incRef() error {
+	if s.ref.Load() < 0 {
+		return errors.New("segmentCoreReaders is already closed")
+	}
+	s.ref.Add(1)
+	return nil
+}
+
+func (s *SegmentCoreReaders) decRef() error {
+	if s.ref.Add(-1) == 0 {
+
+		closers := []io.Closer{
+			s.termVectorsLocal,
+			s.fieldsReaderLocal,
+			s.fields,
+			s.termVectorsReaderOrig,
+			s.fieldsReaderOrig,
+			s.cfsReader,
+			s.normsProducer,
+			s.pointsReader,
+		}
+
+		if err := closeAll(closers...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func closeAll(objects ...io.Closer) error {
+	for _, object := range objects {
+		if err := object.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
 }

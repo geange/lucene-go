@@ -2,7 +2,8 @@ package index
 
 import "github.com/geange/gods-generic/utils"
 
-// Impact Per-document scoring factors.
+// Impact
+// Per-document scoring factors.
 type Impact struct {
 
 	// Term frequency of the term in the document.

@@ -37,7 +37,9 @@ func (r *Tokenizer) IncrementToken() (bool, error) {
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			r.AttributeSource().Type().SetType("ALPHANUM")
-			r.AttributeSource().CharTerm().AppendString(text)
+			if err := r.AttributeSource().CharTerm().AppendString(text); err != nil {
+				return false, err
+			}
 			if err := r.AttributeSource().Offset().
 				SetOffset(r.scanner.slow, r.scanner.slow+len(text)); err != nil {
 				return false, err
@@ -48,7 +50,9 @@ func (r *Tokenizer) IncrementToken() (bool, error) {
 	}
 
 	r.AttributeSource().Type().SetType("ALPHANUM")
-	r.AttributeSource().CharTerm().AppendString(text)
+	if err := r.AttributeSource().CharTerm().AppendString(text); err != nil {
+		return false, err
+	}
 	if err := r.AttributeSource().Offset().
 		SetOffset(r.scanner.slow, r.scanner.slow+len(text)); err != nil {
 		return false, err
@@ -78,7 +82,8 @@ const (
 	EMOJI
 )
 
-// stdTokenizer This class implements Word Break rules from the Unicode Text Segmentation algorithm, as
+// stdTokenizer
+// This class implements Word Break rules from the Unicode Text Segmentation algorithm, as
 // specified in Unicode Standard Annex #29 .
 // Tokens produced are of the following types:
 // * <ALPHANUM>: A sequence of alphabetic and numeric characters

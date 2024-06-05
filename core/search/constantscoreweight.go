@@ -1,7 +1,9 @@
 package search
 
 import (
+	"errors"
 	"fmt"
+	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"io"
@@ -10,21 +12,23 @@ import (
 //var _ Weight = &ConstantScoreWeight{}
 
 type ConstantScoreWeight struct {
+	*BaseWeight
+
 	score float64
-
-	*WeightDefault
-
-	//FnScorer func(ctx *index.LeafReaderContext) (Scorer, error)
 }
 
-func NewConstantScoreWeight(score float64, query Query, spi WeightSPI) *ConstantScoreWeight {
+func (c *ConstantScoreWeight) ExtractTerms(terms *treeset.Set[*index.Term]) error {
+	return nil
+}
+
+func NewConstantScoreWeight(score float64, query Query, spi WeightScorer) *ConstantScoreWeight {
 	weight := &ConstantScoreWeight{score: score}
-	weight.WeightDefault = NewWeight(query, spi)
+	weight.BaseWeight = NewBaseWeight(query, spi)
 	return weight
 }
 
-func (c *ConstantScoreWeight) Explain(ctx *index.LeafReaderContext, doc int) (*types.Explanation, error) {
-	s, err := c.Scorer(ctx)
+func (c *ConstantScoreWeight) Explain(ctx index.LeafReaderContext, doc int) (*types.Explanation, error) {
+	s, err := c.scorer.Scorer(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -33,24 +37,24 @@ func (c *ConstantScoreWeight) Explain(ctx *index.LeafReaderContext, doc int) (*t
 		twoPhase := s.TwoPhaseIterator()
 		if twoPhase == nil {
 			advance, err := s.Iterator().Advance(doc)
-			if err == nil {
+			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					return nil, err
+				}
+			} else {
 				exists = advance == doc
-			} else if err != nil && err != io.EOF {
-				return nil, err
 			}
 		} else {
-			matches, err := twoPhase.Matches()
+			isMatch, err := twoPhase.Matches()
 			if err != nil {
 				return nil, err
 			}
 
 			advance, err := twoPhase.Approximation().Advance(doc)
-			if err == nil {
-				exists = (advance == doc) && matches
-			}
 			if err != nil {
 				return nil, err
 			}
+			exists = (advance == doc) && isMatch
 		}
 
 	}

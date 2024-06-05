@@ -93,7 +93,7 @@ func newDisjunctionMatchesIterator(matches []MatchesIterator) (MatchesIterator, 
 // FromTermsEnumMatchesIterator
 // Create a DisjunctionMatchesIterator over a list of terms extracted from a BytesRefIterator
 // Only terms that have at least one match in the given document will be included
-func FromTermsEnumMatchesIterator(context *index.LeafReaderContext, doc int, query Query,
+func FromTermsEnumMatchesIterator(context index.LeafReaderContext, doc int, query Query,
 	field string, terms bytesref.BytesIterator) (MatchesIterator, error) {
 
 	t, err := context.Reader().(index.LeafReader).Terms(field)

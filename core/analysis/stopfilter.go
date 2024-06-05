@@ -4,7 +4,8 @@ import (
 	"github.com/geange/lucene-go/core/util/attribute"
 )
 
-// StopFilter Removes stop words from a token stream.
+// StopFilter
+// Removes stop words from a token stream.
 type StopFilter struct {
 	*BaseFilteringTokenFilter
 

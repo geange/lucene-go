@@ -15,7 +15,7 @@ var _ index.MultiLevelSkipListReader = &SkipReader{}
 // This class reads skip lists with multiple levels.
 // See TextFieldsWriter for the information about the encoding of the multi level skip lists.
 type SkipReader struct {
-	*index.MultiLevelSkipListReaderDefault
+	*index.BaseMultiLevelSkipListReader
 
 	scratchUTF16    *bytes.Buffer
 	scratch         *bytes.Buffer
@@ -27,18 +27,18 @@ type SkipReader struct {
 }
 
 func NewSkipReader(skipStream store.IndexInput) *SkipReader {
-	mReader := index.NewMultiLevelSkipListReaderDefault(
+	mReader := index.NewBaseMultiLevelSkipListReader(
 		skipStream, maxSkipLevels, BLOCK_SIZE, skipMultiplier)
 
 	reader := &SkipReader{
-		MultiLevelSkipListReaderDefault: mReader,
-		scratchUTF16:                    new(bytes.Buffer),
-		scratch:                         new(bytes.Buffer),
-		impacts:                         nil,
-		perLevelImpacts:                 make([][]*index.Impact, 0),
-		nextSkipDocFP:                   -1,
-		numLevels:                       1,
-		hasSkipList:                     false,
+		BaseMultiLevelSkipListReader: mReader,
+		scratchUTF16:                 new(bytes.Buffer),
+		scratch:                      new(bytes.Buffer),
+		impacts:                      nil,
+		perLevelImpacts:              make([][]*index.Impact, 0),
+		nextSkipDocFP:                -1,
+		numLevels:                    1,
+		hasSkipList:                  false,
 	}
 
 	reader.impacts = &innerImpacts{reader}
@@ -112,7 +112,7 @@ func (s *SkipReader) getImpacts() index.Impacts {
 func (s *SkipReader) Reset(skipPointer int64, docFreq int) {
 	s.init()
 	if skipPointer > 0 {
-		s.MultiLevelSkipListReaderDefault.Init(skipPointer, docFreq)
+		s.BaseMultiLevelSkipListReader.Init(skipPointer, docFreq)
 		s.hasSkipList = true
 	}
 }

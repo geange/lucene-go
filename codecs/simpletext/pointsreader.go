@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -21,7 +22,7 @@ type PointsReader struct {
 	scratch   *bytes.Buffer
 }
 
-func NewPointsReader(readState *index.SegmentReadState) (*PointsReader, error) {
+func NewPointsReader(ctx context.Context, readState *index.SegmentReadState) (*PointsReader, error) {
 	fieldToFileOffset := make(map[string]int64)
 	indexFileName := store.SegmentFileName(readState.SegmentInfo.Name(), readState.SegmentSuffix, POINT_INDEX_EXTENSION)
 	input, err := store.OpenChecksumInput(readState.Directory, indexFileName)
@@ -59,7 +60,7 @@ func NewPointsReader(readState *index.SegmentReadState) (*PointsReader, error) {
 	}
 
 	fileName := store.SegmentFileName(readState.SegmentInfo.Name(), readState.SegmentSuffix, POINT_EXTENSION)
-	reader.dataIn, err = readState.Directory.OpenInput(nil, fileName)
+	reader.dataIn, err = readState.Directory.OpenInput(ctx, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (s *PointsReader) CheckIntegrity() error {
 	return nil
 }
 
-func (s *PointsReader) GetValues(field string) (types.PointValues, error) {
+func (s *PointsReader) GetValues(ctx context.Context, field string) (types.PointValues, error) {
 	fieldInfo := s.readState.FieldInfos.FieldInfo(field)
 	if fieldInfo == nil {
 		return nil, fmt.Errorf("field=%s is unrecognized", field)
@@ -101,8 +102,7 @@ func (s *PointsReader) GetMergeInstance() index.PointsReader {
 
 func (s *PointsReader) initReader(fp int64) (*BKDReader, error) {
 	// NOTE: matches what writeIndex does in SimpleTextPointsWriter
-	_, err := s.dataIn.Seek(fp, io.SeekStart)
-	if err != nil {
+	if _, err := s.dataIn.Seek(fp, io.SeekStart); err != nil {
 		return nil, err
 	}
 
@@ -162,11 +162,11 @@ func (s *PointsReader) initReader(fp int64) (*BKDReader, error) {
 
 	leafBlockFPs := make([]int64, 0, count)
 	for i := 0; i < count; i++ {
-		fp, err := tr.ParseInt64(BLOCK_FP)
+		blockFP, err := tr.ParseInt64(BLOCK_FP)
 		if err != nil {
 			return nil, err
 		}
-		leafBlockFPs = append(leafBlockFPs, fp)
+		leafBlockFPs = append(leafBlockFPs, blockFP)
 	}
 
 	count, err = tr.ParseInt(SPLIT_COUNT)
@@ -192,15 +192,14 @@ func (s *PointsReader) initReader(fp int64) (*BKDReader, error) {
 			address++
 		}
 
-		v, err := tr.ReadLabel(SPLIT_VALUE)
+		splitValue, err := tr.ReadLabel(SPLIT_VALUE)
 		if err != nil {
 			return nil, err
 		}
-		br, err := bytesref.StringToBytes(v)
+		br, err := bytesref.StringToBytes(splitValue)
 		if err != nil {
 			return nil, err
 		}
-		//assert br.length == bytesPerDim;
 		copy(splitPackedValues[address:], br)
 	}
 

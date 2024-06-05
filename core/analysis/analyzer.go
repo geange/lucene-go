@@ -23,13 +23,16 @@ import (
 type Analyzer interface {
 	io.Closer
 
-	// GetTokenStreamFromReader 传入io.Reader，生成新的tokenStream对象
+	// GetTokenStreamFromReader
+	// 传入io.Reader，生成新的tokenStream对象
 	GetTokenStreamFromReader(fieldName string, reader io.Reader) (TokenStream, error)
 
-	// GetTokenStreamFromText 传入string类型，内部缓存buffer复用
+	// GetTokenStreamFromText
+	// 传入string类型，内部缓存buffer复用
 	GetTokenStreamFromText(fieldName string, text string) (TokenStream, error)
 
-	// GetPositionIncrementGap Invoked before indexing a IndexableField instance if terms have already been
+	// GetPositionIncrementGap
+	// Invoked before indexing a IndexableField instance if terms have already been
 	// added to that field. This allows custom analyzers to place an automatic position increment gap between
 	// IndexbleField instances using the same field name. The default value position increment gap is 0.
 	// With a 0 position increment gap and the typical default token position increment of 1, all terms in a field,
@@ -40,19 +43,23 @@ type Analyzer interface {
 	// position: increment gap, added to the next token emitted from tokenStream(String, Reader). This value must be >= 0.
 	GetPositionIncrementGap(fieldName string) int
 
-	// GetOffsetGap Just like getPositionIncrementGap, except for Token offsets instead. By default this returns 1.
+	// GetOffsetGap
+	// Just like getPositionIncrementGap, except for Token offsets instead. By default this returns 1.
 	// This method is only called if the field produced at least one token for indexing.
 	// Params: fieldName – the field just indexed
 	// Returns: offset gap, added to the next token emitted from tokenStream(String, Reader). This value must be >= 0.
 	GetOffsetGap(fieldName string) int
 
-	// GetReuseStrategy Returns the used Analyzer.ReuseStrategy.
+	// GetReuseStrategy
+	// Returns the used Analyzer.ReuseStrategy.
 	GetReuseStrategy() ReuseStrategy
 
-	// SetVersion Set the version of Lucene this analyzer should mimic the behavior for analysis.
+	// SetVersion
+	// Set the version of Lucene this analyzer should mimic the behavior for analysis.
 	SetVersion(v *version.Version)
 
-	// GetVersion Return the version of Lucene this analyzer will mimic the behavior of for analysis.
+	// GetVersion
+	// Return the version of Lucene this analyzer will mimic the behavior of for analysis.
 	GetVersion() *version.Version
 }
 

@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+	"fmt"
 	"github.com/geange/lucene-go/core/types"
 	"math"
 
@@ -57,7 +58,7 @@ type DocValuesFieldUpdates interface {
 	GetFinished() bool
 }
 
-type DocValuesFieldUpdatesDefault struct {
+type BaseDocValuesFieldUpdates struct {
 	field        string
 	_type        document.DocValuesType
 	delGen       int64
@@ -68,18 +69,20 @@ type DocValuesFieldUpdatesDefault struct {
 	size         int
 }
 
-func (d *DocValuesFieldUpdatesDefault) Field() string {
+func (d *BaseDocValuesFieldUpdates) Field() string {
 	return d.field
 }
 
-func (d *DocValuesFieldUpdatesDefault) Finish() error {
+func (d *BaseDocValuesFieldUpdates) Finish() error {
 	if d.finished {
 		return errors.New("already finished")
 	}
 	d.finished = true
 	// shrink wrap
 	if d.size < d.docs.Size() {
-		d.Resize(d.size)
+		if err := d.Resize(d.size); err != nil {
+			return err
+		}
 	}
 	if d.size > 0 {
 		// We need a stable sort but InPlaceMergeSorter performs lots of swaps
@@ -103,15 +106,15 @@ func (d *DocValuesFieldUpdatesDefault) Finish() error {
 }
 
 // Any Returns true if this instance contains any updates.
-func (d *DocValuesFieldUpdatesDefault) Any() bool {
+func (d *BaseDocValuesFieldUpdates) Any() bool {
 	return d.size > 0
 }
 
-func (d *DocValuesFieldUpdatesDefault) Size() int {
+func (d *BaseDocValuesFieldUpdates) Size() int {
 	return d.size
 }
 
-func (d *DocValuesFieldUpdatesDefault) Swap(i, j int) error {
+func (d *BaseDocValuesFieldUpdates) Swap(i, j int) error {
 	doc1, err := d.docs.Get(j)
 	if err != nil {
 		return err
@@ -125,17 +128,21 @@ func (d *DocValuesFieldUpdatesDefault) Swap(i, j int) error {
 	return nil
 }
 
-func (d *DocValuesFieldUpdatesDefault) Grow(size int) error {
+func (d *BaseDocValuesFieldUpdates) Grow(size int) error {
 	d.docs = d.docs.Grow(size).(*packed.FixSizePagedMutable)
 	return nil
 }
 
-func (d *DocValuesFieldUpdatesDefault) Resize(size int) error {
-	d.docs = d.docs.Resize(size).(*packed.FixSizePagedMutable)
+func (d *BaseDocValuesFieldUpdates) Resize(size int) error {
+	docs, ok := d.docs.Resize(size).(*packed.FixSizePagedMutable)
+	if !ok {
+		return fmt.Errorf("type is not *packed.FixSizePagedMutable")
+	}
+	d.docs = docs
 	return nil
 }
 
-func (d *DocValuesFieldUpdatesDefault) GetFinished() bool {
+func (d *BaseDocValuesFieldUpdates) GetFinished() bool {
 	return d.finished
 }
 
@@ -176,16 +183,20 @@ func (b *BinaryDocValuesFieldUpdates) addInternal(doc int, hasValueMask int64) (
 type DocValuesFieldUpdatesIterator interface {
 	types.DocValuesIterator
 
-	// LongValue Returns a long item for the current document if this iterator is a long iterator.
+	// LongValue
+	// Returns a long item for the current document if this iterator is a long iterator.
 	LongValue() (int64, error)
 
-	// BinaryValue Returns a binary item for the current document if this iterator is a binary item iterator.
+	// BinaryValue
+	// Returns a binary item for the current document if this iterator is a binary item iterator.
 	BinaryValue() ([]byte, error)
 
-	// DelGen Returns delGen for this packet.
+	// DelGen
+	// Returns delGen for this packet.
 	DelGen() int64
 
-	// HasValue Returns true if this doc has a item
+	// HasValue
+	// Returns true if this doc has a item
 	HasValue() bool
 }
 
@@ -205,7 +216,7 @@ func (*DVFUIterator) Cost() int64 {
 }
 
 func AsBinaryDocValues(iterator DocValuesFieldUpdatesIterator) BinaryDocValues {
-	return &BinaryDocValuesDefault{
+	return &BaseBinaryDocValues{
 		FnDocID:        iterator.DocID,
 		FnNextDoc:      iterator.NextDoc,
 		FnAdvance:      iterator.Advance,

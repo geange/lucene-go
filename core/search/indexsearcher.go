@@ -1,7 +1,9 @@
 package search
 
 import (
+	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"reflect"
@@ -11,7 +13,24 @@ const (
 	TOTAL_HITS_THRESHOLD = 1000
 )
 
-// IndexSearcher Implements search over a single Reader.
+type indexSearcher interface {
+	SetQueryCache(queryCache QueryCache)
+	GetQueryCache() QueryCache
+	SetQueryCachingPolicy(queryCachingPolicy QueryCachingPolicy)
+	GetQueryCachingPolicy() QueryCachingPolicy
+	Slices(leaves []index.LeafReaderContext) []LeafSlice
+	GetIndexReader() index.IndexReader
+	Doc(docID int) (*document.Document, error)
+	DocWithVisitor(docID int, fieldVisitor document.StoredFieldVisitor) (*document.Document, error)
+	DocLimitFields(docID int, fieldsToLoad []string) (*document.Document, error)
+	SetSimilarity(similarity index.Similarity)
+	GetSimilarity() index.Similarity
+	Count(query Query) (int, error)
+	GetSlices() []LeafSlice
+}
+
+// IndexSearcher
+// Implements search over a single Reader.
 // Applications usually need only call the inherited search(Query, int) method. For performance reasons, if your
 // index is unchanging, you should share a single IndexSearcher instance across multiple searches instead of
 // creating a new one per-search. If your index has changed and you wish to see the changes reflected in searching,
@@ -32,12 +51,12 @@ const (
 // methods, concurrently. If your application requires external synchronization, you should not synchronize on
 // the IndexSearcher instance; use your own (non-Lucene) objects instead.
 type IndexSearcher struct {
-	reader index.Reader
+	reader index.IndexReader
 
 	// NOTE: these members might change in incompatible ways
 	// in the next release
-	readerContext index.ReaderContext
-	leafContexts  []*index.LeafReaderContext
+	readerContext index.IndexReaderContext
+	leafContexts  []index.LeafReaderContext
 
 	// used with executor - each slice holds a set of leafs executed within one thread
 	leafSlices []LeafSlice
@@ -52,13 +71,16 @@ type IndexSearcher struct {
 	queryCachingPolicy QueryCachingPolicy
 }
 
-func NewIndexSearcher(r index.Reader) (*IndexSearcher, error) {
-	context, _ := r.GetContext()
-	return newIndexSearcher(context)
+func NewIndexSearcher(r index.IndexReader) (*IndexSearcher, error) {
+	ctx, err := r.GetContext()
+	if err != nil {
+		return nil, err
+	}
+	return newIndexSearcher(ctx)
 }
 
-func newIndexSearcher(context index.ReaderContext) (*IndexSearcher, error) {
-	leaves, err := context.Leaves()
+func newIndexSearcher(readerContext index.IndexReaderContext) (*IndexSearcher, error) {
+	leaves, err := readerContext.Leaves()
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +91,8 @@ func newIndexSearcher(context index.ReaderContext) (*IndexSearcher, error) {
 	}
 
 	return &IndexSearcher{
-		reader:             context.Reader(),
-		readerContext:      context,
+		reader:             readerContext.Reader(),
+		readerContext:      readerContext,
 		leafContexts:       leaves,
 		leafSlices:         nil,
 		similarity:         similarity,
@@ -79,11 +101,11 @@ func newIndexSearcher(context index.ReaderContext) (*IndexSearcher, error) {
 	}, nil
 }
 
-func (r *IndexSearcher) GetTopReaderContext() index.ReaderContext {
+func (r *IndexSearcher) GetTopReaderContext() index.IndexReaderContext {
 	return r.readerContext
 }
 
-func (r *IndexSearcher) GetIndexReader() index.Reader {
+func (r *IndexSearcher) GetIndexReader() index.IndexReader {
 	return r.reader
 }
 
@@ -96,8 +118,7 @@ func (r *IndexSearcher) SetQueryCache(queryCache QueryCache) {
 }
 
 func (r *IndexSearcher) Search(query Query, results Collector) error {
-	var err error
-	query, err = r.Rewrite(query)
+	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
 	}
@@ -128,25 +149,32 @@ func (r *IndexSearcher) SearchAfter(after ScoreDoc, query Query, numHits int) (T
 		after:         after,
 	}
 
-	var err error
 	if r.executor == nil || len(r.leafSlices) <= 1 {
-		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreate(max(TOTAL_HITS_THRESHOLD, numHits))
+		hitsThresholdChecker, err := HitsThresholdCheckerCreate(max(TOTAL_HITS_THRESHOLD, numHits))
 		if err != nil {
 			return nil, err
 		}
+		manager.hitsThresholdChecker = hitsThresholdChecker
 	} else {
 		manager.minScoreAcc = NewMaxScoreAccumulator()
-		manager.hitsThresholdChecker, err = HitsThresholdCheckerCreateShared(max(TOTAL_HITS_THRESHOLD, numHits))
+		hitsThresholdChecker, err := HitsThresholdCheckerCreateShared(max(TOTAL_HITS_THRESHOLD, numHits))
 		if err != nil {
 			return nil, err
 		}
+		manager.hitsThresholdChecker = hitsThresholdChecker
 	}
 
 	v, err := r.SearchByCollectorManager(query, manager)
 	if err != nil {
 		return nil, err
 	}
-	return v.(TopDocs), nil
+
+	topDocs, ok := v.(TopDocs)
+	if !ok {
+		return nil, errors.New("object is not TopDocs")
+	}
+
+	return topDocs, nil
 }
 
 var _ CollectorManager = &searchAfterCollectorManager{}
@@ -186,8 +214,7 @@ func (r *IndexSearcher) SearchByCollectorManager(query Query, collectorManager C
 		if err != nil {
 			return nil, err
 		}
-		err = r.SearchCollector(query, collector)
-		if err != nil {
+		if err := r.SearchCollector(query, collector); err != nil {
 			return nil, err
 		}
 		return collectorManager.Reduce([]Collector{collector.(TopScoreDocCollector)})
@@ -214,21 +241,21 @@ func (r *IndexSearcher) SearchCollector(query Query, results Collector) error {
 	return r.Search3(r.leafContexts, weight, results)
 }
 
-func (r *IndexSearcher) Search3(leaves []*index.LeafReaderContext, weight Weight, collector Collector) error {
+func (r *IndexSearcher) Search3(leaves []index.LeafReaderContext, weight Weight, collector Collector) error {
 
-	for _, ctx := range leaves {
-		leafCollector, err := collector.GetLeafCollector(nil, ctx)
+	for _, leaf := range leaves {
+		leafCollector, err := collector.GetLeafCollector(context.TODO(), leaf)
 		if err != nil {
 			continue
 		}
 
-		scorer, err := weight.BulkScorer(ctx)
+		scorer, err := weight.BulkScorer(leaf)
 		if err != nil {
 			return err
 		}
+
 		if scorer != nil {
-			err = scorer.Score(leafCollector, ctx.LeafReader().GetLiveDocs())
-			if err != nil {
+			if err := scorer.Score(leafCollector, leaf.LeafReader().GetLiveDocs()); err != nil {
 				return err
 			}
 		}
@@ -237,7 +264,7 @@ func (r *IndexSearcher) Search3(leaves []*index.LeafReaderContext, weight Weight
 	return nil
 }
 
-func (r *IndexSearcher) createWeight(query Query, scoreMode *ScoreMode, boost float64) (Weight, error) {
+func (r *IndexSearcher) createWeight(query Query, scoreMode ScoreMode, boost float64) (Weight, error) {
 	queryCache := r.queryCache
 	weight, err := query.CreateWeight(r, scoreMode, boost)
 	if err != nil {
@@ -267,13 +294,15 @@ func (r *IndexSearcher) Rewrite(query Query) (Query, error) {
 	return query, nil
 }
 
-// GetSimilarity Expert: Get the Similarity to use to compute scores. This returns the Similarity
+// GetSimilarity
+// Expert: Get the Similarity to use to compute scores. This returns the Similarity
 // that has been set through setSimilarity(Similarity) or the default Similarity if none has been set explicitly.
 func (r *IndexSearcher) GetSimilarity() index.Similarity {
 	return r.similarity
 }
 
-// CollectionStatistics Returns CollectionStatistics for a field, or null if the field does not exist (has no indexed terms) This can be overridden for example, to return a field's statistics across a distributed collection.
+// CollectionStatistics
+// Returns CollectionStatistics for a field, or null if the field does not exist (has no indexed terms) This can be overridden for example, to return a field's statistics across a distributed collection.
 func (r *IndexSearcher) CollectionStatistics(field string) (*types.CollectionStatistics, error) {
 	docCount := 0
 	sumTotalTermFreq := int64(0)
@@ -319,7 +348,8 @@ func (r *IndexSearcher) CollectionStatistics(field string) (*types.CollectionSta
 	return types.NewCollectionStatistics(field, int64(r.reader.MaxDoc()), int64(docCount), sumTotalTermFreq, sumDocFreq)
 }
 
-// TermStatistics Returns TermStatistics for a term.
+// TermStatistics
+// Returns TermStatistics for a term.
 // This can be overridden for example, to return a term's statistics across a distributed collection.
 // Params:
 // docFreq – The document frequency of the term. It must be greater or equal to 1.

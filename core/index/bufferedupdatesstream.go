@@ -1,6 +1,10 @@
 package index
 
-import "sync"
+import (
+	"context"
+	"sync"
+	"sync/atomic"
+)
 
 // BufferedUpdatesStream
 // Tracks the stream of FrozenBufferedUpdates. When DocumentsWriterPerThread flushes,
@@ -12,16 +16,27 @@ import "sync"
 // and each flushed or merged segment is also assigned a generation, so we can track which BufferedDeletes
 // packets to apply to any given segment.
 type BufferedUpdatesStream struct {
+	sync.Mutex
+
+	updates map[*FrozenBufferedUpdates]struct{}
+
+	// Starts at 1 so that SegmentInfos that have never had
+	// deletes applied (whose bufferedDelGen defaults to 0)
+	// will be correct:
 	nextGen          int64
 	finishedSegments *FinishedSegments
+	numTerms         *atomic.Int32
 }
 
 func NewBufferedUpdatesStream() *BufferedUpdatesStream {
 	return &BufferedUpdatesStream{
+		updates:          make(map[*FrozenBufferedUpdates]struct{}),
 		finishedSegments: NewFinishedSegments(),
 	}
 }
 
+// GetCompletedDelGen
+// All frozen packets up to and including this del gen are guaranteed to be finished.
 func (b *BufferedUpdatesStream) GetCompletedDelGen() int64 {
 	return b.finishedSegments.GetCompletedDelGen()
 }
@@ -59,4 +74,41 @@ func (f *FinishedSegments) GetCompletedDelGen() int64 {
 	defer f.RUnlock()
 
 	return f.completedDelGen
+}
+
+type SegmentState struct {
+	delGen        int64
+	rld           *ReadersAndUpdates
+	reader        *SegmentReader
+	startDelCount int
+	//termsEnum     TermsEnum
+	//postingsEnum  PostingsEnum
+	//term          []byte
+	onClose func(*ReadersAndUpdates) error
+}
+
+func newSegmentState(rld *ReadersAndUpdates, onClose func(*ReadersAndUpdates) error, info *SegmentCommitInfo) *SegmentState {
+	reader, err := rld.GetReader(context.TODO(), nil)
+	if err != nil {
+		return nil
+	}
+	state := &SegmentState{
+		delGen:        info.GetBufferedDeletesGen(),
+		rld:           rld,
+		reader:        reader,
+		startDelCount: rld.GetDelCount(),
+		onClose:       onClose,
+		//termsEnum:     nil,
+		//postingsEnum:  nil,
+		//term:          nil,
+
+	}
+	return state
+}
+
+func (s *SegmentState) Close() error {
+	if err := s.rld.Release(s.reader); err != nil {
+		return err
+	}
+	return s.onClose(s.rld)
 }

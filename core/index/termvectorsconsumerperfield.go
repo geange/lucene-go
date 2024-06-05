@@ -13,7 +13,7 @@ import (
 var _ TermsHashPerField = &TermVectorsConsumerPerField{}
 
 type TermVectorsConsumerPerField struct {
-	*TermsHashPerFieldDefault
+	*baseTermsHashPerField
 
 	termVectorsPostingsArray *TermVectorsPostingsArray
 
@@ -44,7 +44,7 @@ func NewTermVectorsConsumerPerField(invertState *FieldInvertState,
 		termBytePool: termsHash.termBytePool,
 	}
 
-	perfield.TermsHashPerFieldDefault = NewTermsHashPerFieldDefault(2,
+	perfield.baseTermsHashPerField = newBaseTermsHashPerField(2,
 		termsHash.GetIntPool(), termsHash.GetBytePool(), termsHash.GetTermBytePool(),
 		nil, fieldInfo.Name(), indexOptions, perfield)
 
@@ -93,7 +93,7 @@ func (t *TermVectorsConsumerPerField) FinishDocument() error {
 }
 
 func (t *TermVectorsConsumerPerField) Start(field document.IndexableField, first bool) bool {
-	t.TermsHashPerFieldDefault.Start(field, first)
+	t.baseTermsHashPerField.Start(field, first)
 	t.termFreqAtt = t.fieldState.termFreqAttribute
 
 	if first {

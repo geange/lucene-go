@@ -1,14 +1,11 @@
 package index
 
-import (
-	"github.com/geange/lucene-go/core/util/bytesref"
-)
+import "github.com/geange/lucene-go/core/util/bytesref"
 
 // FieldTermIterator
 // Iterates over terms in across multiple fields.
 // The caller must check field after each next to see if the field changed,
-// but == can be used since the iterator implementation ensures
-// it will use the same String instance for a given field.
+// but == can be used since the iterator implementation ensures it will use the same String instance for a given field.
 type FieldTermIterator interface {
 	bytesref.BytesIterator
 

@@ -52,28 +52,24 @@ type TwoPhaseIterator interface {
 }
 
 func AsDocIdSetIterator(twoPhaseIterator TwoPhaseIterator) types.DocIdSetIterator {
-	return NewTwoPhaseIteratorAsDocIdSetIterator(twoPhaseIterator)
-}
-
-var _ types.DocIdSetIterator = &TwoPhaseIteratorAsDocIdSetIterator{}
-
-type TwoPhaseIteratorAsDocIdSetIterator struct {
-	twoPhaseIterator TwoPhaseIterator
-	approximation    types.DocIdSetIterator
-}
-
-func NewTwoPhaseIteratorAsDocIdSetIterator(twoPhaseIterator TwoPhaseIterator) *TwoPhaseIteratorAsDocIdSetIterator {
-	return &TwoPhaseIteratorAsDocIdSetIterator{
+	return &twoPhaseIteratorAsDocIdSetIterator{
 		twoPhaseIterator: twoPhaseIterator,
 		approximation:    twoPhaseIterator.Approximation(),
 	}
 }
 
-func (t *TwoPhaseIteratorAsDocIdSetIterator) DocID() int {
+var _ types.DocIdSetIterator = &twoPhaseIteratorAsDocIdSetIterator{}
+
+type twoPhaseIteratorAsDocIdSetIterator struct {
+	twoPhaseIterator TwoPhaseIterator
+	approximation    types.DocIdSetIterator
+}
+
+func (t *twoPhaseIteratorAsDocIdSetIterator) DocID() int {
 	return t.approximation.DocID()
 }
 
-func (t *TwoPhaseIteratorAsDocIdSetIterator) NextDoc() (int, error) {
+func (t *twoPhaseIteratorAsDocIdSetIterator) NextDoc() (int, error) {
 	doc, err := t.approximation.NextDoc()
 	if err != nil {
 		return 0, err
@@ -81,7 +77,7 @@ func (t *TwoPhaseIteratorAsDocIdSetIterator) NextDoc() (int, error) {
 	return t.doNext(doc)
 }
 
-func (t *TwoPhaseIteratorAsDocIdSetIterator) Advance(target int) (int, error) {
+func (t *twoPhaseIteratorAsDocIdSetIterator) Advance(target int) (int, error) {
 	doc, err := t.approximation.Advance(target)
 	if err != nil {
 		return 0, err
@@ -89,25 +85,25 @@ func (t *TwoPhaseIteratorAsDocIdSetIterator) Advance(target int) (int, error) {
 	return t.doNext(doc)
 }
 
-func (t *TwoPhaseIteratorAsDocIdSetIterator) SlowAdvance(target int) (int, error) {
+func (t *twoPhaseIteratorAsDocIdSetIterator) SlowAdvance(target int) (int, error) {
 	return types.SlowAdvance(t, target)
 }
 
-func (t *TwoPhaseIteratorAsDocIdSetIterator) Cost() int64 {
+func (t *twoPhaseIteratorAsDocIdSetIterator) Cost() int64 {
 	return t.approximation.Cost()
 }
 
-func (t *TwoPhaseIteratorAsDocIdSetIterator) doNext(doc int) (int, error) {
+func (t *twoPhaseIteratorAsDocIdSetIterator) doNext(doc int) (int, error) {
 	for {
 		if doc == types.NO_MORE_DOCS {
 			return 0, io.EOF
 		}
 
-		matches, err := t.twoPhaseIterator.Matches()
+		isMatch, err := t.twoPhaseIterator.Matches()
 		if err != nil {
 			return 0, err
 		}
-		if matches {
+		if isMatch {
 			return doc, nil
 		}
 
@@ -116,7 +112,7 @@ func (t *TwoPhaseIteratorAsDocIdSetIterator) doNext(doc int) (int, error) {
 }
 
 func UnwrapIterator(iterator types.DocIdSetIterator) TwoPhaseIterator {
-	if v, ok := iterator.(*TwoPhaseIteratorAsDocIdSetIterator); ok {
+	if v, ok := iterator.(*twoPhaseIteratorAsDocIdSetIterator); ok {
 		return v.twoPhaseIterator
 	}
 	return nil

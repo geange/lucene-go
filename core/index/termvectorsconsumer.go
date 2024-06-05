@@ -50,7 +50,7 @@ func (t *TermVectorsConsumer) Flush(fieldsToFlush map[string]TermsHashPerField,
 		if err := t.fill(numDocs); err != nil {
 			return err
 		}
-		if err := t.writer.Finish(state.FieldInfos, numDocs); err != nil {
+		if err := t.writer.Finish(nil, state.FieldInfos, numDocs); err != nil {
 			return err
 		}
 		return t.writer.Close()
@@ -61,10 +61,10 @@ func (t *TermVectorsConsumer) Flush(fieldsToFlush map[string]TermsHashPerField,
 // Fills in no-term-vectors for all docs we haven't seen since the last doc that had term vectors.
 func (t *TermVectorsConsumer) fill(docID int) error {
 	for t.lastDocID < docID {
-		if err := t.writer.StartDocument(0); err != nil {
+		if err := t.writer.StartDocument(nil, 0); err != nil {
 			return err
 		}
-		if err := t.writer.FinishDocument(); err != nil {
+		if err := t.writer.FinishDocument(nil); err != nil {
 			return err
 		}
 		t.lastDocID++
@@ -74,7 +74,7 @@ func (t *TermVectorsConsumer) fill(docID int) error {
 
 func (t *TermVectorsConsumer) initTermVectorsWriter() error {
 	if t.writer == nil {
-		writer, err := t.codec.TermVectorsFormat().VectorsWriter(t.directory, t.info, nil)
+		writer, err := t.codec.TermVectorsFormat().VectorsWriter(nil, t.directory, t.info, nil)
 		if err != nil {
 			return err
 		}
@@ -111,11 +111,11 @@ func (t *TermVectorsConsumer) FinishDocument(docID int) error {
 		return err
 	}
 
-	t.writer.StartDocument(t.numVectorFields)
+	t.writer.StartDocument(nil, t.numVectorFields)
 	for i := 0; i < t.numVectorFields; i++ {
 		t.perFields[i].FinishDocument()
 	}
-	t.writer.FinishDocument()
+	t.writer.FinishDocument(nil)
 
 	t.lastDocID++
 	t.Reset()

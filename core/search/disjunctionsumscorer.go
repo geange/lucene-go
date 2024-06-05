@@ -12,7 +12,7 @@ type DisjunctionSumScorer struct {
 	*DisjunctionScorer
 }
 
-func newDisjunctionScorer(weight Weight, subScorers []Scorer, scoreMode *ScoreMode) (*DisjunctionSumScorer, error) {
+func newDisjunctionScorer(weight Weight, subScorers []Scorer, scoreMode ScoreMode) (*DisjunctionSumScorer, error) {
 	panic("")
 }
 

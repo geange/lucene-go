@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"strconv"
 
@@ -22,11 +23,10 @@ type TermVectorsReader struct {
 	scratch *bytes.Buffer
 }
 
-func NewTermVectorsReader(directory store.Directory, si *index.SegmentInfo,
-	context *store.IOContext) (*TermVectorsReader, error) {
+func NewTermVectorsReader(ctx context.Context, directory store.Directory, si *index.SegmentInfo, ioContext *store.IOContext) (*TermVectorsReader, error) {
 
 	fileName := store.SegmentFileName(si.Name(), "", VECTORS_EXTENSION)
-	in, err := directory.OpenInput(nil, fileName)
+	in, err := directory.OpenInput(ctx, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (s *TermVectorsReader) Close() error {
 	return nil
 }
 
-func (s *TermVectorsReader) Get(doc int) (index.Fields, error) {
+func (s *TermVectorsReader) Get(ctx context.Context, doc int) (index.Fields, error) {
 	fields := treemap.New[string, index.Terms]()
 	if _, err := s.in.Seek(s.offsets[doc], io.SeekStart); err != nil {
 		return nil, err
@@ -228,7 +228,7 @@ func (s *TermVectorsReader) CheckIntegrity() error {
 	return nil
 }
 
-func (s *TermVectorsReader) Clone() index.TermVectorsReader {
+func (s *TermVectorsReader) Clone(context.Context) index.TermVectorsReader {
 	return &TermVectorsReader{
 		offsets: s.offsets,
 		in:      s.in.Clone().(store.IndexInput),

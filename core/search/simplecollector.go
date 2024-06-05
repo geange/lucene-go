@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+
 	"github.com/geange/lucene-go/core/index"
 )
 
@@ -11,29 +12,29 @@ type SimpleCollector interface {
 	Collector
 	LeafCollector
 
-	// DoSetNextReader This method is called before collecting context.
-	DoSetNextReader(context *index.LeafReaderContext) error
+	// DoSetNextReader
+	// This method is called before collecting context.
+	DoSetNextReader(context index.LeafReaderContext) error
 }
 
 type SimpleCollectorSPI interface {
-	DoSetNextReader(context *index.LeafReaderContext) error
+	DoSetNextReader(context index.LeafReaderContext) error
 	SetScorer(scorer Scorable) error
 	Collect(ctx context.Context, doc int) error
 }
 
-type DefSimpleCollector struct {
-	*DefLeafCollector
+type BaseSimpleCollector struct {
+	*baseLeafCollector
 
 	SimpleCollectorSPI
 }
 
-func NewSimpleCollector(spi SimpleCollectorSPI) *DefSimpleCollector {
-	return &DefSimpleCollector{SimpleCollectorSPI: spi}
+func NewSimpleCollector(spi SimpleCollectorSPI) *BaseSimpleCollector {
+	return &BaseSimpleCollector{SimpleCollectorSPI: spi}
 }
 
-func (s *DefSimpleCollector) GetLeafCollector(_ context.Context, ctx *index.LeafReaderContext) (LeafCollector, error) {
-	err := s.DoSetNextReader(ctx)
-	if err != nil {
+func (s *BaseSimpleCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (LeafCollector, error) {
+	if err := s.DoSetNextReader(readerContext); err != nil {
 		return nil, err
 	}
 	return s, nil

@@ -2,14 +2,14 @@ package index
 
 import (
 	"context"
-	"io"
 	"sync/atomic"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 )
 
-// DocumentsWriter This class accepts multiple added documents and directly writes segment files.
+// DocumentsWriter
+// This class accepts multiple added documents and directly writes segment files.
 // Each added document is passed to the indexing chain, which in turn processes the document into
 // the different codec formats. Some formats write bytes to files immediately, e.g. stored fields
 // and term vectors, while others are buffered by the indexing chain and written only on Flush.
@@ -40,7 +40,6 @@ type DocumentsWriter struct {
 	pendingNumDocs     *atomic.Int64
 	flushNotifications FlushNotifications
 	closed             bool
-	infoStream         io.Writer
 	config             *liveIndexWriterConfig
 	numDocsInRAM       *atomic.Int64
 
@@ -58,7 +57,7 @@ type DocumentsWriter struct {
 	flushControl  *DocumentsWriterFlushControl
 }
 
-func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int64, enableTestPoints bool,
+func NewDocumentsWriter(flushNotifications FlushNotifications, indexCreatedVersionMajor int, pendingNumDocs *atomic.Int64, enableTestPoints bool,
 	segmentName string, config *liveIndexWriterConfig, directoryOrig, directory store.Directory,
 	globalFieldNumberMap *FieldNumbers) *DocumentsWriter {
 
@@ -66,11 +65,10 @@ func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int
 
 	deleteQueue := NewDocumentsWriterDeleteQueue()
 
-	return &DocumentsWriter{
+	docWriter := &DocumentsWriter{
 		pendingNumDocs:                   pendingNumDocs,
-		flushNotifications:               nil,
+		flushNotifications:               flushNotifications,
 		closed:                           false,
-		infoStream:                       nil,
 		config:                           config,
 		numDocsInRAM:                     new(atomic.Int64),
 		deleteQueue:                      deleteQueue,
@@ -83,6 +81,14 @@ func NewDocumentsWriter(indexCreatedVersionMajor int, pendingNumDocs *atomic.Int
 				directory, config, deleteQueue, infos,
 				pendingNumDocs, enableTestPoints)},
 	}
+	return docWriter
+}
+
+func (d *DocumentsWriter) purgeFlushTickets(forced bool, consumer func(*FlushTicket) error) error {
+	if forced {
+		return d.ticketQueue.forcePurge(consumer)
+	}
+	return nil
 }
 
 func (d *DocumentsWriter) preUpdate() (bool, error) {
@@ -104,11 +110,56 @@ func (d *DocumentsWriter) updateDocuments(ctx context.Context, docs []*document.
 
 func (d *DocumentsWriter) Flush(ctx context.Context) error {
 	dwpt := d.flushControl.ObtainAndLock()
-	return d.doFlush(ctx, dwpt)
+	_, err := d.doFlush(ctx, dwpt)
+	return err
 }
 
-func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWriterPerThread) error {
-	return flushingDWPT.Flush(ctx)
+// FIXME: 处理flush
+func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWriterPerThread) (bool, error) {
+	hasEvents := false
+
+	for flushingDWPT != nil {
+		hasEvents = true
+
+		dwptSuccess := true
+
+		//ticket, err := d.ticketQueue.AddFlushTicket(flushingDWPT)
+		//if err != nil {
+		//	return err
+		//}
+		//flushingDocsInRam := flushingDWPT.GetNumDocsInRAM()
+
+		// flush concurrently without locking
+		//newSegment, err := flushingDWPT.flush(ctx, d.flushNotifications)
+		if _, err := flushingDWPT.flush(ctx, d.flushNotifications); err != nil {
+			dwptSuccess = false
+		}
+		//d.ticketQueue.AddSegment(ticket, newSegment)
+		//
+		//d.subtractFlushedNumDocs(int64(flushingDocsInRam))
+		if (len(flushingDWPT.PendingFilesToDelete()) == 0) == false {
+			files := flushingDWPT.PendingFilesToDelete()
+			d.flushNotifications.DeleteUnusedFiles(files)
+			hasEvents = true
+		}
+		if dwptSuccess == false {
+			d.flushNotifications.FlushFailed(flushingDWPT.GetSegmentInfo())
+			hasEvents = true
+		}
+
+		if err := d.flushControl.DoAfterFlush(flushingDWPT); err != nil {
+			return false, err
+		}
+		flushingDWPT = d.flushControl.NextPendingFlush()
+	}
+
+	if hasEvents {
+		if err := d.flushNotifications.AfterSegmentsFlushed(); err != nil {
+			return false, err
+		}
+	}
+
+	return hasEvents, nil
 }
 
 func (d *DocumentsWriter) anyChanges() bool {
@@ -129,31 +180,109 @@ func (d *DocumentsWriter) anyDeletions() bool {
 	return d.deleteQueue.anyChanges()
 }
 
+// FlushAllThreads is synced by IW fullFlushLock. Flushing all threads is a
+// two stage operation; the caller must ensure (in try/finally) that finishFlush
+// is called after this method, to release the flush lock in DWFlushControl
 func (d *DocumentsWriter) flushAllThreads() int64 {
-	panic("")
+	var flushingDeleteQueue *DocumentsWriterDeleteQueue
+
+	var seqNo int64
+
+	d.pendingChangesInCurrentFullFlush = d.anyChanges()
+	flushingDeleteQueue = d.deleteQueue
+
+	// Cutover to a new delete queue.  This must be synced on the flush control
+	// otherwise a new DWPT could sneak into the loop with an already flushing
+	// delete queue
+	seqNo = d.flushControl.MarkForFullFlush() // swaps this.deleteQueue synced on FlushControl
+
+	anythingFlushed := false
+
+	ctx := context.Background()
+
+	var flushingDWPT *DocumentsWriterPerThread
+	for {
+		flushingDWPT = d.flushControl.NextPendingFlush()
+		if flushingDWPT == nil {
+			break
+		}
+
+		hasEvent, err := d.doFlush(ctx, flushingDWPT)
+		if err != nil {
+			return 0
+		}
+
+		anythingFlushed = anythingFlushed || hasEvent
+	}
+
+	// If a concurrent flush is still in flight wait for it
+	//d.flushControl.WaitForFlush();
+	if anythingFlushed == false && flushingDeleteQueue.anyChanges() { // apply deletes if we did not flush any document
+		err := d.ticketQueue.AddDeletes(flushingDeleteQueue)
+		if err != nil {
+			return 0
+		}
+	}
+
+	flushingDeleteQueue.Close() // all DWPT have been processed and this queue has been fully flushed to the ticket-queue
+
+	if anythingFlushed {
+		return -seqNo
+	} else {
+		return seqNo
+	}
 }
 
-func (d *DocumentsWriter) FinishFullFlush(success bool) error {
+func (d *DocumentsWriter) finishFullFlush(success bool) error {
+	if success {
+		// Release the flush lock
+		if err := d.flushControl.finishFullFlush(); err != nil {
+			return err
+		}
+	} else {
+		if err := d.flushControl.abortFullFlushes(); err != nil {
+			return err
+		}
+	}
+
+	d.pendingChangesInCurrentFullFlush = false
+	return d.applyAllDeletes() // make sure we do execute this since we block applying deletes during full flush
+}
+
+func (d *DocumentsWriter) subtractFlushedNumDocs(numFlushed int64) {
+	oldValue := d.numDocsInRAM.Load()
+	for d.numDocsInRAM.CompareAndSwap(oldValue, oldValue-numFlushed) == false {
+		oldValue = d.numDocsInRAM.Load()
+	}
+}
+
+func (d *DocumentsWriter) applyAllDeletes() error {
 	panic("")
 }
 
 type FlushNotifications interface {
-	// DeleteUnusedFiles Called when files were written to disk that are not used anymore. It's the implementation's
+	// DeleteUnusedFiles
+	// Called when files were written to disk that are not used anymore. It's the implementation's
 	// responsibility to clean these files up
 	DeleteUnusedFiles(files map[string]struct{})
 
-	// FlushFailed Called when a segment failed to Flush.
+	// FlushFailed
+	// Called when a segment failed to Flush.
 	FlushFailed(info *SegmentInfo)
 
-	// AfterSegmentsFlushed Called after one or more segments were flushed to disk.
+	// AfterSegmentsFlushed
+	// Called after one or more segments were flushed to disk.
 	AfterSegmentsFlushed() error
 
 	// Should be called if a Flush or an indexing operation caused a tragic / unrecoverable event.
+	//onTragicEvent(Throwable event, String message)
 
-	// OnDeletesApplied Called once deletes have been applied either after a Flush or on a deletes call
+	// OnDeletesApplied
+	// Called once deletes have been applied either after a Flush or on a deletes call
 	OnDeletesApplied()
 
-	// OnTicketBacklog Called once the DocumentsWriter ticket queue has a backlog. This means there
+	// OnTicketBacklog
+	// Called once the DocumentsWriter ticket queue has a backlog. This means there
 	// is an inner thread that tries to publish flushed segments but can't keep up with the other
 	// threads flushing new segments. This likely requires other thread to forcefully purge the buffer
 	// to help publishing. This can't be done in-place since we might hold index writer locks when

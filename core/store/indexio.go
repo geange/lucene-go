@@ -83,8 +83,8 @@ type IndexOutput interface {
 
 	GetName() string
 
-	// GetFilePointer Returns the current pos in this file,
-	// where the next write will occur.
+	// GetFilePointer
+	// Returns the current pos in this file, where the next write will occur.
 	GetFilePointer() int64
 
 	GetChecksum() (uint32, error)

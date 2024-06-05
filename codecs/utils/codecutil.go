@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/geange/lucene-go/core/store"
@@ -30,6 +31,37 @@ func WriteHeader(ctx context.Context, out store.DataOutput, codec string, versio
 		return err
 	}
 	if err := out.WriteUint32(ctx, uint32(version)); err != nil {
+		return err
+	}
+	return nil
+}
+
+const (
+	ID_LENGTH = 16
+)
+
+func WriteIndexHeader(ctx context.Context, out store.DataOutput, codec string, version int, id []byte, suffix string) error {
+	if len(id) != ID_LENGTH {
+		return fmt.Errorf("Invalid id: " + base64.StdEncoding.EncodeToString(id))
+	}
+	if err := WriteHeader(ctx, out, codec, version); err != nil {
+		return err
+	}
+	if _, err := out.Write(id); err != nil {
+		return err
+	}
+
+	suffixBytes := []byte(suffix)
+
+	suffixSize := len([]rune(suffix))
+	if suffixSize != len(suffixBytes) || suffixSize >= 256 {
+		return errors.New("suffix must be simple ASCII, less than 256 characters in length")
+	}
+
+	if err := out.WriteByte(byte(suffixSize)); err != nil {
+		return err
+	}
+	if _, err := out.Write(suffixBytes); err != nil {
 		return err
 	}
 	return nil

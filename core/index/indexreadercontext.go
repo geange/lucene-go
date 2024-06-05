@@ -2,53 +2,54 @@ package index
 
 import "github.com/google/uuid"
 
-// ReaderContext A struct like class that represents a hierarchical relationship between Reader instances.
-type ReaderContext interface {
+// IndexReaderContext A struct like class that represents a hierarchical relationship between IndexReader instances.
+type IndexReaderContext interface {
 
-	// Reader Returns the Reader, this context represents.
-	Reader() Reader
+	// Reader Returns the IndexReader, this context represents.
+	Reader() IndexReader
 
-	// Leaves Returns the context's leaves if this context is a top-level context. For convenience, if this is
-	// an LeafReaderContext this returns itself as the only leaf.
+	// Leaves
+	// Returns the context's leaves if this context is a top-level context. For convenience, if this is
+	// an LeafReaderContextImpl this returns itself as the only leaf.
 	// Note: this is convenience method since leaves can always be obtained by walking the context tree
 	// using children().
 	// Throws: ErrUnsupportedOperation – if this is not a top-level context.
 	// See Also: children()
-	Leaves() ([]*LeafReaderContext, error)
+	Leaves() ([]LeafReaderContext, error)
 
 	// Children Returns the context's children iff this context is a composite context otherwise null.
-	Children() []ReaderContext
+	Children() []IndexReaderContext
 
 	Identity() string
 }
 
-type IndexReaderContextDefault struct {
+type BaseIndexReaderContext struct {
 	// The reader context for this reader's immediate parent, or null if none
-	Parent *CompositeReaderContext
+	parent *CompositeReaderContext
 
 	// true if this context struct represents the top level reader within the hierarchical context
-	IsTopLevel bool
+	isTopLevel bool
 
 	// the doc base for this reader in the parent, 0 if parent is null
-	DocBaseInParent int
+	docBaseInParent int
 
 	// the ord for this reader in the parent, 0 if parent is null
-	OrdInParent int
+	ordInParent int
 
 	identity string
 }
 
-func NewIndexReaderContextDefault(parent *CompositeReaderContext, ordInParent, docBaseInParent int) *IndexReaderContextDefault {
+func NewBaseIndexReaderContext(parent *CompositeReaderContext, ordInParent, docBaseInParent int) *BaseIndexReaderContext {
 	isTop := parent == nil
-	return &IndexReaderContextDefault{
-		Parent:          parent,
-		IsTopLevel:      isTop,
-		DocBaseInParent: docBaseInParent,
-		OrdInParent:     ordInParent,
+	return &BaseIndexReaderContext{
+		parent:          parent,
+		isTopLevel:      isTop,
+		docBaseInParent: docBaseInParent,
+		ordInParent:     ordInParent,
 		identity:        uuid.New().String(),
 	}
 }
 
-func (r *IndexReaderContextDefault) Identity() string {
+func (r *BaseIndexReaderContext) Identity() string {
 	return r.identity
 }

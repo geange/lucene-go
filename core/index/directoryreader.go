@@ -2,8 +2,9 @@ package index
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/store"
 	"strings"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 // DirectoryReader is an implementation of CompositeReader that can read indexes in a Directory.
@@ -14,16 +15,16 @@ import (
 // -- they may change as documents are added to and deleted from an index. Clients should thus not
 // rely on a given document having the same number between sessions.
 //
-// NOTE: Reader instances are completely thread safe, meaning multiple threads can call any of
+// NOTE: IndexReader instances are completely thread safe, meaning multiple threads can call any of
 // its methods, concurrently. If your application requires external synchronization, you should not
-// synchronize on the Reader instance; use your own (non-Lucene) objects instead.
+// synchronize on the IndexReader instance; use your own (non-Lucene) objects instead.
 type DirectoryReader interface {
 	CompositeReader
 
 	Directory() store.Directory
 
 	// GetVersion
-	// Version number when this Reader was opened.
+	// Version number when this IndexReader was opened.
 	// This method returns the version recorded in the commit that the reader opened.
 	// This version is advanced every time a change is made with IndexWriter.
 	GetVersion() int64
@@ -46,42 +47,44 @@ type DirectoryReader interface {
 	GetIndexCommit() (IndexCommit, error)
 }
 
-type DirectoryReaderDefault struct {
-	*BaseCompositeReader
+type baseDirectoryReader struct {
+	*baseCompositeReader
 
 	directory store.Directory
 }
 
-func NewDirectoryReader(directory store.Directory,
-	segmentReaders []Reader, leafSorter func(a, b LeafReader) int) (*DirectoryReaderDefault, error) {
+func newBaseDirectoryReader(directory store.Directory,
+	segmentReaders []IndexReader, leafSorter CompareLeafReader) (*baseDirectoryReader, error) {
 
-	reader, err := NewBaseCompositeReader(segmentReaders, leafSorter)
+	reader, err := newBaseCompositeReader(segmentReaders, leafSorter)
 	if err != nil {
 		return nil, err
 	}
-	return &DirectoryReaderDefault{
-		BaseCompositeReader: reader,
+
+	return &baseDirectoryReader{
+		baseCompositeReader: reader,
 		directory:           directory,
 	}, nil
 }
 
-func DirectoryReaderOpen(writer *Writer) (DirectoryReader, error) {
-	return DirectoryReaderOpenV1(writer, true, false)
+func DirectoryReaderOpen(ctx context.Context, writer *IndexWriter) (DirectoryReader, error) {
+	return DirectoryReaderOpenV1(ctx, writer, true, false)
 }
 
-func DirectoryReaderOpenV1(writer *Writer, applyAllDeletes, writeAllDeletes bool) (DirectoryReader, error) {
-	return writer.GetReader(applyAllDeletes, writeAllDeletes)
+func DirectoryReaderOpenV1(ctx context.Context, writer *IndexWriter, applyAllDeletes, writeAllDeletes bool) (DirectoryReader, error) {
+	return writer.GetReader(ctx, applyAllDeletes, writeAllDeletes)
 }
 
-func (d *DirectoryReaderDefault) Directory() store.Directory {
+func (d *baseDirectoryReader) Directory() store.Directory {
 	return d.directory
 }
 
-// IndexExists Returns true if an index likely exists at the specified directory.
+// IsIndexExists
+// Returns true if an index likely exists at the specified directory.
 // Note that if a corrupt index exists, or if an index in the process of committing
 // Params: directory – the directory to check for an index
 // Returns: true if an index exists; false otherwise
-func IndexExists(dir store.Directory) (bool, error) {
+func IsIndexExists(dir store.Directory) (bool, error) {
 	// LUCENE-2812, LUCENE-2727, LUCENE-4738: this logic will
 	// return true in cases that should arguably be false,
 	// such as only IW.prepareCommit has been called, or a
@@ -107,4 +110,7 @@ func IndexExists(dir store.Directory) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+type DirectoryReaderBuilder struct {
 }

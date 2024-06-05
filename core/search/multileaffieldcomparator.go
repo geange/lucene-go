@@ -18,7 +18,6 @@ type MultiLeafFieldComparator struct {
 }
 
 func NewMultiLeafFieldComparator(comparators []index.LeafFieldComparator, reverseMul []int) *MultiLeafFieldComparator {
-
 	panic("")
 }
 

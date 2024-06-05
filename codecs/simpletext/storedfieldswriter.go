@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -40,10 +41,9 @@ func newStoredFieldsWriter() *StoredFieldsWriter {
 	return &StoredFieldsWriter{}
 }
 
-func NewStoredFieldsWriter(dir store.Directory,
-	segment string, context *store.IOContext) (*StoredFieldsWriter, error) {
+func NewStoredFieldsWriter(ctx context.Context, dir store.Directory, segment string, ioContext *store.IOContext) (*StoredFieldsWriter, error) {
 	writer := newStoredFieldsWriter()
-	out, err := dir.CreateOutput(nil, store.SegmentFileName(segment, "", FIELDS_EXTENSION))
+	out, err := dir.CreateOutput(ctx, store.SegmentFileName(segment, "", FIELDS_EXTENSION))
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (s *StoredFieldsWriter) Close() error {
 	return s.out.Close()
 }
 
-func (s *StoredFieldsWriter) StartDocument() error {
+func (s *StoredFieldsWriter) StartDocument(context.Context) error {
 	if err := s.write(STORED_FIELD_DOC); err != nil {
 		return err
 	}
@@ -69,11 +69,11 @@ func (s *StoredFieldsWriter) StartDocument() error {
 	return nil
 }
 
-func (s *StoredFieldsWriter) FinishDocument() error {
+func (s *StoredFieldsWriter) FinishDocument(context.Context) error {
 	return nil
 }
 
-func (s *StoredFieldsWriter) WriteField(info *document.FieldInfo, field document.IndexableField) error {
+func (s *StoredFieldsWriter) WriteField(ctx context.Context, info *document.FieldInfo, field document.IndexableField) error {
 	if err := s.write(STORED_FIELD_FIELD); err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (s *StoredFieldsWriter) WriteField(info *document.FieldInfo, field document
 	}
 }
 
-func (s *StoredFieldsWriter) Finish(fis *index.FieldInfos, numDocs int) error {
+func (s *StoredFieldsWriter) Finish(ctx context.Context, fis *index.FieldInfos, numDocs int) error {
 	if s.numDocsWritten != numDocs {
 		return errors.New("mergeFields produced an invalid result")
 	}

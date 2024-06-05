@@ -51,14 +51,14 @@ type ReqOptSumScorer struct {
 // reqScorer: The required scorer. This must match.
 // optScorer: The optional scorer. This is used for scoring only.
 // scoreMode: How the produced scorers will be consumed.
-func NewReqOptSumScorer(reqScorer, optScorer Scorer, scoreMode *ScoreMode) (*ReqOptSumScorer, error) {
+func NewReqOptSumScorer(reqScorer, optScorer Scorer, scoreMode ScoreMode) (*ReqOptSumScorer, error) {
 	scorer := &ReqOptSumScorer{
 		BaseScorer: NewScorer(reqScorer.GetWeight()),
 		reqScorer:  reqScorer,
 		optScorer:  optScorer,
 	}
 
-	if scoreMode.Equal(TOP_SCORES) {
+	if scoreMode == TOP_SCORES {
 		sumPropagator, err := NewMaxScoreSumPropagator([]Scorer{reqScorer, optScorer})
 		if err != nil {
 			return nil, err
@@ -80,7 +80,7 @@ func NewReqOptSumScorer(reqScorer, optScorer Scorer, scoreMode *ScoreMode) (*Req
 		scorer.optApproximation = scorer.optTwoPhase.Approximation()
 	}
 
-	if !scoreMode.Equal(TOP_SCORES) {
+	if scoreMode != TOP_SCORES {
 		scorer.approximation = scorer.reqApproximation
 		scorer.reqMaxScore = math.Inf(0)
 	} else {
@@ -176,12 +176,12 @@ func (r *innerDocIdSetIterator) Advance(target int) (int, error) {
 
 func (r *innerDocIdSetIterator) advanceInternal(target int) (int, error) {
 	if target == types.NO_MORE_DOCS {
-		_, err := r.scorer.reqApproximation.Advance(target)
-		if err != nil {
+		if _, err := r.scorer.reqApproximation.Advance(target); err != nil {
 			return 0, err
 		}
 		return types.NO_MORE_DOCS, nil
 	}
+
 	reqDoc := target
 
 	var err error
@@ -196,6 +196,9 @@ OUTER:
 		}
 		if r.scorer.reqApproximation.DocID() < reqDoc {
 			reqDoc, err = r.scorer.reqApproximation.Advance(reqDoc)
+			if err != nil {
+				return 0, err
+			}
 		}
 		if reqDoc == types.NO_MORE_DOCS || r.scorer.optIsRequired == false {
 			return reqDoc, nil
@@ -262,12 +265,12 @@ func (i *innerTwoPhaseIterator) Approximation() types.DocIdSetIterator {
 }
 
 func (i *innerTwoPhaseIterator) Matches() (bool, error) {
-	matches, err := i.reqTwoPhase.Matches()
+	matchValues, err := i.reqTwoPhase.Matches()
 	if err != nil {
 		return false, err
 	}
 
-	if i.reqTwoPhase != nil && matches == false {
+	if i.reqTwoPhase != nil && matchValues == false {
 		return false, nil
 	}
 
@@ -277,8 +280,7 @@ func (i *innerTwoPhaseIterator) Matches() (bool, error) {
 			// after the opt approximation was advanced and before it was confirmed.
 			if i.scorer.reqScorer.DocID() != i.scorer.optApproximation.DocID() {
 				if i.scorer.optApproximation.DocID() < i.scorer.reqScorer.DocID() {
-					_, err := i.scorer.optApproximation.Advance(i.scorer.reqScorer.DocID())
-					if err != nil {
+					if _, err := i.scorer.optApproximation.Advance(i.scorer.reqScorer.DocID()); err != nil {
 						return false, err
 					}
 				}
@@ -288,16 +290,14 @@ func (i *innerTwoPhaseIterator) Matches() (bool, error) {
 			}
 			if ok, _ := i.scorer.optTwoPhase.Matches(); !ok {
 				// Advance the iterator to make it clear it doesn't match the current doc id
-				_, err := i.scorer.optApproximation.NextDoc()
-				if err != nil {
+				if _, err := i.scorer.optApproximation.NextDoc(); err != nil {
 					return false, err
 				}
 				return false, nil
 			}
 		} else if match, _ := i.scorer.optTwoPhase.Matches(); i.scorer.optApproximation.DocID() == i.scorer.reqScorer.DocID() && match == false {
 			// Advance the iterator to make it clear it doesn't match the current doc id
-			_, err := i.scorer.optApproximation.NextDoc()
-			if err != nil {
+			if _, err := i.scorer.optApproximation.NextDoc(); err != nil {
 				return false, err
 			}
 		}
@@ -306,14 +306,14 @@ func (i *innerTwoPhaseIterator) Matches() (bool, error) {
 }
 
 func (i *innerTwoPhaseIterator) MatchCost() float64 {
-	matchCost := 1.0
+	cost := 1.0
 	if i.reqTwoPhase != nil {
-		matchCost += i.reqTwoPhase.MatchCost()
+		cost += i.reqTwoPhase.MatchCost()
 	}
 	if i.scorer.optTwoPhase != nil {
-		matchCost += i.scorer.optTwoPhase.MatchCost()
+		cost += i.scorer.optTwoPhase.MatchCost()
 	}
-	return matchCost
+	return cost
 }
 
 func (r *ReqOptSumScorer) TwoPhaseIterator() TwoPhaseIterator {

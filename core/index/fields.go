@@ -1,8 +1,12 @@
 package index
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
-// Fields Provides a Terms index for fields that have it, and lists which fields do. This is primarily an
+// Fields
+// Provides a Terms index for fields that have it, and lists which fields do. This is primarily an
 // internal/experimental API (see FieldsProducer), although it is also used to expose the set of term
 // vectors per document.
 type Fields interface {
@@ -12,7 +16,8 @@ type Fields interface {
 
 	Names() []string
 
-	// Terms Get the Terms for this field. This will return null if the field does not exist.
+	// Terms
+	// Get the Terms for this field. This will return null if the field does not exist.
 	Terms(field string) (Terms, error)
 
 	// Size Returns the number of fields or -1 if the number of distinct field names is unknown. If >= 0,
@@ -26,6 +31,7 @@ type Fields interface {
 type FieldsConsumer interface {
 	io.Closer
 
+	// Write
 	// Write all fields, terms and postings. This the "pull" API, allowing you to iterate more than once
 	// over the postings, somewhat analogous to using a DOM API to traverse an XML tree.
 	// Notes:
@@ -36,39 +42,32 @@ type FieldsConsumer interface {
 	//	 seen the first term or document.
 	// * The provided Fields instance is limited: you cannot call any methods that return statistics/counts;
 	//	 you cannot pass a non-null live docs when pulling docs/positions enums.
-	Write(fields Fields, norms NormsProducer) error
+	Write(ctx context.Context, fields Fields, norms NormsProducer) error
 
-	// Merge Merges in the fields from the readers in mergeState. The default implementation skips and
+	// Merge
+	// Merges in the fields from the readers in mergeState. The default implementation skips and
 	// maps around deleted documents, and calls write(Fields, NormsProducer). Implementations can override
 	// this method for more sophisticated merging (bulk-byte copying, etc).
-	Merge(mergeState *MergeState, norms NormsProducer) error
+	Merge(ctx context.Context, mergeState *MergeState, norms NormsProducer) error
 }
 
-type FieldsConsumerExt interface {
-	// Merge Merges in the fields from the readers in mergeState. The default implementation skips and
-	// maps around deleted documents, and calls write(Fields, NormsProducer). Implementations can override
-	// this method for more sophisticated merging (bulk-byte copying, etc).
-	Merge(mergeState *MergeState, norms NormsProducer) error
-}
-
-var _ FieldsConsumerExt = &FieldsConsumerDefault{}
-
-type FieldsConsumerDefault struct {
+type BaseFieldsConsumer struct {
 
 	// Merges in the fields from the readers in mergeState.
 	// The default implementation skips and maps around deleted documents,
 	// and calls write(Fields, NormsProducer). Implementations can override
 	// this method for more sophisticated merging (bulk-byte copying, etc).
-	Write func(fields Fields, norms NormsProducer) error
+	// Write func(ctx context.Context, fields Fields, norms NormsProducer) error
 
 	// NOTE: strange but necessary so javadocs linting is happy:
-	Closer func() error
+	// Closer func() error
 }
 
-// Merge Merges in the fields from the readers in mergeState. The default implementation skips and
+// Merge
+// Merges in the fields from the readers in mergeState. The default implementation skips and
 // maps around deleted documents, and calls write(Fields, NormsProducer). Implementations can override
 // this method for more sophisticated merging (bulk-byte copying, etc).
-func (f *FieldsConsumerDefault) Merge(mergeState *MergeState, norms NormsProducer) error {
+func (f *BaseFieldsConsumer) Merge(ctx context.Context, mergeState *MergeState, norms NormsProducer) error {
 	return nil
 }
 
@@ -78,7 +77,8 @@ type FieldsProducer interface {
 
 	Fields
 
-	// CheckIntegrity Checks consistency of this reader.
+	// CheckIntegrity
+	// Checks consistency of this reader.
 	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum item against large
 	// data files.
 	CheckIntegrity() error

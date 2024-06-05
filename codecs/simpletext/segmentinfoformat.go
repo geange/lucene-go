@@ -33,8 +33,7 @@ var (
 	SI_SORT_TYPE   = []byte("      type ")
 	SI_SORT_NAME   = []byte("      name ")
 	SI_SORT_BYTES  = []byte("      bytes ")
-
-	SI_EXTENSION = "si"
+	SI_EXTENSION   = "si"
 )
 
 type SegmentInfoFormat struct {
@@ -45,7 +44,7 @@ func NewSegmentInfoFormat() *SegmentInfoFormat {
 }
 
 func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
-	segmentName string, segmentID []byte, context *store.IOContext) (*index.SegmentInfo, error) {
+	segmentName string, segmentID []byte, ioContext *store.IOContext) (*index.SegmentInfo, error) {
 
 	scratch := new(bytes.Buffer)
 	segFileName := store.SegmentFileName(segmentName, "", SI_EXTENSION)
@@ -206,7 +205,7 @@ func (s *SegmentInfoFormat) Write(ctx context.Context, dir store.Directory, si *
 
 	segFileName := store.SegmentFileName(si.Name(), "", SI_EXTENSION)
 
-	output, err := dir.CreateOutput(nil, segFileName)
+	output, err := dir.CreateOutput(ctx, segFileName)
 	if err != nil {
 		return err
 	}
@@ -424,7 +423,10 @@ func (s *SegmentInfoFormat) Write(ctx context.Context, dir store.Directory, si *
 		}
 	}
 
-	return utils.WriteChecksum(output)
+	if err := utils.WriteChecksum(output); err != nil {
+		return err
+	}
+	return output.Close()
 }
 
 var _ store.DataOutput = &BytesOutput{}

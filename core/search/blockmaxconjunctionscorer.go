@@ -30,11 +30,12 @@ func NewBlockMaxConjunctionScorer(weight Weight, scorersList []Scorer) (*BlockMa
 
 	// Sort res by cost
 	sort.Sort(sortScorerByCost(res.scorers))
-	var err error
-	res.maxScorePropagator, err = NewMaxScoreSumPropagator(res.scorers)
+
+	maxScorePropagator, err := NewMaxScoreSumPropagator(res.scorers)
 	if err != nil {
 		return nil, err
 	}
+	res.maxScorePropagator = maxScorePropagator
 
 	twoPhaseList := make([]TwoPhaseIterator, 0)
 	for i := range res.scorers {
@@ -46,8 +47,7 @@ func NewBlockMaxConjunctionScorer(weight Weight, scorersList []Scorer) (*BlockMa
 		} else {
 			res.approximations[i] = scorer.Iterator()
 		}
-		_, err := scorer.AdvanceShallow(0)
-		if err != nil {
+		if _, err := scorer.AdvanceShallow(0); err != nil {
 			return nil, err
 		}
 	}
@@ -145,16 +145,16 @@ func (b *BlockMaxConjunctionScorer) TwoPhaseIterator() TwoPhaseIterator {
 		return nil
 	}
 
-	matchCost := 0.0
+	cost := 0.0
 	for _, phase := range b.twoPhases {
-		matchCost += phase.MatchCost()
+		cost += phase.MatchCost()
 	}
 
 	approx := b.approximation()
 
 	return &bmcTwoPhaseIterator{
 		approx:    approx,
-		matchCost: matchCost,
+		matchCost: cost,
 	}
 }
 
@@ -172,7 +172,9 @@ func (b *bmcTwoPhaseIterator) Approximation() types.DocIdSetIterator {
 
 func (b *bmcTwoPhaseIterator) Matches() (bool, error) {
 	for _, twoPhase := range b.p.twoPhases {
-		if ok, _ := twoPhase.Matches(); !ok {
+		if ok, err := twoPhase.Matches(); err != nil {
+			return false, err
+		} else if !ok {
 			return false, nil
 		}
 	}
@@ -287,22 +289,24 @@ func (b *bmcDocIdSetIterator) Cost() int64 {
 	return b.lead.Cost()
 }
 
-func (b *bmcDocIdSetIterator) moveToNextBlock(target int) (err error) {
-	b.upTo, err = b.p.AdvanceShallow(target)
+func (b *bmcDocIdSetIterator) moveToNextBlock(target int) error {
+	upTo, err := b.p.AdvanceShallow(target)
 	if err != nil {
 		return err
 	}
-	b.maxScore, err = b.p.GetMaxScore(b.upTo)
+	b.upTo = upTo
+
+	maxScore, err := b.p.GetMaxScore(b.upTo)
 	if err != nil {
 		return err
 	}
+	b.maxScore = maxScore
 	return nil
 }
 
 func (b *bmcDocIdSetIterator) advanceTarget(target int) (int, error) {
 	if target > b.upTo {
-		err := b.moveToNextBlock(target)
-		if err != nil {
+		if err := b.moveToNextBlock(target); err != nil {
 			return 0, err
 		}
 	}
@@ -314,8 +318,7 @@ func (b *bmcDocIdSetIterator) advanceTarget(target int) (int, error) {
 
 		target = b.upTo + 1
 
-		err := b.moveToNextBlock(target)
-		if err != nil {
+		if err := b.moveToNextBlock(target); err != nil {
 			return 0, err
 		}
 	}

@@ -8,7 +8,8 @@ import (
 
 var _ types.DocIdSetIterator = &ImpactsDISI{}
 
-// ImpactsDISI DocIdSetIterator that skips non-competitive docs thanks to the indexed impacts.
+// ImpactsDISI
+// DocIdSetIterator that skips non-competitive docs thanks to the indexed impacts.
 // Call SetMinCompetitiveScore(float) in order to give this iterator the ability to skip
 // low-scoring documents.
 type ImpactsDISI struct {

@@ -2,21 +2,23 @@ package ints
 
 var _ IntsAllocator = &RecyclingIntBlockAllocator{}
 
+const (
+	DEFAULT_BUFFERED_BLOCKS = 64
+)
+
 type RecyclingIntBlockAllocator struct {
 	*AllocatorImp
 
-	freeByteBlocks          [][]int
-	maxBufferedBlocks       int
-	freeBlocks              int
-	DEFAULT_BUFFERED_BLOCKS int
+	freeByteBlocks    [][]int
+	maxBufferedBlocks int
+	freeBlocks        int
 }
 
 func NewRecyclingIntBlockAllocator(blockSize, maxBufferedBlocks int) *RecyclingIntBlockAllocator {
 	allocator := RecyclingIntBlockAllocator{
-		AllocatorImp:            nil,
-		freeBlocks:              0,
-		maxBufferedBlocks:       maxBufferedBlocks,
-		DEFAULT_BUFFERED_BLOCKS: 64,
+		AllocatorImp:      nil,
+		freeBlocks:        0,
+		maxBufferedBlocks: maxBufferedBlocks,
 	}
 	allocator.AllocatorImp = NewAllocator(blockSize, &allocator)
 	return &allocator

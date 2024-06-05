@@ -12,11 +12,7 @@ type MatchNoDocsQuery struct {
 	reason string
 }
 
-func NewMatchNoDocsQuery() *MatchNoDocsQuery {
-	return &MatchNoDocsQuery{}
-}
-
-func NewMatchNoDocsQueryV1(reason string) *MatchNoDocsQuery {
+func NewMatchNoDocsQuery(reason string) *MatchNoDocsQuery {
 	return &MatchNoDocsQuery{reason: reason}
 }
 
@@ -25,12 +21,12 @@ func (m *MatchNoDocsQuery) String(field string) string {
 	panic("implement me")
 }
 
-func (m *MatchNoDocsQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+func (m *MatchNoDocsQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *MatchNoDocsQuery) Rewrite(reader index.Reader) (Query, error) {
+func (m *MatchNoDocsQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -1,13 +1,11 @@
 package index
 
-import "io"
-
 type FlushPolicy interface {
 }
 
 type flushPolicy struct {
 	indexWriterConfig *liveIndexWriterConfig
-	infoStream        io.Writer
+	//infoStream        io.Writer
 
 	// Called for each delete term. If this is a delete triggered due to an update the
 	// given DocumentsWriterPerThread is non-null.
@@ -31,7 +29,7 @@ func (f *flushPolicy) OnUpdate(control *DocumentsWriterFlushControl, perThread *
 // Init Called by DocumentsWriter to initialize the FlushPolicy
 func (f *flushPolicy) Init(indexWriterConfig *liveIndexWriterConfig) {
 	f.indexWriterConfig = indexWriterConfig
-	f.infoStream = indexWriterConfig.infoStream
+	//f.infoStream = indexWriterConfig.infoStream
 }
 
 // Returns the current most RAM consuming non-pending DocumentsWriterPerThread with at least one indexed document.

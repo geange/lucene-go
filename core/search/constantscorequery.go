@@ -20,12 +20,12 @@ func (c *ConstantScoreQuery) String(field string) string {
 	panic("implement me")
 }
 
-func (c *ConstantScoreQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+func (c *ConstantScoreQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *ConstantScoreQuery) Rewrite(reader index.Reader) (Query, error) {
+func (c *ConstantScoreQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	//TODO implement me
 	panic("implement me")
 }

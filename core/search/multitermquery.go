@@ -6,7 +6,8 @@ import (
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
-// MultiTermQuery An abstract Query that matches documents containing a subset of terms provided by a
+// MultiTermQuery
+// An abstract Query that matches documents containing a subset of terms provided by a
 // FilteredTermsEnum enumeration.
 // This query cannot be used directly; you must subclass it and define getTermsEnum(Terms, AttributeSource) to
 // provide a FilteredTermsEnum that iterates through the terms to be matched.
@@ -37,22 +38,26 @@ type MultiTermQuery interface {
 	// share maximum competitive boosts
 	GetTermsEnum(terms index.Terms, atts *attribute.Source) (index.TermsEnum, error)
 
-	// GetRewriteMethod See Also: setRewriteMethod
+	// GetRewriteMethod
+	// See Also: setRewriteMethod
 	GetRewriteMethod() RewriteMethod
 
 	// SetRewriteMethod
-	// Sets the rewrite method to be used when executing the query. You can use one of the four core methods, or implement your own subclass of MultiTermQuery.RewriteMethod.
+	// Sets the rewrite method to be used when executing the query. You can use one of the four core methods,
+	// or implement your own subclass of MultiTermQuery.RewriteMethod.
 	SetRewriteMethod(method RewriteMethod)
 }
 
 type MultiTermQueryPlus interface {
 }
 
-// RewriteMethod Abstract class that defines how the query is rewritten.
+// RewriteMethod
+// Abstract class that defines how the query is rewritten.
 type RewriteMethod interface {
-	Rewrite(reader index.Reader, query MultiTermQuery) (Query, error)
+	Rewrite(reader index.IndexReader, query MultiTermQuery) (Query, error)
 
-	// GetTermsEnum Returns the MultiTermQuerys TermsEnum
+	// GetTermsEnum
+	// Returns the MultiTermQuerys TermsEnum
 	// See Also: getTermsEnum(Terms, AttributeSource)
 	GetTermsEnum(query MultiTermQuery, terms index.Terms, atts *attribute.Source) (index.TermsEnum, error)
 }
@@ -62,7 +67,7 @@ var _ RewriteMethod = &constantScoreRewrite{}
 type constantScoreRewrite struct {
 }
 
-func (c *constantScoreRewrite) Rewrite(reader index.Reader, query MultiTermQuery) (Query, error) {
+func (c *constantScoreRewrite) Rewrite(reader index.IndexReader, query MultiTermQuery) (Query, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -87,12 +92,13 @@ func (m *MultiTermQueryConstantScoreWrapper) GetQuery() Query {
 	return m.query
 }
 
-// GetField Returns the field name for this query
+// GetField
+// Returns the field name for this query
 func (m *MultiTermQueryConstantScoreWrapper) GetField() string {
 	return m.query.GetField()
 }
 
-func (m *MultiTermQueryConstantScoreWrapper) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+func (m *MultiTermQueryConstantScoreWrapper) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -100,11 +106,11 @@ func (m *MultiTermQueryConstantScoreWrapper) CreateWeight(searcher *IndexSearche
 type wrapperConstantScoreWeight struct {
 	*ConstantScoreWeight
 
-	scoreMode *ScoreMode
+	scoreMode ScoreMode
 	p         *MultiTermQueryConstantScoreWrapper
 }
 
-func (r *wrapperConstantScoreWeight) BulkScorer(ctx *index.LeafReaderContext) (BulkScorer, error) {
+func (r *wrapperConstantScoreWeight) BulkScorer(ctx index.LeafReaderContext) (BulkScorer, error) {
 	weightOrBitSet, err := r.rewrite(ctx)
 	if err != nil {
 		return nil, err
@@ -123,7 +129,7 @@ func (r *wrapperConstantScoreWeight) BulkScorer(ctx *index.LeafReaderContext) (B
 	return NewDefaultBulkScorer(scorer), nil
 }
 
-func (r *wrapperConstantScoreWeight) Matches(context *index.LeafReaderContext, doc int) (Matches, error) {
+func (r *wrapperConstantScoreWeight) Matches(context index.LeafReaderContext, doc int) (Matches, error) {
 	terms, err := context.Reader().(index.LeafReader).Terms(r.p.query.GetField())
 	if err != nil {
 		return nil, err
@@ -152,7 +158,7 @@ func (r *wrapperConstantScoreWeight) Matches(context *index.LeafReaderContext, d
 var _ IOSupplier[MatchesIterator] = &matches{}
 
 type matches struct {
-	context *index.LeafReaderContext
+	context index.LeafReaderContext
 	doc     int
 	query   Query
 	field   string
@@ -163,7 +169,7 @@ func (r *matches) Get() (MatchesIterator, error) {
 	return FromTermsEnumMatchesIterator(r.context, r.doc, r.query, r.field, r.terms)
 }
 
-func (r *wrapperConstantScoreWeight) Scorer(ctx *index.LeafReaderContext) (Scorer, error) {
+func (r *wrapperConstantScoreWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
 	weightOrBitSet, err := r.rewrite(ctx)
 	if err != nil {
 		return nil, err
@@ -174,20 +180,20 @@ func (r *wrapperConstantScoreWeight) Scorer(ctx *index.LeafReaderContext) (Score
 	return r.scorer(weightOrBitSet.set)
 }
 
-func (r *wrapperConstantScoreWeight) IsCacheable(ctx *index.LeafReaderContext) bool {
+func (r *wrapperConstantScoreWeight) IsCacheable(ctx index.LeafReaderContext) bool {
 	return true
 }
 
 // Try to collect terms from the given terms enum and return true iff all
 // terms could be collected. If {@code false} is returned, the enum is
 // left positioned on the next term.
-func (r *wrapperConstantScoreWeight) collectTerms(ctx *index.LeafReaderContext, termsEnum index.TermsEnum, terms []*termAndState) {
+func (r *wrapperConstantScoreWeight) collectTerms(ctx index.LeafReaderContext, termsEnum index.TermsEnum, terms []*termAndState) {
 	panic("")
 }
 
 // On the given leaf context, try to either rewrite to a disjunction if
 // there are few terms, or build a bitset containing matching docs.
-func (r *wrapperConstantScoreWeight) rewrite(ctx *index.LeafReaderContext) (*weightOrDocIdSet, error) {
+func (r *wrapperConstantScoreWeight) rewrite(ctx index.LeafReaderContext) (*weightOrDocIdSet, error) {
 	panic("")
 }
 
@@ -218,7 +224,7 @@ func newTermAndState(term []byte, state index.TermState, docFreq int, totalTermF
 	return &termAndState{term: term, state: state, docFreq: docFreq, totalTermFreq: totalTermFreq}
 }
 
-func (m *MultiTermQueryConstantScoreWrapper) Rewrite(reader index.Reader) (Query, error) {
+func (m *MultiTermQueryConstantScoreWrapper) Rewrite(reader index.IndexReader) (Query, error) {
 	return m, nil
 }
 

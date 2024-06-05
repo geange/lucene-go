@@ -24,8 +24,8 @@ type FieldInfos struct {
 	// used only by fieldInfo(int)
 	byNumber []*document.FieldInfo
 
-	byName map[string]*document.FieldInfo
-	values []*document.FieldInfo // for an unmodifiable iterator
+	byName     map[string]*document.FieldInfo
+	fieldInfos []*document.FieldInfo // for an unmodifiable iterator
 }
 
 func NewFieldInfos(infos []*document.FieldInfo) *FieldInfos {
@@ -111,7 +111,7 @@ func NewFieldInfos(infos []*document.FieldInfo) *FieldInfos {
 		items = append(items, value)
 	}
 	this.byNumber = items
-	this.values = items
+	this.fieldInfos = items
 
 	return this
 }
@@ -129,7 +129,7 @@ func (f *FieldInfos) Size() int {
 }
 
 func (f *FieldInfos) List() []*document.FieldInfo {
-	return f.values
+	return f.fieldInfos
 }
 
 func (f *FieldInfos) HasNorms() bool {
@@ -167,7 +167,7 @@ func (f *FieldInfosBuilder) Add(other *FieldInfos) error {
 		return nil
 	}
 
-	for _, fieldInfo := range other.values {
+	for _, fieldInfo := range other.fieldInfos {
 		if _, err := f.AddFieldInfo(fieldInfo); err != nil {
 			return err
 		}

@@ -58,19 +58,19 @@ func (b *BooleanQuery) String(field string) string {
 	return buf.String()
 }
 
-func (b *BooleanQuery) CreateWeight(searcher *IndexSearcher, scoreMode *ScoreMode, boost float64) (Weight, error) {
+func (b *BooleanQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
 	query := b
 	if scoreMode.NeedsScores() == false {
-		var err error
-		query, err = b.rewriteNoScoring()
+		booleanQuery, err := b.rewriteNoScoring()
 		if err != nil {
 			return nil, err
 		}
+		query = booleanQuery
 	}
 	return NewBooleanWeight(query, searcher, scoreMode, boost)
 }
 
-func (b *BooleanQuery) Rewrite(reader index.Reader) (Query, error) {
+func (b *BooleanQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	if b.clauses == nil || len(b.clauses) == 0 {
 		return nil, errors.New("empty BooleanQuery")
 	}
@@ -90,7 +90,7 @@ func (b *BooleanQuery) Rewrite(reader index.Reader) (Query, error) {
 			case OccurFilter:
 				return NewBoostQuery(NewConstantScoreQuery(query), 0)
 			case OccurMustNot:
-				return NewMatchNoDocsQueryV1("pure negative BooleanQuery"), nil
+				return NewMatchNoDocsQuery("pure negative BooleanQuery"), nil
 			default:
 				return nil, errors.New("AssertionError")
 			}
@@ -152,11 +152,11 @@ func (b *BooleanQuery) Rewrite(reader index.Reader) (Query, error) {
 
 		for _, query := range mustNotClauses {
 			if _, ok := filter[query]; ok {
-				return NewMatchNoDocsQueryV1("OccurFilter or OccurMust clause also in OccurMustNot"), nil
+				return NewMatchNoDocsQuery("OccurFilter or OccurMust clause also in OccurMustNot"), nil
 			}
 
 			if _, ok := query.(*MatchAllDocsQuery); ok {
-				return NewMatchNoDocsQueryV1("OccurMustNot clause is MatchAllDocsQuery"), nil
+				return NewMatchNoDocsQuery("OccurMustNot clause is MatchAllDocsQuery"), nil
 			}
 		}
 	}
@@ -424,16 +424,14 @@ func (b *BooleanQuery) Visit(visitor QueryVisitor) error {
 		if len(queries) > 0 {
 			if occur == OccurMust {
 				for _, q := range b.clauseSets[occur] {
-					err := q.Visit(sub)
-					if err != nil {
+					if err := q.Visit(sub); err != nil {
 						return err
 					}
 				}
 			} else {
-				v := sub.GetSubVisitor(occur, b)
+				vt := sub.GetSubVisitor(occur, b)
 				for _, q := range b.clauseSets[occur] {
-					err := q.Visit(v)
-					if err != nil {
+					if err := q.Visit(vt); err != nil {
 						return err
 					}
 				}

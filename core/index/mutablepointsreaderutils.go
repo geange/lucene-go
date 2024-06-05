@@ -10,7 +10,8 @@ import (
 	"sort"
 )
 
-// SortByDim Sort points on the given dimension.
+// SortByDim
+// Sort points on the given dimension.
 func SortByDim(config *bkd.Config, sortedDim int, commonPrefixLengths []int,
 	reader types.MutablePointValues, from, to int,
 	scratch1, scratch2 *bytes.Buffer) {

@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/document"
 	"strconv"
 
@@ -46,7 +47,7 @@ func (s *SegmentDocValues) newDocValuesProducer(si *SegmentCommitInfo,
 	srs := NewSegmentReadState(dvDir, si.info, infos, nil, segmentSuffix)
 	dvFormat := si.info.GetCodec().DocValuesFormat()
 
-	producer, err := dvFormat.FieldsProducer(srs)
+	producer, err := dvFormat.FieldsProducer(nil, srs)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +94,7 @@ func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
 	}
 
 	var baseProducer DocValuesProducer
-	for _, fi := range allInfos.values {
+	for _, fi := range allInfos.fieldInfos {
 		if fi.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {
 			continue
 		}
@@ -134,27 +135,27 @@ func (s *SegmentDocValuesProducer) Close() error {
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetNumeric(field *document.FieldInfo) (NumericDocValues, error) {
+func (s *SegmentDocValuesProducer) GetNumeric(ctx context.Context, field *document.FieldInfo) (NumericDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetBinary(field *document.FieldInfo) (BinaryDocValues, error) {
+func (s *SegmentDocValuesProducer) GetBinary(ctx context.Context, field *document.FieldInfo) (BinaryDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSorted(field *document.FieldInfo) (SortedDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (SortedDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSortedNumeric(field *document.FieldInfo) (SortedNumericDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSortedNumeric(ctx context.Context, field *document.FieldInfo) (SortedNumericDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSortedSet(field *document.FieldInfo) (SortedSetDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSortedSet(ctx context.Context, field *document.FieldInfo) (SortedSetDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -14,10 +14,12 @@ import (
 
 var _ index.LeafReader = &IndexReader{}
 
-// IndexReader Search support for Lucene framework integration; implements all methods required by the Lucene
+// IndexReader
+// Search support for Lucene framework integration; implements all methods required by the Lucene
 // Reader contracts.
 type IndexReader struct {
 	*index.BaseLeafReader
+
 	memoryFields *Fields
 	fieldInfos   *index.FieldInfos
 	fields       *treemap.Map[string, *info]
@@ -53,7 +55,7 @@ func (m *IndexReader) MaxDoc() int {
 	return 1
 }
 
-func (m *IndexReader) DocumentV1(docID int, visitor document.StoredFieldVisitor) error {
+func (m *IndexReader) DocumentWithVisitor(docID int, visitor document.StoredFieldVisitor) error {
 	return nil
 }
 

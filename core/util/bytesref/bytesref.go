@@ -22,19 +22,20 @@ type BytesIterator interface {
 }
 
 func BytesToString(values []byte) string {
-	sb := new(bytes.Buffer)
+	buf := new(bytes.Buffer)
 
-	sb.WriteByte('[')
+	buf.WriteByte('[')
 
 	for i, value := range values {
 		if i > 0 {
-			sb.WriteByte(' ')
+			buf.WriteByte(' ')
 		}
-		sb.WriteString(fmt.Sprintf("0x%x", value))
+		buf.WriteString("0x")
+		buf.WriteString(fmt.Sprintf("%x", value))
 	}
 
-	sb.WriteByte(']')
-	return sb.String()
+	buf.WriteByte(']')
+	return buf.String()
 }
 
 func StringToBytes(value string) ([]byte, error) {

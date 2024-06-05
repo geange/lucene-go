@@ -9,7 +9,7 @@ import (
 
 // SortFieldProvider Reads/Writes a named SortField from a segment info file, used to record index sorts
 type SortFieldProvider interface {
-	NamedSPI
+	Named
 
 	// ReadSortField Reads a SortField from serialized bytes
 	ReadSortField(ctx context.Context, in store.DataInput) (SortField, error)
@@ -51,8 +51,8 @@ var (
 //	s.values[name] = provider
 //}
 //
-//// ForName Looks up a SortFieldProvider by name
-//func (s *SortFieldProviderInstance) ForName(name string) (SortFieldProvider, bool) {
+//// GetCodecByName Looks up a SortFieldProvider by name
+//func (s *SortFieldProviderInstance) GetCodecByName(name string) (SortFieldProvider, bool) {
 //	provider, ok := s.values[name]
 //	return provider, ok
 //}
@@ -67,7 +67,7 @@ var (
 //		return fmt.Errorf("cannot serialize sort field: %s", sf.String())
 //	}
 //
-//	provider, ok := s.ForName(sorter.GetProviderName())
+//	provider, ok := s.GetCodecByName(sorter.GetProviderName())
 //	if !ok {
 //		return fmt.Errorf("provider(%s) not found", sorter.GetProviderName())
 //	}

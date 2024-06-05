@@ -1,6 +1,7 @@
 package simpletext
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -14,13 +15,10 @@ func NewTermVectorsFormat() *TermVectorsFormat {
 	return &TermVectorsFormat{}
 }
 
-func (s *TermVectorsFormat) VectorsReader(dir store.Directory, segmentInfo *index.SegmentInfo,
-	fieldInfos *index.FieldInfos, context *store.IOContext) (index.TermVectorsReader, error) {
-	return NewTermVectorsReader(dir, segmentInfo, context)
+func (s *TermVectorsFormat) VectorsReader(ctx context.Context, dir store.Directory, segmentInfo *index.SegmentInfo, fieldInfos *index.FieldInfos, ioContext *store.IOContext) (index.TermVectorsReader, error) {
+	return NewTermVectorsReader(ctx, dir, segmentInfo, ioContext)
 }
 
-func (s *TermVectorsFormat) VectorsWriter(dir store.Directory,
-	segmentInfo *index.SegmentInfo, context *store.IOContext) (index.TermVectorsWriter, error) {
-
-	return NewTermVectorsWriter(dir, segmentInfo.Name(), context)
+func (s *TermVectorsFormat) VectorsWriter(ctx context.Context, dir store.Directory, segmentInfo *index.SegmentInfo, ioContext *store.IOContext) (index.TermVectorsWriter, error) {
+	return NewTermVectorsWriter(ctx, dir, segmentInfo.Name(), ioContext)
 }

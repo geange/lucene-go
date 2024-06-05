@@ -13,10 +13,12 @@ import (
 type PointsWriter interface {
 	io.Closer
 
-	// WriteField Write all values contained in the provided reader
+	// WriteField
+	// Write all values contained in the provided reader
 	WriteField(ctx context.Context, fieldInfo *document.FieldInfo, values PointsReader) error
 
-	// Finish Called once at the end before close
+	// Finish
+	// Called once at the end before close
 	Finish() error
 }
 
@@ -37,7 +39,7 @@ func (p *BasePointsWriter) MergeOneField(ctx context.Context, mergeState *MergeS
 		if pointsReader != nil {
 			readerFieldInfo := mergeState.FieldInfos[i].FieldInfo(fieldInfo.Name())
 			if readerFieldInfo != nil && readerFieldInfo.GetPointIndexDimensionCount() > 0 {
-				values, err := pointsReader.GetValues(fieldInfo.Name())
+				values, err := pointsReader.GetValues(nil, fieldInfo.Name())
 				if err != nil {
 					return err
 				}
@@ -74,7 +76,7 @@ func (i innerPointsReader) CheckIntegrity() error {
 	panic("implement me")
 }
 
-func (i innerPointsReader) GetValues(field string) (types.PointValues, error) {
+func (i innerPointsReader) GetValues(ctx context.Context, field string) (types.PointValues, error) {
 	return &innerPointValues{
 		size:     i.size,
 		docCount: i.docCount,
