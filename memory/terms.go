@@ -3,6 +3,7 @@ package memory
 import (
 	"bytes"
 	"context"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/lucene-go/core/index"
@@ -28,7 +29,7 @@ type Terms struct {
 	storePayloads bool
 }
 
-func (t *Terms) Iterator() (index.TermsEnum, error) {
+func (t *Terms) Iterator() (index2.TermsEnum, error) {
 	return t.index.newTermsEnum(t.info), nil
 }
 
@@ -71,7 +72,7 @@ func (t *Terms) HasPayloads() bool {
 	return t.storePayloads
 }
 
-var _ index.TermsEnum = &memTermsEnum{}
+var _ index2.TermsEnum = &memTermsEnum{}
 
 type memTermsEnum struct {
 	info     *info
@@ -135,17 +136,17 @@ func (m *memTermsEnum) SeekExact(ctx context.Context, text []byte) (bool, error)
 	return m.termUpto >= 0, nil
 }
 
-func (m *memTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
+func (m *memTermsEnum) SeekCeil(ctx context.Context, text []byte) (index2.SeekStatus, error) {
 	m.termUpto = m.binarySearch(text, 0, m.info.terms.Size()-1, m.info.terms, m.info.sortedTerms)
 	if m.termUpto < 0 { // not found; choose successor
 		m.termUpto = -m.termUpto - 1
 		if m.termUpto >= m.info.terms.Size() {
-			return index.SEEK_STATUS_END, nil
+			return index2.SEEK_STATUS_END, nil
 		}
 		m.content = m.info.terms.Get(m.info.sortedTerms[m.termUpto])
-		return index.SEEK_STATUS_NOT_FOUND, nil
+		return index2.SEEK_STATUS_NOT_FOUND, nil
 	}
-	return index.SEEK_STATUS_FOUND, nil
+	return index2.SEEK_STATUS_FOUND, nil
 }
 
 func (m *memTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
@@ -154,7 +155,7 @@ func (m *memTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
 	return nil
 }
 
-func (m *memTermsEnum) SeekExactExpert(ctx context.Context, term []byte, state index.TermState) error {
+func (m *memTermsEnum) SeekExactExpert(ctx context.Context, term []byte, state index2.TermState) error {
 	return m.SeekExactByOrd(ctx, state.(*index.OrdTermState).Ord)
 }
 
@@ -174,7 +175,7 @@ func (m *memTermsEnum) TotalTermFreq() (int64, error) {
 	return int64(m.info.sliceArray.freq[m.info.sortedTerms[m.termUpto]]), nil
 }
 
-func (m *memTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
+func (m *memTermsEnum) Postings(reuse index2.PostingsEnum, flags int) (index2.PostingsEnum, error) {
 	idx := m.index
 
 	if reuse == nil {
@@ -191,7 +192,7 @@ func (m *memTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.Post
 	return reuse.(*memPostingsEnum).reset(array.start[ord], array.end[ord], array.freq[ord]), nil
 }
 
-func (m *memTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
+func (m *memTermsEnum) Impacts(flags int) (index2.ImpactsEnum, error) {
 	postings, err := m.Postings(nil, flags)
 	if err != nil {
 		return nil, err
@@ -199,7 +200,7 @@ func (m *memTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 	return index.NewSlowImpactsEnum(postings), nil
 }
 
-func (m *memTermsEnum) TermState() (index.TermState, error) {
+func (m *memTermsEnum) TermState() (index2.TermState, error) {
 	ts := index.NewOrdTermState()
 	ts.Ord = int64(m.termUpto)
 	return ts, nil

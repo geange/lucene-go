@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -19,7 +20,7 @@ type SegmentWriteState struct {
 
 	// FieldInfos
 	// describing all fields in this segment.
-	FieldInfos *FieldInfos
+	FieldInfos index.FieldInfos
 
 	// DelCountOnFlush
 	// Number of deleted documents set while flushing the segment.
@@ -53,7 +54,7 @@ type SegmentWriteState struct {
 	Context *store.IOContext
 }
 
-func NewSegmentWriteState(directory store.Directory, segmentInfo *SegmentInfo, fieldInfos *FieldInfos, segUpdates *BufferedUpdates, ioContext *store.IOContext) *SegmentWriteState {
+func NewSegmentWriteState(directory store.Directory, segmentInfo *SegmentInfo, fieldInfos index.FieldInfos, segUpdates *BufferedUpdates, ioContext *store.IOContext) *SegmentWriteState {
 
 	return &SegmentWriteState{
 		Directory:           directory,
@@ -79,7 +80,7 @@ type SegmentReadState struct {
 	SegmentInfo *SegmentInfo
 
 	// FieldInfos describing all fields in this segment.
-	FieldInfos *FieldInfos
+	FieldInfos index.FieldInfos
 
 	// IOContext to pass to Directory.openInput(String, IOContext).
 	Context *store.IOContext
@@ -92,7 +93,7 @@ type SegmentReadState struct {
 }
 
 func NewSegmentReadState(dir store.Directory, info *SegmentInfo,
-	fieldInfos *FieldInfos, ioContext *store.IOContext, segmentSuffix string) *SegmentReadState {
+	fieldInfos index.FieldInfos, ioContext *store.IOContext, segmentSuffix string) *SegmentReadState {
 
 	return &SegmentReadState{
 		Directory:     dir,

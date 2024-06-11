@@ -89,7 +89,7 @@ func (q *DocumentsWriterFlushQueue) decTickets() {
 	q.ticketCount.Add(-1)
 }
 
-func (q *DocumentsWriterFlushQueue) AddDeletes(queue *DocumentsWriterDeleteQueue) error {
+func (q *DocumentsWriterFlushQueue) AddDeletes(queue *DocumentsWriterDeleteQueue) (bool, error) {
 	panic("")
 }
 

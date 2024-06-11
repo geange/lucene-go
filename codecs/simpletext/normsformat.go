@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 )
 
 var _ index.NormsFormat = &NormsFormat{}
@@ -43,7 +44,7 @@ func NewSimpleTextNormsProducer(state *index.SegmentReadState) (*SimpleTextNorms
 	return &SimpleTextNormsProducer{impl: reader}, nil
 }
 
-func (s *SimpleTextNormsProducer) GetNorms(field *document.FieldInfo) (index.NumericDocValues, error) {
+func (s *SimpleTextNormsProducer) GetNorms(field *document.FieldInfo) (index2.NumericDocValues, error) {
 	return s.impl.GetNumeric(nil, field)
 }
 
@@ -93,7 +94,7 @@ func (s *SimpleTextNormsConsumer) AddNormsField(ctx context.Context, field *docu
 	producer := struct {
 		*index.EmptyDocValuesProducer
 	}{}
-	producer.FnGetNumeric = func(ctx context.Context, field *document.FieldInfo) (index.NumericDocValues, error) {
+	producer.FnGetNumeric = func(ctx context.Context, field *document.FieldInfo) (index2.NumericDocValues, error) {
 		return normsProducer.GetNorms(field)
 	}
 

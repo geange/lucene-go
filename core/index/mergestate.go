@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/packed"
 )
@@ -16,7 +17,7 @@ type MergeState struct {
 	SegmentInfo *SegmentInfo
 
 	// FieldInfos of the newly merged segment.
-	MergeFieldInfos *FieldInfos
+	MergeFieldInfos index.FieldInfos
 
 	// Stored field producers being merged
 	StoredFieldsReaders []StoredFieldsReader
@@ -31,7 +32,7 @@ type MergeState struct {
 	DocValuesProducers []DocValuesProducer
 
 	// FieldInfos being merged
-	FieldInfos []*FieldInfos
+	FieldInfos []index.FieldInfos
 
 	// Live docs for each reader
 	LiveDocs []util.Bits
@@ -63,7 +64,7 @@ func NewMergeState(readers []CodecReader, segmentInfo *SegmentInfo) (*MergeState
 		TermVectorsReaders:  make([]TermVectorsReader, numReaders),
 		NormsProducers:      make([]NormsProducer, numReaders),
 		DocValuesProducers:  make([]DocValuesProducer, numReaders),
-		FieldInfos:          make([]*FieldInfos, numReaders),
+		FieldInfos:          make([]index.FieldInfos, numReaders),
 		LiveDocs:            make([]util.Bits, numReaders),
 		FieldsProducers:     make([]FieldsProducer, numReaders),
 		PointsReaders:       make([]PointsReader, numReaders),
@@ -127,7 +128,7 @@ func verifyIndexSort(readers []CodecReader, segmentInfo *SegmentInfo) error {
 	return nil
 }
 
-func buildDocMaps(readers []CodecReader, indexSort *Sort) []MergeStateDocMap {
+func buildDocMaps(readers []CodecReader, indexSort index.Sort) []MergeStateDocMap {
 	if indexSort == nil {
 		// no index sort ... we only must map around deletions, and rebase to the merged segment's docID space
 		return buildDeletionDocMaps(readers)

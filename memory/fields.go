@@ -2,6 +2,7 @@ package memory
 
 import (
 	"bytes"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"slices"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -25,7 +26,7 @@ func (m *Fields) Names() []string {
 	return m.fields.Keys()
 }
 
-func (m *Fields) Terms(field string) (index.Terms, error) {
+func (m *Fields) Terms(field string) (index2.Terms, error) {
 	info, ok := m.fields.Get(field)
 	if !ok {
 		return nil, nil
@@ -142,7 +143,7 @@ func (r *info) prepareDocValuesAndPointValues() {
 	r.preparedDocValuesAndPointValues = true
 }
 
-func (r *info) getNormDocValues() index.NumericDocValues {
+func (r *info) getNormDocValues() index2.NumericDocValues {
 	if r.norm == nil {
 		invertState := index.NewFieldInvertState(
 			int(version.Last.Major()),

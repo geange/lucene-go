@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/array"
 	"io"
@@ -40,7 +41,7 @@ func NewDocIdSetBuilder(maxDoc int) *DocIdSetBuilder {
 
 // NewDocIdSetBuilderV1
 // Create a DocIdSetBuilder instance that is optimized for accumulating docs that match the given Terms.
-func NewDocIdSetBuilderV1(maxDoc int, terms index.Terms) (*DocIdSetBuilder, error) {
+func NewDocIdSetBuilderV1(maxDoc int, terms index2.Terms) (*DocIdSetBuilder, error) {
 	docCount, err := terms.GetDocCount()
 	if err != nil {
 		return nil, err

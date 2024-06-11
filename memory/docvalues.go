@@ -1,13 +1,14 @@
 package memory
 
 import (
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
-var _ index.NumericDocValues = &numericDocValues{}
+var _ index2.NumericDocValues = &numericDocValues{}
 
 type numericDocValues struct {
 	iterator *docValuesIterator
@@ -64,7 +65,7 @@ func (i *numericDocValues) LongValue() (int64, error) {
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 
-var _ index.SortedDocValues = &sortedDocValues{}
+var _ index2.SortedDocValues = &sortedDocValues{}
 
 type sortedDocValues struct {
 	*index.BaseSortedDocValues
@@ -73,7 +74,7 @@ type sortedDocValues struct {
 	it    *docValuesIterator
 }
 
-func (i *sortedDocValues) TermsEnum() (index.TermsEnum, error) {
+func (i *sortedDocValues) TermsEnum() (index2.TermsEnum, error) {
 	return index.NewSortedDocValuesTermsEnum(i), nil
 }
 
@@ -142,7 +143,7 @@ func (i *sortedDocValues) GetValueCount() int {
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 
-var _ index.SortedNumericDocValues = &sortedNumericDocValues{}
+var _ index2.SortedNumericDocValues = &sortedNumericDocValues{}
 
 type sortedNumericDocValues struct {
 	it     *docValuesIterator
@@ -209,7 +210,7 @@ func (i *sortedNumericDocValues) DocValueCount() int {
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 
-var _ index.SortedSetDocValues = &sortedSetDocValues{}
+var _ index2.SortedSetDocValues = &sortedSetDocValues{}
 
 type sortedSetDocValues struct {
 	ord      int64

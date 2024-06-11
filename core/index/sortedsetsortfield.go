@@ -3,10 +3,11 @@ package index
 import (
 	"context"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
-var _ SortField = &SortedSetSortField{}
+var _ index.SortField = &SortedSetSortField{}
 
 // SortedSetSortField
 // SortField for SortedSetDocValues.
@@ -54,7 +55,7 @@ func NewSortedSetSortFieldV1(field string, reverse bool,
 	selector SortedSetSelectorType) *SortedSetSortField {
 
 	return &SortedSetSortField{
-		BaseSortField: NewSortFieldV1(field, CUSTOM, reverse),
+		BaseSortField: NewSortFieldV1(field, index.CUSTOM, reverse),
 		selector:      selector,
 	}
 }
@@ -72,7 +73,7 @@ func (s *SortedSetSortFieldProvider) GetName() string {
 	return "SortedSetSortField"
 }
 
-func (s *SortedSetSortFieldProvider) ReadSortField(ctx context.Context, in store.DataInput) (SortField, error) {
+func (s *SortedSetSortFieldProvider) ReadSortField(ctx context.Context, in store.DataInput) (index.SortField, error) {
 	field, err := in.ReadString(ctx)
 	if err != nil {
 		return nil, err
@@ -121,7 +122,7 @@ func readSelectorType(ctx context.Context, in store.DataInput) (SortedSetSelecto
 	return SortedSetSelectorType(int(_type)), nil
 }
 
-func (s *SortedSetSortFieldProvider) WriteSortField(ctx context.Context, sf SortField, out store.DataOutput) error {
+func (s *SortedSetSortFieldProvider) WriteSortField(ctx context.Context, sf index.SortField, out store.DataOutput) error {
 	v, ok := sf.(*SortedSetSortField)
 	if !ok {
 		return fmt.Errorf("sf is not *SortedSetSortField")

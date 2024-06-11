@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 
 	"github.com/geange/gods-generic/lists/arraylist"
@@ -30,7 +31,7 @@ import (
 // methods, concurrently. If your application requires external synchronization, you should not
 // synchronize on the IndexReader instance; use your own (non-Lucene) objects instead.
 type CompositeReader interface {
-	IndexReader
+	index.IndexReader
 
 	// GetSequentialSubReaders
 	// Expert: returns the sequential sub readers that this reader is logically composed of.
@@ -38,7 +39,7 @@ type CompositeReader interface {
 	// NOTE: In contrast to previous Lucene versions this method is no longer public, code that
 	// wants to get all LeafReaders this composite is composed of should use Reader.leaves().
 	// See Also: Reader.leaves()
-	GetSequentialSubReaders() []IndexReader
+	GetSequentialSubReaders() []index.IndexReader
 }
 
 var _ CompositeReader = &baseCompositeReader{}
@@ -46,20 +47,20 @@ var _ CompositeReader = &baseCompositeReader{}
 type baseCompositeReader struct {
 	*baseIndexReader
 
-	subReaders       []IndexReader             //
-	subReadersSorter func(a, b LeafReader) int //
-	starts           []int                     // 1st docno for each reader
-	maxDoc           int                       //
-	numDocs          int                       // computed lazily
-	subReadersList   []IndexReader             // List view solely for getSequentialSubReaders(), for effectiveness the array is used internally.
-	readerContext    *CompositeReaderContext   //
+	subReaders       []index.IndexReader             //
+	subReadersSorter func(a, b index.LeafReader) int //
+	starts           []int                           // 1st docno for each reader
+	maxDoc           int                             //
+	numDocs          int                             // computed lazily
+	subReadersList   []index.IndexReader             // List view solely for getSequentialSubReaders(), for effectiveness the array is used internally.
+	readerContext    *CompositeReaderContext         //
 }
 
 func (b *baseCompositeReader) DoClose() error {
 	return nil
 }
 
-func (b *baseCompositeReader) GetContext() (IndexReaderContext, error) {
+func (b *baseCompositeReader) GetContext() (index.IndexReaderContext, error) {
 	if b.readerContext == nil {
 		readerContext, err := NewCompositeReaderContext(WithCompositeReaderContextV1(b))
 		if err != nil {
@@ -70,22 +71,22 @@ func (b *baseCompositeReader) GetContext() (IndexReaderContext, error) {
 	return b.readerContext, nil
 }
 
-func (b *baseCompositeReader) GetMetaData() *LeafMetaData {
+func (b *baseCompositeReader) GetMetaData() index.LeafMetaData {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (b *baseCompositeReader) GetReaderCacheHelper() CacheHelper {
+func (b *baseCompositeReader) GetReaderCacheHelper() index.CacheHelper {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (b *baseCompositeReader) GetSequentialSubReaders() []IndexReader {
+func (b *baseCompositeReader) GetSequentialSubReaders() []index.IndexReader {
 	return b.subReadersList
 }
 
-func newBaseCompositeReader(subReaders []IndexReader,
-	subReadersSorter func(a, b LeafReader) int) (*baseCompositeReader, error) {
+func newBaseCompositeReader(subReaders []index.IndexReader,
+	subReadersSorter func(a, b index.LeafReader) int) (*baseCompositeReader, error) {
 
 	sort.Sort(&ReaderSorter{
 		Readers:   subReaders,
@@ -121,7 +122,7 @@ func newBaseCompositeReader(subReaders []IndexReader,
 	return reader, nil
 }
 
-func (b *baseCompositeReader) GetTermVectors(docID int) (Fields, error) {
+func (b *baseCompositeReader) GetTermVectors(docID int) (index.Fields, error) {
 	i, err := b.readerIndex(docID) // find subreader num
 	if err != nil {
 		return nil, err
@@ -164,7 +165,7 @@ func (b *baseCompositeReader) DocumentWithVisitor(docID int, visitor document.St
 	return b.subReaders[i].DocumentWithVisitor(docID-b.starts[i], visitor) // dispatch to subreader
 }
 
-func (b *baseCompositeReader) DocFreq(ctx context.Context, term Term) (int, error) {
+func (b *baseCompositeReader) DocFreq(ctx context.Context, term index.Term) (int, error) {
 	//ensureOpen();
 	total := 0 // sum freqs in subreaders
 	for i := 0; i < len(b.subReaders); i++ {
@@ -179,7 +180,7 @@ func (b *baseCompositeReader) DocFreq(ctx context.Context, term Term) (int, erro
 	return total, nil
 }
 
-func (b *baseCompositeReader) TotalTermFreq(ctx context.Context, term *Term) (int64, error) {
+func (b *baseCompositeReader) TotalTermFreq(ctx context.Context, term index.Term) (int64, error) {
 	//ensureOpen();
 	total := int64(0) // sum freqs in subreaders
 	for i := 0; i < len(b.subReaders); i++ {
@@ -246,14 +247,14 @@ func (b *baseCompositeReader) readerIndex(docID int) (int, error) {
 	return SubIndex(docID, b.starts), nil
 }
 
-var _ IndexReaderContext = &CompositeReaderContext{}
+var _ index.IndexReaderContext = &CompositeReaderContext{}
 
 // CompositeReaderContext IndexReaderContext for CompositeReader instance.
 type CompositeReaderContext struct {
 	*BaseIndexReaderContext
 
-	children *arraylist.List[IndexReaderContext]
-	leaves   *arraylist.List[IndexReaderContext]
+	children *arraylist.List[index.IndexReaderContext]
+	leaves   *arraylist.List[index.IndexReaderContext]
 	reader   CompositeReader
 }
 
@@ -272,12 +273,12 @@ type compositeReaderContextOptionV2 struct {
 	reader          CompositeReader
 	ordInParent     int
 	docbaseInParent int
-	children        *arraylist.List[IndexReaderContext]
+	children        *arraylist.List[index.IndexReaderContext]
 }
 
 type compositeReaderContextOptionV3 struct {
 	reader           CompositeReader
-	children, leaves *arraylist.List[IndexReaderContext]
+	children, leaves *arraylist.List[index.IndexReaderContext]
 }
 
 type CompositeReaderContextOption func(*compositeReaderContextOption)
@@ -289,7 +290,7 @@ func WithCompositeReaderContextV1(reader CompositeReader) CompositeReaderContext
 }
 
 func WithCompositeReaderContextV2(parent *CompositeReaderContext, reader CompositeReader,
-	ordInParent, docbaseInParent int, children *arraylist.List[IndexReaderContext]) CompositeReaderContextOption {
+	ordInParent, docbaseInParent int, children *arraylist.List[index.IndexReaderContext]) CompositeReaderContextOption {
 	return func(o *compositeReaderContextOption) {
 		o.opt2 = &compositeReaderContextOptionV2{
 			parent:          parent,
@@ -302,7 +303,7 @@ func WithCompositeReaderContextV2(parent *CompositeReaderContext, reader Composi
 }
 
 func WithCompositeReaderContextV3(reader CompositeReader,
-	children, leaves *arraylist.List[IndexReaderContext]) CompositeReaderContextOption {
+	children, leaves *arraylist.List[index.IndexReaderContext]) CompositeReaderContextOption {
 	return func(o *compositeReaderContextOption) {
 		o.opt3 = &compositeReaderContextOptionV3{
 			reader:   reader,
@@ -335,7 +336,7 @@ func NewCompositeReaderContext(fn CompositeReaderContextOption) (*CompositeReade
 
 func newCompositeReaderContext(parent *CompositeReaderContext, reader CompositeReader,
 	ordInParent, docbaseInParent int,
-	children, leaves *arraylist.List[IndexReaderContext]) *CompositeReaderContext {
+	children, leaves *arraylist.List[index.IndexReaderContext]) *CompositeReaderContext {
 
 	return &CompositeReaderContext{
 		BaseIndexReaderContext: NewBaseIndexReaderContext(parent, ordInParent, docbaseInParent),
@@ -345,38 +346,38 @@ func newCompositeReaderContext(parent *CompositeReaderContext, reader CompositeR
 	}
 }
 
-func (c *CompositeReaderContext) Reader() IndexReader {
+func (c *CompositeReaderContext) Reader() index.IndexReader {
 	return c.reader
 }
 
-func (c *CompositeReaderContext) Leaves() ([]LeafReaderContext, error) {
+func (c *CompositeReaderContext) Leaves() ([]index.LeafReaderContext, error) {
 	if !c.isTopLevel {
 		return nil, errors.New("this is not a top-level context")
 	}
 
-	leaves := make([]LeafReaderContext, 0, c.leaves.Size())
+	leaves := make([]index.LeafReaderContext, 0, c.leaves.Size())
 	values := c.leaves.Values()
 	for i := range values {
-		leaves = append(leaves, values[i].(LeafReaderContext))
+		leaves = append(leaves, values[i].(index.LeafReaderContext))
 	}
 	return leaves, nil
 }
 
-func (c *CompositeReaderContext) Children() []IndexReaderContext {
+func (c *CompositeReaderContext) Children() []index.IndexReaderContext {
 	return c.children.Values()
 }
 
 type CompositeReaderBuilder struct {
 	reader CompositeReader
 	//leaves      []ReaderContext
-	leaves      *arraylist.List[IndexReaderContext]
+	leaves      *arraylist.List[index.IndexReaderContext]
 	leafDocBase int
 }
 
 func NewCompositeReaderBuilder(reader CompositeReader) *CompositeReaderBuilder {
 	return &CompositeReaderBuilder{
 		reader: reader,
-		leaves: arraylist.New[IndexReaderContext](),
+		leaves: arraylist.New[index.IndexReaderContext](),
 	}
 }
 
@@ -388,9 +389,9 @@ func (c *CompositeReaderBuilder) Build() (*CompositeReaderContext, error) {
 	return v.(*CompositeReaderContext), nil
 }
 
-func (c *CompositeReaderBuilder) build(parent *CompositeReaderContext, reader IndexReader,
-	ord, docBase int) (IndexReaderContext, error) {
-	if ar, ok := reader.(LeafReader); ok {
+func (c *CompositeReaderBuilder) build(parent *CompositeReaderContext, reader index.IndexReader,
+	ord, docBase int) (index.IndexReaderContext, error) {
+	if ar, ok := reader.(index.LeafReader); ok {
 		ctx := NewLeafReaderContextV1(parent, ar, ord, docBase, c.leaves.Size(), c.leafDocBase)
 		c.leaves.Add(ctx)
 		c.leafDocBase += reader.MaxDoc()
@@ -399,7 +400,7 @@ func (c *CompositeReaderBuilder) build(parent *CompositeReaderContext, reader In
 
 	cr := reader.(CompositeReader)
 	sequentialSubReaders := cr.GetSequentialSubReaders()
-	children := arraylist.New[IndexReaderContext](make([]IndexReaderContext, len(sequentialSubReaders))...)
+	children := arraylist.New[index.IndexReaderContext](make([]index.IndexReaderContext, len(sequentialSubReaders))...)
 	var newParent *CompositeReaderContext
 	if parent == nil {
 		newParent, _ = NewCompositeReaderContext(WithCompositeReaderContextV3(cr, children, c.leaves))

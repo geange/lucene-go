@@ -2,7 +2,7 @@ package index
 
 import (
 	"context"
-
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/attribute"
 )
 
@@ -10,7 +10,7 @@ import (
 type SortedDocValuesTermsEnum struct {
 }
 
-func NewSortedDocValuesTermsEnum(values SortedDocValues) *SortedDocValuesTermsEnum {
+func NewSortedDocValuesTermsEnum(values index.SortedDocValues) *SortedDocValuesTermsEnum {
 	return &SortedDocValuesTermsEnum{}
 }
 
@@ -29,7 +29,7 @@ func (s *SortedDocValuesTermsEnum) SeekExact(ctx context.Context, text []byte) (
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
+func (s *SortedDocValuesTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -39,7 +39,7 @@ func (s *SortedDocValuesTermsEnum) SeekExactByOrd(ctx context.Context, ord int64
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) SeekExactExpert(ctx context.Context, term []byte, state TermState) error {
+func (s *SortedDocValuesTermsEnum) SeekExactExpert(ctx context.Context, term []byte, state index.TermState) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -64,17 +64,17 @@ func (s *SortedDocValuesTermsEnum) TotalTermFreq() (int64, error) {
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) Postings(reuse PostingsEnum, flags int) (PostingsEnum, error) {
+func (s *SortedDocValuesTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) Impacts(flags int) (ImpactsEnum, error) {
+func (s *SortedDocValuesTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SortedDocValuesTermsEnum) TermState() (TermState, error) {
+func (s *SortedDocValuesTermsEnum) TermState() (index.TermState, error) {
 	//TODO implement me
 	panic("implement me")
 }

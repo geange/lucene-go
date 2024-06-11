@@ -3,7 +3,7 @@ package search
 import (
 	"errors"
 	"github.com/geange/gods-generic/sets/treeset"
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
@@ -33,7 +33,7 @@ import (
 type Weight interface {
 	SegmentCacheable
 
-	ExtractTerms(terms *treeset.Set[*index.Term]) error
+	ExtractTerms(terms *treeset.Set[index.Term]) error
 
 	// Matches
 	// Returns Matches for a specific document, or null if the document does not match the parent query

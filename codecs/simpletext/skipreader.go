@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"math"
 
 	"github.com/geange/lucene-go/core/index"
@@ -19,8 +20,8 @@ type SkipReader struct {
 
 	scratchUTF16    *bytes.Buffer
 	scratch         *bytes.Buffer
-	impacts         index.Impacts
-	perLevelImpacts [][]*index.Impact
+	impacts         index2.Impacts
+	perLevelImpacts [][]index2.Impact
 	nextSkipDocFP   int64
 	numLevels       int
 	hasSkipList     bool
@@ -35,7 +36,7 @@ func NewSkipReader(skipStream store.IndexInput) *SkipReader {
 		scratchUTF16:                 new(bytes.Buffer),
 		scratch:                      new(bytes.Buffer),
 		impacts:                      nil,
-		perLevelImpacts:              make([][]*index.Impact, 0),
+		perLevelImpacts:              make([][]index2.Impact, 0),
 		nextSkipDocFP:                -1,
 		numLevels:                    1,
 		hasSkipList:                  false,
@@ -62,16 +63,16 @@ func (s *SkipReader) reset(skipPointer int64, docFreq int) error {
 func (s *SkipReader) init() {
 	s.nextSkipDocFP = -1
 	s.numLevels = 1
-	s.perLevelImpacts = make([][]*index.Impact, s.MaxNumberOfSkipLevels())
+	s.perLevelImpacts = make([][]index2.Impact, s.MaxNumberOfSkipLevels())
 	for i := range s.perLevelImpacts {
-		impacts := make([]*index.Impact, 0)
+		impacts := make([]index2.Impact, 0)
 		impacts = append(impacts, index.NewImpact(math.MaxInt32, 1))
 		s.perLevelImpacts[i] = impacts
 	}
 	s.hasSkipList = false
 }
 
-var _ index.Impacts = &innerImpacts{}
+var _ index2.Impacts = &innerImpacts{}
 
 type innerImpacts struct {
 	r *SkipReader
@@ -85,7 +86,7 @@ func (i *innerImpacts) GetDocIdUpTo(level int) int {
 	return i.r.GetSkipDoc(level)
 }
 
-func (i *innerImpacts) GetImpacts(level int) []*index.Impact {
+func (i *innerImpacts) GetImpacts(level int) []index2.Impact {
 	return i.r.perLevelImpacts[level]
 }
 
@@ -105,7 +106,7 @@ func (s *SkipReader) getNextSkipDocFP() int64 {
 	return s.nextSkipDocFP
 }
 
-func (s *SkipReader) getImpacts() index.Impacts {
+func (s *SkipReader) getImpacts() index2.Impacts {
 	return s.impacts
 }
 
@@ -117,6 +118,6 @@ func (s *SkipReader) Reset(skipPointer int64, docFreq int) {
 	}
 }
 
-func (s *SkipReader) GetImpacts() index.Impacts {
+func (s *SkipReader) GetImpacts() index2.Impacts {
 	return s.impacts
 }

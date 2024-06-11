@@ -1,24 +1,25 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/version"
 )
 
 // LeafMetaData Provides read-only metadata about a leaf.
-type LeafMetaData struct {
+type leafMetaData struct {
 	createdVersionMajor int
 	minVersion          *version.Version
-	sort                *Sort
+	sort                index.Sort
 }
 
-func NewLeafMetaData(createdVersionMajor int, minVersion *version.Version, sort *Sort) *LeafMetaData {
-	return &LeafMetaData{
+func NewLeafMetaData(createdVersionMajor int, minVersion *version.Version, sort index.Sort) index.LeafMetaData {
+	return &leafMetaData{
 		createdVersionMajor: createdVersionMajor,
 		minVersion:          minVersion,
 		sort:                sort,
 	}
 }
 
-func (l *LeafMetaData) GetSort() *Sort {
+func (l *leafMetaData) GetSort() index.Sort {
 	return l.sort
 }

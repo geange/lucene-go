@@ -1,9 +1,9 @@
 package memory
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )

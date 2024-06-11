@@ -3,10 +3,10 @@ package search
 import (
 	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
 
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util/structure"
 )
 

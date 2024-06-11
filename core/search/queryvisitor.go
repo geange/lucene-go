@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
@@ -14,7 +14,7 @@ type QueryVisitor interface {
 	// Called by leaf queries that match on specific terms
 	// query: the leaf query
 	// terms: the terms the query will match on
-	ConsumeTerms(query Query, terms ...*index.Term)
+	ConsumeTerms(query Query, terms ...index.Term)
 
 	// ConsumeTermsMatching
 	// Called by leaf queries that match on a class of terms

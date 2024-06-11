@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"sync"
 )
 
 // FieldInfos
 // Collection of FieldInfos (accessible by number or by name).
-type FieldInfos struct {
+type fieldInfos struct {
 	hasFreq          bool
 	hasProx          bool
 	hasPayloads      bool
@@ -28,7 +29,7 @@ type FieldInfos struct {
 	fieldInfos []*document.FieldInfo // for an unmodifiable iterator
 }
 
-func NewFieldInfos(infos []*document.FieldInfo) *FieldInfos {
+func NewFieldInfos(infos []*document.FieldInfo) index.FieldInfos {
 	hasVectors := false
 	hasProx := false
 	hasPayloads := false
@@ -56,7 +57,7 @@ func NewFieldInfos(infos []*document.FieldInfo) *FieldInfos {
 		}
 	}
 
-	this := &FieldInfos{
+	this := &fieldInfos{
 		byName:   map[string]*document.FieldInfo{},
 		byNumber: []*document.FieldInfo{},
 	}
@@ -116,35 +117,35 @@ func NewFieldInfos(infos []*document.FieldInfo) *FieldInfos {
 	return this
 }
 
-func (f *FieldInfos) FieldInfo(fieldName string) *document.FieldInfo {
+func (f *fieldInfos) FieldInfo(fieldName string) *document.FieldInfo {
 	return f.byName[fieldName]
 }
 
-func (f *FieldInfos) FieldInfoByNumber(fieldNumber int) *document.FieldInfo {
+func (f *fieldInfos) FieldInfoByNumber(fieldNumber int) *document.FieldInfo {
 	return f.byNumber[fieldNumber]
 }
 
-func (f *FieldInfos) Size() int {
+func (f *fieldInfos) Size() int {
 	return len(f.byName)
 }
 
-func (f *FieldInfos) List() []*document.FieldInfo {
+func (f *fieldInfos) List() []*document.FieldInfo {
 	return f.fieldInfos
 }
 
-func (f *FieldInfos) HasNorms() bool {
+func (f *fieldInfos) HasNorms() bool {
 	return f.hasNorms
 }
 
-func (f *FieldInfos) HasDocValues() bool {
+func (f *fieldInfos) HasDocValues() bool {
 	return f.hasDocValues
 }
 
-func (f *FieldInfos) HasVectors() bool {
+func (f *fieldInfos) HasVectors() bool {
 	return f.hasVectors
 }
 
-func (f *FieldInfos) HasPointValues() bool {
+func (f *fieldInfos) HasPointValues() bool {
 	return f.hasPointValues
 }
 
@@ -162,7 +163,7 @@ func NewFieldInfosBuilder(globalFieldNumbers *FieldNumbers) *FieldInfosBuilder {
 	}
 }
 
-func (f *FieldInfosBuilder) Add(other *FieldInfos) error {
+func (f *FieldInfosBuilder) Add(other *fieldInfos) error {
 	if f.assertNotFinished() != nil {
 		return nil
 	}
@@ -297,7 +298,7 @@ func (f *FieldInfosBuilder) assertNotFinished() error {
 	return nil
 }
 
-func (f *FieldInfosBuilder) Finish() *FieldInfos {
+func (f *FieldInfosBuilder) Finish() index.FieldInfos {
 	f.finished = true
 
 	list := make([]*document.FieldInfo, 0)

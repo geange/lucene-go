@@ -3,6 +3,7 @@ package index
 import (
 	"bytes"
 	"context"
+	"github.com/geange/lucene-go/core/interface/index"
 	"golang.org/x/exp/maps"
 	"io"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/geange/lucene-go/core/util/automaton"
 )
 
-var _ Fields = &FreqProxFields{}
+var _ index.Fields = &FreqProxFields{}
 
 // FreqProxFields
 // Implements limited (iterators only, no stats) Fields interface over the in-RAM
@@ -31,7 +32,7 @@ func (f *FreqProxFields) Names() []string {
 	return maps.Keys(f.fields)
 }
 
-func (f *FreqProxFields) Terms(field string) (Terms, error) {
+func (f *FreqProxFields) Terms(field string) (index.Terms, error) {
 	perField, ok := f.fields[field]
 	if !ok {
 		return nil, nil
@@ -43,7 +44,7 @@ func (f *FreqProxFields) Size() int {
 	return len(f.fields)
 }
 
-var _ Terms = &FreqProxTerms{}
+var _ index.Terms = &FreqProxTerms{}
 
 type FreqProxTerms struct {
 	terms *FreqProxTermsWriterPerField
@@ -53,13 +54,13 @@ func NewFreqProxTerms(terms *FreqProxTermsWriterPerField) *FreqProxTerms {
 	return &FreqProxTerms{terms: terms}
 }
 
-func (f *FreqProxTerms) Iterator() (TermsEnum, error) {
+func (f *FreqProxTerms) Iterator() (index.TermsEnum, error) {
 	termsEnum := NewFreqProxTermsEnum(f.terms)
 	termsEnum.reset()
 	return termsEnum, nil
 }
 
-func (f *FreqProxTerms) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error) {
+func (f *FreqProxTerms) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -113,7 +114,7 @@ func (f *FreqProxTerms) GetMax() ([]byte, error) {
 	panic("implement me")
 }
 
-var _ TermsEnum = &FreqProxTermsEnum{}
+var _ index.TermsEnum = &FreqProxTermsEnum{}
 
 type FreqProxTermsEnum struct {
 	*BaseTermsEnum
@@ -159,7 +160,7 @@ func (f *FreqProxTermsEnum) Next(context.Context) ([]byte, error) {
 	return f.scratch, nil
 }
 
-func (f *FreqProxTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
+func (f *FreqProxTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
 	// binary search:
 	lo := 0
 	hi := f.numTerms - 1
@@ -180,19 +181,19 @@ func (f *FreqProxTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStat
 			// found:
 			f.ord = mid
 			//assert term().compareTo(text) == 0;
-			return SEEK_STATUS_FOUND, nil
+			return index.SEEK_STATUS_FOUND, nil
 		}
 	}
 
 	// not found:
 	f.ord = lo
 	if f.ord >= f.numTerms {
-		return SEEK_STATUS_END, nil
+		return index.SEEK_STATUS_END, nil
 	} else {
 		textStart := f.postingsArray.textStarts[f.sortedTermIDs[f.ord]]
 		f.scratch, _ = f.terms.bytePool.GetAddress(textStart)
 		//assert term().compareTo(text) > 0;
-		return SEEK_STATUS_NOT_FOUND, nil
+		return index.SEEK_STATUS_NOT_FOUND, nil
 	}
 }
 
@@ -222,12 +223,12 @@ func (f *FreqProxTermsEnum) TotalTermFreq() (int64, error) {
 	panic("implement me")
 }
 
-func (f *FreqProxTermsEnum) Postings(reuse PostingsEnum, flags int) (PostingsEnum, error) {
+func (f *FreqProxTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (f *FreqProxTermsEnum) Impacts(flags int) (ImpactsEnum, error) {
+func (f *FreqProxTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 	//TODO implement me
 	panic("implement me")
 }

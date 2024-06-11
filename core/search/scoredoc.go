@@ -1,14 +1,5 @@
 package search
 
-type ScoreDoc interface {
-	GetScore() float64
-	SetScore(score float64)
-	GetDoc() int
-	SetDoc(doc int)
-	GetShardIndex() int
-	SetShardIndex(shardIndex int)
-}
-
 var _ ScoreDoc = &baseScoreDoc{}
 
 // baseScoreDoc

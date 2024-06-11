@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"strconv"
 	"strings"
@@ -176,7 +177,7 @@ func (s *DocValuesReader) Close() error {
 	panic("implement me")
 }
 
-func (s *DocValuesReader) GetNumeric(ctx context.Context, fieldInfo *document.FieldInfo) (index.NumericDocValues, error) {
+func (s *DocValuesReader) GetNumeric(ctx context.Context, fieldInfo *document.FieldInfo) (index2.NumericDocValues, error) {
 	numFn, err := s.getNumericNonIterator(fieldInfo)
 	if err != nil {
 		return nil, err
@@ -334,7 +335,7 @@ func (i *innerDocValuesIterator1) AdvanceExact(target int) (bool, error) {
 
 }
 
-func (s *DocValuesReader) GetBinary(ctx context.Context, fieldInfo *document.FieldInfo) (index.BinaryDocValues, error) {
+func (s *DocValuesReader) GetBinary(ctx context.Context, fieldInfo *document.FieldInfo) (index2.BinaryDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
@@ -499,7 +500,7 @@ func (i *innerDocValuesIterator2) AdvanceExact(target int) (bool, error) {
 	return i.scratch.Bytes()[0] == 'T', nil
 }
 
-func (s *DocValuesReader) GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedDocValues, error) {
+func (s *DocValuesReader) GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (index2.SortedDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
@@ -508,7 +509,7 @@ func (s *DocValuesReader) GetSorted(ctx context.Context, fieldInfo *document.Fie
 	return newInnerSortedDocValues(field, s.data.Clone().(store.IndexInput), s), nil
 }
 
-var _ index.SortedDocValues = &innerSortedDocValues{}
+var _ index2.SortedDocValues = &innerSortedDocValues{}
 
 type innerSortedDocValues struct {
 	*index.BaseSortedDocValues
@@ -639,11 +640,11 @@ func (i *innerSortedDocValues) AdvanceExact(target int) (bool, error) {
 	return ord >= 0, nil
 }
 
-func (i *innerSortedDocValues) TermsEnum() (index.TermsEnum, error) {
+func (i *innerSortedDocValues) TermsEnum() (index2.TermsEnum, error) {
 	return index.NewSortedDocValuesTermsEnum(i), nil
 }
 
-func (s *DocValuesReader) GetSortedNumeric(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedNumericDocValues, error) {
+func (s *DocValuesReader) GetSortedNumeric(ctx context.Context, fieldInfo *document.FieldInfo) (index2.SortedNumericDocValues, error) {
 	binary, err := s.GetBinary(ctx, fieldInfo)
 	if err != nil {
 		return nil, err
@@ -651,15 +652,15 @@ func (s *DocValuesReader) GetSortedNumeric(ctx context.Context, fieldInfo *docum
 	return newInnerSortedNumericDocValues(binary), nil
 }
 
-var _ index.SortedNumericDocValues = &innerSortedNumericDocValues{}
+var _ index2.SortedNumericDocValues = &innerSortedNumericDocValues{}
 
 type innerSortedNumericDocValues struct {
 	values []int64
 	index  int
-	binary index.BinaryDocValues
+	binary index2.BinaryDocValues
 }
 
-func newInnerSortedNumericDocValues(binary index.BinaryDocValues) *innerSortedNumericDocValues {
+func newInnerSortedNumericDocValues(binary index2.BinaryDocValues) *innerSortedNumericDocValues {
 	return &innerSortedNumericDocValues{
 		values: make([]int64, 0),
 		index:  0,
@@ -757,7 +758,7 @@ func (i *innerSortedNumericDocValues) setCurrentDoc() error {
 	return nil
 }
 
-func (s *DocValuesReader) GetSortedSet(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedSetDocValues, error) {
+func (s *DocValuesReader) GetSortedSet(ctx context.Context, fieldInfo *document.FieldInfo) (index2.SortedSetDocValues, error) {
 	field, ok := s.fields[fieldInfo.Name()]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", fieldInfo.Name())
@@ -775,7 +776,7 @@ func (s *DocValuesReader) GetSortedSet(ctx context.Context, fieldInfo *document.
 	}, nil
 }
 
-var _ index.SortedSetDocValues = &innerSortedSetDocValues{}
+var _ index2.SortedSetDocValues = &innerSortedSetDocValues{}
 
 type innerSortedSetDocValues struct {
 	field        *OneField

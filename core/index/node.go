@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 type NodeApply interface {
@@ -31,10 +32,10 @@ func (n *Node) Apply(bufferedDeletes *BufferedUpdates, docIDUpto int) error {
 var _ NodeApply = &TermNode{}
 
 type TermNode struct {
-	item *Term
+	item index.Term
 }
 
-func NewTermNode(item *Term) *TermNode {
+func NewTermNode(item index.Term) *TermNode {
 	return &TermNode{item: item}
 }
 
@@ -59,7 +60,7 @@ func NewDocValuesUpdatesNode(updates []DocValuesUpdate) *DocValuesUpdatesNode {
 
 func (d *DocValuesUpdatesNode) Apply(bufferedDeletes *BufferedUpdates, docIDUpto int) error {
 	for _, update := range d.updates {
-		switch update.GetOptions().DType {
+		switch update.GetType() {
 		case document.DOC_VALUES_TYPE_NUMERIC:
 			return bufferedDeletes.AddNumericUpdate(update.(*NumericDocValuesUpdate), docIDUpto)
 		case document.DOC_VALUES_TYPE_BINARY:

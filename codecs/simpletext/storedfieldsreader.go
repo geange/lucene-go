@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"strconv"
 
@@ -25,11 +26,11 @@ type StoredFieldsReader struct {
 	in           store.IndexInput
 	scratch      *bytes.Buffer
 	scratchUTF16 *bytes.Buffer
-	fieldInfos   *index.FieldInfos
+	fieldInfos   index2.FieldInfos
 }
 
 func NewStoredFieldsReader(ctx context.Context, directory store.Directory,
-	si *index.SegmentInfo, fn *index.FieldInfos, ioContext *store.IOContext) (*StoredFieldsReader, error) {
+	si *index.SegmentInfo, fn index2.FieldInfos, ioContext *store.IOContext) (*StoredFieldsReader, error) {
 
 	fileName := store.SegmentFileName(si.Name(), "", FIELDS_EXTENSION)
 	input, err := directory.OpenInput(ctx, fileName)
@@ -57,7 +58,7 @@ func NewStoredFieldsReader(ctx context.Context, directory store.Directory,
 }
 
 func newSimpleTextStoredFieldsReader(offsets []int64,
-	in store.IndexInput, fieldInfos *index.FieldInfos) *StoredFieldsReader {
+	in store.IndexInput, fieldInfos index2.FieldInfos) *StoredFieldsReader {
 
 	return &StoredFieldsReader{
 		offsets:      offsets,

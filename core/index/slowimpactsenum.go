@@ -1,17 +1,18 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
 )
 
-var _ ImpactsEnum = &SlowImpactsEnum{}
+var _ index.ImpactsEnum = &SlowImpactsEnum{}
 
 type SlowImpactsEnum struct {
-	delegate PostingsEnum
+	delegate index.PostingsEnum
 }
 
-func NewSlowImpactsEnum(delegate PostingsEnum) *SlowImpactsEnum {
+func NewSlowImpactsEnum(delegate index.PostingsEnum) *SlowImpactsEnum {
 	return &SlowImpactsEnum{delegate: delegate}
 }
 
@@ -59,14 +60,14 @@ func (s *SlowImpactsEnum) AdvanceShallow(target int) error {
 	return nil
 }
 
-func (s *SlowImpactsEnum) GetImpacts() (Impacts, error) {
+func (s *SlowImpactsEnum) GetImpacts() (index.Impacts, error) {
 	return dummyImpacts, nil
 }
 
-var _ Impacts = &slowImpactsEnumImpacts{}
+var _ index.Impacts = &slowImpactsEnumImpacts{}
 
 type slowImpactsEnumImpacts struct {
-	impacts []*Impact
+	impacts []index.Impact
 }
 
 func (s *slowImpactsEnumImpacts) NumLevels() int {
@@ -74,13 +75,13 @@ func (s *slowImpactsEnumImpacts) NumLevels() int {
 }
 
 var dummyImpacts = &slowImpactsEnumImpacts{
-	impacts: []*Impact{NewImpact(math.MaxInt32, 1)},
+	impacts: []index.Impact{NewImpact(math.MaxInt32, 1)},
 }
 
 func (s *slowImpactsEnumImpacts) GetDocIdUpTo(level int) int {
 	return types.NO_MORE_DOCS
 }
 
-func (s *slowImpactsEnumImpacts) GetImpacts(level int) []*Impact {
+func (s *slowImpactsEnumImpacts) GetImpacts(level int) []index.Impact {
 	return s.impacts
 }

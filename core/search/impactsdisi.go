@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
 )
@@ -14,7 +15,7 @@ var _ types.DocIdSetIterator = &ImpactsDISI{}
 // low-scoring documents.
 type ImpactsDISI struct {
 	in                  types.DocIdSetIterator
-	impactsSource       index.ImpactsSource
+	impactsSource       index2.ImpactsSource
 	maxScoreCache       *MaxScoreCache
 	globalMaxScore      float64
 	minCompetitiveScore float64
@@ -22,7 +23,7 @@ type ImpactsDISI struct {
 	maxScore            float64
 }
 
-func NewImpactsDISI(in types.DocIdSetIterator, impactsSource index.ImpactsSource, scorer index.SimScorer) *ImpactsDISI {
+func NewImpactsDISI(in types.DocIdSetIterator, impactsSource index2.ImpactsSource, scorer index.SimScorer) *ImpactsDISI {
 	return &ImpactsDISI{
 		in:             in,
 		impactsSource:  impactsSource,

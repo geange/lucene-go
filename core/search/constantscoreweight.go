@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/geange/gods-generic/sets/treeset"
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"io"
 )
@@ -17,7 +17,7 @@ type ConstantScoreWeight struct {
 	score float64
 }
 
-func (c *ConstantScoreWeight) ExtractTerms(terms *treeset.Set[*index.Term]) error {
+func (c *ConstantScoreWeight) ExtractTerms(terms *treeset.Set[index.Term]) error {
 	return nil
 }
 

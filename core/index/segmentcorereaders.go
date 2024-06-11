@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"io"
 	"sync/atomic"
@@ -30,7 +31,7 @@ type SegmentCoreReaders struct {
 
 	// fieldinfos for this core: means gen=-1. this is the exact fieldinfos these codec components saw at write.
 	// in the case of DV updates, SR may hold a newer version.
-	coreFieldInfos *FieldInfos
+	coreFieldInfos index.FieldInfos
 
 	// TODO: make a single thread local w/ a
 	// Thingy class holding fieldsReader, termVectorsReader,

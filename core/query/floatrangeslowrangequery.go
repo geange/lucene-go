@@ -2,7 +2,7 @@ package query
 
 import (
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/search"
 )
 

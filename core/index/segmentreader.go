@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"strconv"
@@ -24,7 +25,7 @@ type SegmentReader struct {
 	// and lookup pooled readers etc.
 	originalSi *SegmentCommitInfo
 
-	metaData     *LeafMetaData
+	metaData     index.LeafMetaData
 	liveDocs     util.Bits
 	hardLiveDocs util.Bits
 
@@ -42,7 +43,7 @@ type SegmentReader struct {
 
 	docValuesProducer DocValuesProducer
 
-	fieldInfos *FieldInfos
+	fieldInfos index.FieldInfos
 }
 
 // NewSegmentReader
@@ -191,12 +192,12 @@ func (s *SegmentReader) DoClose() error {
 	return nil
 }
 
-func (s *SegmentReader) GetReaderCacheHelper() CacheHelper {
+func (s *SegmentReader) GetReaderCacheHelper() index.CacheHelper {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentReader) GetFieldInfos() *FieldInfos {
+func (s *SegmentReader) GetFieldInfos() index.FieldInfos {
 	return s.fieldInfos
 }
 
@@ -204,7 +205,7 @@ func (s *SegmentReader) GetLiveDocs() util.Bits {
 	return s.liveDocs
 }
 
-func (s *SegmentReader) GetMetaData() *LeafMetaData {
+func (s *SegmentReader) GetMetaData() index.LeafMetaData {
 	return s.metaData
 }
 
@@ -251,7 +252,7 @@ func (s *SegmentReader) GetHardLiveDocs() util.Bits {
 	return s.hardLiveDocs
 }
 
-func (s *SegmentReader) initFieldInfos() (*FieldInfos, error) {
+func (s *SegmentReader) initFieldInfos() (index.FieldInfos, error) {
 	if !s.si.HasFieldUpdates() {
 		return s.core.coreFieldInfos, nil
 	} else {

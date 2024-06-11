@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
@@ -11,18 +12,6 @@ import (
 	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/packed"
 )
-
-// BinaryDocValues
-// A per-document numeric item.
-type BinaryDocValues interface {
-	types.DocValuesIterator
-
-	// BinaryValue
-	// Returns the binary item for the current document ID. It is illegal to call this method after
-	// advanceExact(int) returned false.
-	// Returns: binary item
-	BinaryValue() ([]byte, error)
-}
 
 type BaseBinaryDocValues struct {
 	FnDocID        func() int
@@ -199,7 +188,7 @@ func (b *BinaryDocValuesWriter) AddValue(docID int, value []byte) error {
 
 func (b *BinaryDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
 	return consumer.AddBinaryField(context.TODO(), b.fieldInfo, &EmptyDocValuesProducer{
-		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (BinaryDocValues, error) {
+		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error) {
 			iterator, err := b.docsWithField.Iterator()
 			if err != nil {
 				return nil, err
@@ -214,7 +203,7 @@ func (b *BinaryDocValuesWriter) GetDocValues() types.DocIdSetIterator {
 	return NewBufferedBinaryDocValues(b.bytes, iterator)
 }
 
-var _ BinaryDocValues = &BufferedBinaryDocValues{}
+var _ index.BinaryDocValues = &BufferedBinaryDocValues{}
 
 type BufferedBinaryDocValues struct {
 	docsWithField types.DocIdSetIterator

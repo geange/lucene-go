@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
@@ -148,27 +149,27 @@ type DocValuesProducer interface {
 	// GetNumeric
 	// Returns NumericDocValues for this field. The returned instance need not be thread-safe:
 	// it will only be used by a single thread.
-	GetNumeric(ctx context.Context, field *document.FieldInfo) (NumericDocValues, error)
+	GetNumeric(ctx context.Context, field *document.FieldInfo) (index.NumericDocValues, error)
 
 	// GetBinary
 	// Returns BinaryDocValues for this field. The returned instance need not be thread-safe:
 	// it will only be used by a single thread.
-	GetBinary(ctx context.Context, field *document.FieldInfo) (BinaryDocValues, error)
+	GetBinary(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error)
 
 	// GetSorted
 	// Returns SortedDocValues for this field. The returned instance need not be
 	// thread-safe: it will only be used by a single thread.
-	GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (SortedDocValues, error)
+	GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedDocValues, error)
 
 	// GetSortedNumeric
 	// Returns SortedNumericDocValues for this field. The returned instance
 	// need not be thread-safe: it will only be used by a single thread.
-	GetSortedNumeric(ctx context.Context, field *document.FieldInfo) (SortedNumericDocValues, error)
+	GetSortedNumeric(ctx context.Context, field *document.FieldInfo) (index.SortedNumericDocValues, error)
 
 	// GetSortedSet
 	// Returns SortedSetDocValues for this field. The returned instance need not
 	// be thread-safe: it will only be used by a single thread.
-	GetSortedSet(ctx context.Context, field *document.FieldInfo) (SortedSetDocValues, error)
+	GetSortedSet(ctx context.Context, field *document.FieldInfo) (index.SortedSetDocValues, error)
 
 	// CheckIntegrity
 	// Checks consistency of this producer
@@ -265,11 +266,11 @@ type FieldInfosFormat interface {
 
 	// Read
 	// Read the FieldInfos previously written with write.
-	Read(ctx context.Context, directory store.Directory, segmentInfo *SegmentInfo, segmentSuffix string, ioContext *store.IOContext) (*FieldInfos, error)
+	Read(ctx context.Context, directory store.Directory, segmentInfo *SegmentInfo, segmentSuffix string, ioContext *store.IOContext) (index.FieldInfos, error)
 
 	// Write
 	// Writes the provided FieldInfos to the directory.
-	Write(ctx context.Context, directory store.Directory, segmentInfo *SegmentInfo, segmentSuffix string, infos *FieldInfos, ioContext *store.IOContext) error
+	Write(ctx context.Context, directory store.Directory, segmentInfo *SegmentInfo, segmentSuffix string, infos index.FieldInfos, ioContext *store.IOContext) error
 }
 
 type LiveDocsFormat interface {
@@ -404,7 +405,7 @@ type StoredFieldsFormat interface {
 
 	// FieldsReader
 	// Returns a StoredFieldsReader to load stored fields.
-	FieldsReader(ctx context.Context, directory store.Directory, si *SegmentInfo, fn *FieldInfos, ioContext *store.IOContext) (StoredFieldsReader, error)
+	FieldsReader(ctx context.Context, directory store.Directory, si *SegmentInfo, fn index.FieldInfos, ioContext *store.IOContext) (StoredFieldsReader, error)
 
 	// FieldsWriter
 	// Returns a StoredFieldsWriter to write stored fields.
@@ -466,7 +467,7 @@ type StoredFieldsWriter interface {
 	// Called before close(), passing in the number of documents that were written.
 	// Note that this is intentionally redundant (equivalent to the number of calls to startDocument(),
 	// but a Codec should check that this is the case to detect the JRE bug described in LUCENE-1282.
-	Finish(ctx context.Context, fieldInfos *FieldInfos, numDocs int) error
+	Finish(ctx context.Context, fieldInfos index.FieldInfos, numDocs int) error
 }
 
 // TermVectorsFormat
@@ -475,7 +476,7 @@ type TermVectorsFormat interface {
 
 	// VectorsReader
 	// Returns a TermVectorsReader to read term vectors.
-	VectorsReader(ctx context.Context, directory store.Directory, segmentInfo *SegmentInfo, fieldInfos *FieldInfos, ioContext *store.IOContext) (TermVectorsReader, error)
+	VectorsReader(ctx context.Context, directory store.Directory, segmentInfo *SegmentInfo, fieldInfos index.FieldInfos, ioContext *store.IOContext) (TermVectorsReader, error)
 
 	// VectorsWriter
 	// Returns a TermVectorsWriter to write term vectors.
@@ -492,7 +493,7 @@ type TermVectorsReader interface {
 	// Returns term vectors for this document, or null if term vectors were not indexed.
 	// If offsets are available they are in an OffsetAttribute available from the
 	// org.apache.lucene.index.PostingsEnum.
-	Get(ctx context.Context, doc int) (Fields, error)
+	Get(ctx context.Context, doc int) (index.Fields, error)
 
 	// CheckIntegrity
 	// Checks consistency of this reader.
@@ -562,5 +563,5 @@ type TermVectorsWriter interface {
 	// Called before close(), passing in the number of documents that were written.
 	// Note that this is intentionally redundant (equivalent to the number of calls to startDocument(int),
 	// but a Codec should check that this is the case to detect the JRE bug described in LUCENE-1282.
-	Finish(ctx context.Context, fieldInfos *FieldInfos, numDocs int) error
+	Finish(ctx context.Context, fieldInfos index.FieldInfos, numDocs int) error
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/google/uuid"
@@ -193,14 +194,14 @@ func (*defaultIndexingChain) GetChain(indexCreatedVersionMajor int, segmentInfo 
 
 type FlushedSegment struct {
 	segmentInfo    *SegmentCommitInfo
-	fieldInfos     *FieldInfos
+	fieldInfos     index.FieldInfos
 	segmentUpdates *FrozenBufferedUpdates
 	liveDocs       *bitset.BitSet
 	sortMap        *DocMap
 	delCount       int
 }
 
-func newFlushedSegment(segmentInfo *SegmentCommitInfo, fieldInfos *FieldInfos,
+func newFlushedSegment(segmentInfo *SegmentCommitInfo, fieldInfos index.FieldInfos,
 	segmentUpdates *BufferedUpdates, liveDocs *bitset.BitSet, delCount int, sortMap *DocMap) *FlushedSegment {
 
 	segment := &FlushedSegment{
@@ -279,7 +280,7 @@ func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications
 	segmentInfoPerCommit := NewSegmentCommitInfo(d.segmentInfo, 0, flushState.SoftDelCountOnFlush, -1, -1, -1, []byte(uuid.New().String()))
 
 	var segmentDeletes *BufferedUpdates
-	if len(d.pendingUpdates.deleteQueries) == 0 && d.pendingUpdates.numFieldUpdates.Load() == 0 {
+	if d.pendingUpdates.deleteQueries.Size() == 0 && d.pendingUpdates.numFieldUpdates.Load() == 0 {
 		d.pendingUpdates.Clear()
 		segmentDeletes = nil
 	} else {

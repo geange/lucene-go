@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/analysis/standard"
+	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 	"strconv"
 	"sync"
@@ -335,7 +336,7 @@ func (w *IndexWriter) validateIndexSort() error {
 	return nil
 }
 
-func isCongruentSort(indexSort, otherSort *Sort) bool {
+func isCongruentSort(indexSort, otherSort index.Sort) bool {
 	fields1 := indexSort.GetSort()
 	fields2 := otherSort.GetSort()
 	if len(fields1) > len(fields2) {
@@ -407,7 +408,7 @@ func (w *IndexWriter) AddDocument(ctx context.Context, doc *document.Document) (
 //
 //	CorruptIndexException – if the index is corrupt
 //	IOException – if there is a low-level IO error
-func (w *IndexWriter) UpdateDocument(ctx context.Context, term *Term, doc *document.Document) (int64, error) {
+func (w *IndexWriter) UpdateDocument(ctx context.Context, term index.Term, doc *document.Document) (int64, error) {
 	var delNode *Node
 	if term != nil {
 		delNode = deleteQueueNewNode(term)
@@ -428,7 +429,7 @@ func (w *IndexWriter) UpdateDocument(ctx context.Context, term *Term, doc *docum
 // Returns: The sequence number for this operation
 // Throws: CorruptIndexException: if the index is corrupt
 // IOException: if there is a low-level IO error
-func (w *IndexWriter) SoftUpdateDocument(ctx context.Context, term *Term, doc *document.Document, softDeletes ...document.IndexableField) (int64, error) {
+func (w *IndexWriter) SoftUpdateDocument(ctx context.Context, term index.Term, doc *document.Document, softDeletes ...document.IndexableField) (int64, error) {
 	updates, err := w.buildDocValuesUpdate(term, softDeletes)
 	if err != nil {
 		return 0, err
@@ -440,7 +441,7 @@ func (w *IndexWriter) SoftUpdateDocument(ctx context.Context, term *Term, doc *d
 	return w.updateDocuments(ctx, delNode, []*document.Document{doc})
 }
 
-func (w *IndexWriter) buildDocValuesUpdate(term *Term, updates []document.IndexableField) ([]DocValuesUpdate, error) {
+func (w *IndexWriter) buildDocValuesUpdate(term index.Term, updates []document.IndexableField) ([]DocValuesUpdate, error) {
 	dvUpdates := make([]DocValuesUpdate, 0, len(updates))
 
 	for _, field := range updates {
@@ -617,7 +618,7 @@ func (w *IndexWriter) getFieldNumberMap() (*FieldNumbers, error) {
 		if err != nil {
 			return nil, err
 		}
-		for _, fi := range fis.fieldInfos {
+		for _, fi := range fis.List() {
 			if _, err := mp.AddOrGet(fi.Name(), fi.Number(), fi.GetIndexOptions(), fi.GetDocValuesType(),
 				fi.GetPointDimensionCount(), fi.GetPointIndexDimensionCount(),
 				fi.GetPointNumBytes(), fi.IsSoftDeletesField()); err != nil {
@@ -1039,11 +1040,11 @@ func (w *IndexWriter) flushFailed(info *SegmentInfo) error {
 	return w.deleter.deleteNewFiles(files)
 }
 
-func getDocValuesDocIdSetIterator(field string, reader LeafReader) (types.DocIdSetIterator, error) {
+func getDocValuesDocIdSetIterator(field string, reader index.LeafReader) (types.DocIdSetIterator, error) {
 	panic("")
 }
 
-func readFieldInfos(si *SegmentCommitInfo) (*FieldInfos, error) {
+func readFieldInfos(si *SegmentCommitInfo) (index.FieldInfos, error) {
 	codec := si.info.GetCodec()
 	reader := codec.FieldInfosFormat()
 
@@ -1083,7 +1084,7 @@ func (w *IndexWriter) publishFrozenUpdates(updates *FrozenBufferedUpdates) int64
 	return -1
 }
 
-func (w *IndexWriter) publishFlushedSegment(info *SegmentCommitInfo, infos *FieldInfos,
+func (w *IndexWriter) publishFlushedSegment(info *SegmentCommitInfo, infos index.FieldInfos,
 	updates *FrozenBufferedUpdates, updates2 *FrozenBufferedUpdates, sortMap *DocMap) error {
 
 	panic("")
@@ -1099,7 +1100,7 @@ func (w *IndexWriter) publishFlushedSegment(info *SegmentCommitInfo, infos *Fiel
 //
 // NOTE: Warm(LeafReader) is called before any deletes have been carried over to the merged segment.
 type ReaderWarmer interface {
-	Warm(reader LeafReader) error
+	Warm(reader index.LeafReader) error
 }
 
 type IndexWriterConfig struct {
@@ -1131,7 +1132,7 @@ func (c *IndexWriterConfig) getSoftDeletesField() string {
 
 // SetIndexSort
 // Set the Sort order to use for all (flushed and merged) segments.
-func (c *IndexWriterConfig) SetIndexSort(sort *Sort) error {
+func (c *IndexWriterConfig) SetIndexSort(sort index.Sort) error {
 	fields := make(map[string]struct{})
 	for _, sortField := range sort.GetSort() {
 		if sortField.GetIndexSorter() == nil {

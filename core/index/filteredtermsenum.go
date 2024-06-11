@@ -2,12 +2,12 @@ package index
 
 import (
 	"context"
-
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/attribute"
 )
 
 type FilteredTermsEnum interface {
-	TermsEnum
+	index.TermsEnum
 
 	// Accept Return if term is accepted, not accepted or the iteration should ended (and possibly seek).
 	Accept(term []byte) (AcceptStatus, error)
@@ -39,15 +39,15 @@ const (
 type FilteredTermsEnumDefaultConfig struct {
 	Accept        func(term []byte) (AcceptStatus, error)
 	NextSeekTerm  func(currentTerm []byte) ([]byte, error)
-	Tenum         TermsEnum
+	Tenum         index.TermsEnum
 	StartWithSeek bool
 }
 
 type FilteredTermsEnumBase struct {
 	initialSeekTerm []byte
 	doSeek          bool
-	actualTerm      []byte    // Which term the enum is currently positioned to.
-	tenum           TermsEnum // The delegate TermsEnum.
+	actualTerm      []byte          // Which term the enum is currently positioned to.
+	tenum           index.TermsEnum // The delegate TermsEnum.
 
 	Accept       func(term []byte) (AcceptStatus, error)
 	NextSeekTerm func(currentTerm []byte) ([]byte, error)
@@ -110,7 +110,7 @@ func (f *FilteredTermsEnumBase) SeekExact(ctx context.Context, text []byte) (boo
 	return f.tenum.SeekExact(nil, text)
 }
 
-func (f *FilteredTermsEnumBase) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
+func (f *FilteredTermsEnumBase) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
 	return f.tenum.SeekCeil(nil, text)
 }
 
@@ -122,22 +122,22 @@ func (f *FilteredTermsEnumBase) Ord() (int64, error) {
 	return f.tenum.Ord()
 }
 
-func (f *FilteredTermsEnumBase) Postings(reuse PostingsEnum, flags int) (PostingsEnum, error) {
+func (f *FilteredTermsEnumBase) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
 	return f.tenum.Postings(reuse, flags)
 }
 
-func (f *FilteredTermsEnumBase) Impacts(flags int) (ImpactsEnum, error) {
+func (f *FilteredTermsEnumBase) Impacts(flags int) (index.ImpactsEnum, error) {
 	return f.tenum.Impacts(flags)
 }
 
 // SeekExactExpert This enum does not support seeking!
 // Throws: ErrUnsupportedOperation – In general, subclasses do not support seeking.
-func (f *FilteredTermsEnumBase) SeekExactExpert(ctx context.Context, term []byte, state TermState) error {
+func (f *FilteredTermsEnumBase) SeekExactExpert(ctx context.Context, term []byte, state index.TermState) error {
 	return f.tenum.SeekExactExpert(ctx, term, state)
 }
 
 // TermState Returns the filtered enums term state
-func (f *FilteredTermsEnumBase) TermState() (TermState, error) {
+func (f *FilteredTermsEnumBase) TermState() (index.TermState, error) {
 	return f.tenum.TermState()
 }
 
@@ -160,7 +160,7 @@ func (f *FilteredTermsEnumBase) Next(context.Context) ([]byte, error) {
 
 			if v, err := f.tenum.SeekCeil(nil, t); err != nil {
 				return nil, err
-			} else if v == SEEK_STATUS_END {
+			} else if v == index.SEEK_STATUS_END {
 				return nil, nil
 			}
 

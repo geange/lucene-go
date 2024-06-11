@@ -2,10 +2,11 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 var (
-	EMPTY_TERMSTATE TermState
+	EMPTY_TERMSTATE index.TermState
 )
 
 // TermStates Maintains a IndexReader TermState view over IndexReader instances containing a single term.
@@ -13,13 +14,13 @@ var (
 // refer to the same terms in the associated readers.
 type TermStates struct {
 	topReaderContextIdentity string
-	states                   []TermState
-	term                     *Term
+	states                   []index.TermState
+	term                     index.Term
 	docFreq                  int
 	totalTermFreq            int64
 }
 
-func NewTermStates(term *Term, context IndexReaderContext) *TermStates {
+func NewTermStates(term index.Term, context index.IndexReaderContext) *TermStates {
 	size := 1
 	if leaves, err := context.Leaves(); err == nil {
 		if len(leaves) > 0 {
@@ -29,14 +30,14 @@ func NewTermStates(term *Term, context IndexReaderContext) *TermStates {
 
 	return &TermStates{
 		topReaderContextIdentity: context.Identity(),
-		states:                   make([]TermState, size),
+		states:                   make([]index.TermState, size),
 		term:                     term,
 		docFreq:                  0,
 		totalTermFreq:            0,
 	}
 }
 
-func (r *TermStates) WasBuiltFor(context IndexReaderContext) bool {
+func (r *TermStates) WasBuiltFor(context index.IndexReaderContext) bool {
 	return r.topReaderContextIdentity == context.Identity()
 }
 
@@ -47,7 +48,7 @@ func (r *TermStates) WasBuiltFor(context IndexReaderContext) bool {
 // Params: 	needsStats – if true then all leaf contexts will be visited up-front to collect term statistics.
 //
 //	Otherwise, the TermState objects will be built only when requested
-func BuildTermStates(context IndexReaderContext, term *Term, needsStats bool) (*TermStates, error) {
+func BuildTermStates(context index.IndexReaderContext, term index.Term, needsStats bool) (*TermStates, error) {
 	var perReaderTermState *TermStates
 	if needsStats {
 		perReaderTermState = NewTermStates(nil, context)
@@ -88,7 +89,7 @@ func BuildTermStates(context IndexReaderContext, term *Term, needsStats bool) (*
 	return perReaderTermState, nil
 }
 
-func (r *TermStates) Register(state TermState, ord, docFreq int, totalTermFreq int64) {
+func (r *TermStates) Register(state index.TermState, ord, docFreq int, totalTermFreq int64) {
 	r.Register2(state, ord)
 	r.AccumulateStatistics(docFreq, totalTermFreq)
 }
@@ -96,7 +97,7 @@ func (r *TermStates) Register(state TermState, ord, docFreq int, totalTermFreq i
 // Register2 Expert: Registers and associates a TermState with an leaf ordinal. The leaf ordinal should be
 // derived from a IndexReaderContext's leaf ord. On the contrary to register(TermState, int, int, long)
 // this method does NOT update term statistics.
-func (r *TermStates) Register2(state TermState, ord int) {
+func (r *TermStates) Register2(state index.TermState, ord int) {
 	r.states[ord] = state
 }
 
@@ -129,7 +130,7 @@ func (r *TermStates) TotalTermFreq() (int64, error) {
 	return r.totalTermFreq, nil
 }
 
-func loadTermsEnum(ctx LeafReaderContext, term *Term) (TermsEnum, error) {
+func loadTermsEnum(ctx index.LeafReaderContext, term index.Term) (index.TermsEnum, error) {
 	terms, err := ctx.LeafReader().Terms(term.Field())
 	if err != nil {
 		return nil, err
@@ -155,7 +156,7 @@ func loadTermsEnum(ctx LeafReaderContext, term *Term) (TermsEnum, error) {
 // Get Returns the TermState for a leaf reader context or null if no TermState for the context was registered.
 // Params: 	ctx – the LeafReaderContextImpl to get the TermState for.
 // Returns: the TermState for the given readers ord or null if no TermState for the reader was
-func (r *TermStates) Get(ctx LeafReaderContext) (TermState, error) {
+func (r *TermStates) Get(ctx index.LeafReaderContext) (index.TermState, error) {
 	if r.term == nil {
 		return r.states[ctx.Ord()], nil
 	}

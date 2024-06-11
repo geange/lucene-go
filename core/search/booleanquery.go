@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/geange/gods-generic/lists/arraylist"
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 var (

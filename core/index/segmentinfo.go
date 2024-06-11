@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"maps"
 	"slices"
 	"strings"
@@ -37,7 +38,7 @@ type SegmentInfo struct {
 	codec          Codec             //
 	diagnostics    map[string]string //
 	attributes     map[string]string //
-	indexSort      *Sort             //
+	indexSort      index.Sort        //
 
 	// Tracks the Lucene version this segment was created with, since 3.1. Null
 	// indicates an older than 3.0 index, and it's used to detect a too old index.
@@ -57,7 +58,7 @@ type SegmentInfo struct {
 
 func NewSegmentInfo(dir store.Directory, version, minVersion *version.Version, name string,
 	maxDoc int, isCompoundFile bool, codec Codec, diagnostics map[string]string,
-	id []byte, attributes map[string]string, indexSort *Sort) *SegmentInfo {
+	id []byte, attributes map[string]string, indexSort index.Sort) *SegmentInfo {
 
 	return &SegmentInfo{
 		name:           name,
@@ -180,7 +181,7 @@ func (s *SegmentInfo) GetAttributes() map[string]string {
 	return s.attributes
 }
 
-func (s *SegmentInfo) GetIndexSort() *Sort {
+func (s *SegmentInfo) GetIndexSort() index.Sort {
 	return s.indexSort
 }
 

@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"strconv"
 
 	"github.com/geange/lucene-go/core/store"
@@ -16,7 +17,7 @@ type SegmentDocValues struct {
 }
 
 func (s *SegmentDocValues) GetDocValuesProducer(gen int64,
-	si *SegmentCommitInfo, dir store.Directory, infos *FieldInfos) (DocValuesProducer, error) {
+	si *SegmentCommitInfo, dir store.Directory, infos index.FieldInfos) (DocValuesProducer, error) {
 
 	dvp, ok := s.genDVProducers[gen]
 	if !ok {
@@ -34,7 +35,7 @@ func (s *SegmentDocValues) GetDocValuesProducer(gen int64,
 }
 
 func (s *SegmentDocValues) newDocValuesProducer(si *SegmentCommitInfo,
-	dir store.Directory, gen int64, infos *FieldInfos) (*util.RefCount[DocValuesProducer], error) {
+	dir store.Directory, gen int64, infos index.FieldInfos) (*util.RefCount[DocValuesProducer], error) {
 
 	dvDir := dir
 	segmentSuffix := ""
@@ -85,7 +86,7 @@ type SegmentDocValuesProducer struct {
 }
 
 func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
-	coreInfos, allInfos *FieldInfos, segDocValues *SegmentDocValues) (*SegmentDocValuesProducer, error) {
+	coreInfos, allInfos index.FieldInfos, segDocValues *SegmentDocValues) (*SegmentDocValuesProducer, error) {
 
 	p := &SegmentDocValuesProducer{
 		dvProducersByField: map[string]DocValuesProducer{},
@@ -94,7 +95,7 @@ func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
 	}
 
 	var baseProducer DocValuesProducer
-	for _, fi := range allInfos.fieldInfos {
+	for _, fi := range allInfos.List() {
 		if fi.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {
 			continue
 		}
@@ -135,27 +136,27 @@ func (s *SegmentDocValuesProducer) Close() error {
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetNumeric(ctx context.Context, field *document.FieldInfo) (NumericDocValues, error) {
+func (s *SegmentDocValuesProducer) GetNumeric(ctx context.Context, field *document.FieldInfo) (index.NumericDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetBinary(ctx context.Context, field *document.FieldInfo) (BinaryDocValues, error) {
+func (s *SegmentDocValuesProducer) GetBinary(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (SortedDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSortedNumeric(ctx context.Context, field *document.FieldInfo) (SortedNumericDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSortedNumeric(ctx context.Context, field *document.FieldInfo) (index.SortedNumericDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *SegmentDocValuesProducer) GetSortedSet(ctx context.Context, field *document.FieldInfo) (SortedSetDocValues, error) {
+func (s *SegmentDocValuesProducer) GetSortedSet(ctx context.Context, field *document.FieldInfo) (index.SortedSetDocValues, error) {
 	//TODO implement me
 	panic("implement me")
 }

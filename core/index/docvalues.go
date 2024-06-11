@@ -1,6 +1,7 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 
 	"github.com/geange/lucene-go/core/types"
@@ -9,7 +10,7 @@ import (
 type DocValues struct {
 }
 
-func GetNumeric(reader LeafReader, field string) (NumericDocValues, error) {
+func GetNumeric(reader index.LeafReader, field string) (index.NumericDocValues, error) {
 	dv, err := reader.GetNumericDocValues(field)
 	if err != nil {
 		return nil, err
@@ -17,7 +18,7 @@ func GetNumeric(reader LeafReader, field string) (NumericDocValues, error) {
 	return dv, nil
 }
 
-func GetSorted(reader LeafReader, field string) (SortedDocValues, error) {
+func GetSorted(reader index.LeafReader, field string) (index.SortedDocValues, error) {
 	dv, err := reader.GetSortedDocValues(field)
 	if err != nil {
 		return nil, err
@@ -33,10 +34,10 @@ var _ sort.Interface = &DocValueSorter{}
 
 type DocValueSorter struct {
 	docs       []int
-	comparator DocComparator
+	comparator index.DocComparator
 }
 
-func NewDocValueSorter(docs []int, comparator DocComparator) *DocValueSorter {
+func NewDocValueSorter(docs []int, comparator index.DocComparator) *DocValueSorter {
 	return &DocValueSorter{docs: docs, comparator: comparator}
 }
 
@@ -62,7 +63,7 @@ type DocValuesWriter interface {
 
 // IsCacheable
 // Returns true if the specified docvalues fields have not been updated
-func IsCacheable(ctx LeafReaderContext, fields ...string) bool {
+func IsCacheable(ctx index.LeafReaderContext, fields ...string) bool {
 	for _, field := range fields {
 		fi := ctx.LeafReader().GetFieldInfos().FieldInfo(field)
 		if fi != nil && fi.GetDocValuesGen() > -1 {

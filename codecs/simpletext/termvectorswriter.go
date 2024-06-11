@@ -3,6 +3,7 @@ package simpletext
 import (
 	"context"
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
@@ -152,7 +153,7 @@ func (s *TermVectorsWriter) AddPosition(ctx context.Context, position, startOffs
 	return nil
 }
 
-func (s *TermVectorsWriter) Finish(ctx context.Context, fis *index.FieldInfos, numDocs int) error {
+func (s *TermVectorsWriter) Finish(ctx context.Context, fis index2.FieldInfos, numDocs int) error {
 	if s.numDocsWritten != numDocs {
 		return errors.New("mergeVectors produced an invalid result")
 	}

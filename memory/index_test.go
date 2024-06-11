@@ -1,6 +1,8 @@
 package memory
 
 import (
+	index3 "github.com/geange/lucene-go/core/interface/index"
+	index2 "github.com/geange/lucene-go/core/types"
 	"testing"
 
 	"github.com/geange/lucene-go/core/analysis"
@@ -47,13 +49,13 @@ func TestMemoryIndex(t *testing.T) {
 		panic(err)
 	}
 
-	score := memIndex.Search(search.NewTermQuery(index.NewTerm("f1", []byte("text"))))
+	score := memIndex.Search(search.NewTermQuery(index2.NewTerm("f1", []byte("text"))))
 	assert.InDelta(t, 0.13076457, score, 0.00000001)
 
 	score1 := memIndex.Search(search.NewTermQuery(index.NewTerm("f1", []byte("some"))))
 	assert.InDelta(t, 0.13076457, score1, 0.00000001)
 
-	score2 := memIndex.Search(search.NewTermQuery(index.NewTerm("f1", []byte("some text"))))
+	score2 := memIndex.Search(search.NewTermQuery(index2.NewTerm("f1", []byte("some text"))))
 	assert.InDelta(t, 0, score2, 0.00000001)
 }
 
@@ -79,7 +81,7 @@ func TestSeekByTermOrd(t *testing.T) {
 	memIndexReader.GetRefCount()
 }
 
-func checkReader(t *testing.T, reader index.IndexReader) {
+func checkReader(t *testing.T, reader index3.IndexReader) {
 	leaves, err := reader.Leaves()
 	assert.Nil(t, err)
 
@@ -88,6 +90,6 @@ func checkReader(t *testing.T, reader index.IndexReader) {
 	}
 }
 
-func checkReaderDoSlowChecks(t *testing.T, reader index.IndexReader, doSlowChecks bool) {
+func checkReaderDoSlowChecks(t *testing.T, reader index3.IndexReader, doSlowChecks bool) {
 
 }

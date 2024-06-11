@@ -135,7 +135,7 @@ func (s *SkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) erro
 		if err := w.Bytes(FREQ); err != nil {
 			return err
 		}
-		if err := w.String(fmt.Sprintf("%d", impact.Freq)); err != nil {
+		if err := w.String(fmt.Sprintf("%d", impact.GetFreq())); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {
@@ -145,7 +145,7 @@ func (s *SkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) erro
 		if err := w.Bytes(NORM); err != nil {
 			return err
 		}
-		if err := w.String(fmt.Sprintf("%d", impact.Norm)); err != nil {
+		if err := w.String(fmt.Sprintf("%d", impact.GetNorm())); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {
