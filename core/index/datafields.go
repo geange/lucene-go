@@ -3,12 +3,13 @@ package index
 import (
 	"bytes"
 	"context"
+	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
 )
 
-var _ Fields = &DataFields{}
+var _ index.Fields = &DataFields{}
 
 type DataFields struct {
 	fields []*FieldData
@@ -26,7 +27,7 @@ func (d *DataFields) Names() []string {
 	return values
 }
 
-func (d *DataFields) Terms(field string) (Terms, error) {
+func (d *DataFields) Terms(field string) (index.Terms, error) {
 	for _, fieldData := range d.fields {
 		if fieldData.fieldInfo.Name() == field {
 			return NewDataTerms(fieldData), nil
@@ -39,7 +40,7 @@ func (d *DataFields) Size() int {
 	return len(d.fields)
 }
 
-var _ Terms = &DataTerms{}
+var _ index.Terms = &DataTerms{}
 
 type DataTerms struct {
 	*BaseTerms
@@ -53,7 +54,7 @@ func NewDataTerms(fieldData *FieldData) *DataTerms {
 	return terms
 }
 
-func (d *DataTerms) Iterator() (TermsEnum, error) {
+func (d *DataTerms) Iterator() (index.TermsEnum, error) {
 	return NewDataTermsEnum(d.fieldData), nil
 }
 
@@ -96,7 +97,7 @@ func (d *DataTerms) HasPayloads() bool {
 	return d.fieldData.fieldInfo.HasPayloads()
 }
 
-var _ TermsEnum = &DataTermsEnum{}
+var _ index.TermsEnum = &DataTermsEnum{}
 
 type DataTermsEnum struct {
 	*BaseTermsEnum
@@ -122,19 +123,19 @@ func (d *DataTermsEnum) Next(context.Context) ([]byte, error) {
 	return d.Term()
 }
 
-func (d *DataTermsEnum) SeekCeil(ctx context.Context, text []byte) (SeekStatus, error) {
+func (d *DataTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
 	// Stupid linear impl:
 	for i := 0; i < len(d.fieldData.terms); i++ {
 		cmp := bytes.Compare(d.fieldData.terms[i].text, text)
 		if cmp == 0 {
 			d.upto = i
-			return SEEK_STATUS_FOUND, nil
+			return index.SEEK_STATUS_FOUND, nil
 		} else if cmp > 0 {
 			d.upto = i
-			return SEEK_STATUS_NOT_FOUND, nil
+			return index.SEEK_STATUS_NOT_FOUND, nil
 		}
 	}
-	return SEEK_STATUS_END, nil
+	return index.SEEK_STATUS_END, nil
 }
 
 func (d *DataTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
@@ -161,16 +162,16 @@ func (d *DataTermsEnum) TotalTermFreq() (int64, error) {
 	panic("implement me")
 }
 
-func (d *DataTermsEnum) Postings(reuse PostingsEnum, flags int) (PostingsEnum, error) {
+func (d *DataTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
 	return newDataPostingsEnum(d.fieldData.terms[d.upto]), nil
 }
 
-func (d *DataTermsEnum) Impacts(flags int) (ImpactsEnum, error) {
+func (d *DataTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-var _ PostingsEnum = &DataPostingsEnum{}
+var _ index.PostingsEnum = &DataPostingsEnum{}
 
 type DataPostingsEnum struct {
 	termData *TermData

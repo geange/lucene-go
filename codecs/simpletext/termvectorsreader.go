@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"context"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"strconv"
 
@@ -74,8 +75,8 @@ func (s *TermVectorsReader) Close() error {
 	return nil
 }
 
-func (s *TermVectorsReader) Get(ctx context.Context, doc int) (index.Fields, error) {
-	fields := treemap.New[string, index.Terms]()
+func (s *TermVectorsReader) Get(ctx context.Context, doc int) (index2.Fields, error) {
+	fields := treemap.New[string, index2.Terms]()
 	if _, err := s.in.Seek(s.offsets[doc], io.SeekStart); err != nil {
 		return nil, err
 	}

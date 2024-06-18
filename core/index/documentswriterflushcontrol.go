@@ -152,3 +152,11 @@ func (d *DocumentsWriterFlushControl) doAfterFlush(dwpt *DocumentsWriterPerThrea
 	})
 	return nil
 }
+
+func (d *DocumentsWriterFlushControl) isFullFlush() bool {
+	return d.fullFlush
+}
+
+func (d *DocumentsWriterFlushControl) getAndResetApplyAllDeletes() bool {
+	return d.flushDeletes.Swap(false)
+}

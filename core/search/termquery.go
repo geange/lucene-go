@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/geange/gods-generic/sets/treeset"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"reflect"
 
 	"github.com/geange/lucene-go/core/index"
@@ -16,7 +17,7 @@ var _ Query = &TermQuery{}
 // TermQuery A Query that matches documents containing a term.
 // This may be combined with other terms with a BooleanQuery.
 type TermQuery struct {
-	term               *index.Term
+	term               index2.Term
 	perReaderTermState *index.TermStates
 }
 
@@ -30,7 +31,7 @@ func (t *TermQuery) String(field string) string {
 	return buf.String()
 }
 
-func NewTermQuery(term *index.Term) *TermQuery {
+func NewTermQuery(term index2.Term) *TermQuery {
 	return &TermQuery{
 		term:               term,
 		perReaderTermState: nil,
@@ -40,14 +41,14 @@ func NewTermQuery(term *index.Term) *TermQuery {
 // NewTermQueryV1
 // Expert: constructs a TermQuery that will use the provided docFreq instead of looking up
 // the docFreq against the searcher.
-func NewTermQueryV1(term *index.Term, states *index.TermStates) *TermQuery {
+func NewTermQueryV1(term index2.Term, states *index.TermStates) *TermQuery {
 	return &TermQuery{
 		term:               term,
 		perReaderTermState: states,
 	}
 }
 
-func (t *TermQuery) GetTerm() *index.Term {
+func (t *TermQuery) GetTerm() index2.Term {
 	return t.term
 }
 
@@ -68,7 +69,7 @@ func (t *TermQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, b
 	return t.NewTermWeight(searcher, scoreMode, boost, termState)
 }
 
-func (t *TermQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (t *TermQuery) Rewrite(reader index2.IndexReader) (Query, error) {
 	return t, nil
 }
 
@@ -91,16 +92,16 @@ type TermWeight struct {
 	scoreMode  ScoreMode
 }
 
-func (t *TermWeight) IsCacheable(ctx index.LeafReaderContext) bool {
+func (t *TermWeight) IsCacheable(ctx index2.LeafReaderContext) bool {
 	return true
 }
 
-func (t *TermWeight) ExtractTerms(terms *treeset.Set[*index.Term]) error {
+func (t *TermWeight) ExtractTerms(terms *treeset.Set[index2.Term]) error {
 	terms.Add(t.GetTerm())
 	return nil
 }
 
-func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (*types.Explanation, error) {
+func (t *TermWeight) Explain(context index2.LeafReaderContext, doc int) (*types.Explanation, error) {
 	scorer, err := t.Scorer(context)
 	if err != nil {
 		return nil, err
@@ -124,7 +125,7 @@ func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (*types.E
 			return nil, err
 		}
 
-		docScorer, err := NewLeafSimScorer(t.simScorer, context.Reader().(index.LeafReader), t.term.Field(), true)
+		docScorer, err := NewLeafSimScorer(t.simScorer, context.Reader().(index2.LeafReader), t.term.Field(), true)
 		if err != nil {
 			return nil, err
 		}
@@ -148,7 +149,7 @@ func (t *TermWeight) GetQuery() Query {
 	panic("implement me")
 }
 
-func (t *TermWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
+func (t *TermWeight) Scorer(ctx index2.LeafReaderContext) (Scorer, error) {
 	termsEnum, err := t.getTermsEnum(ctx)
 	if err != nil {
 		return nil, err
@@ -184,7 +185,7 @@ func (t *TermWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
 }
 
 // Returns a TermsEnum positioned at this weights Term or null if the term does not exist in the given context
-func (t *TermWeight) getTermsEnum(context index.LeafReaderContext) (index.TermsEnum, error) {
+func (t *TermWeight) getTermsEnum(context index2.LeafReaderContext) (index2.TermsEnum, error) {
 	state, err := t.termStates.Get(context)
 	if err != nil {
 		return nil, err

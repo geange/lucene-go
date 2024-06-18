@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/bits-and-blooms/bitset"
@@ -10,19 +11,7 @@ import (
 	"github.com/geange/lucene-go/core/util/packed"
 )
 
-// NumericDocValues
-// A per-document numeric item.
-type NumericDocValues interface {
-	types.DocValuesIterator
-
-	// LongValue
-	// Returns the numeric item for the current document ID. It is illegal to call this method
-	// after advanceExact(int) returned false.
-	// Returns: numeric item
-	LongValue() (int64, error)
-}
-
-var _ NumericDocValues = &NumericDocValuesDefault{}
+var _ index.NumericDocValues = &NumericDocValuesDefault{}
 
 type NumericDocValuesDefault struct {
 	FnDocID        func() int
@@ -114,7 +103,7 @@ func (n *NumericDocValuesWriter) GetDocValues() types.DocIdSetIterator {
 	panic("implement me")
 }
 
-var _ NumericDocValues = &BufferedNumericDocValues{}
+var _ index.NumericDocValues = &BufferedNumericDocValues{}
 
 type BufferedNumericDocValues struct {
 	iter          packed.PackedLongValuesIterator
@@ -171,7 +160,7 @@ func (b *BufferedNumericDocValues) LongValue() (int64, error) {
 	return b.value, nil
 }
 
-var _ NumericDocValues = &SortingNumericDocValues{}
+var _ index.NumericDocValues = &SortingNumericDocValues{}
 
 type SortingNumericDocValues struct {
 	dvs   *NumericDVs

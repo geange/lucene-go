@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -12,11 +13,11 @@ type SortFieldProvider interface {
 	Named
 
 	// ReadSortField Reads a SortField from serialized bytes
-	ReadSortField(ctx context.Context, in store.DataInput) (SortField, error)
+	ReadSortField(ctx context.Context, in store.DataInput) (index.SortField, error)
 
 	// WriteSortField Writes a SortField to a DataOutput This is used to record index
 	// ort information in segment headers
-	WriteSortField(ctx context.Context, sf SortField, out store.DataOutput) error
+	WriteSortField(ctx context.Context, sf index.SortField, out store.DataOutput) error
 }
 
 func RegisterSortFieldProvider(provider SortFieldProvider) {
@@ -27,7 +28,7 @@ func GetSortFieldProviderByName(name string) SortFieldProvider {
 	return sortFieldProviderPool[name]
 }
 
-func WriteSortField(sf SortField, output store.DataOutput) error {
+func WriteSortField(sf index.SortField, output store.DataOutput) error {
 	sorter := sf.GetIndexSorter()
 	if sorter == nil {
 		return errors.New("cannot serialize sort field")

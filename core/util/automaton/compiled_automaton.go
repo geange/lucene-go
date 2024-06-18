@@ -3,9 +3,8 @@ package automaton
 import (
 	"errors"
 	"math"
-	"unicode/utf8"
-
 	"sync/atomic"
+	"unicode/utf8"
 )
 
 // CompiledAutomaton Immutable class holding compiled details for a given Automaton. The Automaton is

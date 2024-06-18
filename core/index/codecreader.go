@@ -2,13 +2,14 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/types"
 )
 
 type CodecReader interface {
-	LeafReader
+	index.LeafReader
 
 	// GetFieldsReader
 	// Expert: retrieve thread-private StoredFieldsReader
@@ -45,7 +46,7 @@ type CodecReaderSPI interface {
 	GetFieldsReader() StoredFieldsReader
 	GetTermVectorsReader() TermVectorsReader
 	GetPostingsReader() FieldsProducer
-	GetFieldInfos() *FieldInfos
+	GetFieldInfos() index.FieldInfos
 	MaxDoc() int
 	GetDocValuesReader() DocValuesProducer
 	GetNormsReader() NormsProducer
@@ -71,7 +72,7 @@ func (c *BaseCodecReader) DocumentWithVisitor(docID int, visitor document.Stored
 	return c.GetFieldsReader().VisitDocument(nil, docID, visitor)
 }
 
-func (c *BaseCodecReader) GetTermVectors(docID int) (Fields, error) {
+func (c *BaseCodecReader) GetTermVectors(docID int) (index.Fields, error) {
 	termVectorsReader := c.GetTermVectorsReader()
 	if termVectorsReader == nil {
 		return nil, nil
@@ -89,7 +90,7 @@ func (c *BaseCodecReader) checkBounds(docID int) error {
 	return nil
 }
 
-func (c *BaseCodecReader) Terms(field string) (Terms, error) {
+func (c *BaseCodecReader) Terms(field string) (index.Terms, error) {
 	return c.GetPostingsReader().Terms(field)
 }
 
@@ -113,7 +114,7 @@ func (c *BaseCodecReader) getDVField(field string, _type document.DocValuesType)
 	return fi
 }
 
-func (c *BaseCodecReader) GetNumericDocValues(field string) (NumericDocValues, error) {
+func (c *BaseCodecReader) GetNumericDocValues(field string) (index.NumericDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_NUMERIC)
 	if fi == nil {
@@ -122,7 +123,7 @@ func (c *BaseCodecReader) GetNumericDocValues(field string) (NumericDocValues, e
 	return c.GetDocValuesReader().GetNumeric(nil, fi)
 }
 
-func (c *BaseCodecReader) GetBinaryDocValues(field string) (BinaryDocValues, error) {
+func (c *BaseCodecReader) GetBinaryDocValues(field string) (index.BinaryDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_BINARY)
 	if fi == nil {
@@ -131,7 +132,7 @@ func (c *BaseCodecReader) GetBinaryDocValues(field string) (BinaryDocValues, err
 	return c.GetDocValuesReader().GetBinary(nil, fi)
 }
 
-func (c *BaseCodecReader) GetSortedDocValues(field string) (SortedDocValues, error) {
+func (c *BaseCodecReader) GetSortedDocValues(field string) (index.SortedDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED)
 	if fi == nil {
@@ -140,7 +141,7 @@ func (c *BaseCodecReader) GetSortedDocValues(field string) (SortedDocValues, err
 	return c.GetDocValuesReader().GetSorted(nil, fi)
 }
 
-func (c *BaseCodecReader) GetSortedNumericDocValues(field string) (SortedNumericDocValues, error) {
+func (c *BaseCodecReader) GetSortedNumericDocValues(field string) (index.SortedNumericDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED_NUMERIC)
 	if fi == nil {
@@ -149,7 +150,7 @@ func (c *BaseCodecReader) GetSortedNumericDocValues(field string) (SortedNumeric
 	return c.GetDocValuesReader().GetSortedNumeric(nil, fi)
 }
 
-func (c *BaseCodecReader) GetSortedSetDocValues(field string) (SortedSetDocValues, error) {
+func (c *BaseCodecReader) GetSortedSetDocValues(field string) (index.SortedSetDocValues, error) {
 	//ensureOpen();
 	fi := c.getDVField(field, document.DOC_VALUES_TYPE_SORTED_SET)
 	if fi == nil {
@@ -158,7 +159,7 @@ func (c *BaseCodecReader) GetSortedSetDocValues(field string) (SortedSetDocValue
 	return c.GetDocValuesReader().GetSortedSet(nil, fi)
 }
 
-func (c *BaseCodecReader) GetNormValues(field string) (NumericDocValues, error) {
+func (c *BaseCodecReader) GetNormValues(field string) (index.NumericDocValues, error) {
 	//ensureOpen();
 	fi := c.GetFieldInfos().FieldInfo(field)
 	if fi == nil || fi.HasNorms() == false {

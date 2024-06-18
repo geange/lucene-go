@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/index"
+
+	cindex "github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	. "github.com/geange/lucene-go/core/util/structure"
 )
 
-func TopTopFieldCollectorCreate(sort *index.Sort, numHits int, after FieldDoc,
+func TopTopFieldCollectorCreate(sort index.Sort, numHits int, after FieldDoc,
 	hitsThresholdChecker HitsThresholdChecker, minScoreAcc *MaxScoreAccumulator) (TopDocsCollector, error) {
 
 	if len(sort.GetSort()) == 0 {
@@ -147,7 +149,7 @@ func (t *TopFieldCollector) updateGlobalMinCompetitiveScore(scorer Scorable) err
 var _ TopDocsCollector = &SimpleFieldCollector{}
 
 type SimpleFieldCollector struct {
-	sort *index.Sort
+	sort index.Sort
 
 	queue FieldValueHitQueue[*Entry]
 
@@ -155,7 +157,7 @@ type SimpleFieldCollector struct {
 	*TopDocsCollectorDefault[*Entry]
 }
 
-func NewSimpleFieldCollector(sort *index.Sort, queue FieldValueHitQueue[*Entry], numHits int,
+func NewSimpleFieldCollector(sort index.Sort, queue FieldValueHitQueue[*Entry], numHits int,
 	hitsThresholdChecker HitsThresholdChecker, minScoreAcc *MaxScoreAccumulator) (*SimpleFieldCollector, error) {
 	panic("")
 }
@@ -288,13 +290,13 @@ type PagingFieldCollector struct {
 	*TopFieldCollector
 	*TopDocsCollectorDefault[*Entry]
 
-	sort          *index.Sort
+	sort          index.Sort
 	collectedHits int
 	queue         *FieldValueHitQueueDefault[*Entry]
 	after         FieldDoc
 }
 
-func NewPagingFieldCollector(sort *index.Sort, queue FieldValueHitQueue[*Entry], after FieldDoc, numHits int,
+func NewPagingFieldCollector(sort index.Sort, queue FieldValueHitQueue[*Entry], after FieldDoc, numHits int,
 	hitsThresholdChecker HitsThresholdChecker, minScoreAcc *MaxScoreAccumulator) (*PagingFieldCollector, error) {
 
 	panic("")
@@ -461,17 +463,17 @@ func (p *pagingLeafCollector) CompetitiveIterator() (types.DocIdSetIterator, err
 	return p.comparator.CompetitiveIterator()
 }
 
-func canEarlyTerminate(searchSort, indexSort *index.Sort) bool {
+func canEarlyTerminate(searchSort, indexSort index.Sort) bool {
 	return canEarlyTerminateOnDocId(indexSort) ||
 		canEarlyTerminateOnPrefix(searchSort, indexSort)
 }
 
-func canEarlyTerminateOnDocId(searchSort *index.Sort) bool {
+func canEarlyTerminateOnDocId(searchSort index.Sort) bool {
 	fields1 := searchSort.GetSort()
-	return index.FIELD_DOC.Equals(fields1[0])
+	return cindex.FIELD_DOC.Equals(fields1[0])
 }
 
-func canEarlyTerminateOnPrefix(searchSort, indexSort *index.Sort) bool {
+func canEarlyTerminateOnPrefix(searchSort, indexSort index.Sort) bool {
 	if indexSort != nil {
 		fields1 := searchSort.GetSort()
 		fields2 := indexSort.GetSort()

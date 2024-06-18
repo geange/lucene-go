@@ -2,11 +2,11 @@ package simpletext
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"strconv"
 
 	"github.com/geange/lucene-go/codecs/utils"
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 )

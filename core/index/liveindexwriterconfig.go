@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/analysis"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 type LiveIndexWriterConfig interface {
@@ -81,7 +82,7 @@ type LiveIndexWriterConfig interface {
 	GetCommitOnClose() bool
 
 	// GetIndexSort Get the index-time Sort order, applied to all (flushed and merged) segments.
-	GetIndexSort() *Sort
+	GetIndexSort() index.Sort
 
 	// GetIndexSortFields Returns the field names involved in the index sort
 	GetIndexSortFields() map[string]struct{}
@@ -89,7 +90,7 @@ type LiveIndexWriterConfig interface {
 	// GetLeafSorter Returns a comparator for sorting leaf readers. If not null, this comparator is
 	// used to sort leaf readers within DirectoryReader opened from the IndexWriter of this configuration.
 	// Returns: a comparator for sorting leaf readers
-	GetLeafSorter() func(a, b LeafReader) int
+	GetLeafSorter() func(a, b index.LeafReader) int
 
 	// IsCheckPendingFlushOnUpdate Expert: Returns if indexing threads check for pending flushes on update
 	//in order to help our flushing indexing buffers to disk
@@ -177,10 +178,10 @@ type liveIndexWriterConfig struct {
 	commitOnClose bool
 
 	// The sort order to use to write merged segments.
-	indexSort *Sort
+	indexSort index.Sort
 
 	// The comparator for sorting leaf readers.
-	leafSorter func(a, b LeafReader) int
+	leafSorter func(a, b index.LeafReader) int
 
 	// The field names involved in the index sort
 	indexSortFields map[string]struct{}
@@ -239,7 +240,7 @@ const (
 
 var _ LiveIndexWriterConfig = &liveIndexWriterConfig{}
 
-func (r *liveIndexWriterConfig) GetIndexSort() *Sort {
+func (r *liveIndexWriterConfig) GetIndexSort() index.Sort {
 	return r.indexSort
 }
 
@@ -328,7 +329,7 @@ func (r *liveIndexWriterConfig) GetIndexSortFields() map[string]struct{} {
 	return r.indexSortFields
 }
 
-func (r *liveIndexWriterConfig) GetLeafSorter() func(a, b LeafReader) int {
+func (r *liveIndexWriterConfig) GetLeafSorter() func(a, b index.LeafReader) int {
 	return r.leafSorter
 }
 

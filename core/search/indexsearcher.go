@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"reflect"
 )
@@ -18,8 +19,8 @@ type indexSearcher interface {
 	GetQueryCache() QueryCache
 	SetQueryCachingPolicy(queryCachingPolicy QueryCachingPolicy)
 	GetQueryCachingPolicy() QueryCachingPolicy
-	Slices(leaves []index.LeafReaderContext) []LeafSlice
-	GetIndexReader() index.IndexReader
+	Slices(leaves []index2.LeafReaderContext) []LeafSlice
+	GetIndexReader() index2.IndexReader
 	Doc(docID int) (*document.Document, error)
 	DocWithVisitor(docID int, fieldVisitor document.StoredFieldVisitor) (*document.Document, error)
 	DocLimitFields(docID int, fieldsToLoad []string) (*document.Document, error)
@@ -28,6 +29,8 @@ type indexSearcher interface {
 	Count(query Query) (int, error)
 	GetSlices() []LeafSlice
 }
+
+var _ indexSearcher = &IndexSearcher{}
 
 // IndexSearcher
 // Implements search over a single Reader.
@@ -51,12 +54,12 @@ type indexSearcher interface {
 // methods, concurrently. If your application requires external synchronization, you should not synchronize on
 // the IndexSearcher instance; use your own (non-Lucene) objects instead.
 type IndexSearcher struct {
-	reader index.IndexReader
+	reader index2.IndexReader
 
 	// NOTE: these members might change in incompatible ways
 	// in the next release
-	readerContext index.IndexReaderContext
-	leafContexts  []index.LeafReaderContext
+	readerContext index2.IndexReaderContext
+	leafContexts  []index2.LeafReaderContext
 
 	// used with executor - each slice holds a set of leafs executed within one thread
 	leafSlices []LeafSlice
@@ -71,7 +74,52 @@ type IndexSearcher struct {
 	queryCachingPolicy QueryCachingPolicy
 }
 
-func NewIndexSearcher(r index.IndexReader) (*IndexSearcher, error) {
+func (r *IndexSearcher) GetQueryCache() QueryCache {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *IndexSearcher) SetQueryCachingPolicy(queryCachingPolicy QueryCachingPolicy) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *IndexSearcher) GetQueryCachingPolicy() QueryCachingPolicy {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *IndexSearcher) Slices(leaves []index2.LeafReaderContext) []LeafSlice {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *IndexSearcher) Doc(docID int) (*document.Document, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *IndexSearcher) DocWithVisitor(docID int, fieldVisitor document.StoredFieldVisitor) (*document.Document, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *IndexSearcher) DocLimitFields(docID int, fieldsToLoad []string) (*document.Document, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *IndexSearcher) Count(query Query) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *IndexSearcher) GetSlices() []LeafSlice {
+	//TODO implement me
+	panic("implement me")
+}
+
+func NewIndexSearcher(r index2.IndexReader) (*IndexSearcher, error) {
 	ctx, err := r.GetContext()
 	if err != nil {
 		return nil, err
@@ -79,7 +127,7 @@ func NewIndexSearcher(r index.IndexReader) (*IndexSearcher, error) {
 	return newIndexSearcher(ctx)
 }
 
-func newIndexSearcher(readerContext index.IndexReaderContext) (*IndexSearcher, error) {
+func newIndexSearcher(readerContext index2.IndexReaderContext) (*IndexSearcher, error) {
 	leaves, err := readerContext.Leaves()
 	if err != nil {
 		return nil, err
@@ -101,11 +149,11 @@ func newIndexSearcher(readerContext index.IndexReaderContext) (*IndexSearcher, e
 	}, nil
 }
 
-func (r *IndexSearcher) GetTopReaderContext() index.IndexReaderContext {
+func (r *IndexSearcher) GetTopReaderContext() index2.IndexReaderContext {
 	return r.readerContext
 }
 
-func (r *IndexSearcher) GetIndexReader() index.IndexReader {
+func (r *IndexSearcher) GetIndexReader() index2.IndexReader {
 	return r.reader
 }
 
@@ -241,7 +289,7 @@ func (r *IndexSearcher) SearchCollector(query Query, results Collector) error {
 	return r.Search3(r.leafContexts, weight, results)
 }
 
-func (r *IndexSearcher) Search3(leaves []index.LeafReaderContext, weight Weight, collector Collector) error {
+func (r *IndexSearcher) Search3(leaves []index2.LeafReaderContext, weight Weight, collector Collector) error {
 
 	for _, leaf := range leaves {
 		leafCollector, err := collector.GetLeafCollector(context.TODO(), leaf)
@@ -356,12 +404,12 @@ func (r *IndexSearcher) CollectionStatistics(field string) (*types.CollectionSta
 // totalTermFreq – The total term frequency.
 // Returns:
 // A TermStatistics (never null).
-func (r *IndexSearcher) TermStatistics(term *index.Term, docFreq, totalTermFreq int) (*types.TermStatistics, error) {
+func (r *IndexSearcher) TermStatistics(term index2.Term, docFreq, totalTermFreq int) (*types.TermStatistics, error) {
 	return types.NewTermStatistics(term.Bytes(), int64(docFreq), int64(totalTermFreq))
 }
 
 type LeafSlice struct {
-	Leaves []index.LeafReaderContext
+	Leaves []index2.LeafReaderContext
 }
 
 type Executor interface {

@@ -218,7 +218,7 @@ func (d *DocumentsWriter) flushAllThreads() int64 {
 	// If a concurrent flush is still in flight wait for it
 	//d.flushControl.WaitForFlush();
 	if anythingFlushed == false && flushingDeleteQueue.anyChanges() { // apply deletes if we did not flush any document
-		err := d.ticketQueue.AddDeletes(flushingDeleteQueue)
+		_, err := d.ticketQueue.AddDeletes(flushingDeleteQueue)
 		if err != nil {
 			return 0
 		}
@@ -246,7 +246,8 @@ func (d *DocumentsWriter) finishFullFlush(success bool) error {
 	}
 
 	d.pendingChangesInCurrentFullFlush = false
-	return d.applyAllDeletes() // make sure we do execute this since we block applying deletes during full flush
+	_, err := d.applyAllDeletes() // make sure we do execute this since we block applying deletes during full flush
+	return err
 }
 
 func (d *DocumentsWriter) subtractFlushedNumDocs(numFlushed int64) {
@@ -256,8 +257,20 @@ func (d *DocumentsWriter) subtractFlushedNumDocs(numFlushed int64) {
 	}
 }
 
-func (d *DocumentsWriter) applyAllDeletes() error {
-	panic("")
+// If buffered deletes are using too much heap, resolve them and write disk and return true.
+func (d *DocumentsWriter) applyAllDeletes() (bool, error) {
+	deleteQueue := d.deleteQueue
+
+	if !d.flushControl.isFullFlush() && deleteQueue.isOpen() && d.flushControl.getAndResetApplyAllDeletes() {
+		if ok, err := d.ticketQueue.AddDeletes(deleteQueue); err != nil {
+			return false, err
+		} else if ok {
+			d.flushNotifications.OnDeletesApplied() // apply deletes event forces a purge
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 type FlushNotifications interface {

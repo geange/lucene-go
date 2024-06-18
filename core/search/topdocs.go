@@ -2,7 +2,7 @@ package search
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/structure"
 )
 
@@ -40,7 +40,7 @@ func MergeTopDocs(start, topN int, shardHits []TopDocs, setShardIndex bool) (Top
 
 // Auxiliary method used by the merge impls.
 // A sort value of null is used to indicate that docs should be sorted by score.
-func mergeAuxTopDocs(sort *index.Sort, start, size int, shardHits []TopDocs, setShardIndex bool) (TopDocs, error) {
+func mergeAuxTopDocs(sort index.Sort, start, size int, shardHits []TopDocs, setShardIndex bool) (TopDocs, error) {
 	if sort == nil {
 		queue := NewScoreMergeSortQueue(shardHits)
 		totalHitCount := int64(0)

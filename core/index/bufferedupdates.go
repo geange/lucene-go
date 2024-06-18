@@ -1,6 +1,7 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"sync/atomic"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -18,11 +19,11 @@ import (
 type BufferedUpdates struct {
 	numTermDeletes  *atomic.Int64
 	numFieldUpdates *atomic.Int64
-	deleteTerms     *treemap.Map[*Term, int]
+	deleteTerms     *treemap.Map[index.Term, int]
 	fieldUpdates    map[string]*FieldUpdatesBuffer
 	gen             int64
 	segmentName     string
-	deleteQueries   map[Query]int
+	deleteQueries   *treemap.Map[Query, int]
 }
 
 type bufferedUpdatesOption struct {
@@ -46,12 +47,12 @@ func NewBufferedUpdates(options ...BufferedUpdatesOption) *BufferedUpdates {
 	return &BufferedUpdates{
 		numTermDeletes:  new(atomic.Int64),
 		numFieldUpdates: new(atomic.Int64),
-		deleteTerms:     treemap.NewWith[*Term, int](TermCompare),
+		deleteTerms:     treemap.NewWith[index.Term, int](index.TermCompare),
 		segmentName:     opt.segmentName,
 	}
 }
 
-func (b *BufferedUpdates) AddTerm(term *Term, docIDUpto int) {
+func (b *BufferedUpdates) AddTerm(term index.Term, docIDUpto int) {
 	current, ok := b.deleteTerms.Get(term)
 	if ok {
 		if current > docIDUpto {
@@ -74,11 +75,51 @@ func (b *BufferedUpdates) AddTerm(term *Term, docIDUpto int) {
 }
 
 func (b *BufferedUpdates) AddNumericUpdate(update *NumericDocValuesUpdate, docIDUpto int) error {
-	panic("")
+	field := update.GetField()
+	buffer, ok := b.fieldUpdates[field]
+	if !ok {
+		newBuffer := NewNumberFieldUpdatesBuffer(update, docIDUpto)
+		b.fieldUpdates[field] = newBuffer
+		buffer = newBuffer
+	}
+
+	if update.HasValue() {
+		err := buffer.addUpdateInt(update.term, update.GetValue(), docIDUpto)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := buffer.addNoValue(update.term, docIDUpto)
+		if err != nil {
+			return err
+		}
+	}
+	b.numFieldUpdates.Add(1)
+	return nil
 }
 
 func (b *BufferedUpdates) AddBinaryUpdate(update *BinaryDocValuesUpdate, docIDUpto int) error {
-	panic("")
+	field := update.GetField()
+	buffer, ok := b.fieldUpdates[field]
+	if !ok {
+		newBuffer := NewBinaryFieldUpdatesBuffer(update, docIDUpto)
+		b.fieldUpdates[field] = newBuffer
+		buffer = newBuffer
+	}
+
+	if update.HasValue() {
+		err := buffer.addUpdateBytes(update.term, update.GetValue(), docIDUpto)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := buffer.addNoValue(update.term, docIDUpto)
+		if err != nil {
+			return err
+		}
+	}
+	b.numFieldUpdates.Add(1)
+	return nil
 }
 
 func (b *BufferedUpdates) ClearDeleteTerms() {
@@ -89,7 +130,7 @@ func (b *BufferedUpdates) ClearDeleteTerms() {
 
 func (b *BufferedUpdates) Clear() {
 	b.deleteTerms.Clear()
-	clear(b.deleteQueries)
+	b.deleteQueries.Clear()
 	b.numTermDeletes.Store(0)
 	b.numFieldUpdates.Store(0)
 	clear(b.fieldUpdates)
@@ -97,6 +138,6 @@ func (b *BufferedUpdates) Clear() {
 
 func (b *BufferedUpdates) Any() bool {
 	return b.deleteTerms.Size() > 0 ||
-		len(b.deleteQueries) > 0 ||
+		b.deleteQueries.Size() > 0 ||
 		b.numFieldUpdates.Load() > 0
 }

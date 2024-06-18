@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"math"
@@ -50,7 +51,7 @@ type BooleanWeight struct {
 	scoreMode       ScoreMode
 }
 
-func (b *BooleanWeight) ExtractTerms(terms *treeset.Set[*index.Term]) error {
+func (b *BooleanWeight) ExtractTerms(terms *treeset.Set[index2.Term]) error {
 	for _, wc := range b.weightedClauses {
 		if wc.clause.IsScoring() || (b.scoreMode.NeedsScores() == false && wc.clause.IsProhibited() == false) {
 			if err := wc.weight.ExtractTerms(terms); err != nil {
@@ -61,12 +62,12 @@ func (b *BooleanWeight) ExtractTerms(terms *treeset.Set[*index.Term]) error {
 	return nil
 }
 
-func (b *BooleanWeight) Explain(ctx index.LeafReaderContext, doc int) (*types.Explanation, error) {
+func (b *BooleanWeight) Explain(ctx index2.LeafReaderContext, doc int) (*types.Explanation, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (b *BooleanWeight) Matches(context index.LeafReaderContext, doc int) (Matches, error) {
+func (b *BooleanWeight) Matches(context index2.LeafReaderContext, doc int) (Matches, error) {
 	minShouldMatch := b.query.GetMinimumNumberShouldMatch()
 	matchValues := make([]Matches, 0)
 	shouldMatchCount := 0
@@ -124,13 +125,13 @@ func disableScoring(scorer BulkScorer) BulkScorer {
 	}
 }
 
-func (*BooleanWeight) optionalBulkScorer(context index.LeafReaderContext) (BulkScorer, error) {
+func (*BooleanWeight) optionalBulkScorer(context index2.LeafReaderContext) (BulkScorer, error) {
 	panic("")
 }
 
 // Return a BulkScorer for the required clauses only,
 // or null if it is not applicable
-func (b *BooleanWeight) requiredBulkScorer(context index.LeafReaderContext) (BulkScorer, error) {
+func (b *BooleanWeight) requiredBulkScorer(context index2.LeafReaderContext) (BulkScorer, error) {
 	var scorer BulkScorer
 	var err error
 
@@ -161,7 +162,7 @@ func (b *BooleanWeight) requiredBulkScorer(context index.LeafReaderContext) (Bul
 }
 
 // Try to build a boolean scorer for this weight. Returns null if BooleanScorer cannot be used.
-func (b *BooleanWeight) booleanScorer(context index.LeafReaderContext) (BulkScorer, error) {
+func (b *BooleanWeight) booleanScorer(context index2.LeafReaderContext) (BulkScorer, error) {
 	numOptionalClauses := len(b.query.GetClauses(OccurShould))
 	numRequiredClauses := len(b.query.GetClauses(OccurMust)) + len(b.query.GetClauses(OccurFilter))
 
@@ -249,7 +250,7 @@ func (b *BooleanWeight) booleanScorer(context index.LeafReaderContext) (BulkScor
 	}
 }
 
-func (b *BooleanWeight) BulkScorer(context index.LeafReaderContext) (BulkScorer, error) {
+func (b *BooleanWeight) BulkScorer(context index2.LeafReaderContext) (BulkScorer, error) {
 	if b.scoreMode == TOP_SCORES {
 		// If only the top docs are requested, use the default bulk scorer
 		// so that we can dynamically prune non-competitive hits.
@@ -268,7 +269,7 @@ func (b *BooleanWeight) BulkScorer(context index.LeafReaderContext) (BulkScorer,
 	}
 }
 
-func (b *BooleanWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
+func (b *BooleanWeight) Scorer(ctx index2.LeafReaderContext) (Scorer, error) {
 	supplier, err := b.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
@@ -279,7 +280,7 @@ func (b *BooleanWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
 	return supplier.Get(math.MaxInt64)
 }
 
-func (b *BooleanWeight) IsCacheable(ctx index.LeafReaderContext) bool {
+func (b *BooleanWeight) IsCacheable(ctx index2.LeafReaderContext) bool {
 	if len(b.query.Clauses()) > BOOLEAN_REWRITE_TERM_COUNT_THRESHOLD {
 		// Disallow caching large boolean queries to not encourage users
 		// to build large boolean queries as a workaround to the fact that
@@ -295,7 +296,7 @@ func (b *BooleanWeight) IsCacheable(ctx index.LeafReaderContext) bool {
 	return true
 }
 
-func (b *BooleanWeight) ScorerSupplier(context index.LeafReaderContext) (ScorerSupplier, error) {
+func (b *BooleanWeight) ScorerSupplier(context index2.LeafReaderContext) (ScorerSupplier, error) {
 	minShouldMatch := b.query.GetMinimumNumberShouldMatch()
 
 	scorers := map[Occur][]ScorerSupplier{}

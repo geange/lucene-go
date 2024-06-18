@@ -1,6 +1,7 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -161,6 +162,10 @@ func (d *DocumentsWriterDeleteQueue) Close() {
 
 }
 
+func (d *DocumentsWriterDeleteQueue) isOpen() bool {
+	return d.closed == false
+}
+
 type DeleteSlice struct {
 	// No need to be volatile, slices are thread captive (only accessed by one thread)!
 	sliceHead *Node
@@ -204,7 +209,7 @@ func (d *DeleteSlice) Reset() {
 	d.sliceHead = d.sliceTail
 }
 
-func deleteQueueNewNode(term *Term) *Node {
+func deleteQueueNewNode(term index.Term) *Node {
 	node := NewTermNode(term)
 	return NewNode(term, node)
 }

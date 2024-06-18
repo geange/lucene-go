@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"strconv"
 
@@ -18,13 +19,13 @@ import (
 
 var (
 	_ index.FieldsProducer = &FieldsReader{}
-	_ index.Fields         = &FieldsReader{}
+	_ index2.Fields        = &FieldsReader{}
 )
 
 type FieldsReader struct {
 	fields     *treemap.Map[string, int64]
 	in         store.IndexInput
-	fieldInfos *index.FieldInfos
+	fieldInfos index2.FieldInfos
 	maxDoc     int
 	termsCache map[string]*simpleTextTerms
 }
@@ -33,7 +34,7 @@ func (s *FieldsReader) Names() []string {
 	return s.fields.Keys()
 }
 
-func (s *FieldsReader) Terms(field string) (index.Terms, error) {
+func (s *FieldsReader) Terms(field string) (index2.Terms, error) {
 	v, ok := s.termsCache[field]
 	if !ok {
 		fp, ok := s.fields.Get(field)
@@ -116,7 +117,7 @@ func (s *FieldsReader) GetMergeInstance() index.FieldsProducer {
 	return s
 }
 
-var _ index.Terms = &simpleTextTerms{}
+var _ index2.Terms = &simpleTextTerms{}
 
 type simpleTextTerms struct {
 	*index.BaseTerms
@@ -232,7 +233,7 @@ func (s *FieldsReader) loadTerms(ctx context.Context, term *simpleTextTerms) err
 	return err
 }
 
-func (f *simpleTextTerms) Iterator() (index.TermsEnum, error) {
+func (f *simpleTextTerms) Iterator() (index2.TermsEnum, error) {
 	if f.fst != nil {
 		return f.r.newSimpleTextTermsEnum(f.fst, f.fieldInfo.GetIndexOptions())
 	}
@@ -271,7 +272,7 @@ func (f *simpleTextTerms) HasPayloads() bool {
 	return f.fieldInfo.HasPayloads()
 }
 
-var _ index.TermsEnum = &simpleTextTermsEnum{}
+var _ index2.TermsEnum = &simpleTextTermsEnum{}
 
 type simpleTextTermsEnum struct {
 	*index.BaseTermsEnum
@@ -347,14 +348,14 @@ func (t *simpleTextTermsEnum) Next(ctx context.Context) ([]byte, error) {
 	}
 }
 
-func (t *simpleTextTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
+func (t *simpleTextTermsEnum) SeekCeil(ctx context.Context, text []byte) (index2.SeekStatus, error) {
 	result, found, err := t.fstEnum.SeekCeil(ctx, text)
 	if err != nil {
 		return 0, err
 	}
 
 	if !found {
-		return index.SEEK_STATUS_END, nil
+		return index2.SEEK_STATUS_END, nil
 	}
 
 	output := result.GetOutput()
@@ -367,9 +368,9 @@ func (t *simpleTextTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.
 	}
 
 	if bytes.Equal(result.GetInput(), text) {
-		return index.SEEK_STATUS_FOUND, nil
+		return index2.SEEK_STATUS_FOUND, nil
 	} else {
-		return index.SEEK_STATUS_NOT_FOUND, nil
+		return index2.SEEK_STATUS_NOT_FOUND, nil
 	}
 }
 
@@ -396,7 +397,7 @@ func (t *simpleTextTermsEnum) TotalTermFreq() (int64, error) {
 	return t.totalTermFreq, nil
 }
 
-func (t *simpleTextTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
+func (t *simpleTextTermsEnum) Postings(reuse index2.PostingsEnum, flags int) (index2.PostingsEnum, error) {
 	hasPositions := t.indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 	if hasPositions && index.FeatureRequested(flags, index.POSTINGS_ENUM_POSITIONS) {
 		var docsAndPositionsEnum *simpleTextPostingsEnum
@@ -420,7 +421,7 @@ func (t *simpleTextTermsEnum) Postings(reuse index.PostingsEnum, flags int) (ind
 	return docsEnum.Reset(t.docsStart, t.indexOptions == document.INDEX_OPTIONS_DOCS, t.docFreq, t.skipPointer)
 }
 
-func (t *simpleTextTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
+func (t *simpleTextTermsEnum) Impacts(flags int) (index2.ImpactsEnum, error) {
 	postings, err := t.Postings(nil, flags)
 	if err != nil {
 		return nil, err
@@ -431,10 +432,10 @@ func (t *simpleTextTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 		return index.NewSlowImpactsEnum(postings), nil
 	}
 
-	return postings.(index.ImpactsEnum), nil
+	return postings.(index2.ImpactsEnum), nil
 }
 
-var _ index.ImpactsEnum = &simpleTextPostingsEnum{}
+var _ index2.ImpactsEnum = &simpleTextPostingsEnum{}
 
 type simpleTextPostingsEnum struct {
 	inStart store.IndexInput
@@ -519,12 +520,12 @@ func (s *simpleTextPostingsEnum) AdvanceShallow(target int) error {
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) GetImpacts() (index.Impacts, error) {
+func (s *simpleTextPostingsEnum) GetImpacts() (index2.Impacts, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions document.IndexOptions, docFreq int, skipPointer int64) index.PostingsEnum {
+func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions document.IndexOptions, docFreq int, skipPointer int64) index2.PostingsEnum {
 
 	s.nextDocStart = fp
 	s.docID = -1
@@ -541,7 +542,7 @@ func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions document.IndexOpti
 	return s
 }
 
-var _ index.ImpactsEnum = &simpleTextDocsEnum{}
+var _ index2.ImpactsEnum = &simpleTextDocsEnum{}
 
 type simpleTextDocsEnum struct {
 	inStart     store.IndexInput
@@ -627,7 +628,7 @@ func (s *simpleTextDocsEnum) AdvanceShallow(target int) error {
 	return nil
 }
 
-func (s *simpleTextDocsEnum) GetImpacts() (index.Impacts, error) {
+func (s *simpleTextDocsEnum) GetImpacts() (index2.Impacts, error) {
 	err := s.AdvanceShallow(s.docID)
 	if err != nil {
 		return nil, err
@@ -639,7 +640,7 @@ func (s *simpleTextDocsEnum) CanReuse(in store.IndexInput) bool {
 	return in == s.inStart
 }
 
-func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPointer int64) (index.PostingsEnum, error) {
+func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPointer int64) (index2.PostingsEnum, error) {
 	_, err := s.in.Seek(fp, io.SeekStart)
 	if err != nil {
 		return nil, err

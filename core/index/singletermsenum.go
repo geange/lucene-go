@@ -1,6 +1,9 @@
 package index
 
-import "bytes"
+import (
+	"bytes"
+	"github.com/geange/lucene-go/core/interface/index"
+)
 
 var _ FilteredTermsEnum = &SingleTermsEnum{}
 
@@ -8,11 +11,12 @@ var _ FilteredTermsEnum = &SingleTermsEnum{}
 // For example, this can be used by MultiTermQuerys that need only visit one term,
 // but want to preserve MultiTermQuery semantics such as MultiTermQuery.getRewriteMethod.
 type SingleTermsEnum struct {
-	singleRef []byte
 	*FilteredTermsEnumBase
+
+	singleRef []byte
 }
 
-func NewSingleTermsEnum(tenum TermsEnum, termText []byte) *SingleTermsEnum {
+func NewSingleTermsEnum(tenum index.TermsEnum, termText []byte) *SingleTermsEnum {
 	enum := &SingleTermsEnum{
 		singleRef: termText,
 	}

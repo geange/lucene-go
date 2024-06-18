@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
@@ -67,6 +68,6 @@ func (f *FreqProxTermsWriter) SetTermBytePool(termBytePool *bytesref.BlockPool) 
 	f.termBytePool = termBytePool
 }
 
-func (f *FreqProxTermsWriter) applyDeletes(state *SegmentWriteState, fields Fields) error {
+func (f *FreqProxTermsWriter) applyDeletes(state *SegmentWriteState, fields index.Fields) error {
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"math"
 	"strconv"
@@ -463,7 +464,7 @@ func (s *DocValuesWriter) AddSortedNumericField(ctx context.Context, field *docu
 	}
 
 	return s.doAddBinaryField(field, &index.EmptyDocValuesProducer{
-		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error) {
+		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (index2.BinaryDocValues, error) {
 			values, err := valuesProducer.GetSortedNumeric(nil, field)
 			if err != nil {
 				return nil, err
@@ -477,10 +478,10 @@ func (s *DocValuesWriter) AddSortedNumericField(ctx context.Context, field *docu
 	})
 }
 
-var _ index.BinaryDocValues = &innerBinaryDocValues{}
+var _ index2.BinaryDocValues = &innerBinaryDocValues{}
 
 type innerBinaryDocValues struct {
-	values      index.SortedNumericDocValues
+	values      index2.SortedNumericDocValues
 	builder     *bytes.Buffer
 	binaryValue []byte
 }

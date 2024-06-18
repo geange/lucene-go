@@ -3,6 +3,7 @@ package simpletext
 import (
 	"context"
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"strconv"
 
@@ -74,11 +75,11 @@ func (s *TextFieldsWriter) Close() error {
 	return s.out.Close()
 }
 
-func (s *TextFieldsWriter) Write(ctx context.Context, fields index.Fields, norms index.NormsProducer) error {
+func (s *TextFieldsWriter) Write(ctx context.Context, fields index2.Fields, norms index.NormsProducer) error {
 	return s.WriteV1(s.writeState.FieldInfos, fields, norms)
 }
 
-func (s *TextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fields,
+func (s *TextFieldsWriter) WriteV1(fieldInfos index2.FieldInfos, fields index2.Fields,
 	normsProducer index.NormsProducer) error {
 
 	names := fields.Names()
@@ -102,7 +103,7 @@ func (s *TextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fi
 		hasOffsets := terms.HasOffsets()
 		fieldHasNorms := fieldInfo.HasNorms()
 
-		var norms index.NumericDocValues
+		var norms index2.NumericDocValues
 		if fieldHasNorms && normsProducer != nil {
 			norms, err = normsProducer.GetNorms(fieldInfo)
 			if err != nil {
@@ -129,7 +130,7 @@ func (s *TextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fi
 		if err != nil {
 			return err
 		}
-		var postingsEnum index.PostingsEnum
+		var postingsEnum index2.PostingsEnum
 
 		// for each term in field
 		for {
@@ -272,7 +273,7 @@ func (s *TextFieldsWriter) WriteV1(fieldInfos *index.FieldInfos, fields index.Fi
 	return nil
 }
 
-func (s *TextFieldsWriter) getNorm(doc int, norms index.NumericDocValues) (int64, error) {
+func (s *TextFieldsWriter) getNorm(doc int, norms index2.NumericDocValues) (int64, error) {
 	if norms == nil {
 		return 1, nil
 	}

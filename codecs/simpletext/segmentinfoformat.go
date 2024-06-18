@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"slices"
 	"strconv"
 
@@ -163,7 +164,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		return nil, err
 	}
 
-	sortField := make([]index.SortField, 0)
+	sortField := make([]index2.SortField, 0)
 	for i := 0; i < numSortFields; i++ {
 		provider, err := r.ReadLabel(SI_SORT_NAME)
 		if err != nil {
@@ -186,7 +187,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		sortField = append(sortField, field)
 	}
 
-	var indexSort *index.Sort
+	var indexSort index2.Sort
 	if len(sortField) > 0 {
 		indexSort = index.NewSort(sortField)
 	}

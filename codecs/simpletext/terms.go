@@ -3,6 +3,7 @@ package simpletext
 import (
 	"bytes"
 	"context"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"io"
 	"strconv"
@@ -13,7 +14,7 @@ import (
 	"github.com/geange/lucene-go/core/util/fst"
 )
 
-var _ index.Terms = &textTerms{}
+var _ index2.Terms = &textTerms{}
 
 type textTerms struct {
 	*index.BaseTerms
@@ -133,7 +134,7 @@ OUTER:
 	return nil
 }
 
-func (s *textTerms) Iterator() (index.TermsEnum, error) {
+func (s *textTerms) Iterator() (index2.TermsEnum, error) {
 	if s.fst != nil {
 		panic("")
 	}

@@ -1,5 +1,7 @@
 package index
 
+import "github.com/geange/lucene-go/core/interface/index"
+
 const (
 	BINARY_SORT_THRESHOLD    = 20
 	INSERTION_SORT_THRESHOLD = 16
@@ -34,7 +36,7 @@ type DocMap struct {
 	Size func() int
 }
 
-func SortByComparator(maxDoc int, comparator DocComparator) *DocMap {
+func SortByComparator(maxDoc int, comparator index.DocComparator) *DocMap {
 	// TODO: fix it
 	panic("")
 	/*
@@ -82,7 +84,7 @@ func SortByComparator(maxDoc int, comparator DocComparator) *DocMap {
 
 }
 
-var _ DocComparator = &EmptyDocComparator{}
+var _ index.DocComparator = &EmptyDocComparator{}
 
 type EmptyDocComparator struct {
 	FnCompare func(docID1, docID2 int) int
@@ -92,7 +94,7 @@ func (e *EmptyDocComparator) Compare(docID1, docID2 int) int {
 	return e.FnCompare(docID1, docID2)
 }
 
-func SortByComparators(maxDoc int, comparators []DocComparator) (*DocMap, error) {
+func SortByComparators(maxDoc int, comparators []index.DocComparator) (*DocMap, error) {
 	// TODO: fix it
 	/*
 		return SortByComparator(maxDoc, &EmptyDocComparator{

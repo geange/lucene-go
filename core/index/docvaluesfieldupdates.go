@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
 
@@ -215,7 +216,7 @@ func (*DVFUIterator) Cost() int64 {
 	return 0
 }
 
-func AsBinaryDocValues(iterator DocValuesFieldUpdatesIterator) BinaryDocValues {
+func AsBinaryDocValues(iterator DocValuesFieldUpdatesIterator) index.BinaryDocValues {
 	return &BaseBinaryDocValues{
 		FnDocID:        iterator.DocID,
 		FnNextDoc:      iterator.NextDoc,
@@ -227,7 +228,7 @@ func AsBinaryDocValues(iterator DocValuesFieldUpdatesIterator) BinaryDocValues {
 	}
 }
 
-func AsNumericDocValues(iterator DocValuesFieldUpdatesIterator) NumericDocValues {
+func AsNumericDocValues(iterator DocValuesFieldUpdatesIterator) index.NumericDocValues {
 	return &NumericDocValuesDefault{
 		FnDocID:        iterator.DocID,
 		FnNextDoc:      iterator.NextDoc,

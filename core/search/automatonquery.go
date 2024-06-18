@@ -2,6 +2,8 @@ package search
 
 import (
 	"errors"
+	index3 "github.com/geange/lucene-go/core/interface/index"
+	index2 "github.com/geange/lucene-go/core/types"
 
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/util/attribute"
@@ -30,14 +32,14 @@ type AutomatonQuery struct {
 	compiled  *automaton.CompiledAutomaton
 
 	// term containing the field, and possibly some pattern structure
-	term *index.Term
+	term *index2.Term
 
 	automatonIsBinary bool
 
 	rewriteMethod RewriteMethod
 }
 
-func NewAutomatonQuery(term *index.Term, auto *automaton.Automaton, determinizeWorkLimit int, isBinary bool) *AutomatonQuery {
+func NewAutomatonQuery(term *index2.Term, auto *automaton.Automaton, determinizeWorkLimit int, isBinary bool) *AutomatonQuery {
 	return &AutomatonQuery{
 		field:             term.Field(),
 		automaton:         auto,
@@ -51,11 +53,11 @@ func (r *AutomatonQuery) GetField() string {
 	return r.field
 }
 
-func (r *AutomatonQuery) GetTermsEnum(terms index.Terms, atts *attribute.Source) (index.TermsEnum, error) {
+func (r *AutomatonQuery) GetTermsEnum(terms index3.Terms, atts *attribute.Source) (index3.TermsEnum, error) {
 	return GetTermsEnum(r.compiled, terms)
 }
 
-func GetTermsEnum(r *automaton.CompiledAutomaton, terms index.Terms) (index.TermsEnum, error) {
+func GetTermsEnum(r *automaton.CompiledAutomaton, terms index3.Terms) (index3.TermsEnum, error) {
 	switch r.Type() {
 	case automaton.AUTOMATON_TYPE_NONE:
 		return index.EmptyTermsEnum, nil
@@ -93,7 +95,7 @@ func (r *AutomatonQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMo
 	return nil, errors.New("implement me")
 }
 
-func (r *AutomatonQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (r *AutomatonQuery) Rewrite(reader index3.IndexReader) (Query, error) {
 	return r, nil
 }
 
@@ -117,7 +119,7 @@ func visit(auto *automaton.CompiledAutomaton, visitor QueryVisitor, parent Query
 				return automaton.NewByteRunAutomaton(automaton.MakeAnyString())
 			})
 		case automaton.AUTOMATON_TYPE_SINGLE:
-			visitor.ConsumeTerms(parent, index.NewTerm(field, auto.Term()))
+			visitor.ConsumeTerms(parent, index2.NewTerm(field, auto.Term()))
 		default:
 			return errors.New("unhandled case")
 		}

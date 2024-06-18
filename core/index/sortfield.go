@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"math"
 	"reflect"
@@ -15,76 +16,11 @@ const (
 	STRING_LAST  = "SortField.STRING_LAST"
 )
 
-// SortField
-// Stores information about how to sort documents by terms in an individual field.
-// Fields must be indexed in order to sort by them.
-// Created: Feb 11, 2004 1:25:29 PM
-// Since: lucene 1.4
-// See Also: Sort
-type SortField interface {
-	// GetMissingValue
-	// Return the item to use for documents that don't have a item.
-	// A item of null indicates that default should be used.
-	GetMissingValue() any
-
-	// SetMissingValue
-	// Set the item to use for documents that don't have a item.
-	SetMissingValue(missingValue any) error
-
-	// GetField
-	// Returns the name of the field. Could return null if the sort is by SCORE or DOC.
-	// Returns: Name of field, possibly null.
-	GetField() string
-
-	// GetType
-	// Returns the type of contents in the field.
-	// Returns: One of the constants SCORE, DOC, STRING, INT or FLOAT.
-	GetType() SortFieldType
-
-	// GetReverse
-	// Returns whether the sort should be reversed.
-	// Returns: True if natural order should be reversed.
-	GetReverse() bool
-
-	GetComparatorSource() FieldComparatorSource
-
-	// SetCanUsePoints
-	// For numeric sort fields, setting this field, indicates that the same numeric data
-	// has been indexed with two fields: doc values and points and that these fields have the same name.
-	// This allows to use sort optimization and skip non-competitive documents.
-	SetCanUsePoints()
-
-	GetCanUsePoints() bool
-
-	SetBytesComparator(fn BytesComparator)
-
-	GetBytesComparator() BytesComparator
-
-	// GetComparator
-	// Returns the FieldComparator to use for sorting.
-	// - numHits: number of top hits the queue will store
-	// - sortPos: position of this SortField within Sort. The comparator is primary if sortPos==0, secondary
-	//		if sortPos==1, etc. Some comparators can optimize themselves when they are the primary sort.
-	// Returns: FieldComparator to use when sorting
-	// lucene.experimental
-	GetComparator(numHits, sortPos int) FieldComparator
-
-	//rewrite(searcher search.IndexSearcher)
-
-	GetIndexSorter() IndexSorter
-
-	Serialize(ctx context.Context, out store.DataOutput) error
-	Equals(other SortField) bool
-	String() string
-}
-
-type BytesComparator func(a, b []byte) int
-
-var _ SortField = &BaseSortField{}
+var _ index.SortField = &BaseSortField{}
 
 var (
-	FIELD_SCORE = NewSortField("", SCORE)
-	FIELD_DOC   = NewSortField("", DOC)
+	FIELD_SCORE = NewSortField("", index.SCORE)
+	FIELD_DOC   = NewSortField("", index.DOC)
 )
 
 // BaseSortField
@@ -95,27 +31,27 @@ var (
 // See Also: Sort
 type BaseSortField struct {
 	field            string
-	_type            SortFieldType
+	_type            index.SortFieldType
 	reverse          bool
-	comparatorSource FieldComparatorSource
+	comparatorSource index.FieldComparatorSource
 	canUsePoints     bool
-	bytesComparator  BytesComparator
+	bytesComparator  index.BytesComparator
 	missingValue     any
 }
 
-func NewSortField(field string, _type SortFieldType) *BaseSortField {
+func NewSortField(field string, _type index.SortFieldType) *BaseSortField {
 	s := &BaseSortField{}
 	s.initFieldType(&field, _type)
 	return s
 }
 
-func NewSortFieldV1(field string, _type SortFieldType, reverse bool) *BaseSortField {
+func NewSortFieldV1(field string, _type index.SortFieldType, reverse bool) *BaseSortField {
 	s := NewSortField(field, _type)
 	s.reverse = reverse
 	return s
 }
 
-func (s *BaseSortField) GetComparatorSource() FieldComparatorSource {
+func (s *BaseSortField) GetComparatorSource() index.FieldComparatorSource {
 	return s.comparatorSource
 }
 
@@ -123,16 +59,16 @@ func (s *BaseSortField) GetReverse() bool {
 	return s.reverse
 }
 
-func (s *BaseSortField) SetBytesComparator(fn BytesComparator) {
+func (s *BaseSortField) SetBytesComparator(fn index.BytesComparator) {
 	s.bytesComparator = fn
 }
 
-func (s *BaseSortField) GetBytesComparator() BytesComparator {
+func (s *BaseSortField) GetBytesComparator() index.BytesComparator {
 	return s.bytesComparator
 }
 
-func (s *BaseSortField) GetComparator(numHits, sortPos int) FieldComparator {
-	var fieldComparator FieldComparator
+func (s *BaseSortField) GetComparator(numHits, sortPos int) index.FieldComparator {
+	var fieldComparator index.FieldComparator
 	switch s._type {
 	// TODO: fix it
 	}
@@ -142,7 +78,7 @@ func (s *BaseSortField) GetComparator(numHits, sortPos int) FieldComparator {
 	return fieldComparator
 }
 
-func newSortField(field string, _type SortFieldType, reverse bool) (*BaseSortField, error) {
+func newSortField(field string, _type index.SortFieldType, reverse bool) (*BaseSortField, error) {
 	sortField := &BaseSortField{reverse: reverse}
 	if err := sortField.initFieldType(&field, _type); err != nil {
 		return nil, err
@@ -152,11 +88,11 @@ func newSortField(field string, _type SortFieldType, reverse bool) (*BaseSortFie
 
 // Sets field & type, and ensures field is not NULL unless
 // type is SCORE or DOC
-func (s *BaseSortField) initFieldType(field *string, _type SortFieldType) error {
+func (s *BaseSortField) initFieldType(field *string, _type index.SortFieldType) error {
 	s._type = _type
 	if field == nil {
 		switch _type {
-		case SCORE, DOC:
+		case index.SCORE, index.DOC:
 		default:
 			return errors.New("field can only be null when type is SCORE or DOC")
 		}
@@ -169,25 +105,25 @@ func (s *BaseSortField) String() string {
 	buffer := new(bytes.Buffer)
 
 	switch s._type {
-	case SCORE:
+	case index.SCORE:
 		buffer.WriteString("<score>")
-	case DOC:
+	case index.DOC:
 		buffer.WriteString("<doc>")
-	case STRING:
+	case index.STRING:
 		buffer.WriteString(fmt.Sprintf(`<string: "%s">`, s.field))
-	case STRING_VAL:
+	case index.STRING_VAL:
 		buffer.WriteString(fmt.Sprintf(`<string_val: "%s">`, s.field))
-	case INT:
+	case index.INT:
 		buffer.WriteString(fmt.Sprintf(`<int: "%s">`, s.field))
-	case LONG:
+	case index.LONG:
 		buffer.WriteString(fmt.Sprintf(`<long: "%s">`, s.field))
-	case FLOAT:
+	case index.FLOAT:
 		buffer.WriteString(fmt.Sprintf(`<float: "%s">`, s.field))
-	case DOUBLE:
+	case index.DOUBLE:
 		buffer.WriteString(fmt.Sprintf(`<double: "%s">`, s.field))
-	case CUSTOM:
+	case index.CUSTOM:
 		buffer.WriteString(fmt.Sprintf(`<custom: "%s">`, s.field))
-	case REWRITEABLE:
+	case index.REWRITEABLE:
 		buffer.WriteString(fmt.Sprintf(`<rewriteable: "%s">`, s.field))
 	default:
 		buffer.WriteString(fmt.Sprintf(`<???: "%s">`, s.field))
@@ -213,7 +149,7 @@ func (s *BaseSortField) GetField() string {
 
 // GetType Returns the type of contents in the field.
 // Returns: One of the constants SCORE, DOC, STRING, INT or FLOAT.
-func (s *BaseSortField) GetType() SortFieldType {
+func (s *BaseSortField) GetType() index.SortFieldType {
 	return s._type
 }
 
@@ -230,7 +166,7 @@ func (s *BaseSortField) GetCanUsePoints() bool {
 
 // NeedsScores Whether the relevance score is needed to sort documents.
 func (s *BaseSortField) NeedsScores() bool {
-	return s._type == SCORE
+	return s._type == index.SCORE
 }
 
 // GetMissingValue Return the item to use for documents that don't have a item. A item of null indicates that default should be used.
@@ -254,28 +190,28 @@ const (
 // this method should also implement a companion SortFieldProvider to serialize and deserialize
 // the sort in index segment headers
 // lucene.experimental
-func (s *BaseSortField) GetIndexSorter() IndexSorter {
+func (s *BaseSortField) GetIndexSorter() index.IndexSorter {
 	sorter := &EmptyNumericDocValuesProvider{
-		FnGet: func(reader LeafReader) (NumericDocValues, error) {
+		FnGet: func(reader index.LeafReader) (index.NumericDocValues, error) {
 			return GetNumeric(reader, s.field)
 		},
 	}
 
 	switch s._type {
-	case STRING:
+	case index.STRING:
 		sorter := &EmptySortedDocValuesProvider{
-			FnGet: func(reader LeafReader) (SortedDocValues, error) {
+			FnGet: func(reader index.LeafReader) (index.SortedDocValues, error) {
 				return GetSorted(reader, s.field)
 			},
 		}
 		return NewStringSorter(ProviderName, s.missingValue.(string), s.reverse, sorter)
-	case INT:
+	case index.INT:
 		return NewIntSorter(ProviderName, s.missingValue.(int32), s.reverse, sorter)
-	case LONG:
+	case index.LONG:
 		return NewLongSorter(ProviderName, s.missingValue.(int64), s.reverse, sorter)
-	case DOUBLE:
+	case index.DOUBLE:
 		return NewDoubleSorter(ProviderName, s.missingValue.(float64), s.reverse, sorter)
-	case FLOAT:
+	case index.FLOAT:
 		return NewFloatSorter(ProviderName, s.missingValue.(float32), s.reverse, sorter)
 	default:
 		return nil
@@ -307,7 +243,7 @@ func (s *BaseSortField) Serialize(ctx context.Context, out store.DataOutput) err
 		return err
 	}
 	switch s._type {
-	case SCORE:
+	case index.SCORE:
 		switch s.missingValue.(string) {
 		case STRING_FIRST:
 			if err := out.WriteUint32(ctx, 1); err != nil {
@@ -322,20 +258,20 @@ func (s *BaseSortField) Serialize(ctx context.Context, out store.DataOutput) err
 		}
 
 		return nil
-	case INT:
+	case index.INT:
 		return out.WriteUint32(ctx, uint32(s.missingValue.(int32)))
-	case LONG:
+	case index.LONG:
 		return out.WriteUint64(ctx, uint64(s.missingValue.(int64)))
-	case FLOAT:
+	case index.FLOAT:
 		return out.WriteUint32(ctx, math.Float32bits(s.missingValue.(float32)))
-	case DOUBLE:
+	case index.DOUBLE:
 		return out.WriteUint64(ctx, math.Float64bits(s.missingValue.(float64)))
 	default:
 		return fmt.Errorf("cannot serialize SortField of type %s", s._type)
 	}
 }
 
-func (s *BaseSortField) Equals(other SortField) bool {
+func (s *BaseSortField) Equals(other index.SortField) bool {
 	return s.field == other.GetField() &&
 		s._type == other.GetType() &&
 		s.reverse == other.GetReverse() &&
@@ -348,78 +284,6 @@ func (s *BaseSortField) Equals(other SortField) bool {
 	//	s.canUsePoints == other.canUsePoints &&
 	//	s.missingValue == other.missingValue
 }
-
-// SortFieldType Specifies the type of the terms to be sorted, or special types such as CUSTOM
-type SortFieldType int
-
-func (s SortFieldType) String() string {
-	switch s {
-	case SCORE:
-		return "SCORE"
-	case DOC:
-		return "DOC"
-	case STRING:
-		return "STRING"
-	case INT:
-		return "INT"
-	case FLOAT:
-		return "FLOAT"
-	case LONG:
-		return "LONG"
-	case DOUBLE:
-		return "DOUBLE"
-	case CUSTOM:
-		return "CUSTOM"
-	case STRING_VAL:
-		return "STRING_VAL"
-	case REWRITEABLE:
-		return "REWRITEABLE"
-	default:
-		return ""
-	}
-}
-
-const (
-	// SCORE // Sort by document score (relevance).
-	// Sort values are Float and higher values are at the front.
-	SCORE = SortFieldType(iota)
-
-	// DOC Sort by document number (index order).
-	// Sort values are Integer and lower values are at the front.
-	DOC
-
-	// STRING Sort using term values as Strings.
-	// Sort values are String and lower values are at the front.
-	STRING
-
-	// INT Sort using term values as encoded Integers.
-	// Sort values are Integer and lower values are at the front.
-	INT
-
-	// FLOAT Sort using term values as encoded Floats.
-	// Sort values are Float and lower values are at the front.
-	FLOAT
-
-	// LONG Sort using term values as encoded Longs.
-	// Sort values are Long and lower values are at the front.
-	LONG
-
-	// DOUBLE Sort using term values as encoded Doubles.
-	// Sort values are Double and lower values are at the front.
-	DOUBLE
-
-	// CUSTOM Sort using a custom cmp.
-	// Sort values are any Comparable and sorting is done according to natural order.
-	CUSTOM
-
-	// STRING_VAL Sort using term values as Strings,
-	// but comparing by item (using String.compareTo) for all comparisons.
-	// This is typically slower than STRING, which uses ordinals to do the sorting.
-	STRING_VAL
-
-	// REWRITEABLE Force rewriting of SortField using rewrite(IndexSearcher) before it can be used for sorting
-	REWRITEABLE
-)
 
 func init() {
 	RegisterSortFieldProvider(newSortFieldProvider())
@@ -438,7 +302,7 @@ func (s *sortFieldProvider) GetName() string {
 	return s.name
 }
 
-func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInput) (SortField, error) {
+func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInput) (index.SortField, error) {
 	field, err := in.ReadString(ctx)
 	if err != nil {
 		return nil, err
@@ -468,7 +332,7 @@ func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInpu
 
 	if num1 == 1 {
 		switch sf._type {
-		case STRING:
+		case index.STRING:
 			num, err := in.ReadUint32(ctx)
 			if err != nil {
 				return nil, err
@@ -482,7 +346,7 @@ func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInpu
 					return nil, err
 				}
 			}
-		case INT:
+		case index.INT:
 			num, err := in.ReadUint32(ctx)
 			if err != nil {
 				return nil, err
@@ -490,7 +354,7 @@ func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInpu
 			if err := sf.SetMissingValue(num); err != nil {
 				return nil, err
 			}
-		case LONG:
+		case index.LONG:
 			num, err := in.ReadUint64(ctx)
 			if err != nil {
 				return nil, err
@@ -498,7 +362,7 @@ func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInpu
 			if err := sf.SetMissingValue(num); err != nil {
 				return nil, err
 			}
-		case FLOAT:
+		case index.FLOAT:
 			num, err := in.ReadUint32(ctx)
 			if err != nil {
 				return nil, err
@@ -506,7 +370,7 @@ func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInpu
 			if err := sf.SetMissingValue(math.Float32frombits(num)); err != nil {
 				return nil, err
 			}
-		case DOUBLE:
+		case index.DOUBLE:
 			num, err := in.ReadUint64(ctx)
 			if err != nil {
 				return nil, err
@@ -521,37 +385,37 @@ func (s *sortFieldProvider) ReadSortField(ctx context.Context, in store.DataInpu
 	return sf, nil
 }
 
-func (s *sortFieldProvider) WriteSortField(ctx context.Context, sf SortField, out store.DataOutput) error {
+func (s *sortFieldProvider) WriteSortField(ctx context.Context, sf index.SortField, out store.DataOutput) error {
 	return sf.Serialize(ctx, out)
 }
 
-func readType(ctx context.Context, in store.DataInput) (SortFieldType, error) {
+func readType(ctx context.Context, in store.DataInput) (index.SortFieldType, error) {
 	value, err := in.ReadString(ctx)
 	if err != nil {
 		return 0, err
 	}
 	switch value {
 	case "SCORE":
-		return SCORE, nil
+		return index.SCORE, nil
 	case "DOC":
-		return DOC, nil
+		return index.DOC, nil
 	case "STRING":
-		return STRING, nil
+		return index.STRING, nil
 	case "INT":
-		return INT, nil
+		return index.INT, nil
 	case "FLOAT":
-		return FLOAT, nil
+		return index.FLOAT, nil
 	case "LONG":
-		return LONG, nil
+		return index.LONG, nil
 	case "DOUBLE":
-		return DOUBLE, nil
+		return index.DOUBLE, nil
 	case "CUSTOM":
-		return CUSTOM, nil
+		return index.CUSTOM, nil
 	case "STRING_VAL":
-		return STRING_VAL, nil
+		return index.STRING_VAL, nil
 	case "REWRITEABLE":
-		return REWRITEABLE, nil
+		return index.REWRITEABLE, nil
 	default:
-		return SCORE, errors.New("undefined sort filed type")
+		return index.SCORE, errors.New("undefined sort filed type")
 	}
 }

@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"github.com/geange/lucene-go/core/interface/index"
 	"strings"
 
 	"github.com/geange/lucene-go/core/store"
@@ -54,7 +55,7 @@ type baseDirectoryReader struct {
 }
 
 func newBaseDirectoryReader(directory store.Directory,
-	segmentReaders []IndexReader, leafSorter CompareLeafReader) (*baseDirectoryReader, error) {
+	segmentReaders []index.IndexReader, leafSorter CompareLeafReader) (*baseDirectoryReader, error) {
 
 	reader, err := newBaseCompositeReader(segmentReaders, leafSorter)
 	if err != nil {

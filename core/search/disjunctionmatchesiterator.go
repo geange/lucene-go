@@ -2,6 +2,7 @@ package search
 
 import (
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/lucene-go/core/index"
@@ -93,10 +94,10 @@ func newDisjunctionMatchesIterator(matches []MatchesIterator) (MatchesIterator, 
 // FromTermsEnumMatchesIterator
 // Create a DisjunctionMatchesIterator over a list of terms extracted from a BytesRefIterator
 // Only terms that have at least one match in the given document will be included
-func FromTermsEnumMatchesIterator(context index.LeafReaderContext, doc int, query Query,
+func FromTermsEnumMatchesIterator(context index2.LeafReaderContext, doc int, query Query,
 	field string, terms bytesref.BytesIterator) (MatchesIterator, error) {
 
-	t, err := context.Reader().(index.LeafReader).Terms(field)
+	t, err := context.Reader().(index2.LeafReader).Terms(field)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func FromTermsEnumMatchesIterator(context index.LeafReaderContext, doc int, quer
 		return nil, err
 	}
 
-	var reuse index.PostingsEnum
+	var reuse index2.PostingsEnum
 
 	for {
 		term, err := terms.Next(nil)
@@ -141,14 +142,14 @@ var _ MatchesIterator = &termsEnumDisjunctionMatchesIterator{}
 type termsEnumDisjunctionMatchesIterator struct {
 	first MatchesIterator
 	terms bytesref.BytesIterator
-	te    index.TermsEnum
+	te    index2.TermsEnum
 	doc   int
 	query Query
 	it    MatchesIterator
 }
 
 func newTermsEnumDisjunctionMatchesIterator(first MatchesIterator, terms bytesref.BytesIterator,
-	te index.TermsEnum, doc int, query Query) *termsEnumDisjunctionMatchesIterator {
+	te index2.TermsEnum, doc int, query Query) *termsEnumDisjunctionMatchesIterator {
 	return &termsEnumDisjunctionMatchesIterator{
 		first: first,
 		terms: terms,
@@ -161,7 +162,7 @@ func newTermsEnumDisjunctionMatchesIterator(first MatchesIterator, terms bytesre
 func (t *termsEnumDisjunctionMatchesIterator) init() error {
 	mis := make([]MatchesIterator, 0)
 	mis = append(mis, t.first)
-	var reuse index.PostingsEnum
+	var reuse index2.PostingsEnum
 
 	for {
 		term, err := t.terms.Next(nil)

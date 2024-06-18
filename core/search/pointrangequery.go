@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"io"
 	"math"
@@ -261,8 +262,8 @@ func (r *invPrQueryVisitor) Grow(count int) {
 	return
 }
 
-func (r *prQueryWeight) ScorerSupplier(ctx index.LeafReaderContext) (ScorerSupplier, error) {
-	reader, ok := ctx.Reader().(index.LeafReader)
+func (r *prQueryWeight) ScorerSupplier(ctx index2.LeafReaderContext) (ScorerSupplier, error) {
+	reader, ok := ctx.Reader().(index2.LeafReader)
 	if !ok {
 		return nil, errors.New("get reader error")
 	}
@@ -339,7 +340,7 @@ func (r *prQueryWeight) ScorerSupplier(ctx index.LeafReaderContext) (ScorerSuppl
 var _ ScorerSupplier = &allDocsScorerSupplier{}
 
 type allDocsScorerSupplier struct {
-	reader    index.LeafReader
+	reader    index2.LeafReader
 	weight    *prQueryWeight
 	scoreMode ScoreMode
 }
@@ -357,7 +358,7 @@ var _ ScorerSupplier = &notAllDocsScorerSupplier{}
 type notAllDocsScorerSupplier struct {
 	result    *DocIdSetBuilder
 	visitor   types.IntersectVisitor
-	reader    index.LeafReader
+	reader    index2.LeafReader
 	values    types.PointValues
 	cost      int64
 	weight    *prQueryWeight
@@ -403,7 +404,7 @@ func (r *notAllDocsScorerSupplier) Cost() int64 {
 	return r.cost
 }
 
-func (r *prQueryWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
+func (r *prQueryWeight) Scorer(ctx index2.LeafReaderContext) (Scorer, error) {
 	scorerSupplier, err := r.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
@@ -414,11 +415,11 @@ func (r *prQueryWeight) Scorer(ctx index.LeafReaderContext) (Scorer, error) {
 	return scorerSupplier.Get(math.MaxInt32)
 }
 
-func (r *prQueryWeight) IsCacheable(ctx index.LeafReaderContext) bool {
+func (r *prQueryWeight) IsCacheable(ctx index2.LeafReaderContext) bool {
 	return true
 }
 
-func (p *PointRangeQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (p *PointRangeQuery) Rewrite(reader index2.IndexReader) (Query, error) {
 	return p, nil
 }
 

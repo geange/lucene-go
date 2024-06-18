@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search"
@@ -25,7 +26,7 @@ func (b *BinaryRangeFieldRangeQuery) createWeight(query search.Query, scoreMode 
 	return weight
 }
 
-func (b *BinaryRangeFieldRangeQuery) getValues(reader index.LeafReader, field string) (*BinaryRangeDocValues, error) {
+func (b *BinaryRangeFieldRangeQuery) getValues(reader index2.LeafReader, field string) (*BinaryRangeDocValues, error) {
 	binaryDocValues, err := reader.GetBinaryDocValues(field)
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ type binaryRangeFieldRangeWeight struct {
 	scoreMode search.ScoreMode
 }
 
-func (b *binaryRangeFieldRangeWeight) Scorer(ctx index.LeafReaderContext) (search.Scorer, error) {
+func (b *binaryRangeFieldRangeWeight) Scorer(ctx index2.LeafReaderContext) (search.Scorer, error) {
 
 	values, err := b.query.getValues(ctx.LeafReader(), b.query.field)
 	if err != nil {
@@ -89,7 +90,7 @@ func (b *binaryRangeFieldRangeWeightTwoPhaseIterator) MatchCost() float64 {
 
 }
 
-func (b *binaryRangeFieldRangeWeight) IsCacheable(ctx index.LeafReaderContext) bool {
+func (b *binaryRangeFieldRangeWeight) IsCacheable(ctx index2.LeafReaderContext) bool {
 	return index.IsCacheable(ctx, b.query.field)
 }
 

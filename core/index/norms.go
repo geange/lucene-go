@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/packed"
 	"io"
 
@@ -83,7 +84,7 @@ func (i *innerNormsProducer) Close() error {
 	return nil
 }
 
-func (i *innerNormsProducer) GetNorms(fieldInfo *document.FieldInfo) (NumericDocValues, error) {
+func (i *innerNormsProducer) GetNorms(fieldInfo *document.FieldInfo) (index.NumericDocValues, error) {
 	if fieldInfo != i.mergeFieldInfo {
 		return nil, errors.New("wrong fieldInfo")
 	}
@@ -123,7 +124,7 @@ func (i *innerNormsProducer) GetMergeInstance() NormsProducer {
 
 // NumericDocValuesSub Tracks state of one numeric sub-reader that we are merging
 type NumericDocValuesSub struct {
-	values NumericDocValues
+	values index.NumericDocValues
 }
 
 // NormsProducer Abstract API that produces field normalization values
@@ -132,7 +133,7 @@ type NormsProducer interface {
 
 	// GetNorms Returns NumericDocValues for this field. The returned instance need not be thread-safe:
 	// it will only be used by a single thread.
-	GetNorms(field *document.FieldInfo) (NumericDocValues, error)
+	GetNorms(field *document.FieldInfo) (index.NumericDocValues, error)
 
 	// CheckIntegrity Checks consistency of this producer
 	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum item

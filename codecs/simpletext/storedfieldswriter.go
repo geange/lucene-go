@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"strconv"
 
 	"github.com/geange/lucene-go/codecs/utils"
@@ -118,7 +119,7 @@ func (s *StoredFieldsWriter) WriteField(ctx context.Context, info *document.Fiel
 	}
 }
 
-func (s *StoredFieldsWriter) Finish(ctx context.Context, fis *index.FieldInfos, numDocs int) error {
+func (s *StoredFieldsWriter) Finish(ctx context.Context, fis index2.FieldInfos, numDocs int) error {
 	if s.numDocsWritten != numDocs {
 		return errors.New("mergeFields produced an invalid result")
 	}

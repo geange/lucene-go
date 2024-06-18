@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
@@ -66,7 +67,7 @@ func NewDefaultIndexingChain(indexCreatedVersionMajor int, segmentInfo *SegmentI
 	return indexChain
 }
 
-func (d *DefaultIndexingChain) getDocValuesLeafReader() LeafReader {
+func (d *DefaultIndexingChain) getDocValuesLeafReader() index.LeafReader {
 	reader := &defaultIndexingChainLeafReader{
 		DocValuesLeafReader: NewDocValuesLeafReader(),
 		chain:               d,
@@ -74,7 +75,7 @@ func (d *DefaultIndexingChain) getDocValuesLeafReader() LeafReader {
 	return reader
 }
 
-var _ LeafReader = &defaultIndexingChainLeafReader{}
+var _ index.LeafReader = &defaultIndexingChainLeafReader{}
 
 type defaultIndexingChainLeafReader struct {
 	*DocValuesLeafReader
@@ -82,7 +83,7 @@ type defaultIndexingChainLeafReader struct {
 	chain *DefaultIndexingChain
 }
 
-func (r *defaultIndexingChainLeafReader) GetNumericDocValues(field string) (NumericDocValues, error) {
+func (r *defaultIndexingChainLeafReader) GetNumericDocValues(field string) (index.NumericDocValues, error) {
 	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
@@ -90,7 +91,7 @@ func (r *defaultIndexingChainLeafReader) GetNumericDocValues(field string) (Nume
 
 	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_NUMERIC {
 		docValues := pf.docValuesWriter.GetDocValues()
-		numericDocValues, ok := docValues.(NumericDocValues)
+		numericDocValues, ok := docValues.(index.NumericDocValues)
 		if !ok {
 			return nil, errors.New("expected numeric doc values")
 		}
@@ -99,36 +100,36 @@ func (r *defaultIndexingChainLeafReader) GetNumericDocValues(field string) (Nume
 	return nil, nil
 }
 
-func (r *defaultIndexingChainLeafReader) GetBinaryDocValues(field string) (BinaryDocValues, error) {
+func (r *defaultIndexingChainLeafReader) GetBinaryDocValues(field string) (index.BinaryDocValues, error) {
 	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
 	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_BINARY {
-		return pf.docValuesWriter.GetDocValues().(BinaryDocValues), nil
+		return pf.docValuesWriter.GetDocValues().(index.BinaryDocValues), nil
 	}
 	return nil, nil
 }
 
-func (r *defaultIndexingChainLeafReader) GetSortedDocValues(field string) (SortedDocValues, error) {
+func (r *defaultIndexingChainLeafReader) GetSortedDocValues(field string) (index.SortedDocValues, error) {
 	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
 	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED {
-		return pf.docValuesWriter.GetDocValues().(SortedDocValues), nil
+		return pf.docValuesWriter.GetDocValues().(index.SortedDocValues), nil
 	}
 	return nil, nil
 }
 
-func (r *defaultIndexingChainLeafReader) GetSortedNumericDocValues(field string) (SortedNumericDocValues, error) {
+func (r *defaultIndexingChainLeafReader) GetSortedNumericDocValues(field string) (index.SortedNumericDocValues, error) {
 	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
 	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED_NUMERIC {
 		docValues := pf.docValuesWriter.GetDocValues()
-		sortedNumericDocValues, ok := docValues.(SortedNumericDocValues)
+		sortedNumericDocValues, ok := docValues.(index.SortedNumericDocValues)
 		if !ok {
 			return nil, errors.New("docValues is not SortedNumericDocValues")
 		}
@@ -137,18 +138,18 @@ func (r *defaultIndexingChainLeafReader) GetSortedNumericDocValues(field string)
 	return nil, nil
 }
 
-func (r *defaultIndexingChainLeafReader) GetSortedSetDocValues(field string) (SortedSetDocValues, error) {
+func (r *defaultIndexingChainLeafReader) GetSortedSetDocValues(field string) (index.SortedSetDocValues, error) {
 	pf := r.chain.getPerField(field)
 	if pf == nil {
 		return nil, nil
 	}
 	if pf.fieldInfo.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED_SET {
-		return pf.docValuesWriter.GetDocValues().(SortedSetDocValues), nil
+		return pf.docValuesWriter.GetDocValues().(index.SortedSetDocValues), nil
 	}
 	return nil, nil
 }
 
-func (r *defaultIndexingChainLeafReader) GetFieldInfos() *FieldInfos {
+func (r *defaultIndexingChainLeafReader) GetFieldInfos() index.FieldInfos {
 	return r.chain.fieldInfos.Finish()
 }
 
@@ -158,7 +159,7 @@ func (d *DefaultIndexingChain) maybeSortSegment(state *SegmentWriteState) (*DocM
 		return nil, nil
 	}
 	docValuesReader := d.getDocValuesLeafReader()
-	comparators := make([]DocComparator, 0)
+	comparators := make([]index.DocComparator, 0)
 
 	for _, sortField := range indexSort.GetSort() {
 		sorter := sortField.GetIndexSorter()
@@ -507,7 +508,7 @@ func (d *DefaultIndexingChain) indexPoint(docID int, fp *PerField, field documen
 	return fp.pointValuesWriter.AddPackedValue(docID, bs)
 }
 
-func (d *DefaultIndexingChain) validateIndexSortDVType(indexSort *Sort, fieldToValidate string, dvType document.DocValuesType) error {
+func (d *DefaultIndexingChain) validateIndexSortDVType(indexSort index.Sort, fieldToValidate string, dvType document.DocValuesType) error {
 	// TODO: fix it
 
 	return nil

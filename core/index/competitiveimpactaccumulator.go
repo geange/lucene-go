@@ -1,6 +1,7 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 
 	"github.com/geange/gods-generic/sets/treeset"
@@ -17,13 +18,13 @@ type CompetitiveImpactAccumulator struct {
 	// This TreeSet stores competitive (freq,norm) pairs for norm values that fall
 	// outside of -128..127. It is always empty with the default similarity, which
 	// encodes norms as bytes.
-	otherFreqNormPairs *treeset.Set[*Impact]
+	otherFreqNormPairs *treeset.Set[index.Impact]
 }
 
 func NewCompetitiveImpactAccumulator() *CompetitiveImpactAccumulator {
 	return &CompetitiveImpactAccumulator{
 		maxFreqs:           make([]int, 256),
-		otherFreqNormPairs: treeset.NewWith[*Impact](ImpactComparator),
+		otherFreqNormPairs: treeset.NewWith[index.Impact](ImpactComparator),
 	}
 }
 
@@ -44,8 +45,8 @@ func (c *CompetitiveImpactAccumulator) Add(freq int, norm int64) {
 	c.add(NewImpact(freq, norm), c.otherFreqNormPairs)
 }
 
-func (c *CompetitiveImpactAccumulator) add(newEntry *Impact, freqNormPairs *treeset.Set[*Impact]) {
-	_, next, ok := freqNormPairs.Find(func(index int, value *Impact) bool {
+func (c *CompetitiveImpactAccumulator) add(newEntry index.Impact, freqNormPairs *treeset.Set[index.Impact]) {
+	_, next, ok := freqNormPairs.Find(func(index int, value index.Impact) bool {
 		if ImpactComparator(newEntry, value) <= 0 {
 			return true
 		}
@@ -53,7 +54,7 @@ func (c *CompetitiveImpactAccumulator) add(newEntry *Impact, freqNormPairs *tree
 	})
 	if !ok {
 		freqNormPairs.Add(newEntry)
-	} else if utils.Int64Comparator(next.Norm, newEntry.Norm) <= 0 {
+	} else if utils.Int64Comparator(next.GetNorm(), newEntry.GetNorm()) <= 0 {
 		return
 	} else {
 		freqNormPairs.Add(newEntry)
@@ -61,9 +62,9 @@ func (c *CompetitiveImpactAccumulator) add(newEntry *Impact, freqNormPairs *tree
 
 	iterator := freqNormPairs.Iterator()
 
-	iterator.NextTo(func(index int, value *Impact) bool {
+	iterator.NextTo(func(index int, value index.Impact) bool {
 		if ImpactComparator(newEntry, value) > 0 {
-			if utils.Int64Comparator(newEntry.Norm, value.Norm) >= 0 {
+			if utils.Int64Comparator(newEntry.GetNorm(), value.GetNorm()) >= 0 {
 				freqNormPairs.Remove(value)
 			}
 			return true
@@ -88,8 +89,8 @@ func (c *CompetitiveImpactAccumulator) AddAll(acc *CompetitiveImpactAccumulator)
 }
 
 // GetCompetitiveFreqNormPairs Get the set of competitive freq and norm pairs, ordered by increasing freq and norm.
-func (c *CompetitiveImpactAccumulator) GetCompetitiveFreqNormPairs() []*Impact {
-	impacts := make([]*Impact, 0)
+func (c *CompetitiveImpactAccumulator) GetCompetitiveFreqNormPairs() []index.Impact {
+	impacts := make([]index.Impact, 0)
 	maxFreqForLowerNorms := 0
 	for i := range c.maxFreqs {
 		maxFreq := c.maxFreqs[i]
@@ -106,8 +107,8 @@ func (c *CompetitiveImpactAccumulator) GetCompetitiveFreqNormPairs() []*Impact {
 
 	freqNormPairs := treeset.NewWith(ImpactComparator, c.otherFreqNormPairs.Values()...)
 	for i := range impacts {
-		impact := impacts[i]
-		c.add(impact, freqNormPairs)
+		v := impacts[i]
+		c.add(v, freqNormPairs)
 	}
 
 	items := freqNormPairs.Values()

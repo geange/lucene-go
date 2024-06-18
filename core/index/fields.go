@@ -2,31 +2,9 @@ package index
 
 import (
 	"context"
+	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 )
-
-// Fields
-// Provides a Terms index for fields that have it, and lists which fields do. This is primarily an
-// internal/experimental API (see FieldsProducer), although it is also used to expose the set of term
-// vectors per document.
-type Fields interface {
-
-	// DVFUIterator Returns an iterator that will step through all fields names. This will not return null.
-	//DVFUIterator() func() string
-
-	Names() []string
-
-	// Terms
-	// Get the Terms for this field. This will return null if the field does not exist.
-	Terms(field string) (Terms, error)
-
-	// Size Returns the number of fields or -1 if the number of distinct field names is unknown. If >= 0,
-	// iterator will return as many field names.
-	Size() int
-
-	// Zero-length Fields array.
-
-}
 
 type FieldsConsumer interface {
 	io.Closer
@@ -42,7 +20,7 @@ type FieldsConsumer interface {
 	//	 seen the first term or document.
 	// * The provided Fields instance is limited: you cannot call any methods that return statistics/counts;
 	//	 you cannot pass a non-null live docs when pulling docs/positions enums.
-	Write(ctx context.Context, fields Fields, norms NormsProducer) error
+	Write(ctx context.Context, fields index.Fields, norms NormsProducer) error
 
 	// Merge
 	// Merges in the fields from the readers in mergeState. The default implementation skips and
@@ -75,7 +53,7 @@ func (f *BaseFieldsConsumer) Merge(ctx context.Context, mergeState *MergeState, 
 type FieldsProducer interface {
 	io.Closer
 
-	Fields
+	index.Fields
 
 	// CheckIntegrity
 	// Checks consistency of this reader.

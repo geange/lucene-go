@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -11,7 +12,7 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ index.Terms = &SimpleTVTerms{}
+var _ index2.Terms = &SimpleTVTerms{}
 
 type SimpleTVTerms struct {
 	*index.BaseTerms
@@ -33,7 +34,7 @@ func NewSimpleTVTerms(hasOffsets, hasPositions, hasPayloads bool) *SimpleTVTerms
 	return terms
 }
 
-func (s *SimpleTVTerms) Iterator() (index.TermsEnum, error) {
+func (s *SimpleTVTerms) Iterator() (index2.TermsEnum, error) {
 	return NewSimpleTVTermsEnum(s.terms), nil
 }
 
@@ -112,7 +113,7 @@ func NewSimpleTVPostings() *SimpleTVPostings {
 	}
 }
 
-var _ index.TermsEnum = &SimpleTVTermsEnum{}
+var _ index2.TermsEnum = &SimpleTVTermsEnum{}
 
 func NewSimpleTVTermsEnum(terms *treemap.Map[[]byte, *SimpleTVPostings]) *SimpleTVTermsEnum {
 	iterator := terms.Iterator()
@@ -141,12 +142,12 @@ func (s *SimpleTVTermsEnum) Next(context.Context) ([]byte, error) {
 	return s.iterator.Key(), nil
 }
 
-func (s *SimpleTVTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
+func (s *SimpleTVTermsEnum) SeekCeil(ctx context.Context, text []byte) (index2.SeekStatus, error) {
 	_, _, ok := s.terms.Ceiling(text)
 	if ok {
-		return index.SEEK_STATUS_FOUND, nil
+		return index2.SEEK_STATUS_FOUND, nil
 	}
-	return index.SEEK_STATUS_NOT_FOUND, nil
+	return index2.SEEK_STATUS_NOT_FOUND, nil
 }
 
 func (s *SimpleTVTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
@@ -170,7 +171,7 @@ func (s *SimpleTVTermsEnum) TotalTermFreq() (int64, error) {
 	return int64(postings.freq), nil
 }
 
-func (s *SimpleTVTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
+func (s *SimpleTVTermsEnum) Postings(reuse index2.PostingsEnum, flags int) (index2.PostingsEnum, error) {
 	if index.FeatureRequested(flags, index.POSTINGS_ENUM_POSITIONS) {
 		postings := s.iterator.Value()
 
@@ -191,7 +192,7 @@ func (s *SimpleTVTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index
 
 }
 
-func (s *SimpleTVTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
+func (s *SimpleTVTermsEnum) Impacts(flags int) (index2.ImpactsEnum, error) {
 	enum, err := s.Postings(nil, index.POSTINGS_ENUM_FREQS)
 	if err != nil {
 		return nil, err
@@ -199,33 +200,33 @@ func (s *SimpleTVTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 	return index.NewSlowImpactsEnum(enum), nil
 }
 
-var _ index.Fields = &SimpleTVFields{}
+var _ index2.Fields = &SimpleTVFields{}
 
-func NewSimpleTVFields(fields *treemap.Map[string, index.Terms]) *SimpleTVFields {
+func NewSimpleTVFields(fields *treemap.Map[string, index2.Terms]) *SimpleTVFields {
 	return &SimpleTVFields{fields: fields}
 }
 
 type SimpleTVFields struct {
-	fields *treemap.Map[string, index.Terms]
+	fields *treemap.Map[string, index2.Terms]
 }
 
 func (s *SimpleTVFields) Names() []string {
 	return s.fields.Keys()
 }
 
-func (s *SimpleTVFields) Terms(field string) (index.Terms, error) {
+func (s *SimpleTVFields) Terms(field string) (index2.Terms, error) {
 	obj, ok := s.fields.Get(field)
 	if !ok {
 		return nil, errors.New("not found")
 	}
-	return obj.(index.Terms), nil
+	return obj.(index2.Terms), nil
 }
 
 func (s *SimpleTVFields) Size() int {
 	return s.fields.Size()
 }
 
-var _ index.PostingsEnum = &SimpleTVPostingsEnum{}
+var _ index2.PostingsEnum = &SimpleTVPostingsEnum{}
 
 func NewSimpleTVPostingsEnum() *SimpleTVPostingsEnum {
 	enum := &SimpleTVPostingsEnum{
@@ -323,7 +324,7 @@ func (s *SimpleTVPostingsEnum) GetPayload() ([]byte, error) {
 	return nil, nil
 }
 
-var _ index.PostingsEnum = &SimpleTVDocsEnum{}
+var _ index2.PostingsEnum = &SimpleTVDocsEnum{}
 
 // SimpleTVDocsEnum note: these two enum classes are exactly like the Default impl...
 type SimpleTVDocsEnum struct {

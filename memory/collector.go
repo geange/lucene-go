@@ -2,8 +2,8 @@ package memory
 
 import (
 	"context"
+	"github.com/geange/lucene-go/core/interface/index"
 
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/search"
 )
 

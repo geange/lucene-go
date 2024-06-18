@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"slices"
 )
@@ -19,7 +20,7 @@ type OrdinalMap struct {
 	segmentMap          *SegmentMap
 }
 
-func NewOrdinalMap(subs []TermsEnum, segmentMap *SegmentMap, acceptableOverheadRatio float64) (*OrdinalMap, error) {
+func NewOrdinalMap(subs []index.TermsEnum, segmentMap *SegmentMap, acceptableOverheadRatio float64) (*OrdinalMap, error) {
 	//res := &OrdinalMap{
 	//	segmentMap: segmentMap,
 	//}
@@ -35,11 +36,11 @@ func NewOrdinalMap(subs []TermsEnum, segmentMap *SegmentMap, acceptableOverheadR
 
 type TermsEnumIndex struct {
 	subIndex    int
-	termsEnum   TermsEnum
+	termsEnum   index.TermsEnum
 	currentTerm []byte
 }
 
-func NewTermsEnumIndex(termsEnum TermsEnum, subIndex int) *TermsEnumIndex {
+func NewTermsEnumIndex(termsEnum index.TermsEnum, subIndex int) *TermsEnumIndex {
 	return &TermsEnumIndex{
 		subIndex:  subIndex,
 		termsEnum: termsEnum,

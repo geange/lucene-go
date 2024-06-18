@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -21,7 +22,7 @@ type StandardDirectoryReader struct {
 
 // NewStandardDirectoryReader
 // package private constructor, called only from static open() methods
-func NewStandardDirectoryReader(directory store.Directory, readers []IndexReader, writer *IndexWriter,
+func NewStandardDirectoryReader(directory store.Directory, readers []index.IndexReader, writer *IndexWriter,
 	sis *SegmentInfos, compareFunc CompareLeafReader, applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
 
 	reader, err := newBaseDirectoryReader(directory, readers, compareFunc)
@@ -38,8 +39,8 @@ func NewStandardDirectoryReader(directory store.Directory, readers []IndexReader
 	}, nil
 }
 
-type CompareIndexReader func(a, b IndexReader) int
-type CompareLeafReader func(a, b LeafReader) int
+type CompareIndexReader func(a, b index.IndexReader) int
+type CompareLeafReader func(a, b index.LeafReader) int
 
 // OpenDirectoryReader
 // called from DirectoryReader.open(...) methods
@@ -53,7 +54,7 @@ func OpenDirectoryReader(ctx context.Context, directory store.Directory,
 			return nil, err
 		}
 
-		readers := make([]IndexReader, sis.Size())
+		readers := make([]index.IndexReader, sis.Size())
 
 		for i := sis.Size() - 1; i >= 0; i-- {
 			reader, err := NewSegmentReader(ctx, sis.Info(i), sis.getIndexCreatedVersionMajor(), store.READ)
@@ -91,7 +92,7 @@ func OpenStandardDirectoryReader(writer *IndexWriter, readerFunction func(*Segme
 	// no need to process segments in reverse order
 	numSegments := infos.Size()
 
-	readers := make([]IndexReader, 0)
+	readers := make([]index.IndexReader, 0)
 	dir := writer.GetDirectory()
 	segmentInfos := infos.Clone()
 	infosUpto := 0

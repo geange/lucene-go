@@ -2,95 +2,45 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"io"
 	"math"
 )
 
-// IndexSorter
-// Handles how documents should be sorted in an index, both within a segment and
-// between segments. Implementers must provide the following methods:
-// getDocComparator(LeafReader, int) - an object that determines how documents within a segment
-// are to be sorted getComparableProviders(List) - an array of objects that return a sortable
-// long item per document and segment getProviderName() - the SPI-registered name of a
-// SortFieldProvider to serialize the sort The companion SortFieldProvider should be
-// registered with SPI via META-INF/services
-type IndexSorter interface {
-
-	// GetComparableProviders
-	// Get an array of IndexSorter.ComparableProvider, one per segment,
-	// for merge sorting documents in different segments
-	// Params: readers – the readers to be merged
-	GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error)
-
-	// GetDocComparator
-	// Get a comparator that determines the sort order of docs within a single IndexReader.
-	// NB We cannot simply use the FieldComparator API because it requires docIDs to be sent in-order.
-	// The default implementations allocate array[maxDoc] to hold native values for comparison, but 1)
-	// they are transient (only alive while sorting this one segment) and 2) in the typical index
-	// sorting case, they are only used to sort newly flushed segments, which will be smaller than
-	// merged segments
-	//
-	// reader: the IndexReader to sort
-	// maxDoc: the number of documents in the Reader
-	GetDocComparator(reader LeafReader, maxDoc int) (DocComparator, error)
-
-	// GetProviderName
-	// The SPI-registered name of a SortFieldProvider that will deserialize the parent SortField
-	GetProviderName() string
-}
-
-// ComparableProvider
-// Used for sorting documents across segments
-// 用于跨多个段（segment）进行文档排序
-type ComparableProvider interface {
-	// GetAsComparableLong Returns a long so that the natural ordering of long values
-	// matches the ordering of doc IDs for the given comparator
-	GetAsComparableLong(docID int) (int64, error)
-}
-
-// DocComparator
-// A comparator of doc IDs, used for sorting documents within a segment
-// 用于段内文档的排序
-type DocComparator interface {
-	// Compare
-	// Compare docID1 against docID2. The contract for the return item is the same as Compare(any, any).
-	Compare(docID1, docID2 int) int
-}
-
 // NumericDocValuesProvider
 // Provide a NumericDocValues instance for a LeafReader
 type NumericDocValuesProvider interface {
-	Get(reader LeafReader) (NumericDocValues, error)
+	Get(reader index.LeafReader) (index.NumericDocValues, error)
 }
 
 var _ NumericDocValuesProvider = &EmptyNumericDocValuesProvider{}
 
 type EmptyNumericDocValuesProvider struct {
-	FnGet func(reader LeafReader) (NumericDocValues, error)
+	FnGet func(reader index.LeafReader) (index.NumericDocValues, error)
 }
 
-func (e *EmptyNumericDocValuesProvider) Get(reader LeafReader) (NumericDocValues, error) {
+func (e *EmptyNumericDocValuesProvider) Get(reader index.LeafReader) (index.NumericDocValues, error) {
 	return e.FnGet(reader)
 }
 
 // SortedDocValuesProvider
 // Provide a SortedDocValues instance for a LeafReader
 type SortedDocValuesProvider interface {
-	Get(reader LeafReader) (SortedDocValues, error)
+	Get(reader index.LeafReader) (index.SortedDocValues, error)
 }
 
 var _ SortedDocValuesProvider = &EmptySortedDocValuesProvider{}
 
 type EmptySortedDocValuesProvider struct {
-	FnGet func(reader LeafReader) (SortedDocValues, error)
+	FnGet func(reader index.LeafReader) (index.SortedDocValues, error)
 }
 
-func (e *EmptySortedDocValuesProvider) Get(reader LeafReader) (SortedDocValues, error) {
+func (e *EmptySortedDocValuesProvider) Get(reader index.LeafReader) (index.SortedDocValues, error) {
 	return e.FnGet(reader)
 }
 
-var _ IndexSorter = &IntSorter{}
+var _ index.IndexSorter = &IntSorter{}
 
 // IntSorter Sorts documents based on integer values from a NumericDocValues instance
 type IntSorter struct {
@@ -114,10 +64,10 @@ func NewIntSorter(providerName string, missingValue int32, reverse bool, valuesP
 	}
 }
 
-var _ ComparableProvider = &IntComparableProvider{}
+var _ index.ComparableProvider = &IntComparableProvider{}
 
 type IntComparableProvider struct {
-	values       NumericDocValues
+	values       index.NumericDocValues
 	missingValue int64
 }
 
@@ -132,8 +82,8 @@ func (r *IntComparableProvider) GetAsComparableLong(docID int) (int64, error) {
 	return r.missingValue, nil
 }
 
-func (i *IntSorter) GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error) {
-	providers := make([]ComparableProvider, 0)
+func (i *IntSorter) GetComparableProviders(readers []index.LeafReader) ([]index.ComparableProvider, error) {
+	providers := make([]index.ComparableProvider, 0)
 	missingValue := int64(0)
 	if i.missingValue != nil {
 		missingValue = int64(*i.missingValue)
@@ -152,7 +102,7 @@ func (i *IntSorter) GetComparableProviders(readers []LeafReader) ([]ComparablePr
 	return providers, nil
 }
 
-var _ DocComparator = &IntDocComparator{}
+var _ index.DocComparator = &IntDocComparator{}
 
 type IntDocComparator struct {
 	values     []int32
@@ -163,7 +113,7 @@ func (r *IntDocComparator) Compare(docID1, docID2 int) int {
 	return r.reverseMul * Compare(r.values[docID1], r.values[docID2])
 }
 
-func (i *IntSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocComparator, error) {
+func (i *IntSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (index.DocComparator, error) {
 	dvs, err := i.valuesProvider.Get(reader)
 	if err != nil {
 		return nil, err
@@ -201,7 +151,7 @@ func (i *IntSorter) GetProviderName() string {
 	return i.providerName
 }
 
-var _ IndexSorter = &LongSorter{}
+var _ index.IndexSorter = &LongSorter{}
 
 // LongSorter Sorts documents based on long values from a NumericDocValues instance
 type LongSorter struct {
@@ -226,10 +176,10 @@ func NewLongSorter(providerName string, missingValue int64,
 	}
 }
 
-var _ ComparableProvider = &LongComparableProvider{}
+var _ index.ComparableProvider = &LongComparableProvider{}
 
 type LongComparableProvider struct {
-	values       NumericDocValues
+	values       index.NumericDocValues
 	missingValue int64
 }
 
@@ -244,8 +194,8 @@ func (r *LongComparableProvider) GetAsComparableLong(docID int) (int64, error) {
 	return r.missingValue, nil
 }
 
-func (i *LongSorter) GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error) {
-	providers := make([]ComparableProvider, 0)
+func (i *LongSorter) GetComparableProviders(readers []index.LeafReader) ([]index.ComparableProvider, error) {
+	providers := make([]index.ComparableProvider, 0)
 	missingValue := int64(0)
 	if i.missingValue != nil {
 		missingValue = *i.missingValue
@@ -264,7 +214,7 @@ func (i *LongSorter) GetComparableProviders(readers []LeafReader) ([]ComparableP
 	return providers, nil
 }
 
-var _ DocComparator = &LongDocComparator{}
+var _ index.DocComparator = &LongDocComparator{}
 
 type LongDocComparator struct {
 	values     []int64
@@ -276,7 +226,7 @@ func (r *LongDocComparator) Compare(docID1, docID2 int) int {
 	panic("implement me")
 }
 
-func (i *LongSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocComparator, error) {
+func (i *LongSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (index.DocComparator, error) {
 	dvs, err := i.valuesProvider.Get(reader)
 	if err != nil {
 		return nil, err
@@ -314,7 +264,7 @@ func (i *LongSorter) GetProviderName() string {
 	return i.providerName
 }
 
-var _ IndexSorter = &FloatSorter{}
+var _ index.IndexSorter = &FloatSorter{}
 
 // FloatSorter Sorts documents based on float values from a NumericDocValues instance
 type FloatSorter struct {
@@ -339,10 +289,10 @@ func NewFloatSorter(providerName string, missingValue float32,
 	}
 }
 
-var _ ComparableProvider = &FloatComparableProvider{}
+var _ index.ComparableProvider = &FloatComparableProvider{}
 
 type FloatComparableProvider struct {
-	values       NumericDocValues
+	values       index.NumericDocValues
 	missingValue float32
 }
 
@@ -362,8 +312,8 @@ func (r *FloatComparableProvider) GetAsComparableLong(docID int) (int64, error) 
 	return int64(math.Float32bits(value)), nil
 }
 
-func (f *FloatSorter) GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error) {
-	providers := make([]ComparableProvider, 0)
+func (f *FloatSorter) GetComparableProviders(readers []index.LeafReader) ([]index.ComparableProvider, error) {
+	providers := make([]index.ComparableProvider, 0)
 	missingValue := float32(0)
 	if f.missingValue != nil {
 		missingValue = *f.missingValue
@@ -382,7 +332,7 @@ func (f *FloatSorter) GetComparableProviders(readers []LeafReader) ([]Comparable
 	return providers, nil
 }
 
-var _ DocComparator = &FloatDocComparator{}
+var _ index.DocComparator = &FloatDocComparator{}
 
 type FloatDocComparator struct {
 	values     []float32
@@ -393,7 +343,7 @@ func (f *FloatDocComparator) Compare(docID1, docID2 int) int {
 	return f.reverseMul * Compare(f.values[docID1], f.values[docID2])
 }
 
-func (f *FloatSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocComparator, error) {
+func (f *FloatSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (index.DocComparator, error) {
 	dvs, err := f.valuesProvider.Get(reader)
 	if err != nil {
 		return nil, err
@@ -430,7 +380,7 @@ func (f *FloatSorter) GetProviderName() string {
 	return f.providerName
 }
 
-var _ IndexSorter = &DoubleSorter{}
+var _ index.IndexSorter = &DoubleSorter{}
 
 // DoubleSorter Sorts documents based on double values from a NumericDocValues instance
 type DoubleSorter struct {
@@ -455,10 +405,10 @@ func NewDoubleSorter(providerName string, missingValue float64,
 	}
 }
 
-var _ ComparableProvider = &DoubleComparableProvider{}
+var _ index.ComparableProvider = &DoubleComparableProvider{}
 
 type DoubleComparableProvider struct {
-	values       NumericDocValues
+	values       index.NumericDocValues
 	missingValue float64
 }
 
@@ -478,8 +428,8 @@ func (d *DoubleComparableProvider) GetAsComparableLong(docID int) (int64, error)
 	return int64(math.Float64bits(value)), nil
 }
 
-func (d *DoubleSorter) GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error) {
-	providers := make([]ComparableProvider, 0)
+func (d *DoubleSorter) GetComparableProviders(readers []index.LeafReader) ([]index.ComparableProvider, error) {
+	providers := make([]index.ComparableProvider, 0)
 	missingValue := float64(0)
 	if d.missingValue != nil {
 		missingValue = *d.missingValue
@@ -498,7 +448,7 @@ func (d *DoubleSorter) GetComparableProviders(readers []LeafReader) ([]Comparabl
 	return providers, nil
 }
 
-var _ DocComparator = &DoubleDocComparator{}
+var _ index.DocComparator = &DoubleDocComparator{}
 
 type DoubleDocComparator struct {
 	values     []float64
@@ -509,7 +459,7 @@ func (d *DoubleDocComparator) Compare(docID1, docID2 int) int {
 	return d.reverseMul * Compare(d.values[docID1], d.values[docID2])
 }
 
-func (d *DoubleSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocComparator, error) {
+func (d *DoubleSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (index.DocComparator, error) {
 	dvs, err := d.valuesProvider.Get(reader)
 	if err != nil {
 		return nil, err
@@ -549,7 +499,7 @@ func (d *DoubleSorter) GetProviderName() string {
 	return d.providerName
 }
 
-var _ IndexSorter = &StringSorter{}
+var _ index.IndexSorter = &StringSorter{}
 
 type StringSorter struct {
 	providerName   string
@@ -558,7 +508,7 @@ type StringSorter struct {
 	valuesProvider SortedDocValuesProvider
 }
 
-func (s *StringSorter) GetComparableProviders(readers []LeafReader) ([]ComparableProvider, error) {
+func (s *StringSorter) GetComparableProviders(readers []index.LeafReader) ([]index.ComparableProvider, error) {
 	//readersNum := len(readers)
 	//
 	//providers := make([]ComparableProvider, readersNum)
@@ -590,7 +540,7 @@ func NewStringSorter(providerName, missingValue string, reverse bool, valuesProv
 	}
 }
 
-var _ DocComparator = &StringDocComparator{}
+var _ index.DocComparator = &StringDocComparator{}
 
 type StringDocComparator struct {
 	ords       []int
@@ -601,7 +551,7 @@ func (s *StringDocComparator) Compare(docID1, docID2 int) int {
 	return s.reverseMul * Compare(s.ords[docID1], s.ords[docID2])
 }
 
-func (s *StringSorter) GetDocComparator(reader LeafReader, maxDoc int) (DocComparator, error) {
+func (s *StringSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (index.DocComparator, error) {
 	sorted, err := s.valuesProvider.Get(reader)
 	if err != nil {
 		return nil, err

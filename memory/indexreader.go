@@ -1,11 +1,12 @@
 package memory
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
+	cindex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/bytesref"
@@ -18,14 +19,14 @@ var _ index.LeafReader = &IndexReader{}
 // Search support for Lucene framework integration; implements all methods required by the Lucene
 // Reader contracts.
 type IndexReader struct {
-	*index.BaseLeafReader
+	*cindex.BaseLeafReader
 
 	memoryFields *Fields
-	fieldInfos   *index.FieldInfos
+	fieldInfos   index.FieldInfos
 	fields       *treemap.Map[string, *info]
 }
 
-func newIndexReader(memoryFields *Fields, fieldInfos *index.FieldInfos,
+func newIndexReader(memoryFields *Fields, fieldInfos index.FieldInfos,
 	fields *treemap.Map[string, *info]) *IndexReader {
 
 	newReader := &IndexReader{
@@ -34,7 +35,7 @@ func newIndexReader(memoryFields *Fields, fieldInfos *index.FieldInfos,
 		fields:       fields,
 	}
 
-	leafReader := index.NewBaseLeafReader(newReader)
+	leafReader := cindex.NewBaseLeafReader(newReader)
 	newReader.BaseLeafReader = leafReader
 	return newReader
 }
@@ -143,7 +144,7 @@ func (m *IndexReader) getInfoForExpectedDocValuesType(fieldName string, expected
 	return info
 }
 
-func (m *IndexReader) GetFieldInfos() *index.FieldInfos {
+func (m *IndexReader) GetFieldInfos() index.FieldInfos {
 	return m.fieldInfos
 }
 
@@ -163,8 +164,8 @@ func (m *IndexReader) CheckIntegrity() error {
 	return nil
 }
 
-func (m *IndexReader) GetMetaData() *index.LeafMetaData {
-	return index.NewLeafMetaData(int(version.Last.Major()), version.Last, nil)
+func (m *IndexReader) GetMetaData() index.LeafMetaData {
+	return cindex.NewLeafMetaData(int(version.Last.Major()), version.Last, nil)
 }
 
 func genSortedSetDocValues(values *bytesref.BytesHash, bytesIds []int) index.SortedSetDocValues {

@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -13,14 +14,14 @@ type TermScorer struct {
 	*BaseScorer
 
 	//weight       Weight
-	postingsEnum index.PostingsEnum
-	impactsEnum  index.ImpactsEnum
+	postingsEnum index2.PostingsEnum
+	impactsEnum  index2.ImpactsEnum
 	iterator     types.DocIdSetIterator
 	docScorer    *LeafSimScorer
 	impactsDISI  *ImpactsDISI
 }
 
-func NewTermScorerWithPostings(weight Weight, postingsEnum index.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
+func NewTermScorerWithPostings(weight Weight, postingsEnum index2.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
 	this := &TermScorer{
 		iterator:     postingsEnum,
 		postingsEnum: postingsEnum,
@@ -33,7 +34,7 @@ func NewTermScorerWithPostings(weight Weight, postingsEnum index.PostingsEnum, d
 	return this
 }
 
-func NewTermScorerWithImpacts(weight Weight, impactsEnum index.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
+func NewTermScorerWithImpacts(weight Weight, impactsEnum index2.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
 	this := &TermScorer{
 		postingsEnum: impactsEnum,
 		impactsEnum:  impactsEnum,
