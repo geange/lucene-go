@@ -2,9 +2,10 @@ package index
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"maps"
 	"slices"
+
+	"github.com/google/uuid"
 )
 
 // SegmentCommitInfo

@@ -3,10 +3,11 @@ package index
 import (
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/store"
 	"io"
 	"sync/atomic"
+
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/store"
 )
 
 // SegmentCoreReaders

@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	codecUtil "github.com/geange/lucene-go/codecs/utils"
-	"github.com/geange/lucene-go/core/util"
 	"strconv"
 	"strings"
 
 	"github.com/geange/lucene-go/codecs/utils"
+	codecUtil "github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/version"
 )
 

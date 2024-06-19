@@ -1,10 +1,11 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/interface/index"
 	"sync/atomic"
 
 	"github.com/geange/gods-generic/maps/treemap"
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/search"
 )
 
 // BufferedUpdates
@@ -23,7 +24,7 @@ type BufferedUpdates struct {
 	fieldUpdates    map[string]*FieldUpdatesBuffer
 	gen             int64
 	segmentName     string
-	deleteQueries   *treemap.Map[Query, int]
+	deleteQueries   *treemap.Map[search.Query, int]
 }
 
 type bufferedUpdatesOption struct {

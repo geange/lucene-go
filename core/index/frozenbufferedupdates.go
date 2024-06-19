@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/geange/lucene-go/core/interface/search"
 )
 
 // FrozenBufferedUpdates
@@ -18,7 +20,7 @@ type FrozenBufferedUpdates struct {
 	deleteTerms *PrefixCodedTerms
 
 	// Parallel array of deleted query, and the docIDUpto for each
-	deleteQueries     []Query
+	deleteQueries     []search.Query
 	deleteQueryLimits []int
 
 	// Counts down once all deletes/ updates have been applied

@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 
 	"github.com/geange/gods-generic/lists/arraylist"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // CompositeReader

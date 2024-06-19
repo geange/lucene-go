@@ -3,12 +3,12 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"maps"
 	"slices"
 	"strings"
 	"sync"
 
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util/version"
 )
