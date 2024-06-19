@@ -3,7 +3,7 @@ package query
 import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/search"
+	"github.com/geange/lucene-go/core/interface/search"
 )
 
 var _ search.Query = &IntRangeSlowRangeQuery{}
@@ -32,7 +32,7 @@ func NewIntRangeSlowRangeQuery(field string, mins, maxs []int32, queryType Query
 	}, nil
 }
 
-func (i *IntRangeSlowRangeQuery) CreateWeight(searcher *search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (i *IntRangeSlowRangeQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
 	return i.createWeight(i, scoreMode, boost), nil
 }
 

@@ -1,80 +1,43 @@
 package search
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/geange/lucene-go/core/interface/search"
+)
 
 // BooleanClause
 // A clause in a BooleanQuery.
 type BooleanClause struct {
 	// The query whose matching documents are combined by the boolean query.
-	query Query
+	query search.Query
 
-	occur Occur
+	occur search.Occur
 }
 
-func NewBooleanClause(query Query, occur Occur) *BooleanClause {
+func NewBooleanClause(query search.Query, occur search.Occur) *BooleanClause {
 	return &BooleanClause{occur: occur, query: query}
 }
 
-func (b *BooleanClause) GetOccur() Occur {
+func (b *BooleanClause) GetOccur() search.Occur {
 	return b.occur
 }
 
-func (b *BooleanClause) GetQuery() Query {
+func (b *BooleanClause) GetQuery() search.Query {
 	return b.query
 }
 
 func (b *BooleanClause) IsProhibited() bool {
-	return OccurMustNot == b.occur
+	return search.OccurMustNot == b.occur
 }
 
 func (b *BooleanClause) IsRequired() bool {
-	return b.occur == OccurMust || b.occur == OccurFilter
+	return b.occur == search.OccurMust || b.occur == search.OccurFilter
 }
 
 func (b *BooleanClause) IsScoring() bool {
-	return b.occur == OccurMust || b.occur == OccurShould
+	return b.occur == search.OccurMust || b.occur == search.OccurShould
 }
 
 func (b *BooleanClause) String() string {
 	return fmt.Sprintf("%s %s", b.occur, b.query)
 }
-
-// Occur
-// Specifies how clauses are to occur in matching documents.
-type Occur string
-
-func (o Occur) String() string {
-	return string(o)
-}
-
-func OccurValues() []Occur {
-	return []Occur{
-		OccurMust, OccurFilter, OccurShould, OccurMustNot,
-	}
-}
-
-const (
-	// OccurMust
-	// Use this operator for clauses that must appear in the matching documents.
-	// 等同于 AND
-	OccurMust = Occur("+")
-
-	// OccurFilter
-	// Like OccurMust except that these clauses do not participate in scoring.
-	OccurFilter = Occur("#")
-
-	// OccurShould
-	// Use this operator for clauses that should appear in the matching documents.
-	// For a BooleanQuery with no OccurMust clauses one or more OccurShould clauses must match
-	// a document for the BooleanQuery to match.
-	// See Also: BooleanQuery.BooleanQueryBuilder.setMinimumNumberShouldMatch
-	// 等同于 OR
-	OccurShould = Occur("")
-
-	// OccurMustNot
-	// Use this operator for clauses that must not appear in the matching documents.
-	// Note that it is not possible to search for queries that only consist of a OccurMustNot clause.
-	// These clauses do not contribute to the score of documents.
-	// 等同于 NOT
-	OccurMustNot = Occur("-")
-)

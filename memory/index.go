@@ -2,6 +2,8 @@ package memory
 
 import (
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
+	search2 "github.com/geange/lucene-go/core/interface/search"
 	"reflect"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -108,7 +110,7 @@ type Index struct {
 	postingsWriter    *ints.SliceWriter
 	payloadsBytesRefs *bytesref.Array //non null only when storePayloads
 	frozen            bool
-	normSimilarity    index.Similarity
+	normSimilarity    index2.Similarity
 	defaultFieldType  *document.FieldType
 }
 
@@ -298,7 +300,7 @@ func (r *Index) AddIndexAbleField(field document.IndexableField, analyzer analys
 // Returns: the relevance score of the matchmaking; A number in the range [0.0 .. 1.0], with 0.0 indicating
 //
 //	no match. The higher the number the better the match.
-func (r *Index) Search(query search.Query) float64 {
+func (r *Index) Search(query search2.Query) float64 {
 	if query == nil {
 		return 0
 	}
@@ -370,7 +372,7 @@ func (r *Index) AddFieldString(fieldName string, text string, analyzer analysis.
 }
 
 // SetSimilarity Set the Similarity to be used for calculating field norms
-func (r *Index) SetSimilarity(similarity index.Similarity) error {
+func (r *Index) SetSimilarity(similarity index2.Similarity) error {
 	if r.frozen {
 		return errors.New("cannot set Similarity when MemoryIndex is frozen")
 	}
@@ -386,7 +388,7 @@ func (r *Index) SetSimilarity(similarity index.Similarity) error {
 	return nil
 }
 
-func (r *Index) CreateSearcher() *search.IndexSearcher {
+func (r *Index) CreateSearcher() search2.IndexSearcher {
 	reader := r.NewIndexReader(r.fields)
 	searcher, _ := search.NewIndexSearcher(reader)
 	searcher.SetSimilarity(r.normSimilarity)

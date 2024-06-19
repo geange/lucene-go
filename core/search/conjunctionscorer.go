@@ -4,12 +4,13 @@ import (
 	"errors"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	"math"
 	"sort"
 )
 
-var _ Scorer = &ConjunctionScorer{}
+var _ search.Scorer = &ConjunctionScorer{}
 
 // ConjunctionScorer
 // Create a new ConjunctionScorer, note that scorers must be a subset of required.
@@ -17,11 +18,11 @@ type ConjunctionScorer struct {
 	*BaseScorer
 
 	disi     types.DocIdSetIterator
-	scorers  []Scorer
-	required []Scorer
+	scorers  []search.Scorer
+	required []search.Scorer
 }
 
-func NewConjunctionScorer(weight Weight, scorers []Scorer, required []Scorer) (*ConjunctionScorer, error) {
+func NewConjunctionScorer(weight search.Weight, scorers []search.Scorer, required []search.Scorer) (*ConjunctionScorer, error) {
 	disi, err := intersectScorers(scorers)
 	if err != nil {
 		return nil, err
@@ -50,7 +51,7 @@ func (c *ConjunctionScorer) DocID() int {
 	return c.disi.DocID()
 }
 
-func (c *ConjunctionScorer) TwoPhaseIterator() TwoPhaseIterator {
+func (c *ConjunctionScorer) TwoPhaseIterator() search.TwoPhaseIterator {
 	return UnwrapIterator(c.disi)
 }
 
@@ -69,13 +70,13 @@ func (c *ConjunctionScorer) GetMaxScore(upTo int) (float64, error) {
 	}
 }
 
-func intersectScorers(scorers []Scorer) (types.DocIdSetIterator, error) {
+func intersectScorers(scorers []search.Scorer) (types.DocIdSetIterator, error) {
 	if len(scorers) < 2 {
 		return nil, errors.New("cannot make a ConjunctionDISI of less than 2 iterators")
 	}
 
 	allIterators := make([]types.DocIdSetIterator, 0)
-	twoPhaseIterators := make([]TwoPhaseIterator, 0)
+	twoPhaseIterators := make([]search.TwoPhaseIterator, 0)
 
 	for _, scorer := range scorers {
 		allIterators, twoPhaseIterators = addScorer(scorer, allIterators, twoPhaseIterators)
@@ -84,8 +85,8 @@ func intersectScorers(scorers []Scorer) (types.DocIdSetIterator, error) {
 }
 
 // Adds the scorer, possibly splitting up into two phases or collapsing if it is another conjunction
-func addScorer(scorer Scorer, allIterators []types.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) ([]types.DocIdSetIterator, []TwoPhaseIterator) {
+func addScorer(scorer search.Scorer, allIterators []types.DocIdSetIterator,
+	twoPhaseIterators []search.TwoPhaseIterator) ([]types.DocIdSetIterator, []search.TwoPhaseIterator) {
 	twoPhaseIter := scorer.TwoPhaseIterator()
 	if twoPhaseIter != nil {
 		allIterators, twoPhaseIterators = addTwoPhaseIterator(twoPhaseIter, allIterators, twoPhaseIterators)
@@ -96,8 +97,8 @@ func addScorer(scorer Scorer, allIterators []types.DocIdSetIterator,
 	return allIterators, twoPhaseIterators
 }
 
-func addTwoPhaseIterator(twoPhaseIter TwoPhaseIterator, allIterators []types.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) ([]types.DocIdSetIterator, []TwoPhaseIterator) {
+func addTwoPhaseIterator(twoPhaseIter search.TwoPhaseIterator, allIterators []types.DocIdSetIterator,
+	twoPhaseIterators []search.TwoPhaseIterator) ([]types.DocIdSetIterator, []search.TwoPhaseIterator) {
 	allIterators, twoPhaseIterators = addIterator(twoPhaseIter.Approximation(), allIterators, twoPhaseIterators)
 	if v, ok := twoPhaseIter.(*ConjunctionTwoPhaseIterator); ok {
 		// Check for exactly this class for collapsing
@@ -109,7 +110,7 @@ func addTwoPhaseIterator(twoPhaseIter TwoPhaseIterator, allIterators []types.Doc
 }
 
 func createConjunction(allIterators []types.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) (types.DocIdSetIterator, error) {
+	twoPhaseIterators []search.TwoPhaseIterator) (types.DocIdSetIterator, error) {
 
 	// check that all sub-iterators are on the same doc ID
 	curDoc := 0
@@ -182,7 +183,7 @@ func createConjunction(allIterators []types.DocIdSetIterator,
 }
 
 func addIterator(disi types.DocIdSetIterator, allIterators []types.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) ([]types.DocIdSetIterator, []TwoPhaseIterator) {
+	twoPhaseIterators []search.TwoPhaseIterator) ([]types.DocIdSetIterator, []search.TwoPhaseIterator) {
 
 	twoPhase := UnwrapIterator(disi)
 
@@ -205,17 +206,17 @@ func addIterator(disi types.DocIdSetIterator, allIterators []types.DocIdSetItera
 	return allIterators, twoPhaseIterators
 }
 
-var _ TwoPhaseIterator = &ConjunctionTwoPhaseIterator{}
+var _ search.TwoPhaseIterator = &ConjunctionTwoPhaseIterator{}
 
 type ConjunctionTwoPhaseIterator struct {
 	approximation     types.DocIdSetIterator
-	twoPhaseIterators []TwoPhaseIterator
+	twoPhaseIterators []search.TwoPhaseIterator
 	matchCost         float64
 }
 
 var _ sort.Interface = TimSortTwoPhase{}
 
-type TimSortTwoPhase []TwoPhaseIterator
+type TimSortTwoPhase []search.TwoPhaseIterator
 
 func (t TimSortTwoPhase) Len() int {
 	return len(t)
@@ -230,7 +231,7 @@ func (t TimSortTwoPhase) Swap(i, j int) {
 }
 
 func newConjunctionTwoPhaseIterator(approximation types.DocIdSetIterator,
-	twoPhaseIterators []TwoPhaseIterator) *ConjunctionTwoPhaseIterator {
+	twoPhaseIterators []search.TwoPhaseIterator) *ConjunctionTwoPhaseIterator {
 
 	it := &ConjunctionTwoPhaseIterator{approximation: approximation}
 

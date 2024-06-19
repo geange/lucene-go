@@ -2,10 +2,10 @@ package memory
 
 import (
 	"context"
+	"github.com/geange/lucene-go/core/interface/search"
 	"math/rand"
 	"testing"
 
-	"github.com/geange/lucene-go/core/search"
 	"github.com/stretchr/testify/assert"
 )
 

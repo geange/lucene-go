@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/util/structure"
 	"math"
 )
@@ -25,7 +26,7 @@ func CreateFieldValueHitQueue(fields []index.SortField, size int) FieldValueHitQ
 // Since: 2.9
 // See Also: IndexSearcher.search(Query, int, Sort)
 // lucene.experimental
-type FieldValueHitQueue[T ScoreDoc] interface {
+type FieldValueHitQueue[T search.ScoreDoc] interface {
 	Add(element T) T
 	Top() T
 	Pop() (T, error)

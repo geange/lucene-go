@@ -3,10 +3,11 @@ package search
 import (
 	"fmt"
 	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/search"
 	"math"
 )
 
-var _ Query = &BoostQuery{}
+var _ search.Query = &BoostQuery{}
 
 // BoostQuery
 // A Query wrapper that allows to give a boost to the wrapped query.
@@ -14,11 +15,11 @@ var _ Query = &BoostQuery{}
 // while values that are greater than one will give more importance to the scores returned by this query.
 // More complex boosts can be applied by using FunctionScoreQuery in the lucene-queries module
 type BoostQuery struct {
-	query Query
+	query search.Query
 	boost float64
 }
 
-func NewBoostQuery(query Query, boost float64) (*BoostQuery, error) {
+func NewBoostQuery(query search.Query, boost float64) (*BoostQuery, error) {
 	if boost >= math.MaxInt32 || boost < 0 {
 		return nil, fmt.Errorf("boost must be a positive float, got %f", boost)
 	}
@@ -29,11 +30,11 @@ func (b *BoostQuery) String(field string) string {
 	return fmt.Sprintf("(%s)^%f", b.query.String(field), b.boost)
 }
 
-func (b *BoostQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
+func (b *BoostQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
 	return b.query.CreateWeight(searcher, scoreMode, b.boost*boost)
 }
 
-func (b *BoostQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (b *BoostQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	rewritten, err := b.query.Rewrite(reader)
 	if err != nil {
 		return nil, err
@@ -54,11 +55,11 @@ func (b *BoostQuery) Rewrite(reader index.IndexReader) (Query, error) {
 	return b, nil
 }
 
-func (b *BoostQuery) Visit(visitor QueryVisitor) error {
-	return b.query.Visit(visitor.GetSubVisitor(OccurMust, b))
+func (b *BoostQuery) Visit(visitor search.QueryVisitor) error {
+	return b.query.Visit(visitor.GetSubVisitor(search.OccurMust, b))
 }
 
-func (b *BoostQuery) GetQuery() Query {
+func (b *BoostQuery) GetQuery() search.Query {
 	return b.query
 }
 

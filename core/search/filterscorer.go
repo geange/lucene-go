@@ -1,6 +1,7 @@
 package search
 
 import (
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -12,10 +13,10 @@ import (
 type FilterScorer struct {
 	*BaseScorer
 
-	in Scorer
+	in search.Scorer
 }
 
-func newFilterScorer(in Scorer) *FilterScorer {
+func newFilterScorer(in search.Scorer) *FilterScorer {
 	return &FilterScorer{
 		BaseScorer: NewScorer(in.GetWeight()),
 		in:         in,
@@ -34,6 +35,6 @@ func (f *FilterScorer) Iterator() types.DocIdSetIterator {
 	return f.in.Iterator()
 }
 
-func (f *FilterScorer) TwoPhaseIterator() TwoPhaseIterator {
+func (f *FilterScorer) TwoPhaseIterator() search.TwoPhaseIterator {
 	return f.in.TwoPhaseIterator()
 }

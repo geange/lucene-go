@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 	"strings"
 
@@ -18,7 +19,7 @@ type TermVectorsConsumerPerField struct {
 	termVectorsPostingsArray *TermVectorsPostingsArray
 
 	termsWriter       *TermVectorsConsumer
-	fieldState        *FieldInvertState
+	fieldState        *index.FieldInvertState
 	fieldInfo         *document.FieldInfo
 	doVectors         bool
 	doVectorPositions bool
@@ -31,7 +32,7 @@ type TermVectorsConsumerPerField struct {
 	hasPayloads       bool // if enabled, and we actually saw any for this field
 }
 
-func NewTermVectorsConsumerPerField(invertState *FieldInvertState,
+func NewTermVectorsConsumerPerField(invertState *index.FieldInvertState,
 	termsHash *TermVectorsConsumer, fieldInfo *document.FieldInfo) (*TermVectorsConsumerPerField, error) {
 
 	indexOptions := fieldInfo.GetIndexOptions()
@@ -94,7 +95,7 @@ func (t *TermVectorsConsumerPerField) FinishDocument() error {
 
 func (t *TermVectorsConsumerPerField) Start(field document.IndexableField, first bool) bool {
 	t.baseTermsHashPerField.Start(field, first)
-	t.termFreqAtt = t.fieldState.termFreqAttribute
+	t.termFreqAtt = t.fieldState.TermFreqAttribute
 
 	if first {
 
@@ -165,13 +166,13 @@ func (t *TermVectorsConsumerPerField) Start(field document.IndexableField, first
 
 	if t.doVectors {
 		if t.doVectorOffsets {
-			t.offsetAttribute = t.fieldState.offsetAttribute
+			t.offsetAttribute = t.fieldState.OffsetAttribute
 			//assert offsetAttribute != null;
 		}
 
 		if t.doVectorPayloads {
 			// Can be null:
-			t.payloadAttribute = t.fieldState.payloadAttribute
+			t.payloadAttribute = t.fieldState.PayloadAttribute
 		} else {
 			t.payloadAttribute = nil
 		}
@@ -213,8 +214,8 @@ func (t *TermVectorsConsumerPerField) getTermFreq() (int, error) {
 
 func (t *TermVectorsConsumerPerField) writeProx(postings *TermVectorsPostingsArray, termID int) error {
 	if t.doVectorOffsets {
-		startOffset := t.fieldState.offset + t.offsetAttribute.StartOffset()
-		endOffset := t.fieldState.offset + t.offsetAttribute.EndOffset()
+		startOffset := t.fieldState.Offset + t.offsetAttribute.StartOffset()
+		endOffset := t.fieldState.Offset + t.offsetAttribute.EndOffset()
 
 		t.writeVInt(1, startOffset-postings.lastOffsets[termID])
 		t.writeVInt(1, endOffset-startOffset)
@@ -227,7 +228,7 @@ func (t *TermVectorsConsumerPerField) writeProx(postings *TermVectorsPostingsArr
 			payload = t.payloadAttribute.GetPayload()
 		}
 
-		pos := t.fieldState.position - postings.lastPositions[termID]
+		pos := t.fieldState.Position - postings.lastPositions[termID]
 		if len(payload) > 0 {
 			t.writeVInt(0, (pos<<1)|1)
 			t.writeVInt(0, len(payload))
@@ -236,7 +237,7 @@ func (t *TermVectorsConsumerPerField) writeProx(postings *TermVectorsPostingsArr
 		} else {
 			t.writeVInt(0, pos<<1)
 		}
-		postings.SetLastPositions(termID, t.fieldState.position)
+		postings.SetLastPositions(termID, t.fieldState.Position)
 	}
 	return nil
 }

@@ -3,13 +3,14 @@ package search
 import (
 	context2 "context"
 	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
 	"math"
 )
 
-var _ Query = &MatchAllDocsQuery{}
+var _ search.Query = &MatchAllDocsQuery{}
 
 type MatchAllDocsQuery struct {
 }
@@ -22,27 +23,27 @@ func (m *MatchAllDocsQuery) String(field string) string {
 	return "*:*"
 }
 
-func (m *MatchAllDocsQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
+func (m *MatchAllDocsQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
 	return newMatchAllDocsQueryWeight(boost, m, scoreMode), nil
 }
 
-func (m *MatchAllDocsQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (m *MatchAllDocsQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	return m, nil
 }
 
-func (m *MatchAllDocsQuery) Visit(visitor QueryVisitor) error {
+func (m *MatchAllDocsQuery) Visit(visitor search.QueryVisitor) error {
 	return visitor.VisitLeaf(m)
 }
 
-var _ Weight = &matchAllDocsWeight{}
+var _ search.Weight = &matchAllDocsWeight{}
 
 type matchAllDocsWeight struct {
 	*ConstantScoreWeight
 
-	scoreMode ScoreMode
+	scoreMode search.ScoreMode
 }
 
-func newMatchAllDocsQueryWeight(score float64, query Query, scoreMode ScoreMode) *matchAllDocsWeight {
+func newMatchAllDocsQueryWeight(score float64, query search.Query, scoreMode search.ScoreMode) *matchAllDocsWeight {
 	weight := &matchAllDocsWeight{
 		scoreMode: scoreMode,
 	}
@@ -50,7 +51,7 @@ func newMatchAllDocsQueryWeight(score float64, query Query, scoreMode ScoreMode)
 	return weight
 }
 
-func (c *matchAllDocsWeight) Scorer(context index.LeafReaderContext) (Scorer, error) {
+func (c *matchAllDocsWeight) Scorer(context index.LeafReaderContext) (search.Scorer, error) {
 	maxDoc := context.Reader().MaxDoc()
 	return NewConstantScoreScorer(c, c.score, c.scoreMode, types.DocIdSetIteratorAll(maxDoc))
 }
@@ -59,7 +60,7 @@ func (c *matchAllDocsWeight) IsCacheable(ctx index.LeafReaderContext) bool {
 	return true
 }
 
-func (c *matchAllDocsWeight) BulkScorer(readerContext index.LeafReaderContext) (BulkScorer, error) {
+func (c *matchAllDocsWeight) BulkScorer(readerContext index.LeafReaderContext) (search.BulkScorer, error) {
 	if c.scoreMode.IsExhaustive() == false {
 		return c.ConstantScoreWeight.BulkScorer(readerContext)
 	}
@@ -68,7 +69,7 @@ func (c *matchAllDocsWeight) BulkScorer(readerContext index.LeafReaderContext) (
 	maxDoc := readerContext.Reader().MaxDoc()
 
 	return &BaseBulkScorer{
-		FnScoreRange: func(collector LeafCollector, acceptDocs util.Bits, fromDoc, toDoc int) (int, error) {
+		FnScoreRange: func(collector search.LeafCollector, acceptDocs util.Bits, fromDoc, toDoc int) (int, error) {
 			toDoc = min(maxDoc, toDoc)
 			scorer := NewScoreAndDoc()
 			scorer.score = score

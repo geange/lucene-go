@@ -1,19 +1,18 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
 	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
 type LeafSimScorer struct {
-	scorer index.SimScorer
+	scorer index2.SimScorer
 	norms  index2.NumericDocValues
 }
 
 // NewLeafSimScorer
 // org.apache.lucene.search.similarities.Similarity.SimScorer on a specific LeafReader.
-func NewLeafSimScorer(scorer index.SimScorer, reader index2.LeafReader,
+func NewLeafSimScorer(scorer index2.SimScorer, reader index2.LeafReader,
 	field string, needsScores bool) (*LeafSimScorer, error) {
 	leafSimScorer := &LeafSimScorer{scorer: scorer}
 	if needsScores {
@@ -26,7 +25,7 @@ func NewLeafSimScorer(scorer index.SimScorer, reader index2.LeafReader,
 	return leafSimScorer, nil
 }
 
-func (r *LeafSimScorer) GetSimScorer() index.SimScorer {
+func (r *LeafSimScorer) GetSimScorer() index2.SimScorer {
 	return r.scorer
 }
 

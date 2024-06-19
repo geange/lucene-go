@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 	"strings"
 
@@ -19,7 +20,7 @@ type FreqProxTermsWriterPerField struct {
 
 	freqProxPostingsArray *FreqProxPostingsArray
 
-	fieldState       *FieldInvertState
+	fieldState       *index.FieldInvertState
 	fieldInfo        *document.FieldInfo
 	hasFreq          bool
 	hasProx          bool
@@ -32,7 +33,7 @@ type FreqProxTermsWriterPerField struct {
 	sawPayloads bool
 }
 
-func NewFreqProxTermsWriterPerField(invertState *FieldInvertState, termsHash TermsHash,
+func NewFreqProxTermsWriterPerField(invertState *index.FieldInvertState, termsHash TermsHash,
 	fieldInfo *document.FieldInfo, nextPerField TermsHashPerField) (*FreqProxTermsWriterPerField, error) {
 
 	streamCount := 1
@@ -86,9 +87,9 @@ func (f *FreqProxTermsWriterPerField) Finish() error {
 
 func (f *FreqProxTermsWriterPerField) Start(field document.IndexableField, first bool) bool {
 	f.baseTermsHashPerField.Start(field, first)
-	f.termFreqAtt = f.fieldState.termFreqAttribute
-	f.payloadAttribute = f.fieldState.payloadAttribute
-	f.offsetAttribute = f.fieldState.offsetAttribute
+	f.termFreqAtt = f.fieldState.TermFreqAttribute
+	f.payloadAttribute = f.fieldState.PayloadAttribute
+	f.offsetAttribute = f.fieldState.OffsetAttribute
 	return true
 }
 
@@ -108,7 +109,7 @@ func (f *FreqProxTermsWriterPerField) writeProx(termID, proxCode int) {
 	}
 
 	//assert postingsArray == freqProxPostingsArray;
-	f.freqProxPostingsArray.SetLastPositions(termID, f.fieldState.position)
+	f.freqProxPostingsArray.SetLastPositions(termID, f.fieldState.Position)
 }
 
 func (f *FreqProxTermsWriterPerField) writeOffsets(termID, offsetAccum int) {
@@ -127,7 +128,7 @@ func (f *FreqProxTermsWriterPerField) NewTerm(termID, docID int) error {
 	if !f.hasFreq {
 		//assert postings.termFreqs == null;
 		postings.SetLastDocCodes(termID, docID)
-		f.fieldState.maxTermFrequency = max(1, f.fieldState.maxTermFrequency)
+		f.fieldState.MaxTermFrequency = max(1, f.fieldState.MaxTermFrequency)
 	} else {
 		postings.SetLastDocCodes(termID, docID<<1)
 		termFreq, err := f.getTermFreq()
@@ -136,16 +137,16 @@ func (f *FreqProxTermsWriterPerField) NewTerm(termID, docID int) error {
 		}
 		postings.SetTermFreqs(termID, termFreq)
 		if f.hasProx {
-			f.writeProx(termID, f.fieldState.position)
+			f.writeProx(termID, f.fieldState.Position)
 			if f.hasOffsets {
-				f.writeOffsets(termID, f.fieldState.offset)
+				f.writeOffsets(termID, f.fieldState.Offset)
 			}
 		} else {
 			//assert !hasOffsets;
 		}
-		f.fieldState.maxTermFrequency = max(postings.termFreqs[termID], f.fieldState.maxTermFrequency)
+		f.fieldState.MaxTermFrequency = max(postings.termFreqs[termID], f.fieldState.MaxTermFrequency)
 	}
-	f.fieldState.uniqueTermCount++
+	f.fieldState.UniqueTermCount++
 	return nil
 }
 
@@ -164,7 +165,7 @@ func (f *FreqProxTermsWriterPerField) AddTerm(termID, docID int) error {
 			f.writeVInt(0, postings.lastDocCodes[termID])
 			postings.SetLastDocCodes(termID, docID-postings.lastDocIDs[termID])
 			postings.SetLastDocIDs(termID, docID)
-			f.fieldState.uniqueTermCount++
+			f.fieldState.UniqueTermCount++
 		}
 	} else if docID != postings.lastDocIDs[termID] {
 		// assert docID > postings.lastDocIDs[termID]:"id: "+docID + " postings ID: "+ postings.lastDocIDs[termID] + " termID: "+termID;
@@ -186,19 +187,19 @@ func (f *FreqProxTermsWriterPerField) AddTerm(termID, docID int) error {
 			return err
 		}
 		postings.SetTermFreqs(termID, termFreq)
-		f.fieldState.maxTermFrequency = max(postings.termFreqs[termID], f.fieldState.maxTermFrequency)
+		f.fieldState.MaxTermFrequency = max(postings.termFreqs[termID], f.fieldState.MaxTermFrequency)
 		postings.lastDocCodes[termID] = (docID - postings.lastDocIDs[termID]) << 1
 		postings.lastDocIDs[termID] = docID
 		if f.hasProx {
-			f.writeProx(termID, f.fieldState.position)
+			f.writeProx(termID, f.fieldState.Position)
 			if f.hasOffsets {
 				postings.lastOffsets[termID] = 0
-				f.writeOffsets(termID, f.fieldState.offset)
+				f.writeOffsets(termID, f.fieldState.Offset)
 			}
 		} else {
 			//assert !hasOffsets;
 		}
-		f.fieldState.uniqueTermCount++
+		f.fieldState.UniqueTermCount++
 	} else {
 		termFreq, err := f.getTermFreq()
 		if err != nil {
@@ -206,11 +207,11 @@ func (f *FreqProxTermsWriterPerField) AddTerm(termID, docID int) error {
 		}
 
 		postings.SetTermFreqs(termID, postings.termFreqs[termID]+termFreq)
-		f.fieldState.maxTermFrequency = max(f.fieldState.maxTermFrequency, postings.termFreqs[termID])
+		f.fieldState.MaxTermFrequency = max(f.fieldState.MaxTermFrequency, postings.termFreqs[termID])
 		if f.hasProx {
-			f.writeProx(termID, f.fieldState.position-postings.lastPositions[termID])
+			f.writeProx(termID, f.fieldState.Position-postings.lastPositions[termID])
 			if f.hasOffsets {
-				f.writeOffsets(termID, f.fieldState.offset)
+				f.writeOffsets(termID, f.fieldState.Offset)
 			}
 		}
 	}

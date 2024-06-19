@@ -3,17 +3,17 @@ package search
 import (
 	"context"
 	"github.com/geange/gods-generic/sets/treeset"
-	"github.com/geange/lucene-go/core/index"
 	index2 "github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"math"
 )
 
-var _ Weight = &BooleanWeight{}
+var _ search.Weight = &BooleanWeight{}
 
-func NewBooleanWeight(query *BooleanQuery, searcher *IndexSearcher,
-	scoreMode ScoreMode, boost float64) (*BooleanWeight, error) {
+func NewBooleanWeight(query *BooleanQuery, searcher search.IndexSearcher,
+	scoreMode search.ScoreMode, boost float64) (*BooleanWeight, error) {
 	weight := &BooleanWeight{
 		similarity:      searcher.GetSimilarity(),
 		query:           query,
@@ -28,7 +28,7 @@ func NewBooleanWeight(query *BooleanQuery, searcher *IndexSearcher,
 			mode = scoreMode
 		}
 
-		w, err := searcher.createWeight(c.GetQuery(), mode, boost)
+		w, err := searcher.CreateWeight(c.GetQuery(), mode, boost)
 		if err != nil {
 			return nil, err
 		}
@@ -45,10 +45,10 @@ func NewBooleanWeight(query *BooleanQuery, searcher *IndexSearcher,
 type BooleanWeight struct {
 	*BaseWeight
 
-	similarity      index.Similarity
+	similarity      index2.Similarity
 	query           *BooleanQuery
 	weightedClauses []*weightedBooleanClause
-	scoreMode       ScoreMode
+	scoreMode       search.ScoreMode
 }
 
 func (b *BooleanWeight) ExtractTerms(terms *treeset.Set[index2.Term]) error {
@@ -67,9 +67,9 @@ func (b *BooleanWeight) Explain(ctx index2.LeafReaderContext, doc int) (*types.E
 	panic("implement me")
 }
 
-func (b *BooleanWeight) Matches(context index2.LeafReaderContext, doc int) (Matches, error) {
+func (b *BooleanWeight) Matches(context index2.LeafReaderContext, doc int) (search.Matches, error) {
 	minShouldMatch := b.query.GetMinimumNumberShouldMatch()
-	matchValues := make([]Matches, 0)
+	matchValues := make([]search.Matches, 0)
 	shouldMatchCount := 0
 	for _, wc := range b.weightedClauses {
 		w := wc.weight
@@ -89,7 +89,7 @@ func (b *BooleanWeight) Matches(context index2.LeafReaderContext, doc int) (Matc
 			}
 			matchValues = append(matchValues, m)
 		}
-		if bc.GetOccur() == OccurShould {
+		if bc.GetOccur() == search.OccurShould {
 			if m != nil {
 				matchValues = append(matchValues, m)
 				shouldMatchCount++
@@ -103,12 +103,12 @@ func (b *BooleanWeight) Matches(context index2.LeafReaderContext, doc int) (Matc
 	return MatchesFromSubMatches(matchValues)
 }
 
-func disableScoring(scorer BulkScorer) BulkScorer {
+func disableScoring(scorer search.BulkScorer) search.BulkScorer {
 	return &BulkScorerAnon{
-		FnScoreRange: func(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
+		FnScoreRange: func(collector search.LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
 			fake := NewScoreAndDoc()
 			noScoreCollector := &LeafCollectorAnon{
-				FnSetScorer: func(scorer Scorable) error {
+				FnSetScorer: func(scorer search.Scorable) error {
 					return collector.SetScorer(fake)
 				},
 				FnCollect: func(ctx context.Context, doc int) error {
@@ -125,14 +125,14 @@ func disableScoring(scorer BulkScorer) BulkScorer {
 	}
 }
 
-func (*BooleanWeight) optionalBulkScorer(context index2.LeafReaderContext) (BulkScorer, error) {
+func (*BooleanWeight) optionalBulkScorer(context index2.LeafReaderContext) (search.BulkScorer, error) {
 	panic("")
 }
 
 // Return a BulkScorer for the required clauses only,
 // or null if it is not applicable
-func (b *BooleanWeight) requiredBulkScorer(context index2.LeafReaderContext) (BulkScorer, error) {
-	var scorer BulkScorer
+func (b *BooleanWeight) requiredBulkScorer(context index2.LeafReaderContext) (search.BulkScorer, error) {
+	var scorer search.BulkScorer
 	var err error
 
 	for _, wc := range b.weightedClauses {
@@ -162,11 +162,11 @@ func (b *BooleanWeight) requiredBulkScorer(context index2.LeafReaderContext) (Bu
 }
 
 // Try to build a boolean scorer for this weight. Returns null if BooleanScorer cannot be used.
-func (b *BooleanWeight) booleanScorer(context index2.LeafReaderContext) (BulkScorer, error) {
-	numOptionalClauses := len(b.query.GetClauses(OccurShould))
-	numRequiredClauses := len(b.query.GetClauses(OccurMust)) + len(b.query.GetClauses(OccurFilter))
+func (b *BooleanWeight) booleanScorer(context index2.LeafReaderContext) (search.BulkScorer, error) {
+	numOptionalClauses := len(b.query.GetClauses(search.OccurShould))
+	numRequiredClauses := len(b.query.GetClauses(search.OccurMust)) + len(b.query.GetClauses(search.OccurFilter))
 
-	var positiveScorer BulkScorer
+	var positiveScorer search.BulkScorer
 	var err error
 	if numRequiredClauses == 0 {
 		positiveScorer, err = b.optionalBulkScorer(context)
@@ -214,7 +214,7 @@ func (b *BooleanWeight) booleanScorer(context index2.LeafReaderContext) (BulkSco
 		return nil, nil
 	}
 
-	prohibited := make([]Scorer, 0)
+	prohibited := make([]search.Scorer, 0)
 	for _, wc := range b.weightedClauses {
 		//w := wc.weight
 		//c := wc.clause
@@ -232,7 +232,7 @@ func (b *BooleanWeight) booleanScorer(context index2.LeafReaderContext) (BulkSco
 	if len(prohibited) == 0 {
 		return positiveScorer, nil
 	} else {
-		var prohibitedScorer Scorer
+		var prohibitedScorer search.Scorer
 		if len(prohibited) == 1 {
 			prohibitedScorer = prohibited[0]
 		} else {
@@ -250,7 +250,7 @@ func (b *BooleanWeight) booleanScorer(context index2.LeafReaderContext) (BulkSco
 	}
 }
 
-func (b *BooleanWeight) BulkScorer(context index2.LeafReaderContext) (BulkScorer, error) {
+func (b *BooleanWeight) BulkScorer(context index2.LeafReaderContext) (search.BulkScorer, error) {
 	if b.scoreMode == TOP_SCORES {
 		// If only the top docs are requested, use the default bulk scorer
 		// so that we can dynamically prune non-competitive hits.
@@ -269,7 +269,7 @@ func (b *BooleanWeight) BulkScorer(context index2.LeafReaderContext) (BulkScorer
 	}
 }
 
-func (b *BooleanWeight) Scorer(ctx index2.LeafReaderContext) (Scorer, error) {
+func (b *BooleanWeight) Scorer(ctx index2.LeafReaderContext) (search.Scorer, error) {
 	supplier, err := b.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
@@ -296,12 +296,12 @@ func (b *BooleanWeight) IsCacheable(ctx index2.LeafReaderContext) bool {
 	return true
 }
 
-func (b *BooleanWeight) ScorerSupplier(context index2.LeafReaderContext) (ScorerSupplier, error) {
+func (b *BooleanWeight) ScorerSupplier(context index2.LeafReaderContext) (search.ScorerSupplier, error) {
 	minShouldMatch := b.query.GetMinimumNumberShouldMatch()
 
-	scorers := map[Occur][]ScorerSupplier{}
-	for _, occur := range OccurValues() {
-		scorers[occur] = []ScorerSupplier{}
+	scorers := map[search.Occur][]search.ScorerSupplier{}
+	for _, occur := range search.OccurValues() {
+		scorers[occur] = []search.ScorerSupplier{}
 	}
 
 	for _, wc := range b.weightedClauses {
@@ -322,17 +322,17 @@ func (b *BooleanWeight) ScorerSupplier(context index2.LeafReaderContext) (Scorer
 
 	// scorer simplifications:
 
-	if len(scorers[OccurShould]) == minShouldMatch {
+	if len(scorers[search.OccurShould]) == minShouldMatch {
 		// any optional clauses are in fact required
-		scorers[OccurMust] = append(scorers[OccurMust], scorers[OccurShould]...)
-		scorers[OccurShould] = scorers[OccurShould][:0]
+		scorers[search.OccurMust] = append(scorers[search.OccurMust], scorers[search.OccurShould]...)
+		scorers[search.OccurShould] = scorers[search.OccurShould][:0]
 		minShouldMatch = 0
 	}
 
-	if len(scorers[OccurFilter]) == 0 && len(scorers[OccurMust]) == 0 && len(scorers[OccurShould]) == 0 {
+	if len(scorers[search.OccurFilter]) == 0 && len(scorers[search.OccurMust]) == 0 && len(scorers[search.OccurShould]) == 0 {
 		// no required and optional clauses.
 		return nil, nil
-	} else if len(scorers[OccurShould]) < minShouldMatch {
+	} else if len(scorers[search.OccurShould]) < minShouldMatch {
 		return nil, nil
 	}
 
@@ -341,9 +341,9 @@ func (b *BooleanWeight) ScorerSupplier(context index2.LeafReaderContext) (Scorer
 
 type weightedBooleanClause struct {
 	clause *BooleanClause
-	weight Weight
+	weight search.Weight
 }
 
-func newWeightedBooleanClause(clause *BooleanClause, weight Weight) *weightedBooleanClause {
+func newWeightedBooleanClause(clause *BooleanClause, weight search.Weight) *weightedBooleanClause {
 	return &weightedBooleanClause{clause: clause, weight: weight}
 }

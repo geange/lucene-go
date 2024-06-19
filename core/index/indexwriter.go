@@ -1115,7 +1115,7 @@ type IndexWriterConfig struct {
 	flushPolicy FlushPolicy
 }
 
-func NewIndexWriterConfig(codec Codec, similarity Similarity) *IndexWriterConfig {
+func NewIndexWriterConfig(codec Codec, similarity index.Similarity) *IndexWriterConfig {
 	cfg := &IndexWriterConfig{}
 	analyzer := standard.NewAnalyzer(analysis.EmptySet)
 	cfg.liveIndexWriterConfig = newLiveIndexWriterConfig(analyzer, codec, similarity)

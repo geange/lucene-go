@@ -56,7 +56,7 @@ func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
 	return consumer.Write(nil, fields, norms)
 }
 
-func (f *FreqProxTermsWriter) AddField(invertState *FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error) {
+func (f *FreqProxTermsWriter) AddField(invertState *index.FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error) {
 	addField, err := f.nextTermsHash.AddField(invertState, fieldInfo)
 	if err != nil {
 		return nil, err

@@ -1,13 +1,16 @@
 package search
 
-import "reflect"
+import (
+	"github.com/geange/lucene-go/core/interface/search"
+	"reflect"
+)
 
-var MATCH_WITH_NO_TERMS Matches
+var MATCH_WITH_NO_TERMS search.Matches
 
 // MatchesFromSubMatches
 // Amalgamate a collection of Matches into a single object
-func MatchesFromSubMatches(subMatches []Matches) (Matches, error) {
-	sm := make([]Matches, 0)
+func MatchesFromSubMatches(subMatches []search.Matches) (search.Matches, error) {
+	sm := make([]search.Matches, 0)
 	for i, match := range subMatches {
 		if reflect.DeepEqual(match, MATCH_WITH_NO_TERMS) {
 			continue
@@ -31,8 +34,8 @@ func MatchesFromSubMatches(subMatches []Matches) (Matches, error) {
 			}
 			return values
 		},
-		FnGetMatches: func(field string) (MatchesIterator, error) {
-			subIterators := make([]MatchesIterator, 0)
+		FnGetMatches: func(field string) (search.MatchesIterator, error) {
+			subIterators := make([]search.MatchesIterator, 0)
 			for _, v := range sm {
 				iterator, err := v.GetMatches(field)
 				if err != nil {
@@ -42,7 +45,7 @@ func MatchesFromSubMatches(subMatches []Matches) (Matches, error) {
 			}
 			return fromSubIterators(subIterators)
 		},
-		FnGetSubMatches: func() []Matches {
+		FnGetSubMatches: func() []search.Matches {
 			return subMatches
 		},
 	}, nil
@@ -50,7 +53,7 @@ func MatchesFromSubMatches(subMatches []Matches) (Matches, error) {
 
 // MatchesForField
 // Create a Matches for a single field
-func MatchesForField(field string, mis IOSupplier[MatchesIterator]) Matches {
+func MatchesForField(field string, mis IOSupplier[search.MatchesIterator]) search.Matches {
 	// The indirection here, using a Supplier object rather than a MatchesIterator
 	// directly, is to allow for multiple calls to Matches.getMatches() to return
 	// new iterators.  We still need to call MatchesIteratorSupplier.get() eagerly
@@ -71,20 +74,20 @@ func MatchesForField(field string, mis IOSupplier[MatchesIterator]) Matches {
 	}
 }
 
-var _ Matches = &forFieldMatches{}
+var _ search.Matches = &forFieldMatches{}
 
 type forFieldMatches struct {
-	mis    IOSupplier[MatchesIterator]
+	mis    IOSupplier[search.MatchesIterator]
 	cached bool
 	field  string
-	mi     MatchesIterator
+	mi     search.MatchesIterator
 }
 
 func (f *forFieldMatches) Strings() []string {
 	return []string{f.field}
 }
 
-func (f *forFieldMatches) GetMatches(field string) (MatchesIterator, error) {
+func (f *forFieldMatches) GetMatches(field string) (search.MatchesIterator, error) {
 	if field == f.field {
 		return nil, nil
 	}
@@ -95,7 +98,7 @@ func (f *forFieldMatches) GetMatches(field string) (MatchesIterator, error) {
 	return f.mi, nil
 }
 
-func (f *forFieldMatches) GetSubMatches() []Matches {
+func (f *forFieldMatches) GetSubMatches() []search.Matches {
 	return nil
 }
 

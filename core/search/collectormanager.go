@@ -1,5 +1,7 @@
 package search
 
+import "github.com/geange/lucene-go/core/interface/search"
+
 // CollectorManager
 // A manager of collectors. This class is useful to parallelize execution of search requests and has two main methods:
 //   - NewCollector() which must return a NEW collector which will be used to collect a certain set of leaves.
@@ -9,6 +11,6 @@ package search
 // See Also: IndexSearcher.search(Query, CollectorManager)
 // lucene.experimental
 type CollectorManager interface {
-	NewCollector() (Collector, error)
-	Reduce(collectors []Collector) (any, error)
+	NewCollector() (search.Collector, error)
+	Reduce(collectors []search.Collector) (any, error)
 }

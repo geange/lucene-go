@@ -1,33 +1,34 @@
 package search
 
 import (
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"math"
 )
 
-var _ BulkScorer = &ReqExclBulkScorer{}
+var _ search.BulkScorer = &ReqExclBulkScorer{}
 
 type ReqExclBulkScorer struct {
-	req  BulkScorer
+	req  search.BulkScorer
 	excl types.DocIdSetIterator
 }
 
-func newReqExclBulkScorer(req BulkScorer, excl types.DocIdSetIterator) *ReqExclBulkScorer {
+func newReqExclBulkScorer(req search.BulkScorer, excl types.DocIdSetIterator) *ReqExclBulkScorer {
 	return &ReqExclBulkScorer{
 		req:  req,
 		excl: excl,
 	}
 }
 
-func (r *ReqExclBulkScorer) Score(collector LeafCollector, acceptDocs util.Bits) error {
+func (r *ReqExclBulkScorer) Score(collector search.LeafCollector, acceptDocs util.Bits) error {
 	if _, err := r.ScoreRange(collector, acceptDocs, 0, math.MaxInt32); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *ReqExclBulkScorer) ScoreRange(collector LeafCollector, acceptDocs util.Bits, minDoc, maxDoc int) (int, error) {
+func (r *ReqExclBulkScorer) ScoreRange(collector search.LeafCollector, acceptDocs util.Bits, minDoc, maxDoc int) (int, error) {
 	upTo := minDoc
 	exclDoc := r.excl.DocID()
 

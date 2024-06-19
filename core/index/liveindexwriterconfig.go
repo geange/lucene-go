@@ -43,7 +43,7 @@ type LiveIndexWriterConfig interface {
 	GetIndexCommit() IndexCommit
 
 	// GetSimilarity Expert: returns the Similarity implementation used by this IndexWriter.
-	GetSimilarity() Similarity
+	GetSimilarity() index.Similarity
 
 	// GetMergeScheduler Returns the MergeScheduler that was set by IndexWriterConfig.setMergeScheduler(MergeScheduler).
 	GetMergeScheduler() MergeScheduler
@@ -145,7 +145,7 @@ type liveIndexWriterConfig struct {
 	createdVersionMajor int
 
 	// Similarity to use when encoding norms.
-	similarity Similarity
+	similarity index.Similarity
 
 	// MergeScheduler to use for running merges.
 	mergeScheduler MergeScheduler
@@ -195,7 +195,7 @@ type liveIndexWriterConfig struct {
 	maxFullFlushMergeWaitMillis int64
 }
 
-func newLiveIndexWriterConfig(analyzer analysis.Analyzer, codec Codec, similarity Similarity) *liveIndexWriterConfig {
+func newLiveIndexWriterConfig(analyzer analysis.Analyzer, codec Codec, similarity index.Similarity) *liveIndexWriterConfig {
 	return &liveIndexWriterConfig{
 		analyzer:                    analyzer,
 		maxBufferedDocs:             DEFAULT_MAX_BUFFERED_DOCS,
@@ -245,7 +245,7 @@ func (r *liveIndexWriterConfig) GetIndexSort() index.Sort {
 }
 
 // GetSimilarity Expert: returns the Similarity implementation used by this IndexWriter.
-func (r *liveIndexWriterConfig) GetSimilarity() Similarity {
+func (r *liveIndexWriterConfig) GetSimilarity() index.Similarity {
 	return r.similarity
 }
 

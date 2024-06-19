@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	"io"
 )
@@ -21,7 +22,7 @@ func (c *ConstantScoreWeight) ExtractTerms(terms *treeset.Set[index.Term]) error
 	return nil
 }
 
-func NewConstantScoreWeight(score float64, query Query, spi WeightScorer) *ConstantScoreWeight {
+func NewConstantScoreWeight(score float64, query search.Query, spi WeightScorer) *ConstantScoreWeight {
 	weight := &ConstantScoreWeight{score: score}
 	weight.BaseWeight = NewBaseWeight(query, spi)
 	return weight
