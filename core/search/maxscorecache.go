@@ -1,7 +1,6 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
 	index2 "github.com/geange/lucene-go/core/interface/index"
 )
 
@@ -9,7 +8,7 @@ import (
 // expensive similarity score computations multiple times on the same data.
 type MaxScoreCache struct {
 	impactsSource     index2.ImpactsSource
-	scorer            index.SimScorer
+	scorer            index2.SimScorer
 	maxScoreCache     []float64
 	maxScoreCacheUpTo []int
 }
@@ -103,7 +102,7 @@ func (c *MaxScoreCache) GetLevel(upTo int) (int, error) {
 	return -1, nil
 }
 
-func NewMaxScoreCache(impactsSource index2.ImpactsSource, scorer index.SimScorer) *MaxScoreCache {
+func NewMaxScoreCache(impactsSource index2.ImpactsSource, scorer index2.SimScorer) *MaxScoreCache {
 	return &MaxScoreCache{
 		impactsSource:     impactsSource,
 		scorer:            scorer,

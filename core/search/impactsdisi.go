@@ -1,7 +1,6 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
 	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
@@ -23,7 +22,7 @@ type ImpactsDISI struct {
 	maxScore            float64
 }
 
-func NewImpactsDISI(in types.DocIdSetIterator, impactsSource index2.ImpactsSource, scorer index.SimScorer) *ImpactsDISI {
+func NewImpactsDISI(in types.DocIdSetIterator, impactsSource index2.ImpactsSource, scorer index2.SimScorer) *ImpactsDISI {
 	return &ImpactsDISI{
 		in:             in,
 		impactsSource:  impactsSource,

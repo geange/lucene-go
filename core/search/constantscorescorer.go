@@ -1,18 +1,19 @@
 package search
 
 import (
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ Scorer = &ConstantScoreScorer{}
+var _ search.Scorer = &ConstantScoreScorer{}
 
 type ConstantScoreScorer struct {
 	*BaseScorer
 
 	score            float64
-	scoreMode        ScoreMode
+	scoreMode        search.ScoreMode
 	approximation    types.DocIdSetIterator
-	twoPhaseIterator TwoPhaseIterator
+	twoPhaseIterator search.TwoPhaseIterator
 	disi             types.DocIdSetIterator
 }
 
@@ -40,8 +41,8 @@ func (c *ConstantScoreScorer) GetMaxScore(upTo int) (float64, error) {
 //	score: the score to return on each document
 //	scoreMode: the score mode
 //	disi: the iterator that defines matching documents
-func NewConstantScoreScorer(weight Weight, score float64,
-	scoreMode ScoreMode, disi types.DocIdSetIterator) (*ConstantScoreScorer, error) {
+func NewConstantScoreScorer(weight search.Weight, score float64,
+	scoreMode search.ScoreMode, disi types.DocIdSetIterator) (*ConstantScoreScorer, error) {
 
 	if scoreMode == TOP_SCORES {
 		//
@@ -59,8 +60,8 @@ func NewConstantScoreScorer(weight Weight, score float64,
 	return scorer, nil
 }
 
-func NewConstantScoreScorerV1(weight Weight, score float64,
-	scoreMode ScoreMode, twoPhaseIterator TwoPhaseIterator) (*ConstantScoreScorer, error) {
+func NewConstantScoreScorerV1(weight search.Weight, score float64,
+	scoreMode search.ScoreMode, twoPhaseIterator search.TwoPhaseIterator) (*ConstantScoreScorer, error) {
 
 	scorer := &ConstantScoreScorer{
 		score:     score,
@@ -82,11 +83,11 @@ func NewConstantScoreScorerV1(weight Weight, score float64,
 	return scorer, nil
 }
 
-var _ TwoPhaseIterator = &constantTwoPhaseIterator{}
+var _ search.TwoPhaseIterator = &constantTwoPhaseIterator{}
 
 type constantTwoPhaseIterator struct {
 	approximation    types.DocIdSetIterator
-	twoPhaseIterator TwoPhaseIterator
+	twoPhaseIterator search.TwoPhaseIterator
 }
 
 func (t *constantTwoPhaseIterator) Approximation() types.DocIdSetIterator {

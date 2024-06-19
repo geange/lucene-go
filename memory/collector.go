@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 	"github.com/geange/lucene-go/core/interface/index"
-
+	search2 "github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/search"
 )
 
@@ -12,7 +12,7 @@ var _ search.SimpleCollector = &simpleCollector{}
 type simpleCollector struct {
 	*search.BaseSimpleCollector
 
-	scorer search.Scorable
+	scorer search2.Scorable
 	scores []float64
 }
 
@@ -26,7 +26,7 @@ func newSimpleCollector(scores []float64) *simpleCollector {
 	return collector
 }
 
-func (s *simpleCollector) ScoreMode() search.ScoreMode {
+func (s *simpleCollector) ScoreMode() search2.ScoreMode {
 	return search.COMPLETE
 }
 
@@ -44,7 +44,7 @@ func (s *simpleCollector) DoSetNextReader(_ index.LeafReaderContext) error {
 	return nil
 }
 
-func (s *simpleCollector) SetScorer(scorer search.Scorable) error {
+func (s *simpleCollector) SetScorer(scorer search2.Scorable) error {
 	s.scorer = scorer
 	return nil
 }

@@ -3,7 +3,7 @@ package query
 import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/search"
+	"github.com/geange/lucene-go/core/interface/search"
 )
 
 type DoubleRangeSlowRangeQuery struct {
@@ -30,7 +30,7 @@ func NewDoubleRangeSlowRangeQuery(field string, mins, maxs []float64, queryType 
 	}, nil
 }
 
-func (i *DoubleRangeSlowRangeQuery) CreateWeight(searcher *search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (i *DoubleRangeSlowRangeQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
 	return i.createWeight(i, scoreMode, boost), nil
 }
 

@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/search"
 	"math"
 	"sync/atomic"
 )
@@ -10,7 +11,7 @@ import (
 // Used for defining custom algorithms to allow searches to early terminate
 type HitsThresholdChecker interface {
 	IncrementHitCount()
-	ScoreMode() ScoreMode
+	ScoreMode() search.ScoreMode
 	GetHitsThreshold() int
 	IsThresholdReached() bool
 }
@@ -45,7 +46,7 @@ func (g *GlobalHitsThresholdChecker) IncrementHitCount() {
 	g.globalHitCount.Add(1)
 }
 
-func (g *GlobalHitsThresholdChecker) ScoreMode() ScoreMode {
+func (g *GlobalHitsThresholdChecker) ScoreMode() search.ScoreMode {
 	if g.totalHitsThreshold == math.MaxInt32 {
 		return COMPLETE
 	}
@@ -82,7 +83,7 @@ func (l *LocalHitsThresholdChecker) IncrementHitCount() {
 	l.hitCount++
 }
 
-func (l *LocalHitsThresholdChecker) ScoreMode() ScoreMode {
+func (l *LocalHitsThresholdChecker) ScoreMode() search.ScoreMode {
 	if l.totalHitsThreshold == math.MaxInt32 {
 		return COMPLETE
 	}

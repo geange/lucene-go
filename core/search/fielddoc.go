@@ -1,6 +1,8 @@
 package search
 
-var _ ScoreDoc = &BaseFieldDoc{}
+import "github.com/geange/lucene-go/core/interface/search"
+
+var _ search.ScoreDoc = &BaseFieldDoc{}
 
 // FieldDoc
 // Expert: A ScoreDoc which also contains information about how to sort the referenced document.
@@ -15,7 +17,7 @@ var _ ScoreDoc = &BaseFieldDoc{}
 // Since: lucene 1.4
 // See Also: ScoreDoc, TopFieldDocs
 type FieldDoc interface {
-	ScoreDoc
+	search.ScoreDoc
 
 	GetFields() []any
 	SetFields(fields []any)

@@ -2,18 +2,19 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/search"
 )
 
-var _ Query = &ConstantScoreQuery{}
+var _ search.Query = &ConstantScoreQuery{}
 
 // ConstantScoreQuery
 // A query that wraps another query and simply returns a constant score equal to 1 for every document
 // that matches the query. It therefore simply strips of all scores and always returns 1.
 type ConstantScoreQuery struct {
-	query Query
+	query search.Query
 }
 
-func NewConstantScoreQuery(query Query) *ConstantScoreQuery {
+func NewConstantScoreQuery(query search.Query) *ConstantScoreQuery {
 	return &ConstantScoreQuery{query: query}
 }
 
@@ -22,21 +23,21 @@ func (c *ConstantScoreQuery) String(field string) string {
 	panic("implement me")
 }
 
-func (c *ConstantScoreQuery) CreateWeight(searcher *IndexSearcher, scoreMode ScoreMode, boost float64) (Weight, error) {
+func (c *ConstantScoreQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *ConstantScoreQuery) Rewrite(reader index.IndexReader) (Query, error) {
+func (c *ConstantScoreQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *ConstantScoreQuery) Visit(visitor QueryVisitor) (err error) {
+func (c *ConstantScoreQuery) Visit(visitor search.QueryVisitor) (err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *ConstantScoreQuery) GetQuery() Query {
+func (c *ConstantScoreQuery) GetQuery() search.Query {
 	return c.query
 }

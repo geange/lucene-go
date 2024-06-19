@@ -1,17 +1,18 @@
 package search
 
 import (
+	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ Scorer = &ReqExclScorer{}
+var _ search.Scorer = &ReqExclScorer{}
 
 // ReqExclScorer
 // A Scorer for queries with a required subscorer and an excluding (prohibited) sub Scorer.
 type ReqExclScorer struct {
 	*BaseScorer
 
-	reqScorer Scorer
+	reqScorer search.Scorer
 
 	// approximations of the scorers, or the scorers themselves if they don't support approximations
 	reqApproximation types.DocIdSetIterator
@@ -19,12 +20,12 @@ type ReqExclScorer struct {
 	exclApproximation types.DocIdSetIterator
 
 	// two-phase views of the scorers, or null if they do not support approximations
-	reqTwoPhaseIterator TwoPhaseIterator
+	reqTwoPhaseIterator search.TwoPhaseIterator
 
-	exclTwoPhaseIterator TwoPhaseIterator
+	exclTwoPhaseIterator search.TwoPhaseIterator
 }
 
-func NewReqExclScorer(reqScorer, exclScorer Scorer) *ReqExclScorer {
+func NewReqExclScorer(reqScorer, exclScorer search.Scorer) *ReqExclScorer {
 	scorer := &ReqExclScorer{
 		BaseScorer:          NewScorer(reqScorer.GetWeight()),
 		reqScorer:           reqScorer,
@@ -65,8 +66,8 @@ const (
 	ADVANCE_COST = 10
 )
 
-func matchCost(reqApproximation types.DocIdSetIterator, reqTwoPhaseIterator TwoPhaseIterator,
-	exclApproximation types.DocIdSetIterator, exclTwoPhaseIterator TwoPhaseIterator) float64 {
+func matchCost(reqApproximation types.DocIdSetIterator, reqTwoPhaseIterator search.TwoPhaseIterator,
+	exclApproximation types.DocIdSetIterator, exclTwoPhaseIterator search.TwoPhaseIterator) float64 {
 
 	matchCostVar := float64(2) // we perform 2 comparisons to advance exclApproximation
 	if reqTwoPhaseIterator != nil {
@@ -96,7 +97,7 @@ func matchCost(reqApproximation types.DocIdSetIterator, reqTwoPhaseIterator TwoP
 	return matchCostVar
 }
 
-func (r *ReqExclScorer) TwoPhaseIterator() TwoPhaseIterator {
+func (r *ReqExclScorer) TwoPhaseIterator() search.TwoPhaseIterator {
 	cost := matchCost(r.reqApproximation, r.reqTwoPhaseIterator, r.exclApproximation, r.exclTwoPhaseIterator)
 
 	if r.reqTwoPhaseIterator == nil ||
@@ -121,13 +122,13 @@ func (r *ReqExclScorer) TwoPhaseIterator() TwoPhaseIterator {
 	}
 }
 
-var _ TwoPhaseIterator = &twoPhaseIterator1{}
+var _ search.TwoPhaseIterator = &twoPhaseIterator1{}
 
 type twoPhaseIterator1 struct {
 	reqApproximation     types.DocIdSetIterator
-	reqTwoPhaseIterator  TwoPhaseIterator
+	reqTwoPhaseIterator  search.TwoPhaseIterator
 	exclApproximation    types.DocIdSetIterator
-	exclTwoPhaseIterator TwoPhaseIterator
+	exclTwoPhaseIterator search.TwoPhaseIterator
 	matchCost            float64
 }
 
@@ -167,7 +168,7 @@ func (t *twoPhaseIterator1) MatchCost() float64 {
 }
 
 // Confirms whether or not the given TwoPhaseIterator matches on the current document.
-func matchesOrNull(it TwoPhaseIterator) (bool, error) {
+func matchesOrNull(it search.TwoPhaseIterator) (bool, error) {
 	if it == nil {
 		return false, nil
 	}
@@ -179,13 +180,13 @@ func matchesOrNull(it TwoPhaseIterator) (bool, error) {
 	return ok, nil
 }
 
-var _ TwoPhaseIterator = &twoPhaseIterator2{}
+var _ search.TwoPhaseIterator = &twoPhaseIterator2{}
 
 type twoPhaseIterator2 struct {
 	reqApproximation     types.DocIdSetIterator
-	reqTwoPhaseIterator  TwoPhaseIterator
+	reqTwoPhaseIterator  search.TwoPhaseIterator
 	exclApproximation    types.DocIdSetIterator
-	exclTwoPhaseIterator TwoPhaseIterator
+	exclTwoPhaseIterator search.TwoPhaseIterator
 	matchCost            float64
 }
 

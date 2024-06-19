@@ -1,15 +1,13 @@
 package search
 
-// ScoreMode
-// Different modes of search.
-type ScoreMode uint8
+import "github.com/geange/lucene-go/core/interface/search"
 
 const (
 	isExhaustiveShift = 0
 	needsScoresShift  = 1
 )
 
-func NewScoreMode(isExhaustive, needsScores bool) ScoreMode {
+func NewScoreMode(isExhaustive, needsScores bool) search.ScoreMode {
 	var mode uint8
 	if isExhaustive {
 		mode |= 1 << isExhaustiveShift
@@ -19,20 +17,7 @@ func NewScoreMode(isExhaustive, needsScores bool) ScoreMode {
 		mode |= 1 << needsScoresShift
 	}
 
-	return ScoreMode(mode)
-}
-
-// NeedsScores
-// Whether this ScoreMode needs to compute scores.
-func (r ScoreMode) NeedsScores() bool {
-	return r&1<<needsScoresShift > 0
-}
-
-// IsExhaustive
-// Returns true if for this ScoreMode it is necessary to process all documents, or false if
-// is enough to go through top documents only.
-func (r ScoreMode) IsExhaustive() bool {
-	return r&1<<isExhaustiveShift > 0
+	return search.ScoreMode(mode)
 }
 
 var (

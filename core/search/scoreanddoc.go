@@ -1,6 +1,8 @@
 package search
 
-var _ Scorable = &ScoreAndDoc{}
+import "github.com/geange/lucene-go/core/interface/search"
+
+var _ search.Scorable = &ScoreAndDoc{}
 
 type ScoreAndDoc struct {
 	*BaseScorable

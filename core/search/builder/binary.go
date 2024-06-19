@@ -2,7 +2,7 @@ package builder
 
 import (
 	"bytes"
-
+	search2 "github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/search"
 )
 
@@ -14,15 +14,15 @@ type Binary struct{}
 // NewRangeQuery(String, []byte, []byte) instead.
 // field: field name. must not be null.
 // value: binary value
-func (b *Binary) NewExactQuery(field string, value []byte) (search.Query, error) {
+func (b *Binary) NewExactQuery(field string, value []byte) (search2.Query, error) {
 	return b.NewRangeQuery(field, value, value)
 }
 
-func (b *Binary) NewRangeQuery(field string, lower, upper []byte) (search.Query, error) {
+func (b *Binary) NewRangeQuery(field string, lower, upper []byte) (search2.Query, error) {
 	return b.NewRangeQueryNDim(field, [][]byte{lower}, [][]byte{upper})
 }
 
-func (b *Binary) NewRangeQueryNDim(field string, lower, upper [][]byte) (search.Query, error) {
+func (b *Binary) NewRangeQueryNDim(field string, lower, upper [][]byte) (search2.Query, error) {
 	packLower := bytes.Join(lower, []byte{})
 	packUpper := bytes.Join(upper, []byte{})
 	return search.NewPointRangeQuery(field, packLower, packUpper, len(lower))

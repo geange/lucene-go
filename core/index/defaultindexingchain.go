@@ -677,8 +677,8 @@ type PerField struct {
 	chain                    *DefaultIndexingChain
 	indexCreatedVersionMajor int
 	fieldInfo                *document.FieldInfo
-	similarity               Similarity
-	invertState              *FieldInvertState
+	similarity               index.Similarity
+	invertState              *index.FieldInvertState
 	termsHashPerField        TermsHashPerField
 	docValuesWriter          DocValuesWriter
 	pointValuesWriter        *PointValuesWriter
@@ -695,7 +695,7 @@ type PerField struct {
 }
 
 func (d *DefaultIndexingChain) NewPerField(indexCreatedVersionMajor int, fieldInfo *document.FieldInfo,
-	invert bool, similarity Similarity, analyzer analysis.Analyzer) (*PerField, error) {
+	invert bool, similarity index.Similarity, analyzer analysis.Analyzer) (*PerField, error) {
 
 	perField := &PerField{
 		chain:                    d,
@@ -714,7 +714,7 @@ func (d *DefaultIndexingChain) NewPerField(indexCreatedVersionMajor int, fieldIn
 }
 
 func (p *PerField) setInvertState() error {
-	p.invertState = NewFieldInvertStateV1(
+	p.invertState = index.NewFieldInvertStateV1(
 		p.indexCreatedVersionMajor, p.fieldInfo.Name(), p.fieldInfo.GetIndexOptions())
 
 	termsHashPerField, err := p.chain.termsHash.AddField(p.invertState, p.fieldInfo)
@@ -782,9 +782,9 @@ func (p *PerField) invert(docID int, field document.IndexableField, first bool) 
 		// will be marked as deleted, but still
 		// consume a docID
 
-		posIncr := p.invertState.posIncrAttribute.GetPositionIncrement()
-		p.invertState.position += posIncr
-		if p.invertState.position < p.invertState.lastPosition {
+		posIncr := p.invertState.PosIncrAttribute.GetPositionIncrement()
+		p.invertState.Position += posIncr
+		if p.invertState.Position < p.invertState.LastPosition {
 			if posIncr == 0 {
 				return fmt.Errorf("first position increment must be > 0 (got 0) for field '%s'", field.Name())
 			} else if posIncr < 0 {
@@ -792,23 +792,23 @@ func (p *PerField) invert(docID int, field document.IndexableField, first bool) 
 			} else {
 				return fmt.Errorf("position overflowed Integer.MAX_VALUE")
 			}
-		} else if p.invertState.position > MAX_POSITION {
+		} else if p.invertState.Position > MAX_POSITION {
 			return fmt.Errorf("position %s is too large for field '': max allowed position is %d", field.Name(), MAX_POSITION)
 		}
-		p.invertState.lastPosition = p.invertState.position
+		p.invertState.LastPosition = p.invertState.Position
 		if posIncr == 0 {
-			p.invertState.numOverlap++
+			p.invertState.NumOverlap++
 		}
 
-		startOffset := p.invertState.offset + p.invertState.offsetAttribute.StartOffset()
-		endOffset := p.invertState.offset + p.invertState.offsetAttribute.EndOffset()
-		if startOffset < p.invertState.lastStartOffset || endOffset < startOffset {
+		startOffset := p.invertState.Offset + p.invertState.OffsetAttribute.StartOffset()
+		endOffset := p.invertState.Offset + p.invertState.OffsetAttribute.EndOffset()
+		if startOffset < p.invertState.LastStartOffset || endOffset < startOffset {
 			return fmt.Errorf("startOffset must be non-negative, and endOffset must" +
 				" be >= startOffset, and offsets must not go backwards ")
 		}
-		p.invertState.lastStartOffset = startOffset
+		p.invertState.LastStartOffset = startOffset
 		// TODO: fix overlap
-		p.invertState.length += p.invertState.termFreqAttribute.GetTermFrequency()
+		p.invertState.Length += p.invertState.TermFreqAttribute.GetTermFrequency()
 
 		// If we hit an exception in here, we abort
 		// all buffered documents since the last
@@ -816,7 +816,7 @@ func (p *PerField) invert(docID int, field document.IndexableField, first bool) 
 		// internal state of the terms hash is now
 		// corrupt and should not be flushed to a
 		// new segment:
-		if err := p.termsHashPerField.Add(p.invertState.termAttribute.GetBytes(), docID); err != nil {
+		if err := p.termsHashPerField.Add(p.invertState.TermAttribute.GetBytes(), docID); err != nil {
 			return err
 		}
 	}
@@ -828,15 +828,15 @@ func (p *PerField) invert(docID int, field document.IndexableField, first bool) 
 
 	// TODO: maybe add some safety? then again, it's already checked
 	// when we come back around to the field...
-	p.invertState.position += p.invertState.posIncrAttribute.GetPositionIncrement()
-	p.invertState.offset += p.invertState.offsetAttribute.EndOffset()
+	p.invertState.Position += p.invertState.PosIncrAttribute.GetPositionIncrement()
+	p.invertState.Offset += p.invertState.OffsetAttribute.EndOffset()
 
 	/* if there is an exception coming through, we won't set this to true here:*/
 	//succeededInProcessingField = true
 
 	if analyzed {
-		p.invertState.position += p.analyzer.GetPositionIncrementGap(p.fieldInfo.Name())
-		p.invertState.offset += p.analyzer.GetOffsetGap(p.fieldInfo.Name())
+		p.invertState.Position += p.analyzer.GetPositionIncrementGap(p.fieldInfo.Name())
+		p.invertState.Offset += p.analyzer.GetOffsetGap(p.fieldInfo.Name())
 	}
 	return nil
 }
@@ -848,7 +848,7 @@ func (p *PerField) Finish(docID int) error {
 		// any indexed tokens, so we assign a default item of zero
 		// to the norm
 		normValue := int64(0)
-		if p.invertState.length != 0 {
+		if p.invertState.Length != 0 {
 			normValue = p.similarity.ComputeNorm(p.invertState)
 			if normValue == 0 {
 				return errors.New("return 0 for no-empty field")

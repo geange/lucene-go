@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"math"
@@ -19,7 +20,7 @@ func init() {
 	}
 }
 
-var _ index.Similarity = &BM25Similarity{}
+var _ index2.Similarity = &BM25Similarity{}
 
 // BM25Similarity
 // BM25 Similarity. Introduced in Stephen E. Robertson, Steve Walker, Susan Jones,
@@ -81,7 +82,7 @@ func (b *BM25Similarity) GetDiscountOverlaps() bool {
 	return b.discountOverlaps
 }
 
-func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
+func (b *BM25Similarity) ComputeNorm(state *index2.FieldInvertState) int64 {
 	numTerms := 0
 	if state.GetIndexOptions() == document.INDEX_OPTIONS_DOCS && state.GetIndexCreatedVersionMajor() >= 8 {
 		numTerms = state.GetUniqueTermCount()
@@ -147,7 +148,7 @@ func (b *BM25Similarity) IdfExplainV1(
 }
 
 func (b *BM25Similarity) Scorer(boost float64,
-	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) index.SimScorer {
+	collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) index2.SimScorer {
 
 	var idfValue *types.Explanation
 	if len(termStats) == 1 {
@@ -178,7 +179,7 @@ func (b *BM25Similarity) GetB() float64 {
 	return b.b
 }
 
-var _ index.SimScorer = &BM25Scorer{}
+var _ index2.SimScorer = &BM25Scorer{}
 
 type BM25Scorer struct {
 	*index.BaseSimScorer
