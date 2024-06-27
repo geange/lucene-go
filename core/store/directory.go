@@ -102,6 +102,8 @@ type Directory interface {
 	// Throws: AlreadyClosedException – if this directory is closed.
 	EnsureOpen() error
 
+	Sync(files map[string]struct{}) error
+
 	// GetPendingDeletions Returns a set of files currently pending deletion in this directory.
 	//GetPendingDeletions() (map[string]struct{}, error)
 }

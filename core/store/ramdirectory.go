@@ -22,6 +22,10 @@ type RAMDirectory struct {
 	nextTempFileCounter *atomic.Int64
 }
 
+func (d *RAMDirectory) Sync(files map[string]struct{}) error {
+	return nil
+}
+
 func (d *RAMDirectory) ListAll(ctx context.Context) ([]string, error) {
 	files := maps.Keys(d.fileMap)
 	return files, nil

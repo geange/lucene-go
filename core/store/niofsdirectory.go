@@ -35,9 +35,8 @@ type NIOFSDirectory struct {
 	nextTempFileCounter *atomic.Int64 // Used to generate temp file names in createTempOutput.
 }
 
-func (n *NIOFSDirectory) Sync(ctx context.Context, names []string) error {
-	//TODO implement me
-	panic("implement me")
+func (n *NIOFSDirectory) Sync(names map[string]struct{}) error {
+	return nil
 }
 
 func (n *NIOFSDirectory) CopyFrom(ctx context.Context, from Directory, src, dest string, ioContext *IOContext) error {

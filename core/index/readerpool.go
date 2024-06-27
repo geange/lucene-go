@@ -143,3 +143,42 @@ func (p *ReaderPool) Get(info *SegmentCommitInfo, create bool) (*ReadersAndUpdat
 
 	return rld, nil
 }
+
+func (p *ReaderPool) commit(infos *SegmentInfos) (bool, error) {
+	atLeastOneChange := false
+	for _, segment := range infos.segments {
+		rld, ok := p.readerMap[segment]
+		if !ok {
+			continue
+		}
+
+		changed, err := rld.writeLiveDocs(p.directory)
+		if err != nil {
+			return false, err
+		}
+		updates, err := rld.writeFieldUpdates(p.directory, p.fieldNumbers, p.completedDelGenSupplier())
+		if err != nil {
+			return false, err
+		}
+		changed = changed || updates
+
+		if changed {
+			// Make sure we only write del docs for a live segment:
+			//assert assertInfoIsLive(info);
+
+			// Must checkpoint because we just
+			// created new _X_N.del and field updates files;
+			// don't call IW.checkpoint because that also
+			// increments SIS.version, which we do not want to
+			// do here: it was done previously (after we
+			// invoked BDS.applyDeletes), whereas here all we
+			// did was move the state to disk:
+			atLeastOneChange = true
+		}
+	}
+	return atLeastOneChange, nil
+}
+
+func (p *ReaderPool) writeAllDocValuesUpdates() (bool, error) {
+	panic("")
+}

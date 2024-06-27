@@ -127,49 +127,49 @@ func NewSegmentInfos(indexCreatedVersionMajor int) *SegmentInfos {
 	}
 }
 
-func (i *SegmentInfos) getIndexCreatedVersionMajor() int {
-	return i.indexCreatedVersionMajor
+func (s *SegmentInfos) getIndexCreatedVersionMajor() int {
+	return s.indexCreatedVersionMajor
 }
 
 // Changed
 // Call this before committing if changes have been made to the segments.
-func (i *SegmentInfos) Changed() {
-	i.version++
+func (s *SegmentInfos) Changed() {
+	s.version++
 }
 
-func (i *SegmentInfos) GetSegmentsFileName() string {
-	return FileNameFromGeneration(SEGMENTS, "", i.lastGeneration)
+func (s *SegmentInfos) GetSegmentsFileName() string {
+	return FileNameFromGeneration(SEGMENTS, "", s.lastGeneration)
 }
 
-func (i *SegmentInfos) GetUserData() map[string]string {
-	return i.userData
+func (s *SegmentInfos) GetUserData() map[string]string {
+	return s.userData
 }
 
-func (i *SegmentInfos) GetGeneration() int64 {
-	return i.generation
+func (s *SegmentInfos) GetGeneration() int64 {
+	return s.generation
 }
 
-func (i *SegmentInfos) Size() int {
-	return len(i.segments)
+func (s *SegmentInfos) Size() int {
+	return len(s.segments)
 }
 
-func (i *SegmentInfos) prepareCommit(ctx context.Context, dir store.Directory) error {
-	if i.pendingCommit {
+func (s *SegmentInfos) prepareCommit(ctx context.Context, dir store.Directory) error {
+	if s.pendingCommit {
 		return errors.New("prepareCommit was already called")
 	}
-	return i.writeDir(ctx, dir)
+	return s.writeDir(ctx, dir)
 }
 
-func (i *SegmentInfos) Files(includeSegmentsFile bool) (map[string]struct{}, error) {
+func (s *SegmentInfos) Files(includeSegmentsFile bool) (map[string]struct{}, error) {
 	files := make(map[string]struct{})
 	if includeSegmentsFile {
-		segmentFileName := i.GetSegmentsFileName()
+		segmentFileName := s.GetSegmentsFileName()
 		if segmentFileName != "" {
 			files[segmentFileName] = struct{}{}
 		}
 	}
 
-	for _, info := range i.segments {
+	for _, info := range s.segments {
 		infoFiles, err := info.Files()
 		if err != nil {
 			return nil, err
@@ -182,66 +182,66 @@ func (i *SegmentInfos) Files(includeSegmentsFile bool) (map[string]struct{}, err
 	return files, nil
 }
 
-func (i *SegmentInfos) Info(j int) *SegmentCommitInfo {
-	return i.segments[j]
+func (s *SegmentInfos) Info(j int) *SegmentCommitInfo {
+	return s.segments[j]
 }
 
-func (i *SegmentInfos) SetNextWriteGeneration(generation int64) {
-	i.generation = generation
+func (s *SegmentInfos) SetNextWriteGeneration(generation int64) {
+	s.generation = generation
 }
 
-func (i *SegmentInfos) Add(si *SegmentCommitInfo) error {
-	if i.indexCreatedVersionMajor >= 7 && si.info.minVersion == nil {
+func (s *SegmentInfos) Add(si *SegmentCommitInfo) error {
+	if s.indexCreatedVersionMajor >= 7 && si.info.minVersion == nil {
 		return errors.New("all segments must record the minVersion for indices created on or after Lucene 7")
 	}
-	i.segments = append(i.segments, si)
+	s.segments = append(s.segments, si)
 	return nil
 }
 
-func (i *SegmentInfos) UpdateGenerationVersionAndCounter(other *SegmentInfos) {
-	i.UpdateGeneration(other)
-	i.version = other.version
-	i.counter = other.counter
+func (s *SegmentInfos) UpdateGenerationVersionAndCounter(other *SegmentInfos) {
+	s.UpdateGeneration(other)
+	s.version = other.version
+	s.counter = other.counter
 }
 
-func (i *SegmentInfos) UpdateGeneration(other *SegmentInfos) {
-	i.lastGeneration = other.lastGeneration
-	i.generation = other.generation
+func (s *SegmentInfos) UpdateGeneration(other *SegmentInfos) {
+	s.lastGeneration = other.lastGeneration
+	s.generation = other.generation
 }
 
-func (i *SegmentInfos) CreateBackupSegmentInfos() []*SegmentCommitInfo {
-	list := make([]*SegmentCommitInfo, 0, i.Size())
-	for _, segment := range i.segments {
+func (s *SegmentInfos) CreateBackupSegmentInfos() []*SegmentCommitInfo {
+	list := make([]*SegmentCommitInfo, 0, s.Size())
+	for _, segment := range s.segments {
 		list = append(list, segment.Clone())
 	}
 	return list
 }
 
-func (i *SegmentInfos) GetLastGeneration() int64 {
-	return i.lastGeneration
+func (s *SegmentInfos) GetLastGeneration() int64 {
+	return s.lastGeneration
 }
 
 // Clone
 // Returns a copy of this instance, also copying each SegmentInfo.
-func (i *SegmentInfos) Clone() *SegmentInfos {
+func (s *SegmentInfos) Clone() *SegmentInfos {
 	infos := &SegmentInfos{
-		counter:                  i.counter,
-		version:                  i.version,
-		generation:               i.generation,
-		lastGeneration:           i.lastGeneration,
+		counter:                  s.counter,
+		version:                  s.version,
+		generation:               s.generation,
+		lastGeneration:           s.lastGeneration,
 		userData:                 map[string]string{},
 		segments:                 []*SegmentCommitInfo{},
-		id:                       make([]byte, len(i.id)),
-		luceneVersion:            i.luceneVersion.Clone(),
-		minSegmentLuceneVersion:  i.luceneVersion.Clone(),
-		indexCreatedVersionMajor: i.indexCreatedVersionMajor,
+		id:                       make([]byte, len(s.id)),
+		luceneVersion:            s.luceneVersion.Clone(),
+		minSegmentLuceneVersion:  s.luceneVersion.Clone(),
+		indexCreatedVersionMajor: s.indexCreatedVersionMajor,
 	}
 
-	for k, v := range i.userData {
+	for k, v := range s.userData {
 		infos.userData[k] = v
 	}
 
-	for _, segment := range i.segments {
+	for _, segment := range s.segments {
 		infos.segments = append(infos.segments, segment.Clone())
 	}
 	return infos
@@ -251,13 +251,18 @@ func (s *SegmentInfos) Commit(ctx context.Context, dir store.Directory) error {
 	if err := s.prepareCommit(ctx, dir); err != nil {
 		return err
 	}
-	return s.finishCommit(ctx, dir)
+	_, err := s.finishCommit(ctx, dir)
+	return err
 }
 
-func (s *SegmentInfos) finishCommit(ctx context.Context, dir store.Directory) error {
+// Returns the committed segments_N filename.
+func (s *SegmentInfos) finishCommit(ctx context.Context, dir store.Directory) (string, error) {
 	src := FileNameFromGeneration(PENDING_SEGMENTS, "", s.generation)
 	dest := FileNameFromGeneration(SEGMENTS, "", s.generation)
-	return dir.Rename(ctx, src, dest)
+	if err := dir.Rename(ctx, src, dest); err != nil {
+		return "", err
+	}
+	return dest, nil
 }
 
 func (s *SegmentInfos) writeIndexOutput(ctx context.Context, out store.IndexOutput) error {
@@ -423,56 +428,64 @@ func (s *SegmentInfos) writeDir(ctx context.Context, directory store.Directory) 
 	return nil
 }
 
-func (i *SegmentInfos) Replace(other *SegmentInfos) error {
-	if err := i.rollbackSegmentInfos(other.AsList()); err != nil {
+func (s *SegmentInfos) Replace(other *SegmentInfos) error {
+	if err := s.rollbackSegmentInfos(other.AsList()); err != nil {
 		return err
 	}
-	i.lastGeneration = other.lastGeneration
+	s.lastGeneration = other.lastGeneration
 	return nil
 }
 
-func (i *SegmentInfos) AsList() []*SegmentCommitInfo {
-	return i.segments
+func (s *SegmentInfos) AsList() []*SegmentCommitInfo {
+	return s.segments
 }
 
-func (i *SegmentInfos) AddAll(sis []*SegmentCommitInfo) error {
+func (s *SegmentInfos) AddAll(sis []*SegmentCommitInfo) error {
 	for _, si := range sis {
-		if err := i.Add(si); err != nil {
+		if err := s.Add(si); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (i *SegmentInfos) rollbackSegmentInfos(list []*SegmentCommitInfo) error {
-	i.segments = i.segments[:0]
-	return i.AddAll(list)
+func (s *SegmentInfos) rollbackSegmentInfos(list []*SegmentCommitInfo) error {
+	s.segments = s.segments[:0]
+	return s.AddAll(list)
 }
 
-func (i *SegmentInfos) TotalMaxDoc() int64 {
+func (s *SegmentInfos) TotalMaxDoc() int64 {
 	count := 0
-	for _, info := range i.segments {
+	for _, info := range s.segments {
 		maxDoc, _ := info.info.MaxDoc()
 		count += maxDoc
 	}
 	return int64(count)
 }
 
-func (i *SegmentInfos) GetVersion() int64 {
-	return i.version
+func (s *SegmentInfos) GetVersion() int64 {
+	return s.version
 }
 
-func (i *SegmentInfos) Remove(index int) {
-	i.segments[index] = nil
+func (s *SegmentInfos) Remove(index int) {
+	s.segments[index] = nil
 }
 
 // return generation of the next pending_segments_N that will be written
-func (i *SegmentInfos) getNextPendingGeneration() int64 {
-	if i.generation == -1 {
+func (s *SegmentInfos) getNextPendingGeneration() int64 {
+	if s.generation == -1 {
 		return 1
 	} else {
-		return i.generation + 1
+		return s.generation + 1
 	}
+}
+
+func (s *SegmentInfos) SetUserData(data map[string]string, b bool) {
+
+}
+
+func (s *SegmentInfos) RollbackCommit(directory store.Directory) error {
+	panic("")
 }
 
 func ReadCommit(ctx context.Context, directory store.Directory, segmentFileName string) (*SegmentInfos, error) {

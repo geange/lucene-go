@@ -354,6 +354,16 @@ func (r *IndexFileDeleter) IncRef(segmentInfos *SegmentInfos, isCommit bool) err
 	return nil
 }
 
+func (r *IndexFileDeleter) IncRefFiles(files map[string]struct{}) error {
+	for file := range files {
+		err := r.incRefFileName(file)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *IndexFileDeleter) incRefFileName(fileName string) error {
 	_, err := r.getRefCount(fileName).IncRef()
 	return err

@@ -7,6 +7,7 @@ import (
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/analysis/standard"
 	"github.com/geange/lucene-go/core/interface/index"
+	"maps"
 	"math"
 	"strconv"
 	"sync"
@@ -79,7 +80,7 @@ type IndexWriter struct {
 	pendingCommit            *SegmentInfos        // set when a commit is pending (after prepareCommit() & before commit())
 	pendingSeqNo             int64
 	pendingCommitChangeCount int64
-	filesToCommit            []string
+	filesToCommit            map[string]struct{}
 	segmentInfos             *SegmentInfos
 	globalFieldNumberMap     *FieldNumbers
 	docWriter                *DocumentsWriter
@@ -93,7 +94,7 @@ type IndexWriter struct {
 	closed              bool
 	closing             bool
 	atomMaybeMerge      *atomic.Bool
-	commitUserData      []map[string]string
+	commitUserData      map[string]string
 	//mergingSegments          *hashset.Set
 	mergeScheduler MergeScheduler
 	//runningAddIndexesMerges  *hashset.Set
@@ -272,7 +273,7 @@ func NewIndexWriter(ctx context.Context, dir store.Directory, conf *IndexWriterC
 		writer.rollbackSegments = writer.segmentInfos.CreateBackupSegmentInfos()
 	}
 
-	writer.commitUserData = []map[string]string{writer.segmentInfos.GetUserData()}
+	writer.commitUserData = writer.segmentInfos.GetUserData()
 	writer.pendingNumDocs.Swap(writer.segmentInfos.TotalMaxDoc())
 
 	// start with previous field numbers, but new FieldInfos
@@ -318,6 +319,9 @@ func NewIndexWriter(ctx context.Context, dir store.Directory, conf *IndexWriterC
 		return nil, err
 	}
 	writer.deleter = deleter
+
+	writer.flushDeletesCount = new(atomic.Int64)
+	writer.boolMaybeMerge = new(atomic.Bool)
 
 	return writer, nil
 }
@@ -491,9 +495,10 @@ func (w *IndexWriter) Commit(ctx context.Context) error {
 
 func (w *IndexWriter) Close() error {
 	if w.config.GetCommitOnClose() {
-		return w.shutdown()
+		return w.shutdown(context.Background())
 	}
-	return w.shutdown()
+	// TODO: rollback
+	return w.shutdown(context.Background())
 }
 
 func (w *IndexWriter) updateDocuments(ctx context.Context, delNode *Node, docs []*document.Document) (int64, error) {
@@ -631,7 +636,7 @@ func (w *IndexWriter) getFieldNumberMap() (*FieldNumbers, error) {
 
 // Gracefully closes (commits, waits for merges), but calls rollback if there's an exc so
 // the IndexWriter is always closed. This is called from close when IndexWriterConfig.commitOnClose is true.
-func (w *IndexWriter) shutdown() error {
+func (w *IndexWriter) shutdown(ctx context.Context) error {
 	if w.pendingCommit != nil {
 		return errors.New("cannot close: prepareCommit was already called with no corresponding call to commit")
 	}
@@ -643,7 +648,7 @@ func (w *IndexWriter) shutdown() error {
 		if err := w.waitForMerges(); err != nil {
 			return err
 		}
-		if _, err := w.commitInternal(w.config.GetMergePolicy()); err != nil {
+		if _, err := w.commitInternal(ctx, w.config.GetMergePolicy()); err != nil {
 			return err
 		}
 	}
@@ -710,7 +715,7 @@ func (w *IndexWriter) doWait() {
 
 }
 
-func (w *IndexWriter) commitInternal(mergePolicy MergePolicy) (int64, error) {
+func (w *IndexWriter) commitInternal(ctx context.Context, mergePolicy MergePolicy) (int64, error) {
 	var seqNo int64
 	var err error
 	if w.pendingCommit == nil {
@@ -722,7 +727,7 @@ func (w *IndexWriter) commitInternal(mergePolicy MergePolicy) (int64, error) {
 		seqNo = w.pendingSeqNo
 	}
 
-	if err := w.finishCommit(); err != nil {
+	if err := w.finishCommit(ctx); err != nil {
 		return 0, err
 	}
 	return seqNo, nil
@@ -833,8 +838,69 @@ func (w *IndexWriter) applyAllDeletesAndUpdates() error {
 	return nil
 }
 
+// Ensures that all changes in the reader-pool are written to disk.
 func (w *IndexWriter) writeReaderPool(writeDeletes bool) error {
-	panic("")
+	if writeDeletes {
+		ok, err := w.readerPool.commit(w.segmentInfos)
+		if err != nil {
+			return err
+		}
+		if ok {
+			if err := w.checkpointNoSIS(); err != nil {
+				return err
+			}
+		}
+	} else {
+		ok, err := w.readerPool.writeAllDocValuesUpdates()
+		if err != nil {
+			return err
+		}
+		if ok {
+			if err := w.checkpoint(); err != nil {
+				return nil
+			}
+		}
+	}
+
+	// now do some best effort to check if a segment is fully deleted
+	toDrop := make([]*SegmentCommitInfo, 0)
+	for _, info := range w.segmentInfos.AsList() {
+		readersAndUpdates, err := w.readerPool.Get(info, false)
+		if err != nil {
+			return err
+		}
+
+		if readersAndUpdates != nil {
+			deleted, err := w.isFullyDeleted(readersAndUpdates)
+			if err != nil {
+				return err
+			}
+
+			if deleted {
+				toDrop = append(toDrop, info)
+			}
+			//if (isFullyDeleted(readersAndUpdates)) {
+			//	toDrop.add(info);
+			//}
+
+		}
+	}
+
+	for _, info := range toDrop {
+		err := w.dropDeletedSegment(info)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(toDrop) != 0 {
+		err := w.checkpoint()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (w *IndexWriter) doAfterFlush() error {
@@ -1068,15 +1134,190 @@ func GetActualMaxDocs() int {
 // Walk through all files referenced by the current segmentInfos and ask the Directory to sync each file,
 // if it wasn't already. If that succeeds, then we prepare a new segments_N file but do not fully commit it.
 func (w *IndexWriter) startCommit(toSync *SegmentInfos) error {
-	panic("")
+	if w.lastCommitChangeCount.Load() > w.changeCount.Load() {
+		return fmt.Errorf("lastCommitChangeCount=%d ,changeCount=%d",
+			w.lastCommitChangeCount, w.changeCount)
+	}
+
+	if w.pendingCommitChangeCount == w.lastCommitChangeCount.Load() {
+		err := w.deleter.DecRef(w.filesToCommit)
+		if err != nil {
+			return err
+		}
+		w.filesToCommit = nil
+		return nil
+	}
+
+	// Exception here means nothing is prepared
+	// (this method unwinds everything it did on
+	// an exception)
+	err := toSync.prepareCommit(context.Background(), w.directory)
+	if err != nil {
+		return err
+	}
+	w.pendingCommit = toSync
+
+	filesToSync, err := toSync.Files(false)
+	err = w.directory.Sync(filesToSync)
+	if err != nil {
+		return err
+	}
+
+	w.segmentInfos.UpdateGeneration(toSync)
+	return nil
 }
 
-func (w *IndexWriter) finishCommit() error {
-	panic("")
+func (w *IndexWriter) finishCommit(ctx context.Context) error {
+	if w.pendingCommit != nil {
+		commitFiles := w.filesToCommit
+
+		err := w.deleter.DecRef(commitFiles)
+		if err != nil {
+			return err
+		}
+
+		_, err = w.pendingCommit.finishCommit(ctx, w.directory)
+		if err != nil {
+			return err
+		}
+
+		// we committed, if anything goes wrong after this, we are screwed and it's a tragedy:
+		//commitCompleted := true
+
+		// NOTE: don't use this.checkpoint() here, because
+		// we do not want to increment changeCount:
+		err = w.deleter.Checkpoint(w.pendingCommit, true)
+		if err != nil {
+			return err
+		}
+
+		// Carry over generation to our master SegmentInfos:
+		w.segmentInfos.UpdateGeneration(w.pendingCommit)
+
+		w.lastCommitChangeCount.Store(w.pendingCommitChangeCount)
+		w.rollbackSegments = w.pendingCommit.CreateBackupSegmentInfos()
+
+		w.pendingCommit = nil
+		w.filesToCommit = nil
+	}
+	return nil
 }
 
 func (w *IndexWriter) prepareCommitInternal() (int64, error) {
-	panic("")
+	err := w.doBeforeFlush()
+	if err != nil {
+		return 0, err
+	}
+
+	var anyChanges bool
+
+	seqNo := w.docWriter.flushAllThreads()
+	if seqNo < 0 {
+		anyChanges = true
+		seqNo = -seqNo
+	}
+
+	if anyChanges == false {
+		// prevent double increment since docWriter#doFlush increments the flushcount
+		// if we flushed anything.
+		w.flushCount.Add(1)
+	}
+
+	err = w.publishFlushedSegments(true)
+	if err != nil {
+		return 0, err
+	}
+	// cannot pass triggerMerges=true here else it can lead to deadlock:
+	err = w.processEvents(false)
+	if err != nil {
+		return 0, err
+	}
+
+	err = w.applyAllDeletesAndUpdates()
+	if err != nil {
+		return 0, err
+	}
+
+	err = w.writeReaderPool(true)
+	if err != nil {
+		return 0, err
+	}
+
+	if w.changeCount.Load() != w.lastCommitChangeCount.Load() {
+		// There are changes to commit, so we will write a new segments_N in startCommit.
+		// The act of committing is itself an NRT-visible change (an NRT reader that was
+		// just opened before this should see it on reopen) so we increment changeCount
+		// and segments version so a future NRT reopen will see the change:
+		w.changeCount.Add(1)
+		w.segmentInfos.Changed()
+	}
+
+	if w.commitUserData != nil {
+		userData := maps.Clone(w.commitUserData)
+		w.segmentInfos.SetUserData(userData, false)
+	}
+
+	// Must clone the segmentInfos while we still
+	// hold fullFlushLock and while sync'd so that
+	// no partial changes (eg a delete w/o
+	// corresponding add from an updateDocument) can
+	// sneak into the commit point:
+	toCommit := w.segmentInfos.Clone()
+	w.pendingCommitChangeCount = w.changeCount.Load()
+	// This protects the segmentInfos we are now going
+	// to commit.  This is important in case, eg, while
+	// we are trying to sync all referenced files, a
+	// merge completes which would otherwise have
+	// removed the files we are now syncing.
+	files, err := toCommit.Files(false)
+	if err != nil {
+		return 0, err
+	}
+	err = w.deleter.IncRefFiles(files)
+	if err != nil {
+		return 0, err
+	}
+	if anyChanges {
+		// we can safely call preparePointInTimeMerge since writeReaderPool(true) above wrote all
+		// necessary files to disk and checkpointed them.
+		//pointInTimeMerges = w.preparePointInTimeMerge(toCommit, stopAddingMergedSegments::get, MergeTrigger.COMMIT, sci->{});
+	}
+
+	// Done: finish the full flush!
+	err = w.docWriter.finishFullFlush(true)
+	if err != nil {
+		return 0, err
+	}
+	err = w.doAfterFlush()
+	if err != nil {
+		return 0, err
+	}
+
+	// do this after handling any pointInTimeMerges since the files will have changed if any merges
+	// did complete
+	filesToCommit, err := toCommit.Files(false)
+	if err != nil {
+		return 0, err
+	}
+	w.filesToCommit = filesToCommit
+
+	if anyChanges {
+		w.boolMaybeMerge.Store(true)
+	}
+	err = w.startCommit(toCommit)
+	if err != nil {
+		return 0, err
+	}
+	if w.pendingCommit == nil {
+		return -1, nil
+	} else {
+		return seqNo, nil
+	}
+}
+
+type KV struct {
+	Key   string
+	Value string
 }
 
 func (w *IndexWriter) publishFrozenUpdates(updates *FrozenBufferedUpdates) int64 {
@@ -1088,6 +1329,26 @@ func (w *IndexWriter) publishFlushedSegment(info *SegmentCommitInfo, infos index
 	updates *FrozenBufferedUpdates, updates2 *FrozenBufferedUpdates, sortMap *DocMap) error {
 
 	panic("")
+}
+
+func (w *IndexWriter) checkpointNoSIS() error {
+	panic("")
+}
+
+func (w *IndexWriter) checkpoint() error {
+	panic("")
+}
+
+func (w *IndexWriter) dropDeletedSegment(info *SegmentCommitInfo) error {
+	panic("")
+}
+
+func (w *IndexWriter) isFullyDeleted(readersAndUpdates *ReadersAndUpdates) (bool, error) {
+	isFullyDeleted, err := readersAndUpdates.IsFullyDeleted()
+	if err != nil {
+		return false, err
+	}
+	return isFullyDeleted, nil
 }
 
 // ReaderWarmer

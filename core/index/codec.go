@@ -118,7 +118,7 @@ func (*BaseCompoundDirectory) CreateTempOutput(ctx context.Context, prefix, suff
 	return nil, ErrUnsupportedOperation
 }
 
-func (*BaseCompoundDirectory) Sync(ctx context.Context, names []string) error {
+func (*BaseCompoundDirectory) Sync(names map[string]struct{}) error {
 	return ErrUnsupportedOperation
 }
 

@@ -3,6 +3,7 @@ package index
 import (
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 type LiveIndexWriterConfig interface {
@@ -204,7 +205,7 @@ func newLiveIndexWriterConfig(analyzer analysis.Analyzer, codec Codec, similarit
 		delPolicy:                   NewKeepOnlyLastCommitDeletionPolicy(),
 		commit:                      nil,
 		openMode:                    CREATE_OR_APPEND,
-		createdVersionMajor:         0,
+		createdVersionMajor:         int(version.Last.Major()),
 		similarity:                  similarity,
 		mergeScheduler:              NewNoMergeScheduler(),
 		indexingChain:               defaultIndexingChainInstance,

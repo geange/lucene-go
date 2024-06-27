@@ -6,6 +6,7 @@ import (
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/util/hash"
 )
 
 // BufferedUpdates
@@ -50,6 +51,7 @@ func NewBufferedUpdates(options ...BufferedUpdatesOption) *BufferedUpdates {
 		numFieldUpdates: new(atomic.Int64),
 		deleteTerms:     treemap.NewWith[index.Term, int](index.TermCompare),
 		segmentName:     opt.segmentName,
+		deleteQueries:   treemap.NewWith[search.Query, int](hash.Compare[search.Query]),
 	}
 }
 

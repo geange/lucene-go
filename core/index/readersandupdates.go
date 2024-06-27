@@ -152,3 +152,19 @@ func (r *ReadersAndUpdates) GetReader(ctx context.Context, ioContext *store.IOCo
 func (r *ReadersAndUpdates) Release(sr *SegmentReader) error {
 	return sr.DecRef()
 }
+
+func (r *ReadersAndUpdates) writeLiveDocs(directory store.Directory) (bool, error) {
+	panic("")
+}
+
+func (r *ReadersAndUpdates) writeFieldUpdates(directory store.Directory, numbers *FieldNumbers, supplier int64) (bool, error) {
+	panic("")
+}
+
+func (r *ReadersAndUpdates) IsFullyDeleted() (bool, error) {
+	return r.pendingDeletes.IsFullyDeleted(nil, r.getLatestReader)
+}
+
+func (r *ReadersAndUpdates) getLatestReader() CodecReader {
+	panic("")
+}

@@ -76,6 +76,7 @@ func NewDocumentsWriter(flushNotifications FlushNotifications, indexCreatedVersi
 		pendingChangesInCurrentFullFlush: false,
 		perThreadPool:                    nil,
 		flushControl: &DocumentsWriterFlushControl{
+			flushDeletes: new(atomic.Bool),
 			perThread: NewDocumentsWriterPerThread(indexCreatedVersionMajor,
 				segmentName, directoryOrig,
 				directory, config, deleteQueue, infos,

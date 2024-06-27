@@ -1,6 +1,8 @@
 package index
 
 import (
+	"context"
+
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
@@ -15,10 +17,12 @@ type PendingDeletes interface {
 	// if the document was already deleted.
 	Delete(docID int) (bool, error)
 
-	// GetLiveDocs Returns a snapshot of the current live docs.
+	// GetLiveDocs
+	// Returns a snapshot of the current live docs.
 	GetLiveDocs() util.Bits
 
-	// GetHardLiveDocs Returns a snapshot of the hard live docs.
+	// GetHardLiveDocs
+	// Returns a snapshot of the hard live docs.
 	GetHardLiveDocs() util.Bits
 
 	// NumPendingDeletes
@@ -29,31 +33,54 @@ type PendingDeletes interface {
 	// Called once a new reader is opened for this segment ie. when deletes or updates are applied.
 	OnNewReader(reader CodecReader, info *SegmentCommitInfo) error
 
-	// DropChanges Resets the pending docs
+	// DropChanges
+	// Resets the pending docs
 	DropChanges()
 
-	// WriteLiveDocs Writes the live docs to disk and returns true if any new docs were written.
-	WriteLiveDocs(dir store.Directory) (bool, error)
+	// WriteLiveDocs
+	// Writes the live docs to disk and returns true if any new docs were written.
+	WriteLiveDocs(ctx context.Context, dir store.Directory) (bool, error)
 
 	// IsFullyDeleted
 	// Returns true iff the segment represented by this PendingDeletes is fully deleted
-	IsFullyDeleted(readerIOSupplier func() CodecReader) (bool, error)
+	IsFullyDeleted(ctx context.Context, readerIOSupplier func() CodecReader) (bool, error)
 
-	// OnDocValuesUpdate Called for every field update for the given field at flush time
-	// Params: 	info – the field info of the field that's updated
-	//			iterator – the values to apply
+	// OnDocValuesUpdate
+	// Called for every field update for the given field at flush time
+	// info: the field info of the field that's updated
+	// iterator: the values to apply
 	OnDocValuesUpdate(info *document.FieldInfo, iterator DocValuesFieldUpdatesIterator)
 
+	// NeedsRefresh
+	// Returns true if the given reader needs to be refreshed in order to see the latest deletes
+	NeedsRefresh(reader CodecReader) bool
+
+	// GetDelCount
+	// Returns the number of deleted docs in the segment.
 	GetDelCount() int
+
+	// NumDocs
+	// Returns the number of live documents in this segment
+	NumDocs() (int, error)
+
+	// MustInitOnDelete
+	// Returns true if we have to initialize this PendingDeletes before delete(int);
+	// otherwise this PendingDeletes is ready to accept deletes. A PendingDeletes can
+	// be initialized by providing it a reader via onNewReader(CodecReader, SegmentCommitInfo).
+	MustInitOnDelete() bool
 }
 
-// PendingDeletesDefault
+// pendingDeletes
 // This class handles accounting and applying pending deletes for live segment readers
-type PendingDeletesDefault struct {
+type pendingDeletes struct {
 	info *SegmentCommitInfo
 
 	// Read-only live docs, null until live docs are initialized or if all docs are alive
 	liveDocs util.Bits
+
+	// Writeable live docs, null if this instance is not ready to accept writes, in which
+	// case getMutableBits needs to be called
+	writeableLiveDocs *bitset.BitSet
 
 	// Writeable live docs, null if this instance is not ready to accept writes, in which
 	// case getMutableBits needs to be called
@@ -62,32 +89,69 @@ type PendingDeletesDefault struct {
 	liveDocsInitialized bool
 }
 
-func (p *PendingDeletesDefault) GetMutableBits() *bitset.BitSet {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) NeedsRefresh(reader CodecReader) bool {
+	return reader.GetLiveDocs() != p.GetLiveDocs() || reader.NumDeletedDocs() != p.GetDelCount()
 }
 
-func (p *PendingDeletesDefault) Delete(docID int) (bool, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) NumDocs() (int, error) {
+	maxDoc, err := p.info.info.MaxDoc()
+	if err != nil {
+		return 0, err
+	}
+	delCount := p.GetDelCount()
+	return maxDoc - delCount, nil
 }
 
-func (p *PendingDeletesDefault) GetLiveDocs() util.Bits {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) MustInitOnDelete() bool {
+	return false
 }
 
-func (p *PendingDeletesDefault) GetHardLiveDocs() util.Bits {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) GetMutableBits() *bitset.BitSet {
+	// if we pull mutable bits but we haven't been initialized something is completely off.
+	// this means we receive deletes without having the bitset that is on-disk ready to be cloned
+
+	if p.writeableLiveDocs == nil {
+		// Copy on write: this means we've cloned a
+		// SegmentReader sharing the current liveDocs
+		// instance; must now make a private clone so we can
+		// change it:
+		if p.liveDocs != nil {
+			p.writeableLiveDocs = p.liveDocs.(*bitset.BitSet).Clone()
+		} else {
+			doc, _ := p.info.info.MaxDoc()
+			p.writeableLiveDocs = bitset.New(uint(doc))
+			p.writeableLiveDocs.FlipRange(0, uint(doc))
+		}
+		p.liveDocs = p.writeableLiveDocs
+	}
+	return p.writeableLiveDocs
 }
 
-func (p *PendingDeletesDefault) NumPendingDeletes() int {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) Delete(docID int) (bool, error) {
+	mutableBits := p.GetMutableBits()
+
+	i := uint(docID)
+	didDelete := mutableBits.Test(i)
+	if didDelete {
+		mutableBits.Clear(i)
+		p.pendingDeleteCount++
+	}
+	return didDelete, nil
 }
 
-func (p *PendingDeletesDefault) OnNewReader(reader CodecReader, info *SegmentCommitInfo) error {
+func (p *pendingDeletes) GetLiveDocs() util.Bits {
+	return p.liveDocs
+}
+
+func (p *pendingDeletes) GetHardLiveDocs() util.Bits {
+	return p.GetLiveDocs()
+}
+
+func (p *pendingDeletes) NumPendingDeletes() int {
+	return p.pendingDeleteCount
+}
+
+func (p *pendingDeletes) OnNewReader(reader CodecReader, info *SegmentCommitInfo) error {
 	if p.liveDocsInitialized == false {
 		//assert writeableLiveDocs == null;
 		if reader.HasDeletions() {
@@ -103,46 +167,70 @@ func (p *PendingDeletesDefault) OnNewReader(reader CodecReader, info *SegmentCom
 	return nil
 }
 
-func (p *PendingDeletesDefault) DropChanges() {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) DropChanges() {
+	p.pendingDeleteCount = 0
 }
 
-func (p *PendingDeletesDefault) WriteLiveDocs(dir store.Directory) (bool, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) WriteLiveDocs(ctx context.Context, dir store.Directory) (bool, error) {
+	if p.pendingDeleteCount == 0 {
+		return false, nil
+	}
+
+	liveDocs := p.liveDocs
+
+	// Do this so we can delete any created files on
+	// exception; this saves all codecs from having to do
+	// it:
+	trackingDir := store.NewTrackingDirectoryWrapper(dir)
+
+	codec := p.info.info.GetCodec()
+	err := codec.LiveDocsFormat().WriteLiveDocs(ctx, liveDocs, trackingDir, p.info, p.pendingDeleteCount, store.DEFAULT)
+	if err != nil {
+		return false, err
+	}
+
+	// If we hit an exc in the line above (eg disk full)
+	// then info's delGen remains pointing to the previous
+	// (successfully written) del docs:
+	p.info.AdvanceDelGen()
+	p.info.SetDelCount(p.info.GetDelCount() + p.pendingDeleteCount)
+	p.DropChanges()
+	return true, nil
 }
 
-func (p *PendingDeletesDefault) IsFullyDeleted(readerIOSupplier func() CodecReader) (bool, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) IsFullyDeleted(ctx context.Context, readerIOSupplier func() CodecReader) (bool, error) {
+	delCount := p.GetDelCount()
+	maxDoc, err := p.info.info.MaxDoc()
+	if err != nil {
+		return false, err
+	}
+	return delCount == maxDoc, nil
 }
 
-func (p *PendingDeletesDefault) OnDocValuesUpdate(info *document.FieldInfo, iterator DocValuesFieldUpdatesIterator) {
-	//TODO implement me
-	panic("implement me")
+func (p *pendingDeletes) OnDocValuesUpdate(info *document.FieldInfo, iterator DocValuesFieldUpdatesIterator) {
+	return
 }
 
-func (p *PendingDeletesDefault) GetDelCount() int {
+func (p *pendingDeletes) GetDelCount() int {
 	delCount := p.info.GetDelCount() + p.info.GetSoftDelCount() + p.NumPendingDeletes()
 	return delCount
 }
 
-func NewPendingDeletes(reader *SegmentReader, info *SegmentCommitInfo) *PendingDeletesDefault {
-	pd := NewPendingDeletesV2(info, reader.GetLiveDocs(), true)
+func NewPendingDeletes(reader *SegmentReader, info *SegmentCommitInfo) PendingDeletes {
+	pd := NewPendingDeletesV2(info, reader.GetLiveDocs(), true).(*pendingDeletes)
 	pd.pendingDeleteCount = reader.NumDeletedDocs() - info.GetDelCount()
 	return pd
 }
 
-func NewPendingDeletesV1(info *SegmentCommitInfo) *PendingDeletesDefault {
+func NewPendingDeletesV1(info *SegmentCommitInfo) PendingDeletes {
 	return NewPendingDeletesV2(info, nil, info.HasDeletions() == false)
 	// if we don't have deletions we can mark it as initialized since we might receive deletes on a segment
 	// without having a reader opened on it ie. after a merge when we apply the deletes that IW received while merging.
 	// For segments that were published we enforce a reader in the BufferedUpdatesStream.SegmentState ctor
 }
 
-func NewPendingDeletesV2(info *SegmentCommitInfo, liveDocs util.Bits, liveDocsInitialized bool) *PendingDeletesDefault {
-	return &PendingDeletesDefault{
+func NewPendingDeletesV2(info *SegmentCommitInfo, liveDocs util.Bits, liveDocsInitialized bool) PendingDeletes {
+	return &pendingDeletes{
 		info:                info,
 		liveDocs:            liveDocs,
 		pendingDeleteCount:  0,
