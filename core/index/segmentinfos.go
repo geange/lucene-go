@@ -518,11 +518,10 @@ func ReadCommitFromChecksumIndexInput(ctx context.Context, directory store.Direc
 		return nil, err
 	}
 	if int(magic) != utils.CODEC_MAGIC {
-		//fmt.Println(magic)
 		return nil, errors.New("indexFormat Too Old Exception")
 	}
 
-	format, err = utils.CheckHeaderNoMagic(input, "segments", VERSION_70, VERSION_CURRENT)
+	format, err = utils.CheckHeaderNoMagic(ctx, input, "segments", VERSION_70, VERSION_CURRENT)
 	if err != nil {
 		return nil, err
 	}
@@ -888,9 +887,8 @@ func (f *FindSegmentsFile[T]) SetFuncDoBody(fnDoBody func(ctx context.Context, s
 }
 
 // GetLastCommitGeneration
-// Get the generation of the most recent commit to the list of index files
-// (N in the segments_N file).
-// Params: files – -- array of file names to check
+// Get the generation of the most recent commit to the list of index files (N in the segments_N file).
+// files: array of file names to check
 func GetLastCommitGeneration(files []string) (int64, error) {
 	maxGen := int64(-1)
 	for _, file := range files {
