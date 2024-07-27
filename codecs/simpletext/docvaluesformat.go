@@ -3,6 +3,7 @@ package simpletext
 import (
 	"context"
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 )
 
 var _ index.DocValuesFormat = &DocValuesFormat{}
@@ -106,10 +107,10 @@ func (s *DocValuesFormat) GetName() string {
 	return s.name
 }
 
-func (s *DocValuesFormat) FieldsConsumer(ctx context.Context, state *index.SegmentWriteState) (index.DocValuesConsumer, error) {
+func (s *DocValuesFormat) FieldsConsumer(ctx context.Context, state *index.SegmentWriteState) (index2.DocValuesConsumer, error) {
 	return NewDocValuesWriter(nil, state, "dat")
 }
 
-func (s *DocValuesFormat) FieldsProducer(ctx context.Context, state *index.SegmentReadState) (index.DocValuesProducer, error) {
+func (s *DocValuesFormat) FieldsProducer(ctx context.Context, state *index.SegmentReadState) (index2.DocValuesProducer, error) {
 	return NewDocValuesReader(ctx, state, "dat")
 }

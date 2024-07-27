@@ -20,13 +20,13 @@ type FieldsConsumer interface {
 	//	 seen the first term or document.
 	// * The provided Fields instance is limited: you cannot call any methods that return statistics/counts;
 	//	 you cannot pass a non-null live docs when pulling docs/positions enums.
-	Write(ctx context.Context, fields index.Fields, norms NormsProducer) error
+	Write(ctx context.Context, fields index.Fields, norms index.NormsProducer) error
 
 	// Merge
 	// Merges in the fields from the readers in mergeState. The default implementation skips and
 	// maps around deleted documents, and calls write(Fields, NormsProducer). Implementations can override
 	// this method for more sophisticated merging (bulk-byte copying, etc).
-	Merge(ctx context.Context, mergeState *MergeState, norms NormsProducer) error
+	Merge(ctx context.Context, mergeState *MergeState, norms index.NormsProducer) error
 }
 
 type BaseFieldsConsumer struct {
@@ -45,24 +45,6 @@ type BaseFieldsConsumer struct {
 // Merges in the fields from the readers in mergeState. The default implementation skips and
 // maps around deleted documents, and calls write(Fields, NormsProducer). Implementations can override
 // this method for more sophisticated merging (bulk-byte copying, etc).
-func (f *BaseFieldsConsumer) Merge(ctx context.Context, mergeState *MergeState, norms NormsProducer) error {
+func (f *BaseFieldsConsumer) Merge(ctx context.Context, mergeState *MergeState, norms index.NormsProducer) error {
 	return nil
-}
-
-// FieldsProducer Sole constructor. (For invocation by subclass constructors, typically implicit.)
-type FieldsProducer interface {
-	io.Closer
-
-	index.Fields
-
-	// CheckIntegrity
-	// Checks consistency of this reader.
-	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum item against large
-	// data files.
-	CheckIntegrity() error
-
-	// GetMergeInstance Returns an instance optimized for merging. This instance may only be consumed in the
-	// thread that called getMergeInstance().
-	// The default implementation returns this
-	GetMergeInstance() FieldsProducer
 }

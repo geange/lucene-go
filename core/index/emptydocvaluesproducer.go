@@ -6,7 +6,7 @@ import (
 	"github.com/geange/lucene-go/core/interface/index"
 )
 
-var _ DocValuesProducer = &EmptyDocValuesProducer{}
+var _ index.DocValuesProducer = &EmptyDocValuesProducer{}
 
 type EmptyDocValuesProducer struct {
 	FnGetNumeric       func(ctx context.Context, field *document.FieldInfo) (index.NumericDocValues, error)
@@ -46,6 +46,6 @@ func (e *EmptyDocValuesProducer) CheckIntegrity() error {
 	return e.FnCheckIntegrity()
 }
 
-func (e *EmptyDocValuesProducer) GetMergeInstance() DocValuesProducer {
+func (e *EmptyDocValuesProducer) GetMergeInstance() index.DocValuesProducer {
 	return e
 }

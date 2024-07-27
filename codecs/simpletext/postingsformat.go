@@ -3,6 +3,7 @@ package simpletext
 import (
 	"context"
 	"github.com/geange/lucene-go/core/index"
+	iindex "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -31,7 +32,7 @@ func (s *PostingsFormat) FieldsConsumer(ctx context.Context, state *index.Segmen
 	return NewFieldsWriter(state)
 }
 
-func (s *PostingsFormat) FieldsProducer(ctx context.Context, state *index.SegmentReadState) (index.FieldsProducer, error) {
+func (s *PostingsFormat) FieldsProducer(ctx context.Context, state *index.SegmentReadState) (iindex.FieldsProducer, error) {
 	return NewSimpleTextFieldsReader(state)
 }
 

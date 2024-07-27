@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/lucene-go/codecs/utils"
@@ -13,7 +14,7 @@ import (
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
-var _ index.PointsReader = &PointsReader{}
+var _ index2.PointsReader = &PointsReader{}
 
 type PointsReader struct {
 	dataIn    store.IndexInput
@@ -96,7 +97,7 @@ func (s *PointsReader) GetValues(ctx context.Context, field string) (types.Point
 	return s.readers[field], nil
 }
 
-func (s *PointsReader) GetMergeInstance() index.PointsReader {
+func (s *PointsReader) GetMergeInstance() index2.PointsReader {
 	return s
 }
 

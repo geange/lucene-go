@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"strconv"
 
@@ -12,20 +11,21 @@ import (
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/index"
+	iindex "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/fst"
 )
 
 var (
-	_ index.FieldsProducer = &FieldsReader{}
-	_ index2.Fields        = &FieldsReader{}
+	_ iindex.FieldsProducer = &FieldsReader{}
+	_ iindex.Fields         = &FieldsReader{}
 )
 
 type FieldsReader struct {
 	fields     *treemap.Map[string, int64]
 	in         store.IndexInput
-	fieldInfos index2.FieldInfos
+	fieldInfos iindex.FieldInfos
 	maxDoc     int
 	termsCache map[string]*simpleTextTerms
 }
@@ -34,7 +34,7 @@ func (s *FieldsReader) Names() []string {
 	return s.fields.Keys()
 }
 
-func (s *FieldsReader) Terms(field string) (index2.Terms, error) {
+func (s *FieldsReader) Terms(field string) (iindex.Terms, error) {
 	v, ok := s.termsCache[field]
 	if !ok {
 		fp, ok := s.fields.Get(field)
@@ -113,11 +113,11 @@ func (s *FieldsReader) CheckIntegrity() error {
 	return nil
 }
 
-func (s *FieldsReader) GetMergeInstance() index.FieldsProducer {
+func (s *FieldsReader) GetMergeInstance() iindex.FieldsProducer {
 	return s
 }
 
-var _ index2.Terms = &simpleTextTerms{}
+var _ iindex.Terms = &simpleTextTerms{}
 
 type simpleTextTerms struct {
 	*index.BaseTerms
@@ -233,7 +233,7 @@ func (s *FieldsReader) loadTerms(ctx context.Context, term *simpleTextTerms) err
 	return err
 }
 
-func (f *simpleTextTerms) Iterator() (index2.TermsEnum, error) {
+func (f *simpleTextTerms) Iterator() (iindex.TermsEnum, error) {
 	if f.fst != nil {
 		return f.r.newSimpleTextTermsEnum(f.fst, f.fieldInfo.GetIndexOptions())
 	}
@@ -272,7 +272,7 @@ func (f *simpleTextTerms) HasPayloads() bool {
 	return f.fieldInfo.HasPayloads()
 }
 
-var _ index2.TermsEnum = &simpleTextTermsEnum{}
+var _ iindex.TermsEnum = &simpleTextTermsEnum{}
 
 type simpleTextTermsEnum struct {
 	*index.BaseTermsEnum
@@ -348,14 +348,14 @@ func (t *simpleTextTermsEnum) Next(ctx context.Context) ([]byte, error) {
 	}
 }
 
-func (t *simpleTextTermsEnum) SeekCeil(ctx context.Context, text []byte) (index2.SeekStatus, error) {
+func (t *simpleTextTermsEnum) SeekCeil(ctx context.Context, text []byte) (iindex.SeekStatus, error) {
 	result, found, err := t.fstEnum.SeekCeil(ctx, text)
 	if err != nil {
 		return 0, err
 	}
 
 	if !found {
-		return index2.SEEK_STATUS_END, nil
+		return iindex.SEEK_STATUS_END, nil
 	}
 
 	output := result.GetOutput()
@@ -368,9 +368,9 @@ func (t *simpleTextTermsEnum) SeekCeil(ctx context.Context, text []byte) (index2
 	}
 
 	if bytes.Equal(result.GetInput(), text) {
-		return index2.SEEK_STATUS_FOUND, nil
+		return iindex.SEEK_STATUS_FOUND, nil
 	} else {
-		return index2.SEEK_STATUS_NOT_FOUND, nil
+		return iindex.SEEK_STATUS_NOT_FOUND, nil
 	}
 }
 
@@ -397,7 +397,7 @@ func (t *simpleTextTermsEnum) TotalTermFreq() (int64, error) {
 	return t.totalTermFreq, nil
 }
 
-func (t *simpleTextTermsEnum) Postings(reuse index2.PostingsEnum, flags int) (index2.PostingsEnum, error) {
+func (t *simpleTextTermsEnum) Postings(reuse iindex.PostingsEnum, flags int) (iindex.PostingsEnum, error) {
 	hasPositions := t.indexOptions >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
 	if hasPositions && index.FeatureRequested(flags, index.POSTINGS_ENUM_POSITIONS) {
 		var docsAndPositionsEnum *simpleTextPostingsEnum
@@ -421,7 +421,7 @@ func (t *simpleTextTermsEnum) Postings(reuse index2.PostingsEnum, flags int) (in
 	return docsEnum.Reset(t.docsStart, t.indexOptions == document.INDEX_OPTIONS_DOCS, t.docFreq, t.skipPointer)
 }
 
-func (t *simpleTextTermsEnum) Impacts(flags int) (index2.ImpactsEnum, error) {
+func (t *simpleTextTermsEnum) Impacts(flags int) (iindex.ImpactsEnum, error) {
 	postings, err := t.Postings(nil, flags)
 	if err != nil {
 		return nil, err
@@ -432,10 +432,10 @@ func (t *simpleTextTermsEnum) Impacts(flags int) (index2.ImpactsEnum, error) {
 		return index.NewSlowImpactsEnum(postings), nil
 	}
 
-	return postings.(index2.ImpactsEnum), nil
+	return postings.(iindex.ImpactsEnum), nil
 }
 
-var _ index2.ImpactsEnum = &simpleTextPostingsEnum{}
+var _ iindex.ImpactsEnum = &simpleTextPostingsEnum{}
 
 type simpleTextPostingsEnum struct {
 	inStart store.IndexInput
@@ -520,12 +520,12 @@ func (s *simpleTextPostingsEnum) AdvanceShallow(target int) error {
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) GetImpacts() (index2.Impacts, error) {
+func (s *simpleTextPostingsEnum) GetImpacts() (iindex.Impacts, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions document.IndexOptions, docFreq int, skipPointer int64) index2.PostingsEnum {
+func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions document.IndexOptions, docFreq int, skipPointer int64) iindex.PostingsEnum {
 
 	s.nextDocStart = fp
 	s.docID = -1
@@ -542,7 +542,7 @@ func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions document.IndexOpti
 	return s
 }
 
-var _ index2.ImpactsEnum = &simpleTextDocsEnum{}
+var _ iindex.ImpactsEnum = &simpleTextDocsEnum{}
 
 type simpleTextDocsEnum struct {
 	inStart     store.IndexInput
@@ -628,7 +628,7 @@ func (s *simpleTextDocsEnum) AdvanceShallow(target int) error {
 	return nil
 }
 
-func (s *simpleTextDocsEnum) GetImpacts() (index2.Impacts, error) {
+func (s *simpleTextDocsEnum) GetImpacts() (iindex.Impacts, error) {
 	err := s.AdvanceShallow(s.docID)
 	if err != nil {
 		return nil, err
@@ -640,7 +640,7 @@ func (s *simpleTextDocsEnum) CanReuse(in store.IndexInput) bool {
 	return in == s.inStart
 }
 
-func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPointer int64) (index2.PostingsEnum, error) {
+func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPointer int64) (iindex.PostingsEnum, error) {
 	_, err := s.in.Seek(fp, io.SeekStart)
 	if err != nil {
 		return nil, err

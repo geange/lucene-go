@@ -22,11 +22,11 @@ type SegmentCoreReaders struct {
 	// SegmentReaders:
 
 	ref                   *atomic.Int64
-	fields                FieldsProducer
-	normsProducer         NormsProducer
-	fieldsReaderOrig      StoredFieldsReader
+	fields                index.FieldsProducer
+	normsProducer         index.NormsProducer
+	fieldsReaderOrig      index.StoredFieldsReader
 	termVectorsReaderOrig TermVectorsReader
-	pointsReader          PointsReader
+	pointsReader          index.PointsReader
 	cfsReader             CompoundDirectory
 	segment               string
 
@@ -38,7 +38,7 @@ type SegmentCoreReaders struct {
 	// Thingy class holding fieldsReader, termVectorsReader,
 	// normsProducer
 
-	fieldsReaderLocal   StoredFieldsReader
+	fieldsReaderLocal   index.StoredFieldsReader
 	termVectorsLocal    TermVectorsReader
 	coreClosedListeners ClosedListener
 }

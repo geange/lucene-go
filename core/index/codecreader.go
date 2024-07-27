@@ -14,7 +14,7 @@ type CodecReader interface {
 	// GetFieldsReader
 	// Expert: retrieve thread-private StoredFieldsReader
 	// lucene.internal
-	GetFieldsReader() StoredFieldsReader
+	GetFieldsReader() index.StoredFieldsReader
 
 	// GetTermVectorsReader
 	// Expert: retrieve thread-private TermVectorsReader
@@ -24,33 +24,33 @@ type CodecReader interface {
 	// GetNormsReader
 	// Expert: retrieve underlying NormsProducer
 	// lucene.internal
-	GetNormsReader() NormsProducer
+	GetNormsReader() index.NormsProducer
 
 	// GetDocValuesReader
 	// Expert: retrieve underlying DocValuesProducer
 	// lucene.internal
-	GetDocValuesReader() DocValuesProducer
+	GetDocValuesReader() index.DocValuesProducer
 
 	// GetPostingsReader
 	// Expert: retrieve underlying FieldsProducer
 	// lucene.internal
-	GetPostingsReader() FieldsProducer
+	GetPostingsReader() index.FieldsProducer
 
 	// GetPointsReader
 	// Expert: retrieve underlying PointsReader
 	// lucene.internal
-	GetPointsReader() PointsReader
+	GetPointsReader() index.PointsReader
 }
 
 type CodecReaderSPI interface {
-	GetFieldsReader() StoredFieldsReader
+	GetFieldsReader() index.StoredFieldsReader
 	GetTermVectorsReader() TermVectorsReader
-	GetPostingsReader() FieldsProducer
+	GetPostingsReader() index.FieldsProducer
 	GetFieldInfos() index.FieldInfos
 	MaxDoc() int
-	GetDocValuesReader() DocValuesProducer
-	GetNormsReader() NormsProducer
-	GetPointsReader() PointsReader
+	GetDocValuesReader() index.DocValuesProducer
+	GetNormsReader() index.NormsProducer
+	GetPointsReader() index.PointsReader
 }
 
 type BaseCodecReader struct {

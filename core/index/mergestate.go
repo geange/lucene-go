@@ -20,16 +20,16 @@ type MergeState struct {
 	MergeFieldInfos index.FieldInfos
 
 	// Stored field producers being merged
-	StoredFieldsReaders []StoredFieldsReader
+	StoredFieldsReaders []index.StoredFieldsReader
 
 	// Term vector producers being merged
 	TermVectorsReaders []TermVectorsReader
 
 	// Norms producers being merged
-	NormsProducers []NormsProducer
+	NormsProducers []index.NormsProducer
 
 	// DocValues producers being merged
-	DocValuesProducers []DocValuesProducer
+	DocValuesProducers []index.DocValuesProducer
 
 	// FieldInfos being merged
 	FieldInfos []index.FieldInfos
@@ -38,10 +38,10 @@ type MergeState struct {
 	LiveDocs []util.Bits
 
 	// Postings to merge
-	FieldsProducers []FieldsProducer
+	FieldsProducers []index.FieldsProducer
 
 	// Point readers to merge
-	PointsReaders []PointsReader
+	PointsReaders []index.PointsReader
 
 	// Max docs per reader
 	MaxDocs []int
@@ -60,14 +60,14 @@ func NewMergeState(readers []CodecReader, segmentInfo *SegmentInfo) (*MergeState
 	numReaders := len(readers)
 
 	state := MergeState{
-		StoredFieldsReaders: make([]StoredFieldsReader, numReaders),
+		StoredFieldsReaders: make([]index.StoredFieldsReader, numReaders),
 		TermVectorsReaders:  make([]TermVectorsReader, numReaders),
-		NormsProducers:      make([]NormsProducer, numReaders),
-		DocValuesProducers:  make([]DocValuesProducer, numReaders),
+		NormsProducers:      make([]index.NormsProducer, numReaders),
+		DocValuesProducers:  make([]index.DocValuesProducer, numReaders),
 		FieldInfos:          make([]index.FieldInfos, numReaders),
 		LiveDocs:            make([]util.Bits, numReaders),
-		FieldsProducers:     make([]FieldsProducer, numReaders),
-		PointsReaders:       make([]PointsReader, numReaders),
+		FieldsProducers:     make([]index.FieldsProducer, numReaders),
+		PointsReaders:       make([]index.PointsReader, numReaders),
 		MaxDocs:             make([]int, numReaders),
 	}
 

@@ -32,7 +32,7 @@ var (
 	DOC_VALUES_ORDPATTERN = []byte("  ordpattern ")
 )
 
-var _ index.DocValuesConsumer = &DocValuesWriter{}
+var _ index2.DocValuesConsumer = &DocValuesWriter{}
 
 type DocValuesWriter struct {
 	data       store.IndexOutput
@@ -61,7 +61,7 @@ func NewDocValuesWriter(ctx context.Context, state *index.SegmentWriteState, ext
 	}, nil
 }
 
-func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer index2.DocValuesProducer) error {
 	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 	return nil
 }
 
-func (s *DocValuesWriter) AddBinaryField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *DocValuesWriter) AddBinaryField(ctx context.Context, field *document.FieldInfo, valuesProducer index2.DocValuesProducer) error {
 	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func (s *DocValuesWriter) AddBinaryField(ctx context.Context, field *document.Fi
 	return s.doAddBinaryField(field, valuesProducer)
 }
 
-func (s *DocValuesWriter) doAddBinaryField(field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *DocValuesWriter) doAddBinaryField(field *document.FieldInfo, valuesProducer index2.DocValuesProducer) error {
 	maxLength := 0
 	values, err := valuesProducer.GetBinary(nil, field)
 	if err != nil {
@@ -313,7 +313,7 @@ func (s *DocValuesWriter) doAddBinaryField(field *document.FieldInfo, valuesProd
 	return nil
 }
 
-func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.FieldInfo, valuesProducer index2.DocValuesProducer) error {
 	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
@@ -454,7 +454,7 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 	return nil
 }
 
-func (s *DocValuesWriter) AddSortedNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *DocValuesWriter) AddSortedNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer index2.DocValuesProducer) error {
 	if err := s.fieldSeen(field.Name()); err != nil {
 		return err
 	}
@@ -561,7 +561,7 @@ func (i *innerBinaryDocValues) setCurrentDoc() error {
 	return nil
 }
 
-func (s *DocValuesWriter) AddSortedSetField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (s *DocValuesWriter) AddSortedSetField(ctx context.Context, field *document.FieldInfo, valuesProducer index2.DocValuesProducer) error {
 	//TODO implement me
 	panic("implement me")
 }

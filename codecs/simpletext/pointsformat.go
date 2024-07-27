@@ -3,6 +3,7 @@ package simpletext
 import (
 	"context"
 	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 )
 
 var _ index.PointsFormat = &PointsFormat{}
@@ -18,11 +19,11 @@ func NewPointsFormat() *PointsFormat {
 	return &PointsFormat{}
 }
 
-func (s *PointsFormat) FieldsWriter(ctx context.Context, state *index.SegmentWriteState) (index.PointsWriter, error) {
+func (s *PointsFormat) FieldsWriter(ctx context.Context, state *index.SegmentWriteState) (index2.PointsWriter, error) {
 	return NewSimpleTextPointsWriter(ctx, state)
 }
 
-func (s *PointsFormat) FieldsReader(ctx context.Context, state *index.SegmentReadState) (index.PointsReader, error) {
+func (s *PointsFormat) FieldsReader(ctx context.Context, state *index.SegmentReadState) (index2.PointsReader, error) {
 	return NewPointsReader(ctx, state)
 }
 

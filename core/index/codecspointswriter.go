@@ -2,28 +2,13 @@ package index
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/types"
-	"io"
-
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
-// PointsWriter Abstract API to write points
-// lucene.experimental
-type PointsWriter interface {
-	io.Closer
-
-	// WriteField
-	// Write all values contained in the provided reader
-	WriteField(ctx context.Context, fieldInfo *document.FieldInfo, values PointsReader) error
-
-	// Finish
-	// Called once at the end before close
-	Finish() error
-}
-
 type BasePointsWriter struct {
-	WriteField func(ctx context.Context, fieldInfo *document.FieldInfo, values PointsReader) error
+	WriteField func(ctx context.Context, fieldInfo *document.FieldInfo, values index.PointsReader) error
 	Finish     func() error
 }
 
@@ -60,7 +45,7 @@ func (p *BasePointsWriter) MergeOneField(ctx context.Context, mergeState *MergeS
 	})
 }
 
-var _ PointsReader = &innerPointsReader{}
+var _ index.PointsReader = &innerPointsReader{}
 
 type innerPointsReader struct {
 	size     int
@@ -83,7 +68,7 @@ func (i innerPointsReader) GetValues(ctx context.Context, field string) (types.P
 	}, nil
 }
 
-func (i innerPointsReader) GetMergeInstance() PointsReader {
+func (i innerPointsReader) GetMergeInstance() index.PointsReader {
 	return i
 }
 

@@ -245,7 +245,7 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *SegmentWriteSta
 
 // Writes all buffered points.
 func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *SegmentWriteState, sortMap *DocMap) error {
-	var pointsWriter PointsWriter
+	var pointsWriter index.PointsWriter
 	var err error
 
 	for _, perField := range d.fieldHash {
@@ -286,7 +286,7 @@ func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *SegmentWr
 
 // Writes all buffered doc values (called from Flush).
 func (d *DefaultIndexingChain) writeDocValues(state *SegmentWriteState, sortMap *DocMap) error {
-	var dvConsumer DocValuesConsumer
+	var dvConsumer index.DocValuesConsumer
 	var err error
 	for _, perField := range d.fieldHash {
 		if perField.docValuesWriter != nil {

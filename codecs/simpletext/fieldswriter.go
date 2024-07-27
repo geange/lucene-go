@@ -75,12 +75,12 @@ func (s *TextFieldsWriter) Close() error {
 	return s.out.Close()
 }
 
-func (s *TextFieldsWriter) Write(ctx context.Context, fields index2.Fields, norms index.NormsProducer) error {
+func (s *TextFieldsWriter) Write(ctx context.Context, fields index2.Fields, norms index2.NormsProducer) error {
 	return s.WriteV1(s.writeState.FieldInfos, fields, norms)
 }
 
 func (s *TextFieldsWriter) WriteV1(fieldInfos index2.FieldInfos, fields index2.Fields,
-	normsProducer index.NormsProducer) error {
+	normsProducer index2.NormsProducer) error {
 
 	names := fields.Names()
 

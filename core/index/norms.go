@@ -26,7 +26,7 @@ type NormsConsumer interface {
 	// field: field information
 	// normsProducer: NormsProducer of the numeric norm values
 	// Throws: IOException – if an I/O error occurred.
-	AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer NormsProducer) error
+	AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer index.NormsProducer) error
 
 	// Merge
 	// Merges in the fields from the readers in mergeState.
@@ -44,7 +44,7 @@ type NormsConsumer interface {
 }
 
 type NormsConsumerDefault struct {
-	FnAddNormsField func(ctx context.Context, field *document.FieldInfo, normsProducer NormsProducer) error
+	FnAddNormsField func(ctx context.Context, field *document.FieldInfo, normsProducer index.NormsProducer) error
 }
 
 func (n *NormsConsumerDefault) Merge(ctx context.Context, mergeState *MergeState) error {
@@ -73,7 +73,7 @@ func (n *NormsConsumerDefault) MergeNormsField(ctx context.Context, mergeFieldIn
 	})
 }
 
-var _ NormsProducer = &innerNormsProducer{}
+var _ index.NormsProducer = &innerNormsProducer{}
 
 type innerNormsProducer struct {
 	mergeFieldInfo *document.FieldInfo
@@ -118,32 +118,13 @@ func (i *innerNormsProducer) CheckIntegrity() error {
 	return nil
 }
 
-func (i *innerNormsProducer) GetMergeInstance() NormsProducer {
+func (i *innerNormsProducer) GetMergeInstance() index.NormsProducer {
 	return i
 }
 
 // NumericDocValuesSub Tracks state of one numeric sub-reader that we are merging
 type NumericDocValuesSub struct {
 	values index.NumericDocValues
-}
-
-// NormsProducer Abstract API that produces field normalization values
-type NormsProducer interface {
-	io.Closer
-
-	// GetNorms Returns NumericDocValues for this field. The returned instance need not be thread-safe:
-	// it will only be used by a single thread.
-	GetNorms(field *document.FieldInfo) (index.NumericDocValues, error)
-
-	// CheckIntegrity Checks consistency of this producer
-	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum item
-	// against large data files.
-	CheckIntegrity() error
-
-	// GetMergeInstance Returns an instance optimized for merging. This instance may only be used from the
-	// thread that acquires it.
-	// The default implementation returns this
-	GetMergeInstance() NormsProducer
 }
 
 // NormValuesWriter

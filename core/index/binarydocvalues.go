@@ -72,12 +72,12 @@ func (b *BinaryDocValuesFieldUpdates) AddInt64(doc int, value int64) error {
 }
 
 func (b *BinaryDocValuesFieldUpdates) AddBytes(doc int, value []byte) error {
-	index, err := b.add(doc)
+	idx, err := b.add(doc)
 	if err != nil {
 		return err
 	}
-	b.offsets.Set(index, uint64(b.values.Length()))
-	b.lengths.Set(index, uint64(len(value)))
+	b.offsets.Set(idx, uint64(b.values.Length()))
+	b.lengths.Set(idx, uint64(len(value)))
 	b.values.AppendBytes(value)
 	return nil
 }
@@ -144,8 +144,7 @@ func (b *BinaryDocValuesFieldUpdates) Grow(size int) error {
 }
 
 func (b *BinaryDocValuesFieldUpdates) Resize(size int) error {
-	err := b.BaseDocValuesFieldUpdates.Resize(size)
-	if err != nil {
+	if err := b.BaseDocValuesFieldUpdates.Resize(size); err != nil {
 		return err
 	}
 	b.offsets = b.offsets.Resize(size).(*packed.PagedGrowableWriter)
@@ -186,7 +185,7 @@ func (b *BinaryDocValuesWriter) AddValue(docID int, value []byte) error {
 	return b.docsWithField.Add(docID)
 }
 
-func (b *BinaryDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error {
+func (b *BinaryDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer index.DocValuesConsumer) error {
 	return consumer.AddBinaryField(context.TODO(), b.fieldInfo, &EmptyDocValuesProducer{
 		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error) {
 			iterator, err := b.docsWithField.Iterator()

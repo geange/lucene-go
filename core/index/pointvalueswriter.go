@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
@@ -52,7 +53,7 @@ func (p *PointValuesWriter) AddPackedValue(docID int, value []byte) error {
 	return nil
 }
 
-func (p *PointValuesWriter) Flush(ctx context.Context, state *SegmentWriteState, docMap *DocMap, writer PointsWriter) error {
+func (p *PointValuesWriter) Flush(ctx context.Context, state *SegmentWriteState, docMap *DocMap, writer index.PointsWriter) error {
 	bytesReader, err := p.bytes.Freeze(false)
 	if err != nil {
 		return err
@@ -74,7 +75,7 @@ func (p *PointValuesWriter) Flush(ctx context.Context, state *SegmentWriteState,
 	return writer.WriteField(ctx, p.fieldInfo, reader)
 }
 
-var _ PointsReader = &innerReader{}
+var _ index.PointsReader = &innerReader{}
 
 type innerReader struct {
 	values types.PointValues
@@ -93,7 +94,7 @@ func (i *innerReader) GetValues(ctx context.Context, field string) (types.PointV
 	return i.values, nil
 }
 
-func (i *innerReader) GetMergeInstance() PointsReader {
+func (i *innerReader) GetMergeInstance() index.PointsReader {
 	return i
 }
 

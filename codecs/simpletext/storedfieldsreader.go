@@ -15,7 +15,7 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-var _ index.StoredFieldsReader = &StoredFieldsReader{}
+var _ index2.StoredFieldsReader = &StoredFieldsReader{}
 
 // StoredFieldsReader
 // reads plaintext stored fields
@@ -228,7 +228,7 @@ func (s *StoredFieldsReader) readLine() error {
 	return utils.ReadLine(s.in, s.scratch)
 }
 
-func (s *StoredFieldsReader) Clone(context.Context) index.StoredFieldsReader {
+func (s *StoredFieldsReader) Clone(context.Context) index2.StoredFieldsReader {
 	if s.in == nil {
 		panic("closed!")
 	}
@@ -239,7 +239,7 @@ func (s *StoredFieldsReader) CheckIntegrity() error {
 	return nil
 }
 
-func (s *StoredFieldsReader) GetMergeInstance() index.StoredFieldsReader {
+func (s *StoredFieldsReader) GetMergeInstance() index2.StoredFieldsReader {
 	return s
 }
 

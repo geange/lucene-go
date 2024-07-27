@@ -41,7 +41,7 @@ type SegmentReader struct {
 	// i.e. the SegmentCommitInfo delGen doesn't match our liveDocs.
 	isNRT bool
 
-	docValuesProducer DocValuesProducer
+	docValuesProducer index.DocValuesProducer
 
 	fieldInfos index.FieldInfos
 }
@@ -209,7 +209,7 @@ func (s *SegmentReader) GetMetaData() index.LeafMetaData {
 	return s.metaData
 }
 
-func (s *SegmentReader) GetFieldsReader() StoredFieldsReader {
+func (s *SegmentReader) GetFieldsReader() index.StoredFieldsReader {
 	return s.core.fieldsReaderLocal
 }
 
@@ -218,21 +218,21 @@ func (s *SegmentReader) GetTermVectorsReader() TermVectorsReader {
 	return s.core.termVectorsLocal
 }
 
-func (s *SegmentReader) GetNormsReader() NormsProducer {
+func (s *SegmentReader) GetNormsReader() index.NormsProducer {
 	return s.core.normsProducer
 }
 
-func (s *SegmentReader) GetDocValuesReader() DocValuesProducer {
+func (s *SegmentReader) GetDocValuesReader() index.DocValuesProducer {
 	//ensureOpen();
 	return s.docValuesProducer
 }
 
-func (s *SegmentReader) GetPostingsReader() FieldsProducer {
+func (s *SegmentReader) GetPostingsReader() index.FieldsProducer {
 	//ensureOpen();
 	return s.core.fields
 }
 
-func (s *SegmentReader) GetPointsReader() PointsReader {
+func (s *SegmentReader) GetPointsReader() index.PointsReader {
 	return s.core.pointsReader
 }
 
@@ -264,7 +264,7 @@ func (s *SegmentReader) initFieldInfos() (index.FieldInfos, error) {
 }
 
 // init most recent DocValues for the current commit
-func (s *SegmentReader) initDocValuesProducer() (DocValuesProducer, error) {
+func (s *SegmentReader) initDocValuesProducer() (index.DocValuesProducer, error) {
 	if s.fieldInfos.HasDocValues() == false {
 		return nil, nil
 	} else {

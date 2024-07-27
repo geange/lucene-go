@@ -57,7 +57,7 @@ func (d *DocValueSorter) Swap(i, j int) {
 }
 
 type DocValuesWriter interface {
-	Flush(state *SegmentWriteState, sortMap DocMap, consumer DocValuesConsumer) error
+	Flush(state *SegmentWriteState, sortMap DocMap, consumer index.DocValuesConsumer) error
 	GetDocValues() types.DocIdSetIterator
 }
 

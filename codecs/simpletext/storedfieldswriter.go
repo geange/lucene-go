@@ -10,7 +10,6 @@ import (
 
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -30,7 +29,7 @@ var (
 	STORED_FIELD_VALUE       = []byte("    value ")
 )
 
-var _ index.StoredFieldsWriter = &StoredFieldsWriter{}
+var _ index2.StoredFieldsWriter = &StoredFieldsWriter{}
 
 type StoredFieldsWriter struct {
 	numDocsWritten int

@@ -8,7 +8,6 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 )
 
@@ -140,98 +139,6 @@ type CompoundFormat interface {
 	Write(ctx context.Context, dir store.Directory, si *SegmentInfo, ioContext *store.IOContext) error
 }
 
-// DocValuesProducer
-// Abstract API that produces numeric, binary, sorted, sortedset, and sortednumeric docvalues.
-// lucene.experimental
-type DocValuesProducer interface {
-	io.Closer
-
-	// GetNumeric
-	// Returns NumericDocValues for this field. The returned instance need not be thread-safe:
-	// it will only be used by a single thread.
-	GetNumeric(ctx context.Context, field *document.FieldInfo) (index.NumericDocValues, error)
-
-	// GetBinary
-	// Returns BinaryDocValues for this field. The returned instance need not be thread-safe:
-	// it will only be used by a single thread.
-	GetBinary(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error)
-
-	// GetSorted
-	// Returns SortedDocValues for this field. The returned instance need not be
-	// thread-safe: it will only be used by a single thread.
-	GetSorted(ctx context.Context, fieldInfo *document.FieldInfo) (index.SortedDocValues, error)
-
-	// GetSortedNumeric
-	// Returns SortedNumericDocValues for this field. The returned instance
-	// need not be thread-safe: it will only be used by a single thread.
-	GetSortedNumeric(ctx context.Context, field *document.FieldInfo) (index.SortedNumericDocValues, error)
-
-	// GetSortedSet
-	// Returns SortedSetDocValues for this field. The returned instance need not
-	// be thread-safe: it will only be used by a single thread.
-	GetSortedSet(ctx context.Context, field *document.FieldInfo) (index.SortedSetDocValues, error)
-
-	// CheckIntegrity
-	// Checks consistency of this producer
-	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum item
-	// against large data files.
-	// lucene.internal
-	CheckIntegrity() error
-
-	// GetMergeInstance
-	// Returns an instance optimized for merging. This instance may only be consumed in the thread
-	// that called GetMergeInstance().
-	// The default implementation returns this
-	GetMergeInstance() DocValuesProducer
-}
-
-// DocValuesConsumer
-// Abstract API that consumes numeric, binary and sorted docvalues.
-// Concrete implementations of this actually do "something" with the docvalues
-// (write it into the index in a specific format).
-// The lifecycle is:
-//  1. DocValuesConsumer is created by NormsFormat.normsConsumer(SegmentWriteState).
-//  2. addNumericField, addBinaryField, addSortedField, addSortedSetField, or addSortedNumericField
-//     are called for each Numeric, Binary, Sorted, SortedSet, or SortedNumeric docvalues field.
-//     The API is a "pull" rather than "push", and the implementation is free to iterate over the
-//     values multiple times (Iterable.iterator()).
-//  3. After all fields are added, the consumer is closed.
-//
-// lucene.experimental
-type DocValuesConsumer interface {
-	io.Closer
-
-	// AddNumericField Writes numeric docvalues for a field.
-	// @param field field information
-	// @param valuesProducer Numeric values to write.
-	// @throws IOException if an I/O error occurred.
-	AddNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
-
-	// AddBinaryField Writes binary docvalues for a field.
-	// @param field field information
-	// @param valuesProducer Binary values to write.
-	// @throws IOException if an I/O error occurred.
-	AddBinaryField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
-
-	// AddSortedField Writes pre-sorted binary docvalues for a field.
-	// @param field field information
-	// @param valuesProducer produces the values and ordinals to write
-	// @throws IOException if an I/O error occurred.
-	AddSortedField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
-
-	// AddSortedNumericField Writes pre-sorted numeric docvalues for a field
-	// @param field field information
-	// @param valuesProducer produces the values to write
-	// @throws IOException if an I/O error occurred.
-	AddSortedNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
-
-	// AddSortedSetField Writes pre-sorted set docvalues for a field
-	// @param field field information
-	// @param valuesProducer produces the values to write
-	// @throws IOException if an I/O error occurred.
-	AddSortedSetField(ctx context.Context, field *document.FieldInfo, valuesProducer DocValuesProducer) error
-}
-
 // Merges in the fields from the readers in mergeState. The default implementation calls mergeNumericField,
 // mergeBinaryField, mergeSortedField, mergeSortedSetField, or mergeSortedNumericField for each field,
 // depending on its type. Implementations can override this method for more sophisticated merging
@@ -248,7 +155,7 @@ type DocValuesFormat interface {
 	Named
 
 	// FieldsConsumer Returns a DocValuesConsumer to write docvalues to the index.
-	FieldsConsumer(ctx context.Context, state *SegmentWriteState) (DocValuesConsumer, error)
+	FieldsConsumer(ctx context.Context, state *SegmentWriteState) (index.DocValuesConsumer, error)
 
 	// FieldsProducer Returns a DocValuesProducer to read docvalues from the index.
 	// NOTE: by the time this call returns, it must hold open any files it will need to use; else,
@@ -256,7 +163,7 @@ type DocValuesFormat interface {
 	// of this call before there is a chance to open them. Under these circumstances an IOException
 	// should be thrown by the implementation. IOExceptions are expected and will automatically
 	// cause a retry of the segment opening logic with the newly revised segments.
-	FieldsProducer(ctx context.Context, state *SegmentReadState) (DocValuesProducer, error)
+	FieldsProducer(ctx context.Context, state *SegmentReadState) (index.DocValuesProducer, error)
 }
 
 // FieldInfosFormat
@@ -304,7 +211,7 @@ type NormsFormat interface {
 	// of this call before there is a chance to open them. Under these circumstances an IOException
 	// should be thrown by the implementation. IOExceptions are expected and will automatically
 	// cause a retry of the segment opening logic with the newly revised segments.
-	NormsProducer(ctx context.Context, state *SegmentReadState) (NormsProducer, error)
+	NormsProducer(ctx context.Context, state *SegmentReadState) (index.NormsProducer, error)
 }
 
 // PointsFormat
@@ -314,7 +221,7 @@ type PointsFormat interface {
 
 	// FieldsWriter
 	// Writes a new segment
-	FieldsWriter(ctx context.Context, state *SegmentWriteState) (PointsWriter, error)
+	FieldsWriter(ctx context.Context, state *SegmentWriteState) (index.PointsWriter, error)
 
 	// FieldsReader
 	// Reads a segment. NOTE: by the time this call returns, it must hold open any files
@@ -322,31 +229,7 @@ type PointsFormat interface {
 	// deleted during the execution of this call before there is a chance to open them. Under these
 	// circumstances an IOException should be thrown by the implementation. IOExceptions are expected
 	// and will automatically cause a retry of the segment opening logic with the newly revised segments.
-	FieldsReader(ctx context.Context, state *SegmentReadState) (PointsReader, error)
-}
-
-// PointsReader
-// Abstract API to visit point values.
-// lucene.experimental
-type PointsReader interface {
-	io.Closer
-
-	// CheckIntegrity
-	// Checks consistency of this reader.
-	// Note that this may be costly in terms of I/O,
-	// e.g. may involve computing a checksum item against large data files.
-	// lucene.internal
-	CheckIntegrity() error
-
-	// GetValues
-	// Return PointValues for the given field.
-	GetValues(ctx context.Context, field string) (types.PointValues, error)
-
-	// GetMergeInstance
-	// Returns an instance optimized for merging.
-	// This instance may only be used in the thread that acquires it.
-	// The default implementation returns this
-	GetMergeInstance() PointsReader
+	FieldsReader(ctx context.Context, state *SegmentReadState) (index.PointsReader, error)
 }
 
 // GetMergeInstance Returns an instance optimized for merging.
@@ -378,7 +261,7 @@ type PostingsFormat interface {
 	// Under these circumstances an IOException should be thrown by the implementation.
 	// IOExceptions are expected and will automatically cause a retry of the segment opening
 	// logic with the newly revised segments.
-	FieldsProducer(ctx context.Context, state *SegmentReadState) (FieldsProducer, error)
+	FieldsProducer(ctx context.Context, state *SegmentReadState) (index.FieldsProducer, error)
 }
 
 // SegmentInfoFormat
@@ -405,69 +288,11 @@ type StoredFieldsFormat interface {
 
 	// FieldsReader
 	// Returns a StoredFieldsReader to load stored fields.
-	FieldsReader(ctx context.Context, directory store.Directory, si *SegmentInfo, fn index.FieldInfos, ioContext *store.IOContext) (StoredFieldsReader, error)
+	FieldsReader(ctx context.Context, directory store.Directory, si *SegmentInfo, fn index.FieldInfos, ioContext *store.IOContext) (index.StoredFieldsReader, error)
 
 	// FieldsWriter
 	// Returns a StoredFieldsWriter to write stored fields.
-	FieldsWriter(ctx context.Context, directory store.Directory, si *SegmentInfo, ioContext *store.IOContext) (StoredFieldsWriter, error)
-}
-
-// StoredFieldsReader
-// Codec API for reading stored fields.
-// You need to implement VisitDocument(int, StoredFieldVisitor) to read the stored fields for a document,
-// implement Clone() (creating clones of any IndexInputs used, etc), and Close()
-// lucene.experimental
-type StoredFieldsReader interface {
-	io.Closer
-
-	// VisitDocument
-	// Visit the stored fields for document docID
-	VisitDocument(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error
-
-	Clone(ctx context.Context) StoredFieldsReader
-
-	// CheckIntegrity
-	// Checks consistency of this reader.
-	// Note that this may be costly in terms of I/O, e.g. may involve computing a checksum
-	// item against large data files.
-	// lucene.internal
-	CheckIntegrity() error
-
-	// GetMergeInstance
-	// Returns an instance optimized for merging. This instance may not be cloned.
-	// The default implementation returns this
-	GetMergeInstance() StoredFieldsReader
-}
-
-// StoredFieldsWriter
-// Codec API for writing stored fields:
-// 1. For every document, startDocument() is called, informing the Codec that a new document has started.
-// 2. writeField(FieldInfo, IndexableField) is called for each field in the document.
-// 3. After all documents have been written, finish(FieldInfos, int) is called for verification/sanity-checks.
-// 4. Finally the writer is closed (close())
-// lucene.experimental
-type StoredFieldsWriter interface {
-	io.Closer
-
-	// StartDocument
-	// Called before writing the stored fields of the document.
-	// writeField(FieldInfo, IndexableField) will be called for each stored field.
-	// Note that this is called even if the document has no stored fields.
-	StartDocument(ctx context.Context) error
-
-	// FinishDocument
-	// Called when a document and all its fields have been added.
-	FinishDocument(ctx context.Context) error
-
-	// WriteField
-	// Writes a single stored field.
-	WriteField(ctx context.Context, fieldInfo *document.FieldInfo, field document.IndexableField) error
-
-	// Finish
-	// Called before close(), passing in the number of documents that were written.
-	// Note that this is intentionally redundant (equivalent to the number of calls to startDocument(),
-	// but a Codec should check that this is the case to detect the JRE bug described in LUCENE-1282.
-	Finish(ctx context.Context, fieldInfos index.FieldInfos, numDocs int) error
+	FieldsWriter(ctx context.Context, directory store.Directory, si *SegmentInfo, ioContext *store.IOContext) (index.StoredFieldsWriter, error)
 }
 
 // TermVectorsFormat

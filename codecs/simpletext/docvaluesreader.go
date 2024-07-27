@@ -17,7 +17,7 @@ import (
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ index.DocValuesProducer = &DocValuesReader{}
+var _ index2.DocValuesProducer = &DocValuesReader{}
 
 type DocValuesReader struct {
 	maxDoc  int
@@ -168,7 +168,7 @@ func NewDocValuesReader(ctx context.Context, state *index.SegmentReadState, ext 
 	return r, nil
 }
 
-func (s *DocValuesReader) GetMergeInstance() index.DocValuesProducer {
+func (s *DocValuesReader) GetMergeInstance() index2.DocValuesProducer {
 	return s
 }
 

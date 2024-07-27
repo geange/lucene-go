@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
@@ -13,7 +14,7 @@ import (
 	"github.com/geange/lucene-go/core/util/bkd"
 )
 
-var _ index.PointsWriter = &PointsWriter{}
+var _ index2.PointsWriter = &PointsWriter{}
 
 var (
 	NUM_DATA_DIMS   = []byte("num data dims ")
@@ -125,7 +126,7 @@ func (s *PointsWriter) Close() error {
 	return indexOut.Close()
 }
 
-func (s *PointsWriter) WriteField(ctx context.Context, fieldInfo *document.FieldInfo, reader index.PointsReader) error {
+func (s *PointsWriter) WriteField(ctx context.Context, fieldInfo *document.FieldInfo, reader index2.PointsReader) error {
 	values, err := reader.GetValues(nil, fieldInfo.Name())
 	if err != nil {
 		return err

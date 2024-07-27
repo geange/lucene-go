@@ -26,11 +26,11 @@ func (s *NormsFormat) NormsConsumer(ctx context.Context, state *index.SegmentWri
 	return NewSimpleTextNormsConsumer(nil, state)
 }
 
-func (s *NormsFormat) NormsProducer(ctx context.Context, state *index.SegmentReadState) (index.NormsProducer, error) {
+func (s *NormsFormat) NormsProducer(ctx context.Context, state *index.SegmentReadState) (index2.NormsProducer, error) {
 	return NewSimpleTextNormsProducer(state)
 }
 
-var _ index.NormsProducer = &SimpleTextNormsProducer{}
+var _ index2.NormsProducer = &SimpleTextNormsProducer{}
 
 type SimpleTextNormsProducer struct {
 	impl *DocValuesReader
@@ -56,7 +56,7 @@ func (s *SimpleTextNormsProducer) CheckIntegrity() error {
 	return s.impl.CheckIntegrity()
 }
 
-func (s *SimpleTextNormsProducer) GetMergeInstance() index.NormsProducer {
+func (s *SimpleTextNormsProducer) GetMergeInstance() index2.NormsProducer {
 	return s
 }
 
@@ -90,7 +90,7 @@ func (s *SimpleTextNormsConsumer) Close() error {
 	return s.impl.Close()
 }
 
-func (s *SimpleTextNormsConsumer) AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer index.NormsProducer) error {
+func (s *SimpleTextNormsConsumer) AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer index2.NormsProducer) error {
 	producer := struct {
 		*index.EmptyDocValuesProducer
 	}{}

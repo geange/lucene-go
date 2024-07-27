@@ -13,11 +13,11 @@ import (
 // SegmentDocValues
 // Manages the DocValuesProducer held by SegmentReader and keeps track of their reference counting.
 type SegmentDocValues struct {
-	genDVProducers map[int64]*util.RefCount[DocValuesProducer]
+	genDVProducers map[int64]*util.RefCount[index.DocValuesProducer]
 }
 
 func (s *SegmentDocValues) GetDocValuesProducer(gen int64,
-	si *SegmentCommitInfo, dir store.Directory, infos index.FieldInfos) (DocValuesProducer, error) {
+	si *SegmentCommitInfo, dir store.Directory, infos index.FieldInfos) (index.DocValuesProducer, error) {
 
 	dvp, ok := s.genDVProducers[gen]
 	if !ok {
@@ -35,7 +35,7 @@ func (s *SegmentDocValues) GetDocValuesProducer(gen int64,
 }
 
 func (s *SegmentDocValues) newDocValuesProducer(si *SegmentCommitInfo,
-	dir store.Directory, gen int64, infos index.FieldInfos) (*util.RefCount[DocValuesProducer], error) {
+	dir store.Directory, gen int64, infos index.FieldInfos) (*util.RefCount[index.DocValuesProducer], error) {
 
 	dvDir := dir
 	segmentSuffix := ""
@@ -52,7 +52,7 @@ func (s *SegmentDocValues) newDocValuesProducer(si *SegmentCommitInfo,
 	if err != nil {
 		return nil, err
 	}
-	return util.NewRefCount[DocValuesProducer](producer, func(r *util.RefCount[DocValuesProducer]) error {
+	return util.NewRefCount[index.DocValuesProducer](producer, func(r *util.RefCount[index.DocValuesProducer]) error {
 		if err := r.Get().Close(); err != nil {
 			return err
 		}
@@ -74,14 +74,14 @@ func (s *SegmentDocValues) decRef(gens []int64) error {
 }
 
 func NewSegmentDocValues() *SegmentDocValues {
-	return &SegmentDocValues{genDVProducers: map[int64]*util.RefCount[DocValuesProducer]{}}
+	return &SegmentDocValues{genDVProducers: map[int64]*util.RefCount[index.DocValuesProducer]{}}
 }
 
-var _ DocValuesProducer = &SegmentDocValuesProducer{}
+var _ index.DocValuesProducer = &SegmentDocValuesProducer{}
 
 type SegmentDocValuesProducer struct {
-	dvProducersByField map[string]DocValuesProducer
-	dvProducers        []DocValuesProducer
+	dvProducersByField map[string]index.DocValuesProducer
+	dvProducers        []index.DocValuesProducer
 	dvGens             []int64
 }
 
@@ -89,12 +89,12 @@ func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
 	coreInfos, allInfos index.FieldInfos, segDocValues *SegmentDocValues) (*SegmentDocValuesProducer, error) {
 
 	p := &SegmentDocValuesProducer{
-		dvProducersByField: map[string]DocValuesProducer{},
-		dvProducers:        []DocValuesProducer{},
+		dvProducersByField: map[string]index.DocValuesProducer{},
+		dvProducers:        []index.DocValuesProducer{},
 		dvGens:             []int64{},
 	}
 
-	var baseProducer DocValuesProducer
+	var baseProducer index.DocValuesProducer
 	for _, fi := range allInfos.List() {
 		if fi.GetDocValuesType() == document.DOC_VALUES_TYPE_NONE {
 			continue
@@ -127,7 +127,7 @@ func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
 	return p, nil
 }
 
-func (s *SegmentDocValuesProducer) GetMergeInstance() DocValuesProducer {
+func (s *SegmentDocValuesProducer) GetMergeInstance() index.DocValuesProducer {
 	return s
 }
 
