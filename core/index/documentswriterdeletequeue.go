@@ -42,7 +42,7 @@ type DocumentsWriterDeleteQueue struct {
 	// Whenever any segment flushes, we bundle up this set of deletes and insert into
 	// the buffered updates stream before the newly flushed segment(s).
 	globalSlice           *DeleteSlice
-	globalBufferedUpdates *BufferedUpdates
+	globalBufferedUpdates *index.BufferedUpdates
 
 	// only acquired to update the global deletes, pkg-private for access by tests:
 	globalBufferLock sync.Locker
@@ -76,7 +76,7 @@ func newDocumentsWriterDeleteQueue(generation, startSeqNo int64,
 		tail:                  tail,
 		closed:                false,
 		globalSlice:           NewDeleteSlice(tail),
-		globalBufferedUpdates: NewBufferedUpdates(WithSegmentName("global")),
+		globalBufferedUpdates: index.NewBufferedUpdates(index.WithSegmentName("global")),
 		globalBufferLock:      &sync.Mutex{},
 		generation:            generation,
 		nextSeqNo:             nextSeqNo,
@@ -179,7 +179,7 @@ func NewDeleteSlice(currentTail *Node) *DeleteSlice {
 	}
 }
 
-func (d *DeleteSlice) Apply(del *BufferedUpdates, docIDUpto int) error {
+func (d *DeleteSlice) Apply(del *index.BufferedUpdates, docIDUpto int) error {
 
 	if d.sliceHead == d.sliceTail {
 		return nil
@@ -214,7 +214,7 @@ func deleteQueueNewNode(term index.Term) *Node {
 	return NewNode(term, node)
 }
 
-func deleteQueueNewNodeDocValuesUpdates(updates []DocValuesUpdate) *Node {
+func deleteQueueNewNodeDocValuesUpdates(updates []index.DocValuesUpdate) *Node {
 	node := NewDocValuesUpdatesNode(updates)
 	return NewNode(updates, node)
 }

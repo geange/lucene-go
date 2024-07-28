@@ -1,6 +1,7 @@
 package index
 
 import (
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -8,7 +9,7 @@ import (
 // into a single Segment. Call the merge method to combine the segments.
 type SegmentMerger struct {
 	directory         store.Directory
-	codec             Codec
+	codec             index.Codec
 	mergeState        *MergeState
 	fieldInfosBuilder *FieldInfosBuilder
 }

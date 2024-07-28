@@ -11,7 +11,6 @@ import (
 
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -30,7 +29,7 @@ type StoredFieldsReader struct {
 }
 
 func NewStoredFieldsReader(ctx context.Context, directory store.Directory,
-	si *index.SegmentInfo, fn index2.FieldInfos, ioContext *store.IOContext) (*StoredFieldsReader, error) {
+	si index2.SegmentInfo, fn index2.FieldInfos, ioContext *store.IOContext) (*StoredFieldsReader, error) {
 
 	fileName := store.SegmentFileName(si.Name(), "", FIELDS_EXTENSION)
 	input, err := directory.OpenInput(ctx, fileName)

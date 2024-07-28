@@ -7,7 +7,7 @@ import (
 	index2 "github.com/geange/lucene-go/core/interface/index"
 )
 
-var _ index.NormsFormat = &NormsFormat{}
+var _ index2.NormsFormat = &NormsFormat{}
 
 const (
 	NORMS_SEG_EXTENSION = "len"
@@ -22,11 +22,11 @@ func NewNormsFormat() *NormsFormat {
 	return &NormsFormat{}
 }
 
-func (s *NormsFormat) NormsConsumer(ctx context.Context, state *index.SegmentWriteState) (index.NormsConsumer, error) {
+func (s *NormsFormat) NormsConsumer(ctx context.Context, state *index2.SegmentWriteState) (index2.NormsConsumer, error) {
 	return NewSimpleTextNormsConsumer(nil, state)
 }
 
-func (s *NormsFormat) NormsProducer(ctx context.Context, state *index.SegmentReadState) (index2.NormsProducer, error) {
+func (s *NormsFormat) NormsProducer(ctx context.Context, state *index2.SegmentReadState) (index2.NormsProducer, error) {
 	return NewSimpleTextNormsProducer(state)
 }
 
@@ -36,7 +36,7 @@ type SimpleTextNormsProducer struct {
 	impl *DocValuesReader
 }
 
-func NewSimpleTextNormsProducer(state *index.SegmentReadState) (*SimpleTextNormsProducer, error) {
+func NewSimpleTextNormsProducer(state *index2.SegmentReadState) (*SimpleTextNormsProducer, error) {
 	reader, err := NewDocValuesReader(context.TODO(), state, NORMS_SEG_EXTENSION)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (s *SimpleTextNormsProducer) GetMergeInstance() index2.NormsProducer {
 	return s
 }
 
-var _ index.NormsConsumer = &SimpleTextNormsConsumer{}
+var _ index2.NormsConsumer = &SimpleTextNormsConsumer{}
 
 // SimpleTextNormsConsumer
 // Writes plain-text norms.
@@ -71,7 +71,7 @@ type SimpleTextNormsConsumer struct {
 	impl *DocValuesWriter
 }
 
-func NewSimpleTextNormsConsumer(ctx context.Context, state *index.SegmentWriteState) (*SimpleTextNormsConsumer, error) {
+func NewSimpleTextNormsConsumer(ctx context.Context, state *index2.SegmentWriteState) (*SimpleTextNormsConsumer, error) {
 	writer, err := NewDocValuesWriter(ctx, state, NORMS_SEG_EXTENSION)
 	if err != nil {
 		return nil, err

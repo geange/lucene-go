@@ -153,7 +153,7 @@ func (r *defaultIndexingChainLeafReader) GetFieldInfos() index.FieldInfos {
 	return r.chain.fieldInfos.Finish()
 }
 
-func (d *DefaultIndexingChain) maybeSortSegment(state *SegmentWriteState) (*DocMap, error) {
+func (d *DefaultIndexingChain) maybeSortSegment(state *index.SegmentWriteState) (*DocMap, error) {
 	indexSort := state.SegmentInfo.GetIndexSort()
 	if indexSort == nil {
 		return nil, nil
@@ -185,7 +185,7 @@ func (d *DefaultIndexingChain) maybeSortSegment(state *SegmentWriteState) (*DocM
 	return SortByComparators(maxDoc, comparators)
 }
 
-func (d *DefaultIndexingChain) Flush(ctx context.Context, state *SegmentWriteState) (*DocMap, error) {
+func (d *DefaultIndexingChain) Flush(ctx context.Context, state *index.SegmentWriteState) (*DocMap, error) {
 	// NOTE: caller (DocumentsWriterPerThread) handles
 	// aborting on any exception from this method
 	sortMap, err := d.maybeSortSegment(state)
@@ -221,7 +221,7 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *SegmentWriteSta
 		fieldsToFlush[perField.fieldInfo.Name()] = perField.termsHashPerField
 	}
 
-	readState := NewSegmentReadState(state.Directory, state.SegmentInfo, state.FieldInfos, state.Context, state.SegmentSuffix)
+	readState := index.NewSegmentReadState(state.Directory, state.SegmentInfo, state.FieldInfos, state.Context, state.SegmentSuffix)
 
 	//var norms NormsProducer
 	if readState.FieldInfos.HasNorms() {
@@ -244,7 +244,7 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *SegmentWriteSta
 }
 
 // Writes all buffered points.
-func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *SegmentWriteState, sortMap *DocMap) error {
+func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *index.SegmentWriteState, sortMap *DocMap) error {
 	var pointsWriter index.PointsWriter
 	var err error
 
@@ -285,7 +285,7 @@ func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *SegmentWr
 }
 
 // Writes all buffered doc values (called from Flush).
-func (d *DefaultIndexingChain) writeDocValues(state *SegmentWriteState, sortMap *DocMap) error {
+func (d *DefaultIndexingChain) writeDocValues(state *index.SegmentWriteState, sortMap *DocMap) error {
 	var dvConsumer index.DocValuesConsumer
 	var err error
 	for _, perField := range d.fieldHash {
@@ -320,8 +320,8 @@ func (d *DefaultIndexingChain) writeDocValues(state *SegmentWriteState, sortMap 
 	return nil
 }
 
-func (d *DefaultIndexingChain) writeNorms(state *SegmentWriteState, sortMap *DocMap) error {
-	var normsConsumer NormsConsumer
+func (d *DefaultIndexingChain) writeNorms(state *index.SegmentWriteState, sortMap *DocMap) error {
+	var normsConsumer index.NormsConsumer
 	var err error
 	if state.FieldInfos.HasNorms() {
 		normsFormat := state.SegmentInfo.GetCodec().NormsFormat()

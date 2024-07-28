@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"fmt"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/index"
@@ -41,7 +42,7 @@ type SkipWriter struct {
 	curCompetitiveFreqNorms []*index.CompetitiveImpactAccumulator
 }
 
-func NewSkipWriter(writeState *index.SegmentWriteState) (*SkipWriter, error) {
+func NewSkipWriter(writeState *index2.SegmentWriteState) (*SkipWriter, error) {
 	maxDoc, err := writeState.SegmentInfo.MaxDoc()
 	if err != nil {
 		// TODO: remove

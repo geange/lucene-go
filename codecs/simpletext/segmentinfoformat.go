@@ -14,7 +14,7 @@ import (
 	"github.com/geange/lucene-go/core/util/version"
 )
 
-var _ index.SegmentInfoFormat = &SegmentInfoFormat{}
+var _ index2.SegmentInfoFormat = &SegmentInfoFormat{}
 
 var (
 	SI_VERSION     = []byte("    version ")
@@ -45,7 +45,7 @@ func NewSegmentInfoFormat() *SegmentInfoFormat {
 }
 
 func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
-	segmentName string, segmentID []byte, ioContext *store.IOContext) (*index.SegmentInfo, error) {
+	segmentName string, segmentID []byte, ioContext *store.IOContext) (index2.SegmentInfo, error) {
 
 	scratch := new(bytes.Buffer)
 	segFileName := store.SegmentFileName(segmentName, "", SI_EXTENSION)
@@ -202,7 +202,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 	return info, nil
 }
 
-func (s *SegmentInfoFormat) Write(ctx context.Context, dir store.Directory, si *index.SegmentInfo, ioContext *store.IOContext) error {
+func (s *SegmentInfoFormat) Write(ctx context.Context, dir store.Directory, si index2.SegmentInfo, ioContext *store.IOContext) error {
 
 	segFileName := store.SegmentFileName(si.Name(), "", SI_EXTENSION)
 

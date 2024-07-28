@@ -1,11 +1,10 @@
-package search
+package index
 
 import (
 	"context"
 
 	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/automaton"
@@ -72,7 +71,7 @@ type SegmentCacheable interface {
 
 	// IsCacheable
 	// Returns: true if the object can be cached against a given leaf
-	IsCacheable(ctx index.LeafReaderContext) bool
+	IsCacheable(ctx LeafReaderContext) bool
 }
 
 // Weight
@@ -98,7 +97,7 @@ type SegmentCacheable interface {
 type Weight interface {
 	SegmentCacheable
 
-	ExtractTerms(terms *treeset.Set[index.Term]) error
+	ExtractTerms(terms *treeset.Set[Term]) error
 
 	// Matches
 	// Returns Matches for a specific document, or null if the document does not match the parent query
@@ -106,7 +105,7 @@ type Weight interface {
 	// return MatchesUtils.MATCH_WITH_NO_TERMS
 	// context: the reader's context to create the Matches for
 	// doc: the document's id relative to the given context's reader
-	Matches(readerContext index.LeafReaderContext, doc int) (Matches, error)
+	Matches(readerContext LeafReaderContext, doc int) (Matches, error)
 
 	// Explain
 	// An explanation of the score computation for the named document.
@@ -114,7 +113,7 @@ type Weight interface {
 	// doc: the document's id relative to the given context's reader
 	// Returns: an Explanation for the score
 	// Throws: 	IOException – if an IOException occurs
-	Explain(readerContext index.LeafReaderContext, doc int) (*types.Explanation, error)
+	Explain(readerContext LeafReaderContext, doc int) (*types.Explanation, error)
 
 	// GetQuery The query that this concerns.
 	GetQuery() Query
@@ -125,12 +124,12 @@ type Weight interface {
 	// NOTE: The returned Scorer does not have LeafReader.getLiveDocs() applied, they need to be checked on top.
 	// ctx: the LeafReaderContext for which to return the Scorer.
 	// a Scorer which scores documents in/out-of order.
-	Scorer(ctx index.LeafReaderContext) (Scorer, error)
+	Scorer(ctx LeafReaderContext) (Scorer, error)
 
 	// ScorerSupplier
 	// Optional method. Get a ScorerSupplier, which allows to know the cost of the Scorer before building it.
 	// The default implementation calls scorer and builds a ScorerSupplier wrapper around it.
-	ScorerSupplier(ctx index.LeafReaderContext) (ScorerSupplier, error)
+	ScorerSupplier(ctx LeafReaderContext) (ScorerSupplier, error)
 
 	// BulkScorer
 	// Optional method, to return a BulkScorer to score the query and send hits to a Collector.
@@ -151,7 +150,7 @@ type Weight interface {
 	// 参数：
 	// context - 要返回Scorer的LeafReaderContext。
 	// 返回： 一个BulkScorer，对文档进行评分并将其传递给Collector。
-	BulkScorer(ctx index.LeafReaderContext) (BulkScorer, error)
+	BulkScorer(ctx LeafReaderContext) (BulkScorer, error)
 }
 
 type ScorerSupplier interface {
@@ -221,27 +220,27 @@ type IndexSearcher interface {
 	GetQueryCache() QueryCache
 	SetQueryCachingPolicy(queryCachingPolicy QueryCachingPolicy)
 	GetQueryCachingPolicy() QueryCachingPolicy
-	Slices(leaves []index.LeafReaderContext) []LeafSlice
-	GetIndexReader() index.IndexReader
+	Slices(leaves []LeafReaderContext) []LeafSlice
+	GetIndexReader() IndexReader
 	Doc(docID int) (*document.Document, error)
 	DocWithVisitor(docID int, fieldVisitor document.StoredFieldVisitor) (*document.Document, error)
 	DocLimitFields(docID int, fieldsToLoad []string) (*document.Document, error)
-	SetSimilarity(similarity index.Similarity)
-	GetSimilarity() index.Similarity
+	SetSimilarity(similarity Similarity)
+	GetSimilarity() Similarity
 	Count(query Query) (int, error)
 	GetSlices() []LeafSlice
 	CreateWeight(query Query, scoreMode ScoreMode, boost float64) (Weight, error)
-	TermStatistics(term index.Term, docFreq, totalTermFreq int) (*types.TermStatistics, error)
+	TermStatistics(term Term, docFreq, totalTermFreq int) (*types.TermStatistics, error)
 	CollectionStatistics(field string) (*types.CollectionStatistics, error)
-	GetTopReaderContext() index.IndexReaderContext
+	GetTopReaderContext() IndexReaderContext
 	Search(query Query, results Collector) error
 	SearchTopN(query Query, n int) (TopDocs, error)
 	SearchCollector(query Query, results Collector) error
-	Search3(leaves []index.LeafReaderContext, weight Weight, collector Collector) error
+	Search3(leaves []LeafReaderContext, weight Weight, collector Collector) error
 }
 
 type LeafSlice struct {
-	Leaves []index.LeafReaderContext
+	Leaves []LeafReaderContext
 }
 
 // QueryCache
@@ -301,7 +300,7 @@ type Query interface {
 	// Rewrite
 	// Expert: called to re-write queries into primitive queries. For example, a PrefixQuery will be
 	// rewritten into a BooleanQuery that consists of TermQuerys.
-	Rewrite(reader index.IndexReader) (Query, error)
+	Rewrite(reader IndexReader) (Query, error)
 
 	// Visit
 	// Recurse through the query tree, visiting any child queries
@@ -322,7 +321,7 @@ type QueryVisitor interface {
 	// Called by leaf queries that match on specific terms
 	// query: the leaf query
 	// terms: the terms the query will match on
-	ConsumeTerms(query Query, terms ...index.Term)
+	ConsumeTerms(query Query, terms ...Term)
 
 	// ConsumeTermsMatching
 	// Called by leaf queries that match on a class of terms

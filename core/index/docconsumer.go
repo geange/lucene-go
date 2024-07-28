@@ -3,13 +3,14 @@ package index
 import (
 	"context"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
 type DocConsumer interface {
 	ProcessDocument(ctx context.Context, docId int, document *document.Document) error
 
-	Flush(ctx context.Context, state *SegmentWriteState) (*DocMap, error)
+	Flush(ctx context.Context, state *index.SegmentWriteState) (*DocMap, error)
 
 	Abort() error
 

@@ -1,12 +1,14 @@
 package search
 
-import "github.com/geange/lucene-go/core/interface/search"
+import (
+	"github.com/geange/lucene-go/core/interface/index"
+)
 
 type baseMatches struct {
 	strs []string
 }
 
-var _ search.Matches = &matchWithNoTerms{}
+var _ index.Matches = &matchWithNoTerms{}
 
 type matchWithNoTerms struct {
 }
@@ -15,15 +17,15 @@ func (m *matchWithNoTerms) Strings() []string {
 	return nil
 }
 
-func (m *matchWithNoTerms) GetMatches(field string) (search.MatchesIterator, error) {
+func (m *matchWithNoTerms) GetMatches(field string) (index.MatchesIterator, error) {
 	return nil, nil
 }
 
-func (m *matchWithNoTerms) GetSubMatches() []search.Matches {
+func (m *matchWithNoTerms) GetSubMatches() []index.Matches {
 	return nil
 }
 
-var _ search.Matches = &matchForField{}
+var _ index.Matches = &matchForField{}
 
 type matchForField struct {
 	field  string
@@ -35,32 +37,32 @@ func (m *matchForField) Strings() []string {
 	panic("implement me")
 }
 
-func (m *matchForField) GetMatches(field string) (search.MatchesIterator, error) {
+func (m *matchForField) GetMatches(field string) (index.MatchesIterator, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *matchForField) GetSubMatches() []search.Matches {
+func (m *matchForField) GetSubMatches() []index.Matches {
 	//TODO implement me
 	panic("implement me")
 }
 
-var _ search.Matches = &MatchesAnon{}
+var _ index.Matches = &MatchesAnon{}
 
 type MatchesAnon struct {
 	FnStrings       func() []string
-	FnGetMatches    func(field string) (search.MatchesIterator, error)
-	FnGetSubMatches func() []search.Matches
+	FnGetMatches    func(field string) (index.MatchesIterator, error)
+	FnGetSubMatches func() []index.Matches
 }
 
 func (m *MatchesAnon) Strings() []string {
 	return m.FnStrings()
 }
 
-func (m *MatchesAnon) GetMatches(field string) (search.MatchesIterator, error) {
+func (m *MatchesAnon) GetMatches(field string) (index.MatchesIterator, error) {
 	return m.FnGetMatches(field)
 }
 
-func (m *MatchesAnon) GetSubMatches() []search.Matches {
+func (m *MatchesAnon) GetSubMatches() []index.Matches {
 	return m.FnGetSubMatches()
 }

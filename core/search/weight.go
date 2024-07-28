@@ -3,7 +3,6 @@ package search
 import (
 	"errors"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
@@ -11,23 +10,23 @@ import (
 )
 
 type WeightScorer interface {
-	Scorer(ctx index.LeafReaderContext) (search.Scorer, error)
+	Scorer(ctx index.LeafReaderContext) (index.Scorer, error)
 }
 
 type BaseWeight struct {
 	scorer WeightScorer
 
-	parentQuery search.Query
+	parentQuery index.Query
 }
 
-func NewBaseWeight(parentQuery search.Query, scorer WeightScorer) *BaseWeight {
+func NewBaseWeight(parentQuery index.Query, scorer WeightScorer) *BaseWeight {
 	return &BaseWeight{
 		scorer:      scorer,
 		parentQuery: parentQuery,
 	}
 }
 
-func (r *BaseWeight) GetQuery() search.Query {
+func (r *BaseWeight) GetQuery() index.Query {
 	return r.parentQuery
 }
 
@@ -35,7 +34,7 @@ func (r *BaseWeight) GetQuery() search.Query {
 //	return false
 //}
 
-func (r *BaseWeight) Matches(ctx index.LeafReaderContext, doc int) (search.Matches, error) {
+func (r *BaseWeight) Matches(ctx index.LeafReaderContext, doc int) (index.Matches, error) {
 	supplier, err := r.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
@@ -70,7 +69,7 @@ func (r *BaseWeight) Matches(ctx index.LeafReaderContext, doc int) (search.Match
 	return nil, errors.New("MATCH_WITH_NO_TERMS")
 }
 
-func (r *BaseWeight) ScorerSupplier(ctx index.LeafReaderContext) (search.ScorerSupplier, error) {
+func (r *BaseWeight) ScorerSupplier(ctx index.LeafReaderContext) (index.ScorerSupplier, error) {
 	scorer, err := r.scorer.Scorer(ctx)
 	if err != nil {
 		return nil, err
@@ -82,13 +81,13 @@ func (r *BaseWeight) ScorerSupplier(ctx index.LeafReaderContext) (search.ScorerS
 	return &scorerSupplier{scorer: scorer}, nil
 }
 
-var _ search.ScorerSupplier = &scorerSupplier{}
+var _ index.ScorerSupplier = &scorerSupplier{}
 
 type scorerSupplier struct {
-	scorer search.Scorer
+	scorer index.Scorer
 }
 
-func (s *scorerSupplier) Get(leadCost int64) (search.Scorer, error) {
+func (s *scorerSupplier) Get(leadCost int64) (index.Scorer, error) {
 	return s.scorer, nil
 }
 
@@ -96,7 +95,7 @@ func (s *scorerSupplier) Cost() int64 {
 	return s.scorer.Iterator().Cost()
 }
 
-func (r *BaseWeight) BulkScorer(ctx index.LeafReaderContext) (search.BulkScorer, error) {
+func (r *BaseWeight) BulkScorer(ctx index.LeafReaderContext) (index.BulkScorer, error) {
 	scorer, err := r.scorer.Scorer(ctx)
 	if err != nil {
 		return nil, err
@@ -109,15 +108,15 @@ func (r *BaseWeight) BulkScorer(ctx index.LeafReaderContext) (search.BulkScorer,
 	return NewDefaultBulkScorer(scorer), nil
 }
 
-var _ search.BulkScorer = &DefaultBulkScorer{}
+var _ index.BulkScorer = &DefaultBulkScorer{}
 
 type DefaultBulkScorer struct {
-	scorer   search.Scorer
+	scorer   index.Scorer
 	iterator types.DocIdSetIterator
-	twoPhase search.TwoPhaseIterator
+	twoPhase index.TwoPhaseIterator
 }
 
-func NewDefaultBulkScorer(scorer search.Scorer) *DefaultBulkScorer {
+func NewDefaultBulkScorer(scorer index.Scorer) *DefaultBulkScorer {
 	return &DefaultBulkScorer{
 		scorer:   scorer,
 		iterator: scorer.Iterator(),
@@ -125,13 +124,13 @@ func NewDefaultBulkScorer(scorer search.Scorer) *DefaultBulkScorer {
 	}
 }
 
-func (d *DefaultBulkScorer) Score(collector search.LeafCollector, acceptDocs util.Bits) error {
+func (d *DefaultBulkScorer) Score(collector index.LeafCollector, acceptDocs util.Bits) error {
 	NoMoreDocs := math.MaxInt32
 	_, err := d.ScoreRange(collector, acceptDocs, 0, NoMoreDocs)
 	return err
 }
 
-func (d *DefaultBulkScorer) ScoreRange(collector search.LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
+func (d *DefaultBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
 	err := collector.SetScorer(d.scorer)
 	if err != nil {
 		return 0, err
@@ -188,8 +187,8 @@ func (d *DefaultBulkScorer) ScoreRange(collector search.LeafCollector, acceptDoc
 	}
 }
 
-func scoreAll(collector search.LeafCollector, iterator types.DocIdSetIterator,
-	twoPhase search.TwoPhaseIterator, acceptDocs util.Bits) error {
+func scoreAll(collector index.LeafCollector, iterator types.DocIdSetIterator,
+	twoPhase index.TwoPhaseIterator, acceptDocs util.Bits) error {
 
 	doc, err := iterator.NextDoc()
 	if err != nil {
@@ -237,7 +236,7 @@ func scoreAll(collector search.LeafCollector, iterator types.DocIdSetIterator,
 
 }
 
-func scoreRange(collector search.LeafCollector, iterator types.DocIdSetIterator, twoPhase search.TwoPhaseIterator,
+func scoreRange(collector index.LeafCollector, iterator types.DocIdSetIterator, twoPhase index.TwoPhaseIterator,
 	acceptDocs util.Bits, currentDoc, end int) (int, error) {
 
 	var err error

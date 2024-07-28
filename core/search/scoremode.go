@@ -1,13 +1,15 @@
 package search
 
-import "github.com/geange/lucene-go/core/interface/search"
+import (
+	"github.com/geange/lucene-go/core/interface/index"
+)
 
 const (
 	isExhaustiveShift = 0
 	needsScoresShift  = 1
 )
 
-func NewScoreMode(isExhaustive, needsScores bool) search.ScoreMode {
+func NewScoreMode(isExhaustive, needsScores bool) index.ScoreMode {
 	var mode uint8
 	if isExhaustive {
 		mode |= 1 << isExhaustiveShift
@@ -17,7 +19,7 @@ func NewScoreMode(isExhaustive, needsScores bool) search.ScoreMode {
 		mode |= 1 << needsScoresShift
 	}
 
-	return search.ScoreMode(mode)
+	return index.ScoreMode(mode)
 }
 
 var (

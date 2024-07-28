@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/geange/lucene-go/core/document"
 	index2 "github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	"reflect"
 )
@@ -14,7 +13,7 @@ const (
 	TOTAL_HITS_THRESHOLD = 1000
 )
 
-var _ search.IndexSearcher = &indexSearcher{}
+var _ index2.IndexSearcher = &indexSearcher{}
 
 // indexSearcher
 // Implements search over a single Reader.
@@ -46,7 +45,7 @@ type indexSearcher struct {
 	leafContexts  []index2.LeafReaderContext
 
 	// used with executor - each slice holds a set of leafs executed within one thread
-	leafSlices []search.LeafSlice
+	leafSlices []index2.LeafSlice
 
 	// These are only used for multi-threaded search
 	executor Executor
@@ -54,26 +53,26 @@ type indexSearcher struct {
 	// the default Similarity
 	similarity index2.Similarity
 
-	queryCache         search.QueryCache
-	queryCachingPolicy search.QueryCachingPolicy
+	queryCache         index2.QueryCache
+	queryCachingPolicy index2.QueryCachingPolicy
 }
 
-func (r *indexSearcher) GetQueryCache() search.QueryCache {
+func (r *indexSearcher) GetQueryCache() index2.QueryCache {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *indexSearcher) SetQueryCachingPolicy(queryCachingPolicy search.QueryCachingPolicy) {
+func (r *indexSearcher) SetQueryCachingPolicy(queryCachingPolicy index2.QueryCachingPolicy) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *indexSearcher) GetQueryCachingPolicy() search.QueryCachingPolicy {
+func (r *indexSearcher) GetQueryCachingPolicy() index2.QueryCachingPolicy {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *indexSearcher) Slices(leaves []index2.LeafReaderContext) []search.LeafSlice {
+func (r *indexSearcher) Slices(leaves []index2.LeafReaderContext) []index2.LeafSlice {
 	//TODO implement me
 	panic("implement me")
 }
@@ -93,17 +92,17 @@ func (r *indexSearcher) DocLimitFields(docID int, fieldsToLoad []string) (*docum
 	panic("implement me")
 }
 
-func (r *indexSearcher) Count(query search.Query) (int, error) {
+func (r *indexSearcher) Count(query index2.Query) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *indexSearcher) GetSlices() []search.LeafSlice {
+func (r *indexSearcher) GetSlices() []index2.LeafSlice {
 	//TODO implement me
 	panic("implement me")
 }
 
-func NewIndexSearcher(r index2.IndexReader) (search.IndexSearcher, error) {
+func NewIndexSearcher(r index2.IndexReader) (index2.IndexSearcher, error) {
 	ctx, err := r.GetContext()
 	if err != nil {
 		return nil, err
@@ -145,11 +144,11 @@ func (r *indexSearcher) SetSimilarity(similarity index2.Similarity) {
 	r.similarity = similarity
 }
 
-func (r *indexSearcher) SetQueryCache(queryCache search.QueryCache) {
+func (r *indexSearcher) SetQueryCache(queryCache index2.QueryCache) {
 	r.queryCache = queryCache
 }
 
-func (r *indexSearcher) Search(query search.Query, results search.Collector) error {
+func (r *indexSearcher) Search(query index2.Query, results index2.Collector) error {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
@@ -168,7 +167,7 @@ func (r *indexSearcher) Search(query search.Query, results search.Collector) err
 // By passing the bottom result from a previous page as after, this method can be used for
 // efficient 'deep-paging' across potentially large result sets.
 // Throws: BooleanQuery.TooManyClauses – If a query would exceed BooleanQuery.getMaxClauseCount() clauses.
-func (r *indexSearcher) SearchAfter(after search.ScoreDoc, query search.Query, numHits int) (search.TopDocs, error) {
+func (r *indexSearcher) SearchAfter(after index2.ScoreDoc, query index2.Query, numHits int) (index2.TopDocs, error) {
 	limit := max(1, r.reader.MaxDoc())
 	if after != nil && after.GetDoc() >= limit {
 		return nil, errors.New("after.doc exceeds the number of documents in the reader")
@@ -201,7 +200,7 @@ func (r *indexSearcher) SearchAfter(after search.ScoreDoc, query search.Query, n
 		return nil, err
 	}
 
-	topDocs, ok := v.(search.TopDocs)
+	topDocs, ok := v.(index2.TopDocs)
 	if !ok {
 		return nil, errors.New("object is not TopDocs")
 	}
@@ -215,15 +214,15 @@ type searchAfterCollectorManager struct {
 	hitsThresholdChecker HitsThresholdChecker
 	minScoreAcc          *MaxScoreAccumulator
 	cappedNumHits        int
-	after                search.ScoreDoc
+	after                index2.ScoreDoc
 }
 
-func (s *searchAfterCollectorManager) NewCollector() (search.Collector, error) {
+func (s *searchAfterCollectorManager) NewCollector() (index2.Collector, error) {
 	return TopScoreDocCollectorCreate(s.cappedNumHits, s.after, s.hitsThresholdChecker, s.minScoreAcc)
 }
 
-func (s *searchAfterCollectorManager) Reduce(collectors []search.Collector) (any, error) {
-	topDocs := make([]search.TopDocs, len(collectors))
+func (s *searchAfterCollectorManager) Reduce(collectors []index2.Collector) (any, error) {
+	topDocs := make([]index2.TopDocs, len(collectors))
 	for i, collector := range collectors {
 		docs, err := collector.(TopScoreDocCollector).TopDocs()
 		if err != nil {
@@ -240,7 +239,7 @@ func (s *searchAfterCollectorManager) Reduce(collectors []search.Collector) (any
 // Executor in order to parallelize execution of the collection on the configured leafSlices.
 // See Also: CollectorManager
 // lucene.experimental
-func (r *indexSearcher) SearchByCollectorManager(query search.Query, collectorManager CollectorManager) (any, error) {
+func (r *indexSearcher) SearchByCollectorManager(query index2.Query, collectorManager CollectorManager) (any, error) {
 	if r.executor == nil || len(r.leafSlices) <= 1 {
 		collector, err := collectorManager.NewCollector()
 		if err != nil {
@@ -249,18 +248,18 @@ func (r *indexSearcher) SearchByCollectorManager(query search.Query, collectorMa
 		if err := r.SearchCollector(query, collector); err != nil {
 			return nil, err
 		}
-		return collectorManager.Reduce([]search.Collector{collector.(TopScoreDocCollector)})
+		return collectorManager.Reduce([]index2.Collector{collector.(TopScoreDocCollector)})
 	}
 
 	// TODO: fix it
 	panic("")
 }
 
-func (r *indexSearcher) SearchTopN(query search.Query, n int) (search.TopDocs, error) {
+func (r *indexSearcher) SearchTopN(query index2.Query, n int) (index2.TopDocs, error) {
 	return r.SearchAfter(nil, query, n)
 }
 
-func (r *indexSearcher) SearchCollector(query search.Query, results search.Collector) error {
+func (r *indexSearcher) SearchCollector(query index2.Query, results index2.Collector) error {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
@@ -273,7 +272,7 @@ func (r *indexSearcher) SearchCollector(query search.Query, results search.Colle
 	return r.Search3(r.leafContexts, weight, results)
 }
 
-func (r *indexSearcher) Search3(leaves []index2.LeafReaderContext, weight search.Weight, collector search.Collector) error {
+func (r *indexSearcher) Search3(leaves []index2.LeafReaderContext, weight index2.Weight, collector index2.Collector) error {
 
 	for _, leaf := range leaves {
 		leafCollector, err := collector.GetLeafCollector(context.TODO(), leaf)
@@ -296,7 +295,7 @@ func (r *indexSearcher) Search3(leaves []index2.LeafReaderContext, weight search
 	return nil
 }
 
-func (r *indexSearcher) CreateWeight(query search.Query, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (r *indexSearcher) CreateWeight(query index2.Query, scoreMode index2.ScoreMode, boost float64) (index2.Weight, error) {
 	queryCache := r.queryCache
 	weight, err := query.CreateWeight(r, scoreMode, boost)
 	if err != nil {
@@ -309,7 +308,7 @@ func (r *indexSearcher) CreateWeight(query search.Query, scoreMode search.ScoreM
 	return weight, nil
 }
 
-func (r *indexSearcher) Rewrite(query search.Query) (search.Query, error) {
+func (r *indexSearcher) Rewrite(query index2.Query) (index2.Query, error) {
 	rewrittenQuery, err := query.Rewrite(r.reader)
 	if err != nil {
 		return nil, err

@@ -19,7 +19,7 @@ type CodecReader interface {
 	// GetTermVectorsReader
 	// Expert: retrieve thread-private TermVectorsReader
 	// lucene.internal
-	GetTermVectorsReader() TermVectorsReader
+	GetTermVectorsReader() index.TermVectorsReader
 
 	// GetNormsReader
 	// Expert: retrieve underlying NormsProducer
@@ -44,7 +44,7 @@ type CodecReader interface {
 
 type CodecReaderSPI interface {
 	GetFieldsReader() index.StoredFieldsReader
-	GetTermVectorsReader() TermVectorsReader
+	GetTermVectorsReader() index.TermVectorsReader
 	GetPostingsReader() index.FieldsProducer
 	GetFieldInfos() index.FieldInfos
 	MaxDoc() int

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	index2 "github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	"io"
 	"math"
@@ -16,7 +15,7 @@ import (
 	"github.com/geange/lucene-go/core/index"
 )
 
-var _ search.Query = &PointRangeQuery{}
+var _ index2.Query = &PointRangeQuery{}
 
 type PointRangeQuery struct {
 	field       string
@@ -81,7 +80,7 @@ func (p *PointRangeQuery) String(field string) string {
 	return sb.String()
 }
 
-func (p *PointRangeQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (p *PointRangeQuery) CreateWeight(searcher index2.IndexSearcher, scoreMode index2.ScoreMode, boost float64) (index2.Weight, error) {
 
 	// We don't use RandomAccessWeight here: it's no good to approximate with "match all docs".
 	// This is an inverted structure and should be used in the first pass:
@@ -92,10 +91,10 @@ type prQueryWeight struct {
 	*ConstantScoreWeight
 
 	p         *PointRangeQuery
-	scoreMode search.ScoreMode
+	scoreMode index2.ScoreMode
 }
 
-func (p *PointRangeQuery) newPrQueryWeight(boost float64, scoreMode search.ScoreMode) *prQueryWeight {
+func (p *PointRangeQuery) newPrQueryWeight(boost float64, scoreMode index2.ScoreMode) *prQueryWeight {
 	weight := &prQueryWeight{
 		ConstantScoreWeight: nil,
 		p:                   p,
@@ -263,7 +262,7 @@ func (r *invPrQueryVisitor) Grow(count int) {
 	return
 }
 
-func (r *prQueryWeight) ScorerSupplier(ctx index2.LeafReaderContext) (search.ScorerSupplier, error) {
+func (r *prQueryWeight) ScorerSupplier(ctx index2.LeafReaderContext) (index2.ScorerSupplier, error) {
 	reader, ok := ctx.Reader().(index2.LeafReader)
 	if !ok {
 		return nil, errors.New("get reader error")
@@ -338,15 +337,15 @@ func (r *prQueryWeight) ScorerSupplier(ctx index2.LeafReaderContext) (search.Sco
 
 }
 
-var _ search.ScorerSupplier = &allDocsScorerSupplier{}
+var _ index2.ScorerSupplier = &allDocsScorerSupplier{}
 
 type allDocsScorerSupplier struct {
 	reader    index2.LeafReader
 	weight    *prQueryWeight
-	scoreMode search.ScoreMode
+	scoreMode index2.ScoreMode
 }
 
-func (r *allDocsScorerSupplier) Get(leadCost int64) (search.Scorer, error) {
+func (r *allDocsScorerSupplier) Get(leadCost int64) (index2.Scorer, error) {
 	return NewConstantScoreScorer(r.weight, r.weight.Score(), r.scoreMode, types.DocIdSetIteratorAll(r.reader.MaxDoc()))
 }
 
@@ -354,7 +353,7 @@ func (a *allDocsScorerSupplier) Cost() int64 {
 	return int64(a.reader.MaxDoc())
 }
 
-var _ search.ScorerSupplier = &notAllDocsScorerSupplier{}
+var _ index2.ScorerSupplier = &notAllDocsScorerSupplier{}
 
 type notAllDocsScorerSupplier struct {
 	result    *DocIdSetBuilder
@@ -363,10 +362,10 @@ type notAllDocsScorerSupplier struct {
 	values    types.PointValues
 	cost      int64
 	weight    *prQueryWeight
-	scoreMode search.ScoreMode
+	scoreMode index2.ScoreMode
 }
 
-func (r *notAllDocsScorerSupplier) Get(leadCost int64) (search.Scorer, error) {
+func (r *notAllDocsScorerSupplier) Get(leadCost int64) (index2.Scorer, error) {
 	if r.values.GetDocCount() == r.reader.MaxDoc() &&
 		r.values.GetDocCount() == r.values.Size() &&
 		r.Cost() > int64(r.reader.MaxDoc()/2) {
@@ -405,7 +404,7 @@ func (r *notAllDocsScorerSupplier) Cost() int64 {
 	return r.cost
 }
 
-func (r *prQueryWeight) Scorer(ctx index2.LeafReaderContext) (search.Scorer, error) {
+func (r *prQueryWeight) Scorer(ctx index2.LeafReaderContext) (index2.Scorer, error) {
 	scorerSupplier, err := r.ScorerSupplier(ctx)
 	if err != nil {
 		return nil, err
@@ -420,11 +419,11 @@ func (r *prQueryWeight) IsCacheable(ctx index2.LeafReaderContext) bool {
 	return true
 }
 
-func (p *PointRangeQuery) Rewrite(reader index2.IndexReader) (search.Query, error) {
+func (p *PointRangeQuery) Rewrite(reader index2.IndexReader) (index2.Query, error) {
 	return p, nil
 }
 
-func (p *PointRangeQuery) Visit(visitor search.QueryVisitor) (err error) {
+func (p *PointRangeQuery) Visit(visitor index2.QueryVisitor) (err error) {
 	if visitor.AcceptField(p.field) {
 		err := visitor.VisitLeaf(p)
 		if err != nil {

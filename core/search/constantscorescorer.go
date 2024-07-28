@@ -1,19 +1,19 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ search.Scorer = &ConstantScoreScorer{}
+var _ index.Scorer = &ConstantScoreScorer{}
 
 type ConstantScoreScorer struct {
 	*BaseScorer
 
 	score            float64
-	scoreMode        search.ScoreMode
+	scoreMode        index.ScoreMode
 	approximation    types.DocIdSetIterator
-	twoPhaseIterator search.TwoPhaseIterator
+	twoPhaseIterator index.TwoPhaseIterator
 	disi             types.DocIdSetIterator
 }
 
@@ -41,8 +41,8 @@ func (c *ConstantScoreScorer) GetMaxScore(upTo int) (float64, error) {
 //	score: the score to return on each document
 //	scoreMode: the score mode
 //	disi: the iterator that defines matching documents
-func NewConstantScoreScorer(weight search.Weight, score float64,
-	scoreMode search.ScoreMode, disi types.DocIdSetIterator) (*ConstantScoreScorer, error) {
+func NewConstantScoreScorer(weight index.Weight, score float64,
+	scoreMode index.ScoreMode, disi types.DocIdSetIterator) (*ConstantScoreScorer, error) {
 
 	if scoreMode == TOP_SCORES {
 		//
@@ -60,8 +60,8 @@ func NewConstantScoreScorer(weight search.Weight, score float64,
 	return scorer, nil
 }
 
-func NewConstantScoreScorerV1(weight search.Weight, score float64,
-	scoreMode search.ScoreMode, twoPhaseIterator search.TwoPhaseIterator) (*ConstantScoreScorer, error) {
+func NewConstantScoreScorerV1(weight index.Weight, score float64,
+	scoreMode index.ScoreMode, twoPhaseIterator index.TwoPhaseIterator) (*ConstantScoreScorer, error) {
 
 	scorer := &ConstantScoreScorer{
 		score:     score,
@@ -83,11 +83,11 @@ func NewConstantScoreScorerV1(weight search.Weight, score float64,
 	return scorer, nil
 }
 
-var _ search.TwoPhaseIterator = &constantTwoPhaseIterator{}
+var _ index.TwoPhaseIterator = &constantTwoPhaseIterator{}
 
 type constantTwoPhaseIterator struct {
 	approximation    types.DocIdSetIterator
-	twoPhaseIterator search.TwoPhaseIterator
+	twoPhaseIterator index.TwoPhaseIterator
 }
 
 func (t *constantTwoPhaseIterator) Approximation() types.DocIdSetIterator {

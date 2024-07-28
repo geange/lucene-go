@@ -2,11 +2,10 @@ package index
 
 import (
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"sync"
 	"sync/atomic"
 	"unsafe"
-
-	"github.com/geange/lucene-go/core/interface/search"
 )
 
 // FrozenBufferedUpdates
@@ -20,11 +19,11 @@ type FrozenBufferedUpdates struct {
 	deleteTerms *PrefixCodedTerms
 
 	// Parallel array of deleted query, and the docIDUpto for each
-	deleteQueries     []search.Query
+	deleteQueries     []index.Query
 	deleteQueryLimits []int
 
 	// Counts down once all deletes/ updates have been applied
-	fieldUpdates map[string]*FieldUpdatesBuffer
+	fieldUpdates map[string]*index.FieldUpdatesBuffer
 
 	// How many total documents were deleted/updated.
 	totalDelCount     int
@@ -34,12 +33,12 @@ type FrozenBufferedUpdates struct {
 
 	delGen int64 // assigned by BufferedUpdatesStream once pushed
 
-	privateSegment *SegmentCommitInfo // non-null iff this frozen packet represents
+	privateSegment *index.SegmentCommitInfo // non-null iff this frozen packet represents
 }
 
 // NewFrozenBufferedUpdates
 // TODO: fix it
-func NewFrozenBufferedUpdates(updates *BufferedUpdates, privateSegment *SegmentCommitInfo) *FrozenBufferedUpdates {
+func NewFrozenBufferedUpdates(updates *index.BufferedUpdates, privateSegment *index.SegmentCommitInfo) *FrozenBufferedUpdates {
 	return &FrozenBufferedUpdates{
 		delGen: -1,
 	}

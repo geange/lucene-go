@@ -2,7 +2,6 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	index2 "github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/bytesref"
@@ -23,7 +22,7 @@ import (
 // competitive terms and not hit this limitation. Note that org.apache.lucene.queryparser.classic.QueryParser
 // produces MultiTermQueries using ConstantScoreRewrite by default.
 type MultiTermQuery interface {
-	search.Query
+	index.Query
 
 	// GetField
 	// Returns the field name for this query
@@ -56,7 +55,7 @@ type MultiTermQueryPlus interface {
 // RewriteMethod
 // Abstract class that defines how the query is rewritten.
 type RewriteMethod interface {
-	Rewrite(reader index.IndexReader, query MultiTermQuery) (search.Query, error)
+	Rewrite(reader index.IndexReader, query MultiTermQuery) (index.Query, error)
 
 	// GetTermsEnum
 	// Returns the MultiTermQuerys TermsEnum
@@ -69,7 +68,7 @@ var _ RewriteMethod = &constantScoreRewrite{}
 type constantScoreRewrite struct {
 }
 
-func (c *constantScoreRewrite) Rewrite(reader index.IndexReader, query MultiTermQuery) (search.Query, error) {
+func (c *constantScoreRewrite) Rewrite(reader index.IndexReader, query MultiTermQuery) (index.Query, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -78,7 +77,7 @@ func (c *constantScoreRewrite) GetTermsEnum(query MultiTermQuery, terms index.Te
 	return query.GetTermsEnum(terms, atts)
 }
 
-var _ search.Query = &MultiTermQueryConstantScoreWrapper{}
+var _ index.Query = &MultiTermQueryConstantScoreWrapper{}
 
 type MultiTermQueryConstantScoreWrapper struct {
 	query MultiTermQuery
@@ -90,7 +89,7 @@ func (m *MultiTermQueryConstantScoreWrapper) String(field string) string {
 	return m.query.String(field)
 }
 
-func (m *MultiTermQueryConstantScoreWrapper) GetQuery() search.Query {
+func (m *MultiTermQueryConstantScoreWrapper) GetQuery() index.Query {
 	return m.query
 }
 
@@ -100,7 +99,7 @@ func (m *MultiTermQueryConstantScoreWrapper) GetField() string {
 	return m.query.GetField()
 }
 
-func (m *MultiTermQueryConstantScoreWrapper) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (m *MultiTermQueryConstantScoreWrapper) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -108,11 +107,11 @@ func (m *MultiTermQueryConstantScoreWrapper) CreateWeight(searcher search.IndexS
 type wrapperConstantScoreWeight struct {
 	*ConstantScoreWeight
 
-	scoreMode search.ScoreMode
+	scoreMode index.ScoreMode
 	p         *MultiTermQueryConstantScoreWrapper
 }
 
-func (r *wrapperConstantScoreWeight) BulkScorer(ctx index.LeafReaderContext) (search.BulkScorer, error) {
+func (r *wrapperConstantScoreWeight) BulkScorer(ctx index.LeafReaderContext) (index.BulkScorer, error) {
 	weightOrBitSet, err := r.rewrite(ctx)
 	if err != nil {
 		return nil, err
@@ -131,7 +130,7 @@ func (r *wrapperConstantScoreWeight) BulkScorer(ctx index.LeafReaderContext) (se
 	return NewDefaultBulkScorer(scorer), nil
 }
 
-func (r *wrapperConstantScoreWeight) Matches(context index.LeafReaderContext, doc int) (search.Matches, error) {
+func (r *wrapperConstantScoreWeight) Matches(context index.LeafReaderContext, doc int) (index.Matches, error) {
 	terms, err := context.Reader().(index.LeafReader).Terms(r.p.query.GetField())
 	if err != nil {
 		return nil, err
@@ -157,21 +156,21 @@ func (r *wrapperConstantScoreWeight) Matches(context index.LeafReaderContext, do
 	}), nil
 }
 
-var _ IOSupplier[search.MatchesIterator] = &matches{}
+var _ IOSupplier[index.MatchesIterator] = &matches{}
 
 type matches struct {
 	context index.LeafReaderContext
 	doc     int
-	query   search.Query
+	query   index.Query
 	field   string
 	terms   bytesref.BytesIterator
 }
 
-func (r *matches) Get() (search.MatchesIterator, error) {
+func (r *matches) Get() (index.MatchesIterator, error) {
 	return FromTermsEnumMatchesIterator(r.context, r.doc, r.query, r.field, r.terms)
 }
 
-func (r *wrapperConstantScoreWeight) Scorer(ctx index.LeafReaderContext) (search.Scorer, error) {
+func (r *wrapperConstantScoreWeight) Scorer(ctx index.LeafReaderContext) (index.Scorer, error) {
 	weightOrBitSet, err := r.rewrite(ctx)
 	if err != nil {
 		return nil, err
@@ -199,7 +198,7 @@ func (r *wrapperConstantScoreWeight) rewrite(ctx index.LeafReaderContext) (*weig
 	panic("")
 }
 
-func (r *wrapperConstantScoreWeight) scorer(set DocIdSet) (search.Scorer, error) {
+func (r *wrapperConstantScoreWeight) scorer(set DocIdSet) (index.Scorer, error) {
 	if set == nil {
 		return nil, nil
 	}
@@ -211,7 +210,7 @@ func (r *wrapperConstantScoreWeight) scorer(set DocIdSet) (search.Scorer, error)
 }
 
 type weightOrDocIdSet struct {
-	weight search.Weight
+	weight index.Weight
 	set    DocIdSet
 }
 
@@ -226,13 +225,13 @@ func newTermAndState(term []byte, state index2.TermState, docFreq int, totalTerm
 	return &termAndState{term: term, state: state, docFreq: docFreq, totalTermFreq: totalTermFreq}
 }
 
-func (m *MultiTermQueryConstantScoreWrapper) Rewrite(reader index.IndexReader) (search.Query, error) {
+func (m *MultiTermQueryConstantScoreWrapper) Rewrite(reader index.IndexReader) (index.Query, error) {
 	return m, nil
 }
 
-func (m *MultiTermQueryConstantScoreWrapper) Visit(visitor search.QueryVisitor) (err error) {
+func (m *MultiTermQueryConstantScoreWrapper) Visit(visitor index.QueryVisitor) (err error) {
 	if visitor.AcceptField(m.GetField()) {
-		return m.query.Visit(visitor.GetSubVisitor(search.OccurFilter, m))
+		return m.query.Visit(visitor.GetSubVisitor(index.OccurFilter, m))
 	}
 	return nil
 }

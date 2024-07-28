@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"math"
@@ -27,11 +27,11 @@ import (
 // 总而言之，`MaxScoreSumPropagator`是一个用于在布尔查询中传播评分信息的实用工具类，用于确保最终文档得分是各个子查询中最相关得分的累加和。
 type MaxScoreSumPropagator struct {
 	numClauses          int
-	scorers             []search.Scorer
+	scorers             []index.Scorer
 	sumOfOtherMaxScores []float64
 }
 
-func NewMaxScoreSumPropagator(scorerList []search.Scorer) (*MaxScoreSumPropagator, error) {
+func NewMaxScoreSumPropagator(scorerList []index.Scorer) (*MaxScoreSumPropagator, error) {
 	propagator := &MaxScoreSumPropagator{
 		numClauses: len(scorerList),
 		scorers:    scorerList,
@@ -63,7 +63,7 @@ func NewMaxScoreSumPropagator(scorerList []search.Scorer) (*MaxScoreSumPropagato
 var _ sort.Interface = &InPlaceMergeSorter{}
 
 type InPlaceMergeSorter struct {
-	scorers   []search.Scorer
+	scorers   []index.Scorer
 	maxScores []float64
 }
 

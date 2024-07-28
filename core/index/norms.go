@@ -34,20 +34,20 @@ type NormsConsumer interface {
 	// filling segments with missing norms for the field with zeros.
 	// Implementations can override this method for more sophisticated merging
 	// (bulk-byte copying, etc).
-	Merge(ctx context.Context, mergeState *MergeState) error
+	Merge(ctx context.Context, mergeState *index.MergeState) error
 
 	// MergeNormsField
 	// Merges the norms from toMerge.
 	// The default implementation calls FnAddNormsField, passing an Iterable
 	// that merges and filters deleted documents on the fly.
-	MergeNormsField(ctx context.Context, mergeFieldInfo *document.FieldInfo, mergeState *MergeState) error
+	MergeNormsField(ctx context.Context, mergeFieldInfo *document.FieldInfo, mergeState *index.MergeState) error
 }
 
 type NormsConsumerDefault struct {
 	FnAddNormsField func(ctx context.Context, field *document.FieldInfo, normsProducer index.NormsProducer) error
 }
 
-func (n *NormsConsumerDefault) Merge(ctx context.Context, mergeState *MergeState) error {
+func (n *NormsConsumerDefault) Merge(ctx context.Context, mergeState *index.MergeState) error {
 	for _, normsProducer := range mergeState.NormsProducers {
 		if normsProducer != nil {
 			if err := normsProducer.CheckIntegrity(); err != nil {
@@ -65,7 +65,7 @@ func (n *NormsConsumerDefault) Merge(ctx context.Context, mergeState *MergeState
 	return nil
 }
 
-func (n *NormsConsumerDefault) MergeNormsField(ctx context.Context, mergeFieldInfo *document.FieldInfo, mergeState *MergeState) error {
+func (n *NormsConsumerDefault) MergeNormsField(ctx context.Context, mergeFieldInfo *document.FieldInfo, mergeState *index.MergeState) error {
 	// TODO: try to share code with default merge of DVConsumer by passing MatchAllBits ?
 	return n.FnAddNormsField(ctx, mergeFieldInfo, &innerNormsProducer{
 		mergeFieldInfo: mergeFieldInfo,
@@ -77,7 +77,7 @@ var _ index.NormsProducer = &innerNormsProducer{}
 
 type innerNormsProducer struct {
 	mergeFieldInfo *document.FieldInfo
-	mergeState     *MergeState
+	mergeState     *index.MergeState
 }
 
 func (i *innerNormsProducer) Close() error {
@@ -153,7 +153,7 @@ func (n *NormValuesWriter) Finish(maxDoc int) {
 
 }
 
-func (n *NormValuesWriter) Flush(state *SegmentWriteState, sortMap *DocMap, normsConsumer NormsConsumer) error {
+func (n *NormValuesWriter) Flush(state *index.SegmentWriteState, sortMap *DocMap, normsConsumer index.NormsConsumer) error {
 	//values := n.pending.Build()
 	// TODO: impl it
 	panic("")

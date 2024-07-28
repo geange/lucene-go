@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 	"slices"
 
@@ -115,7 +114,7 @@ func (f *FieldUpdatesBuffer) add(field string, docUpTo, ord int, hasValue bool) 
 	return nil
 }
 
-func (f *FieldUpdatesBuffer) addUpdateInt(term index.Term, value int64, docUpTo int) error {
+func (f *FieldUpdatesBuffer) addUpdateInt(term Term, value int64, docUpTo int) error {
 	ord := f.append(term)
 	field := term.Field()
 	if err := f.add(field, docUpTo, ord, true); err != nil {
@@ -133,18 +132,18 @@ func (f *FieldUpdatesBuffer) addUpdateInt(term index.Term, value int64, docUpTo 
 	return nil
 }
 
-func (f *FieldUpdatesBuffer) addNoValue(term index.Term, docUpTo int) error {
+func (f *FieldUpdatesBuffer) addNoValue(term Term, docUpTo int) error {
 	ord := f.append(term)
 	return f.add(term.Field(), docUpTo, ord, false)
 }
 
-func (f *FieldUpdatesBuffer) addUpdateBytes(term index.Term, value []byte, docUpTo int) error {
+func (f *FieldUpdatesBuffer) addUpdateBytes(term Term, value []byte, docUpTo int) error {
 	ord := f.append(term)
 	f.byteValues = append(f.byteValues, value)
 	return f.add(term.Field(), docUpTo, ord, true)
 }
 
-func (f *FieldUpdatesBuffer) append(term index.Term) int {
+func (f *FieldUpdatesBuffer) append(term Term) int {
 	f.termValues = append(f.termValues, term.Bytes())
 	numUpdates := f.numUpdates
 	f.numUpdates++

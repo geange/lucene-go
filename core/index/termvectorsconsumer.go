@@ -15,8 +15,8 @@ type TermVectorsConsumer struct {
 
 	directory       store.Directory
 	info            *SegmentInfo
-	codec           Codec
-	writer          TermVectorsWriter
+	codec           index.Codec
+	writer          index.TermVectorsWriter
 	hasVectors      bool
 	numVectorFields int
 	lastDocID       int
@@ -25,7 +25,7 @@ type TermVectorsConsumer struct {
 
 func NewTermVectorsConsumer(intBlockAllocator ints.IntsAllocator,
 	byteBlockAllocator bytesref.Allocator, directory store.Directory,
-	info *SegmentInfo, codec Codec) *TermVectorsConsumer {
+	info *SegmentInfo, codec index.Codec) *TermVectorsConsumer {
 
 	termsHashDefault := NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nil)
 	return &TermVectorsConsumer{
@@ -41,7 +41,7 @@ func (t *TermVectorsConsumer) SetTermBytePool(termBytePool *bytesref.BlockPool) 
 }
 
 func (t *TermVectorsConsumer) Flush(fieldsToFlush map[string]TermsHashPerField,
-	state *SegmentWriteState, sortMap *DocMap, norms index.NormsProducer) error {
+	state *index.SegmentWriteState, sortMap *DocMap, norms index.NormsProducer) error {
 
 	if t.writer != nil {
 		numDocs, err := state.SegmentInfo.MaxDoc()

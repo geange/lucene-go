@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"strconv"
 
 	"github.com/bits-and-blooms/bitset"
@@ -21,7 +22,7 @@ var (
 	LIVE_DOCS_FORMAT_END  = []byte("END")
 )
 
-var _ index.LiveDocsFormat = &LiveDocsFormat{}
+var _ index2.LiveDocsFormat = &LiveDocsFormat{}
 
 // LiveDocsFormat
 // reads/writes plaintext live docs
@@ -34,7 +35,7 @@ func NewLiveDocsFormat() *LiveDocsFormat {
 	return &LiveDocsFormat{}
 }
 
-func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, info *index.SegmentCommitInfo, ioContext *store.IOContext) (util.Bits, error) {
+func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, info *index2.SegmentCommitInfo, ioContext *store.IOContext) (util.Bits, error) {
 	if !info.HasDeletions() {
 		return nil, errors.New("hasDeletions")
 	}
@@ -82,7 +83,7 @@ func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, 
 	return newSimpleTextBits(bits, size), nil
 }
 
-func (s *LiveDocsFormat) WriteLiveDocs(ctx context.Context, bits util.Bits, dir store.Directory, info *index.SegmentCommitInfo, newDelCount int, ioContext *store.IOContext) error {
+func (s *LiveDocsFormat) WriteLiveDocs(ctx context.Context, bits util.Bits, dir store.Directory, info *index2.SegmentCommitInfo, newDelCount int, ioContext *store.IOContext) error {
 	size := int(bits.Len())
 
 	fileName := index.FileNameFromGeneration(info.Info().Name(), LIVEDOCS_EXTENSION, info.GetNextDelGen())
@@ -115,7 +116,7 @@ func (s *LiveDocsFormat) WriteLiveDocs(ctx context.Context, bits util.Bits, dir 
 	return out.Close()
 }
 
-func (s *LiveDocsFormat) Files(ctx context.Context, info *index.SegmentCommitInfo, files map[string]struct{}) (map[string]struct{}, error) {
+func (s *LiveDocsFormat) Files(ctx context.Context, info *index2.SegmentCommitInfo, files map[string]struct{}) (map[string]struct{}, error) {
 	if info.HasDeletions() {
 		fileName := index.FileNameFromGeneration(info.Info().Name(), LIVEDOCS_EXTENSION, info.GetDelGen())
 		files[fileName] = struct{}{}

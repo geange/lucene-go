@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"github.com/geange/gods-generic/sets/treeset"
 	index2 "github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"reflect"
 
 	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ search.Query = &TermQuery{}
+var _ index2.Query = &TermQuery{}
 
 // TermQuery A Query that matches documents containing a term.
 // This may be combined with other terms with a BooleanQuery.
@@ -53,7 +52,7 @@ func (t *TermQuery) GetTerm() index2.Term {
 	return t.term
 }
 
-func (t *TermQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (t *TermQuery) CreateWeight(searcher index2.IndexSearcher, scoreMode index2.ScoreMode, boost float64) (index2.Weight, error) {
 	readerContext := searcher.GetTopReaderContext()
 
 	var termState *index.TermStates
@@ -70,18 +69,18 @@ func (t *TermQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search
 	return t.NewTermWeight(searcher, scoreMode, boost, termState)
 }
 
-func (t *TermQuery) Rewrite(reader index2.IndexReader) (search.Query, error) {
+func (t *TermQuery) Rewrite(reader index2.IndexReader) (index2.Query, error) {
 	return t, nil
 }
 
-func (t *TermQuery) Visit(visitor search.QueryVisitor) error {
+func (t *TermQuery) Visit(visitor index2.QueryVisitor) error {
 	if visitor.AcceptField(t.term.Field()) {
 		visitor.ConsumeTerms(t, t.term)
 	}
 	return nil
 }
 
-var _ search.Weight = &TermWeight{}
+var _ index2.Weight = &TermWeight{}
 
 type TermWeight struct {
 	*BaseWeight
@@ -90,7 +89,7 @@ type TermWeight struct {
 	similarity index2.Similarity
 	simScorer  index2.SimScorer
 	termStates *index.TermStates
-	scoreMode  search.ScoreMode
+	scoreMode  index2.ScoreMode
 }
 
 func (t *TermWeight) IsCacheable(ctx index2.LeafReaderContext) bool {
@@ -145,12 +144,12 @@ func (t *TermWeight) Explain(context index2.LeafReaderContext, doc int) (*types.
 	return nil, errors.New("no matching term")
 }
 
-func (t *TermWeight) GetQuery() search.Query {
+func (t *TermWeight) GetQuery() index2.Query {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t *TermWeight) Scorer(ctx index2.LeafReaderContext) (search.Scorer, error) {
+func (t *TermWeight) Scorer(ctx index2.LeafReaderContext) (index2.Scorer, error) {
 	termsEnum, err := t.getTermsEnum(ctx)
 	if err != nil {
 		return nil, err
@@ -212,7 +211,7 @@ func (t *TermWeight) getTermsEnum(context index2.LeafReaderContext) (index2.Term
 	return termsEnum, nil
 }
 
-func (t *TermQuery) NewTermWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode,
+func (t *TermQuery) NewTermWeight(searcher index2.IndexSearcher, scoreMode index2.ScoreMode,
 	boost float64, termStates *index.TermStates) (*TermWeight, error) {
 	weight := &TermWeight{
 		similarity: searcher.GetSimilarity(),

@@ -72,12 +72,12 @@ const (
 
 type IndexWriter struct {
 	enableTestPoints         bool
-	directoryOrig            store.Directory      // original user directory
-	directory                store.Directory      // wrapped with additional checks
-	changeCount              *atomic.Int64        // increments every time a change is completed
-	lastCommitChangeCount    *atomic.Int64        // last changeCount that was committed
-	rollbackSegments         []*SegmentCommitInfo // list of segmentInfo we will fallback to if the commit fails
-	pendingCommit            *SegmentInfos        // set when a commit is pending (after prepareCommit() & before commit())
+	directoryOrig            store.Directory            // original user directory
+	directory                store.Directory            // wrapped with additional checks
+	changeCount              *atomic.Int64              // increments every time a change is completed
+	lastCommitChangeCount    *atomic.Int64              // last changeCount that was committed
+	rollbackSegments         []*index.SegmentCommitInfo // list of segmentInfo we will fallback to if the commit fails
+	pendingCommit            *SegmentInfos              // set when a commit is pending (after prepareCommit() & before commit())
 	pendingSeqNo             int64
 	pendingCommitChangeCount int64
 	filesToCommit            map[string]struct{}
@@ -331,7 +331,7 @@ func (w *IndexWriter) validateIndexSort() error {
 	indexSort := w.config.GetIndexSort()
 	if indexSort != nil {
 		for _, info := range w.segmentInfos.segments {
-			segmentIndexSort := info.info.GetIndexSort()
+			segmentIndexSort := info.Info().GetIndexSort()
 			if segmentIndexSort == nil || isCongruentSort(indexSort, segmentIndexSort) == false {
 				return errors.New("cannot change previous indexSort")
 			}
@@ -445,8 +445,8 @@ func (w *IndexWriter) SoftUpdateDocument(ctx context.Context, term index.Term, d
 	return w.updateDocuments(ctx, delNode, []*document.Document{doc})
 }
 
-func (w *IndexWriter) buildDocValuesUpdate(term index.Term, updates []document.IndexableField) ([]DocValuesUpdate, error) {
-	dvUpdates := make([]DocValuesUpdate, 0, len(updates))
+func (w *IndexWriter) buildDocValuesUpdate(term index.Term, updates []document.IndexableField) ([]index.DocValuesUpdate, error) {
+	dvUpdates := make([]index.DocValuesUpdate, 0, len(updates))
 
 	for _, field := range updates {
 		dvType := field.FieldType().DocValuesType()
@@ -469,9 +469,9 @@ func (w *IndexWriter) buildDocValuesUpdate(term index.Term, updates []document.I
 		case document.DOC_VALUES_TYPE_NUMERIC:
 			switch v := field.Get().(type) {
 			case int32:
-				dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), int64(v)))
+				dvUpdates = append(dvUpdates, index.NewNumericDocValuesUpdate(term, field.Name(), int64(v)))
 			case int64:
-				dvUpdates = append(dvUpdates, NewNumericDocValuesUpdate(term, field.Name(), v))
+				dvUpdates = append(dvUpdates, index.NewNumericDocValuesUpdate(term, field.Name(), v))
 			default:
 				panic("TODO")
 			}
@@ -481,7 +481,7 @@ func (w *IndexWriter) buildDocValuesUpdate(term index.Term, updates []document.I
 			if err != nil {
 				return nil, err
 			}
-			dvUpdates = append(dvUpdates, NewBinaryDocValuesUpdate(term, field.Name(), value))
+			dvUpdates = append(dvUpdates, index.NewBinaryDocValuesUpdate(term, field.Name(), value))
 		default:
 			return nil, errors.New("can only update NUMERIC or BINARY fields")
 		}
@@ -765,7 +765,7 @@ func (w *IndexWriter) GetReader(ctx context.Context, applyAllDeletes bool, write
 	maxFullFlushMergeWaitMillis := w.config.GetMaxFullFlushMergeWaitMillis()
 	openedReadOnlyClones := make(map[string]*SegmentReader)
 
-	readerFactory := func(sci *SegmentCommitInfo) (*SegmentReader, error) {
+	readerFactory := func(sci *index.SegmentCommitInfo) (*SegmentReader, error) {
 		rld, err := w.getPooledInstance(sci, true)
 		if err != nil {
 			return nil, err
@@ -776,7 +776,7 @@ func (w *IndexWriter) GetReader(ctx context.Context, applyAllDeletes bool, write
 			return nil, err
 		}
 		if maxFullFlushMergeWaitMillis > 0 { // only track this if we actually do fullFlush merges
-			openedReadOnlyClones[sci.info.Name()] = segmentReader
+			openedReadOnlyClones[sci.Info().Name()] = segmentReader
 		}
 		return segmentReader, nil
 	}
@@ -797,7 +797,7 @@ func (w *IndexWriter) doBeforeFlush() error {
 	return nil
 }
 
-func (w *IndexWriter) getPooledInstance(info *SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
+func (w *IndexWriter) getPooledInstance(info *index.SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
 	return w.readerPool.Get(info, create)
 }
 
@@ -863,7 +863,7 @@ func (w *IndexWriter) writeReaderPool(writeDeletes bool) error {
 	}
 
 	// now do some best effort to check if a segment is fully deleted
-	toDrop := make([]*SegmentCommitInfo, 0)
+	toDrop := make([]*index.SegmentCommitInfo, 0)
 	for _, info := range w.segmentInfos.AsList() {
 		readersAndUpdates, err := w.readerPool.Get(info, false)
 		if err != nil {
@@ -1110,21 +1110,21 @@ func getDocValuesDocIdSetIterator(field string, reader index.LeafReader) (types.
 	panic("")
 }
 
-func readFieldInfos(si *SegmentCommitInfo) (index.FieldInfos, error) {
-	codec := si.info.GetCodec()
+func readFieldInfos(si *index.SegmentCommitInfo) (index.FieldInfos, error) {
+	codec := si.Info().GetCodec()
 	reader := codec.FieldInfosFormat()
 
 	if si.HasFieldUpdates() {
 
-	} else if si.info.GetUseCompoundFile() {
-		cfs, err := codec.CompoundFormat().GetCompoundReader(nil, si.info.dir, si.info, nil)
+	} else if si.Info().GetUseCompoundFile() {
+		cfs, err := codec.CompoundFormat().GetCompoundReader(nil, si.Info().Dir(), si.Info(), nil)
 		if err != nil {
 			return nil, err
 		}
-		return reader.Read(nil, cfs, si.info, "", nil)
+		return reader.Read(nil, cfs, si.Info(), "", nil)
 	}
 
-	return reader.Read(nil, si.info.dir, si.info, "", nil)
+	return reader.Read(nil, si.Info().Dir(), si.Info(), "", nil)
 }
 
 func GetActualMaxDocs() int {
@@ -1325,7 +1325,7 @@ func (w *IndexWriter) publishFrozenUpdates(updates *FrozenBufferedUpdates) int64
 	return -1
 }
 
-func (w *IndexWriter) publishFlushedSegment(info *SegmentCommitInfo, infos index.FieldInfos,
+func (w *IndexWriter) publishFlushedSegment(info *index.SegmentCommitInfo, infos index.FieldInfos,
 	updates *FrozenBufferedUpdates, updates2 *FrozenBufferedUpdates, sortMap *DocMap) error {
 
 	panic("")
@@ -1339,7 +1339,7 @@ func (w *IndexWriter) checkpoint() error {
 	panic("")
 }
 
-func (w *IndexWriter) dropDeletedSegment(info *SegmentCommitInfo) error {
+func (w *IndexWriter) dropDeletedSegment(info *index.SegmentCommitInfo) error {
 	panic("")
 }
 
@@ -1376,7 +1376,7 @@ type IndexWriterConfig struct {
 	flushPolicy FlushPolicy
 }
 
-func NewIndexWriterConfig(codec Codec, similarity index.Similarity) *IndexWriterConfig {
+func NewIndexWriterConfig(codec index.Codec, similarity index.Similarity) *IndexWriterConfig {
 	cfg := &IndexWriterConfig{}
 	analyzer := standard.NewAnalyzer(analysis.EmptySet)
 	cfg.liveIndexWriterConfig = newLiveIndexWriterConfig(analyzer, codec, similarity)

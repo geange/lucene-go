@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/geange/lucene-go/core/interface/index"
 	"strconv"
 	"strings"
 
@@ -89,7 +90,7 @@ type SegmentInfos struct {
 	// Opaque Map<String, String> that user can specify during IndexWriter.commit
 	userData map[string]string
 
-	segments []*SegmentCommitInfo
+	segments []*index.SegmentCommitInfo
 
 	// If non-null, information about loading segments_N files will be printed here. @see #setInfoStream.
 	//infoStream io.Writer
@@ -118,7 +119,7 @@ func NewSegmentInfos(indexCreatedVersionMajor int) *SegmentInfos {
 		generation:     0,
 		lastGeneration: 0,
 		userData:       map[string]string{},
-		segments:       make([]*SegmentCommitInfo, 0),
+		segments:       make([]*index.SegmentCommitInfo, 0),
 		//infoStream:               nil,
 		id:                       nil,
 		luceneVersion:            nil,
@@ -182,7 +183,7 @@ func (s *SegmentInfos) Files(includeSegmentsFile bool) (map[string]struct{}, err
 	return files, nil
 }
 
-func (s *SegmentInfos) Info(j int) *SegmentCommitInfo {
+func (s *SegmentInfos) Info(j int) *index.SegmentCommitInfo {
 	return s.segments[j]
 }
 
@@ -190,8 +191,8 @@ func (s *SegmentInfos) SetNextWriteGeneration(generation int64) {
 	s.generation = generation
 }
 
-func (s *SegmentInfos) Add(si *SegmentCommitInfo) error {
-	if s.indexCreatedVersionMajor >= 7 && si.info.minVersion == nil {
+func (s *SegmentInfos) Add(si *index.SegmentCommitInfo) error {
+	if s.indexCreatedVersionMajor >= 7 && si.Info().GetMinVersion() == nil {
 		return errors.New("all segments must record the minVersion for indices created on or after Lucene 7")
 	}
 	s.segments = append(s.segments, si)
@@ -209,8 +210,8 @@ func (s *SegmentInfos) UpdateGeneration(other *SegmentInfos) {
 	s.generation = other.generation
 }
 
-func (s *SegmentInfos) CreateBackupSegmentInfos() []*SegmentCommitInfo {
-	list := make([]*SegmentCommitInfo, 0, s.Size())
+func (s *SegmentInfos) CreateBackupSegmentInfos() []*index.SegmentCommitInfo {
+	list := make([]*index.SegmentCommitInfo, 0, s.Size())
 	for _, segment := range s.segments {
 		list = append(list, segment.Clone())
 	}
@@ -230,7 +231,7 @@ func (s *SegmentInfos) Clone() *SegmentInfos {
 		generation:               s.generation,
 		lastGeneration:           s.lastGeneration,
 		userData:                 map[string]string{},
-		segments:                 []*SegmentCommitInfo{},
+		segments:                 []*index.SegmentCommitInfo{},
 		id:                       make([]byte, len(s.id)),
 		luceneVersion:            s.luceneVersion.Clone(),
 		minSegmentLuceneVersion:  s.luceneVersion.Clone(),
@@ -302,7 +303,7 @@ func (s *SegmentInfos) writeIndexOutput(ctx context.Context, out store.IndexOutp
 		// We do a separate loop up front so we can write the minSegmentVersion before
 		// any SegmentInfo; this makes it cleaner to throw IndexFormatTooOldExc at read time:
 		for _, siPerCommit := range s.segments {
-			segmentVersion := siPerCommit.info.GetVersion()
+			segmentVersion := siPerCommit.Info().GetVersion()
 			if minSegmentVersion == nil || segmentVersion.OnOrAfter(minSegmentVersion) == false {
 				minSegmentVersion = segmentVersion
 			}
@@ -321,16 +322,16 @@ func (s *SegmentInfos) writeIndexOutput(ctx context.Context, out store.IndexOutp
 
 	// write infos
 	for _, siPerCommit := range s.segments {
-		si := siPerCommit.info
-		if s.indexCreatedVersionMajor >= 7 && si.minVersion == nil {
+		si := siPerCommit.Info()
+		if s.indexCreatedVersionMajor >= 7 && si.GetMinVersion() == nil {
 			return fmt.Errorf("segments must record minVersion if they have been created on or after Lucene 7: %+v", si)
 		}
-		if err := out.WriteString(ctx, si.name); err != nil {
+		if err := out.WriteString(ctx, si.Name()); err != nil {
 			return err
 		}
 		segmentID := si.GetID()
 		if len(segmentID) != ID_LENGTH {
-			return fmt.Errorf("cannot write segment: invalid id segment=%s id=%s", si.name, util.StringRandomId(segmentID))
+			return fmt.Errorf("cannot write segment: invalid id segment=%s id=%s", si.Name(), util.StringRandomId(segmentID))
 		}
 		if _, err := out.Write(segmentID); err != nil {
 			return err
@@ -348,7 +349,7 @@ func (s *SegmentInfos) writeIndexOutput(ctx context.Context, out store.IndexOutp
 			return err
 		}
 		if delCount < 0 || delCount > maxDoc {
-			return fmt.Errorf("cannot write segment: invalid maxDoc segment=%s maxDox=%d", si.name, delCount)
+			return fmt.Errorf("cannot write segment: invalid maxDoc segment=%s maxDox=%d", si.Name(), delCount)
 		}
 		if err := out.WriteUint32(ctx, uint32(delCount)); err != nil {
 			return err
@@ -361,7 +362,7 @@ func (s *SegmentInfos) writeIndexOutput(ctx context.Context, out store.IndexOutp
 		}
 		softDelCount := siPerCommit.GetSoftDelCount()
 		if softDelCount < 0 || softDelCount > maxDoc {
-			return fmt.Errorf("cannot write segment: invalid maxDoc segment=%s maxDoc=%d", si.name, softDelCount)
+			return fmt.Errorf("cannot write segment: invalid maxDoc segment=%s maxDoc=%d", si.Name(), softDelCount)
 		}
 		if err := out.WriteUint32(ctx, uint32(softDelCount)); err != nil {
 			return err
@@ -436,11 +437,11 @@ func (s *SegmentInfos) Replace(other *SegmentInfos) error {
 	return nil
 }
 
-func (s *SegmentInfos) AsList() []*SegmentCommitInfo {
+func (s *SegmentInfos) AsList() []*index.SegmentCommitInfo {
 	return s.segments
 }
 
-func (s *SegmentInfos) AddAll(sis []*SegmentCommitInfo) error {
+func (s *SegmentInfos) AddAll(sis []*index.SegmentCommitInfo) error {
 	for _, si := range sis {
 		if err := s.Add(si); err != nil {
 			return err
@@ -449,7 +450,7 @@ func (s *SegmentInfos) AddAll(sis []*SegmentCommitInfo) error {
 	return nil
 }
 
-func (s *SegmentInfos) rollbackSegmentInfos(list []*SegmentCommitInfo) error {
+func (s *SegmentInfos) rollbackSegmentInfos(list []*index.SegmentCommitInfo) error {
 	s.segments = s.segments[:0]
 	return s.AddAll(list)
 }
@@ -457,7 +458,7 @@ func (s *SegmentInfos) rollbackSegmentInfos(list []*SegmentCommitInfo) error {
 func (s *SegmentInfos) TotalMaxDoc() int64 {
 	count := 0
 	for _, info := range s.segments {
-		maxDoc, _ := info.info.MaxDoc()
+		maxDoc, _ := info.Info().MaxDoc()
 		count += maxDoc
 	}
 	return int64(count)
@@ -710,7 +711,7 @@ func ReadCommitFromChecksumIndexInput(ctx context.Context, directory store.Direc
 		} else {
 			sciId = nil
 		}
-		siPerCommit := NewSegmentCommitInfo(info, int(delCount), softDelCount, int64(delGen), int64(fieldInfosGen), int64(dvGen), sciId)
+		siPerCommit := index.NewSegmentCommitInfo(info, int(delCount), softDelCount, int64(delGen), int64(fieldInfosGen), int64(dvGen), sciId)
 		fieldInfosFiles, err := input.ReadSetOfStrings(ctx)
 		if err != nil {
 			return nil, err
@@ -763,7 +764,7 @@ func ReadCommitFromChecksumIndexInput(ctx context.Context, directory store.Direc
 	return infos, nil
 }
 
-func ReadCodec(ctx context.Context, input store.DataInput) (Codec, error) {
+func ReadCodec(ctx context.Context, input store.DataInput) (index.Codec, error) {
 	name, err := input.ReadString(ctx)
 	if err != nil {
 		return nil, err

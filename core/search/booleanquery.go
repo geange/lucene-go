@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"github.com/geange/gods-generic/lists/arraylist"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 )
 
 var (
 	maxClauseCount = 1024
 )
 
-var _ search.Query = &BooleanQuery{}
+var _ index.Query = &BooleanQuery{}
 
 // BooleanQuery
 // A Query that matches documents matching boolean combinations of other queries,
@@ -21,7 +20,7 @@ var _ search.Query = &BooleanQuery{}
 type BooleanQuery struct {
 	minimumNumberShouldMatch int
 	clauses                  []*BooleanClause
-	clauseSets               map[search.Occur][]search.Query
+	clauseSets               map[index.Occur][]index.Query
 }
 
 func (b *BooleanQuery) String(field string) string {
@@ -59,7 +58,7 @@ func (b *BooleanQuery) String(field string) string {
 	return buf.String()
 }
 
-func (b *BooleanQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (b *BooleanQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
 	query := b
 	if scoreMode.NeedsScores() == false {
 		booleanQuery, err := b.rewriteNoScoring()
@@ -71,7 +70,7 @@ func (b *BooleanQuery) CreateWeight(searcher search.IndexSearcher, scoreMode sea
 	return NewBooleanWeight(query, searcher, scoreMode, boost)
 }
 
-func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
+func (b *BooleanQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
 	if b.clauses == nil || len(b.clauses) == 0 {
 		return nil, errors.New("empty BooleanQuery")
 	}
@@ -80,17 +79,17 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	if len(b.clauses) == 1 {
 		c := b.clauses[0]
 		query := c.GetQuery()
-		if b.minimumNumberShouldMatch == 1 && c.GetOccur() == search.OccurShould {
+		if b.minimumNumberShouldMatch == 1 && c.GetOccur() == index.OccurShould {
 			return query, nil
 		}
 
 		if b.minimumNumberShouldMatch == 0 {
 			switch c.GetOccur() {
-			case search.OccurShould:
-			case search.OccurMust:
-			case search.OccurFilter:
+			case index.OccurShould:
+			case index.OccurMust:
+			case index.OccurFilter:
 				return NewBoostQuery(NewConstantScoreQuery(query), 0)
-			case search.OccurMustNot:
+			case index.OccurMustNot:
 				return NewMatchNoDocsQuery("pure negative BooleanQuery"), nil
 			default:
 				return nil, errors.New("AssertionError")
@@ -144,10 +143,10 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	}
 
 	// Check whether some clauses are both required and excluded
-	mustNotClauses := b.clauseSets[search.OccurMustNot]
+	mustNotClauses := b.clauseSets[index.OccurMustNot]
 	if len(mustNotClauses) > 0 {
-		filter := make(map[search.Query]struct{})
-		for _, v := range b.clauseSets[search.OccurFilter] {
+		filter := make(map[index.Query]struct{})
+		for _, v := range b.clauseSets[index.OccurFilter] {
 			filter[v] = struct{}{}
 		}
 
@@ -163,15 +162,15 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	}
 
 	// remove OccurFilter clauses that are also OccurMust clauses or that match all documents
-	if len(b.clauseSets[search.OccurFilter]) > 0 {
-		filters := make(map[search.Query]struct{})
-		for _, v := range b.clauseSets[search.OccurFilter] {
+	if len(b.clauseSets[index.OccurFilter]) > 0 {
+		filters := make(map[index.Query]struct{})
+		for _, v := range b.clauseSets[index.OccurFilter] {
 			filters[v] = struct{}{}
 		}
 
 		modified := false
-		if len(filters) > 1 || len(b.clauseSets[search.OccurMust]) > 0 {
-			keys := make([]search.Query, 0)
+		if len(filters) > 1 || len(b.clauseSets[index.OccurMust]) > 0 {
+			keys := make([]index.Query, 0)
 			for query := range filters {
 				if _, ok := query.(*MatchAllDocsQuery); ok {
 					keys = append(keys, query)
@@ -187,7 +186,7 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 			}
 		}
 
-		for _, query := range b.clauseSets[search.OccurMust] {
+		for _, query := range b.clauseSets[index.OccurMust] {
 			if _, ok := filters[query]; ok {
 				modified = true
 
@@ -199,13 +198,13 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 			builder := NewBooleanQueryBuilder()
 			builder.SetMinimumNumberShouldMatch(b.getMinimumNumberShouldMatch())
 			for _, clause := range b.clauses {
-				if clause.GetOccur() != search.OccurFilter {
+				if clause.GetOccur() != index.OccurFilter {
 					builder.Add(clause)
 				}
 			}
 
 			for query := range filters {
-				builder.AddQuery(query, search.OccurFilter)
+				builder.AddQuery(query, index.OccurFilter)
 			}
 
 			return builder.Build()
@@ -213,16 +212,16 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	}
 
 	// convert OccurFilter clauses that are also OccurShould clauses to OccurMust clauses
-	if len(b.clauseSets[search.OccurShould]) > 0 && len(b.clauseSets[search.OccurFilter]) > 0 {
-		filters := b.clauseSets[search.OccurFilter]
-		shoulds := b.clauseSets[search.OccurShould]
+	if len(b.clauseSets[index.OccurShould]) > 0 && len(b.clauseSets[index.OccurFilter]) > 0 {
+		filters := b.clauseSets[index.OccurFilter]
+		shoulds := b.clauseSets[index.OccurShould]
 
-		shouldsMap := make(map[search.Query]struct{})
+		shouldsMap := make(map[index.Query]struct{})
 		for _, query := range shoulds {
 			shouldsMap[query] = struct{}{}
 		}
 
-		intersection := make(map[search.Query]struct{})
+		intersection := make(map[index.Query]struct{})
 		for _, query := range filters {
 			if _, ok := shouldsMap[query]; !ok {
 				continue
@@ -236,8 +235,8 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 
 			for _, clause := range b.clauses {
 				if _, ok := intersection[clause.GetQuery()]; ok {
-					if clause.GetOccur() == search.OccurShould {
-						builder.Add(NewBooleanClause(clause.GetQuery(), search.OccurMust))
+					if clause.GetOccur() == index.OccurShould {
+						builder.Add(NewBooleanClause(clause.GetQuery(), index.OccurMust))
 						minShouldMatch--
 					}
 				} else {
@@ -251,10 +250,10 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	}
 
 	// Deduplicate OccurShould clauses by summing up their boosts
-	if len(b.clauseSets[search.OccurShould]) > 0 && b.minimumNumberShouldMatch <= 1 {
-		shouldClauses := make(map[search.Query]float64)
+	if len(b.clauseSets[index.OccurShould]) > 0 && b.minimumNumberShouldMatch <= 1 {
+		shouldClauses := make(map[index.Query]float64)
 
-		for _, query := range b.clauseSets[search.OccurShould] {
+		for _, query := range b.clauseSets[index.OccurShould] {
 			boost := 1.0
 			for {
 				bq, ok := query.(*BoostQuery)
@@ -267,7 +266,7 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 			shouldClauses[query] += boost
 		}
 
-		if len(shouldClauses) != len(b.clauseSets[search.OccurShould]) {
+		if len(shouldClauses) != len(b.clauseSets[index.OccurShould]) {
 			builder := NewBooleanQueryBuilder()
 			builder.SetMinimumNumberShouldMatch(b.minimumNumberShouldMatch)
 
@@ -279,11 +278,11 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 						return nil, err
 					}
 				}
-				builder.AddQuery(query, search.OccurShould)
+				builder.AddQuery(query, index.OccurShould)
 			}
 
 			for _, clause := range b.clauses {
-				if clause.GetOccur() != search.OccurShould {
+				if clause.GetOccur() != index.OccurShould {
 					builder.Add(clause)
 				}
 			}
@@ -292,10 +291,10 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	}
 
 	// Deduplicate OccurMust clauses by summing up their boosts
-	if len(b.clauseSets[search.OccurMust]) > 0 {
-		mustClauses := make(map[search.Query]float64)
+	if len(b.clauseSets[index.OccurMust]) > 0 {
+		mustClauses := make(map[index.Query]float64)
 
-		for _, query := range b.clauseSets[search.OccurMust] {
+		for _, query := range b.clauseSets[index.OccurMust] {
 			boost := 1.0
 			for {
 				bq, ok := query.(*BoostQuery)
@@ -309,7 +308,7 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 			mustClauses[query] += boost
 		}
 
-		if len(mustClauses) != len(b.clauseSets[search.OccurMust]) {
+		if len(mustClauses) != len(b.clauseSets[index.OccurMust]) {
 			builder := NewBooleanQueryBuilder()
 			builder.SetMinimumNumberShouldMatch(b.minimumNumberShouldMatch)
 			for query, boost := range mustClauses {
@@ -320,11 +319,11 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 						return nil, err
 					}
 				}
-				builder.AddQuery(query, search.OccurMust)
+				builder.AddQuery(query, index.OccurMust)
 			}
 
 			for _, clause := range b.clauses {
-				if clause.GetOccur() != search.OccurMust {
+				if clause.GetOccur() != index.OccurMust {
 					builder.Add(clause)
 				}
 			}
@@ -335,8 +334,8 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	// Rewrite queries whose single scoring clause is a OccurMust clause on a
 	// MatchAllDocsQuery to a ConstantScoreQuery
 	{
-		musts := b.clauseSets[search.OccurMust]
-		filters := b.clauseSets[search.OccurFilter]
+		musts := b.clauseSets[index.OccurMust]
+		filters := b.clauseSets[index.OccurFilter]
 		if len(musts) == 1 && len(filters) > 0 {
 			must := musts[0]
 			boost := 1.0
@@ -352,14 +351,14 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 				builder := NewBooleanQueryBuilder()
 				for _, clause := range b.clauses {
 					switch clause.GetOccur() {
-					case search.OccurFilter:
-					case search.OccurMustNot:
+					case index.OccurFilter:
+					case index.OccurMustNot:
 						builder.Add(clause)
 					default:
 					}
 				}
 
-				var rewritten search.Query
+				var rewritten index.Query
 				var err error
 				rewritten, err = builder.Build()
 				if err != nil {
@@ -376,10 +375,10 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 				// now add back the OccurShould clauses
 				builder = NewBooleanQueryBuilder()
 				builder.SetMinimumNumberShouldMatch(b.GetMinimumNumberShouldMatch())
-				builder.AddQuery(rewritten, search.OccurMust)
+				builder.AddQuery(rewritten, index.OccurMust)
 
-				for _, query := range b.clauseSets[search.OccurShould] {
-					builder.AddQuery(query, search.OccurShould)
+				for _, query := range b.clauseSets[index.OccurShould] {
+					builder.AddQuery(query, index.OccurShould)
 				}
 				rewritten, err = builder.Build()
 				if err != nil {
@@ -398,7 +397,7 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 
 		for _, clause := range b.clauses {
 			query := clause.GetQuery()
-			if innerQuery, ok := query.(*BooleanQuery); clause.GetOccur() == search.OccurShould && ok {
+			if innerQuery, ok := query.(*BooleanQuery); clause.GetOccur() == index.OccurShould && ok {
 				if innerQuery.isPureDisjunction() {
 					actuallyRewritten = true
 					for _, innerClause := range innerQuery.clauses {
@@ -419,11 +418,11 @@ func (b *BooleanQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
 	return b, nil
 }
 
-func (b *BooleanQuery) Visit(visitor search.QueryVisitor) error {
-	sub := visitor.GetSubVisitor(search.OccurMust, b)
+func (b *BooleanQuery) Visit(visitor index.QueryVisitor) error {
+	sub := visitor.GetSubVisitor(index.OccurMust, b)
 	for occur, queries := range b.clauseSets {
 		if len(queries) > 0 {
-			if occur == search.OccurMust {
+			if occur == index.OccurMust {
 				for _, q := range b.clauseSets[occur] {
 					if err := q.Visit(sub); err != nil {
 						return err
@@ -446,7 +445,7 @@ func newBooleanQuery(minimumNumberShouldMatch int, clauses []*BooleanClause) *Bo
 	query := &BooleanQuery{
 		minimumNumberShouldMatch: minimumNumberShouldMatch,
 		clauses:                  clauses,
-		clauseSets:               map[search.Occur][]search.Query{search.OccurShould: {}, search.OccurMust: {}, search.OccurFilter: {}, search.OccurMustNot: {}},
+		clauseSets:               map[index.Occur][]index.Query{index.OccurShould: {}, index.OccurMust: {}, index.OccurFilter: {}, index.OccurMustNot: {}},
 	}
 	for _, clause := range clauses {
 		key := clause.GetOccur()
@@ -469,14 +468,14 @@ func (b *BooleanQuery) Clauses() []*BooleanClause {
 
 // GetClauses
 // Return the collection of queries for the given BooleanClause.Occur.
-func (b *BooleanQuery) GetClauses(occur search.Occur) []search.Query {
+func (b *BooleanQuery) GetClauses(occur index.Occur) []index.Query {
 	return b.clauseSets[occur]
 }
 
 // Whether this query is a pure disjunction,
 // ie. it only has OccurShould clauses and it is enough for a single clause to match for this boolean query to match.
 func (b *BooleanQuery) isPureDisjunction() bool {
-	return len(b.clauses) == len(b.GetClauses(search.OccurShould)) &&
+	return len(b.clauses) == len(b.GetClauses(index.OccurShould)) &&
 		b.minimumNumberShouldMatch <= 1
 }
 
@@ -486,9 +485,9 @@ func (b *BooleanQuery) Iterator() arraylist.Iterator[*BooleanClause] {
 
 func (b *BooleanQuery) rewriteNoScoring() (*BooleanQuery, error) {
 	keepShould := b.GetMinimumNumberShouldMatch() > 0 ||
-		(len(b.clauseSets[search.OccurMust])+len(b.clauseSets[search.OccurFilter]) == 0)
+		(len(b.clauseSets[index.OccurMust])+len(b.clauseSets[index.OccurFilter]) == 0)
 
-	if len(b.clauseSets[search.OccurMust]) == 0 && keepShould {
+	if len(b.clauseSets[index.OccurMust]) == 0 && keepShould {
 		return b, nil
 	}
 
@@ -497,9 +496,9 @@ func (b *BooleanQuery) rewriteNoScoring() (*BooleanQuery, error) {
 
 	for _, clause := range b.clauses {
 		switch clause.GetOccur() {
-		case search.OccurMust:
-			newQuery.AddQuery(clause.GetQuery(), search.OccurFilter)
-		case search.OccurShould:
+		case index.OccurMust:
+			newQuery.AddQuery(clause.GetQuery(), index.OccurFilter)
+		case index.OccurShould:
 			if keepShould {
 				newQuery.Add(clause)
 			}
@@ -573,7 +572,7 @@ func (b *BooleanQueryBuilder) Add(clause *BooleanClause) *BooleanQueryBuilder {
 // a new clause to this BooleanQuery.Builder.
 // Note that the order in which clauses are added does not have any impact on matching documents or query performance.
 // Throws: BooleanQuery.TooManyClauses – if the new number of clauses exceeds the maximum clause number
-func (b *BooleanQueryBuilder) AddQuery(query search.Query, occur search.Occur) *BooleanQueryBuilder {
+func (b *BooleanQueryBuilder) AddQuery(query index.Query, occur index.Occur) *BooleanQueryBuilder {
 	return b.Add(NewBooleanClause(query, occur))
 }
 

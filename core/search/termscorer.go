@@ -3,11 +3,10 @@ package search
 import (
 	"github.com/geange/lucene-go/core/index"
 	index2 "github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ search.Scorer = &TermScorer{}
+var _ index2.Scorer = &TermScorer{}
 
 // TermScorer
 // Expert: A Scorer for documents matching a Term.
@@ -22,7 +21,7 @@ type TermScorer struct {
 	impactsDISI  *ImpactsDISI
 }
 
-func NewTermScorerWithPostings(weight search.Weight, postingsEnum index2.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
+func NewTermScorerWithPostings(weight index2.Weight, postingsEnum index2.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
 	this := &TermScorer{
 		iterator:     postingsEnum,
 		postingsEnum: postingsEnum,
@@ -35,7 +34,7 @@ func NewTermScorerWithPostings(weight search.Weight, postingsEnum index2.Posting
 	return this
 }
 
-func NewTermScorerWithImpacts(weight search.Weight, impactsEnum index2.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
+func NewTermScorerWithImpacts(weight index2.Weight, impactsEnum index2.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
 	this := &TermScorer{
 		postingsEnum: impactsEnum,
 		impactsEnum:  impactsEnum,
@@ -81,11 +80,11 @@ func (t *TermScorer) SetMinCompetitiveScore(minScore float64) error {
 	return t.impactsDISI.setMinCompetitiveScore(float64(minScore))
 }
 
-func (t *TermScorer) GetChildren() ([]search.ChildScorable, error) {
-	return []search.ChildScorable{}, nil
+func (t *TermScorer) GetChildren() ([]index2.ChildScorable, error) {
+	return []index2.ChildScorable{}, nil
 }
 
-func (t *TermScorer) GetWeight() search.Weight {
+func (t *TermScorer) GetWeight() index2.Weight {
 	return t.weight
 }
 
@@ -93,7 +92,7 @@ func (t *TermScorer) Iterator() types.DocIdSetIterator {
 	return t.iterator
 }
 
-func (t *TermScorer) TwoPhaseIterator() search.TwoPhaseIterator {
+func (t *TermScorer) TwoPhaseIterator() index2.TwoPhaseIterator {
 	return nil
 }
 

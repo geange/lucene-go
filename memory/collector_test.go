@@ -2,7 +2,7 @@ package memory
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"math/rand"
 	"testing"
 
@@ -23,7 +23,7 @@ func TestNewSimpleCollector(t *testing.T) {
 	assert.InDelta(t, score, scores[0], 0.0000001)
 }
 
-var _ search.Scorable = &mockScorable{}
+var _ index.Scorable = &mockScorable{}
 
 type mockScorable struct {
 	score float64
@@ -48,7 +48,7 @@ func (m *mockScorable) SetMinCompetitiveScore(minScore float64) error {
 	panic("implement me")
 }
 
-func (m *mockScorable) GetChildren() ([]search.ChildScorable, error) {
+func (m *mockScorable) GetChildren() ([]index.ChildScorable, error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -1,12 +1,12 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
 )
 
-var _ search.Scorer = &ReqOptSumScorer{}
+var _ index.Scorer = &ReqOptSumScorer{}
 
 // ReqOptSumScorer
 // A Scorer for queries with a required part and an optional part.
@@ -33,14 +33,14 @@ var _ search.Scorer = &ReqOptSumScorer{}
 type ReqOptSumScorer struct {
 	*BaseScorer
 
-	reqScorer search.Scorer
-	optScorer search.Scorer
+	reqScorer index.Scorer
+	optScorer index.Scorer
 
 	reqApproximation types.DocIdSetIterator
 	optApproximation types.DocIdSetIterator
-	optTwoPhase      search.TwoPhaseIterator
+	optTwoPhase      index.TwoPhaseIterator
 	approximation    types.DocIdSetIterator
-	twoPhase         search.TwoPhaseIterator
+	twoPhase         index.TwoPhaseIterator
 
 	maxScorePropagator *MaxScoreSumPropagator
 	minScore           float64
@@ -52,7 +52,7 @@ type ReqOptSumScorer struct {
 // reqScorer: The required scorer. This must match.
 // optScorer: The optional scorer. This is used for scoring only.
 // scoreMode: How the produced scorers will be consumed.
-func NewReqOptSumScorer(reqScorer, optScorer search.Scorer, scoreMode search.ScoreMode) (*ReqOptSumScorer, error) {
+func NewReqOptSumScorer(reqScorer, optScorer index.Scorer, scoreMode index.ScoreMode) (*ReqOptSumScorer, error) {
 	scorer := &ReqOptSumScorer{
 		BaseScorer: NewScorer(reqScorer.GetWeight()),
 		reqScorer:  reqScorer,
@@ -60,7 +60,7 @@ func NewReqOptSumScorer(reqScorer, optScorer search.Scorer, scoreMode search.Sco
 	}
 
 	if scoreMode == TOP_SCORES {
-		sumPropagator, err := NewMaxScoreSumPropagator([]search.Scorer{reqScorer, optScorer})
+		sumPropagator, err := NewMaxScoreSumPropagator([]index.Scorer{reqScorer, optScorer})
 		if err != nil {
 			return nil, err
 		}
@@ -253,12 +253,12 @@ func (r *innerDocIdSetIterator) Cost() int64 {
 	return r.scorer.reqApproximation.Cost()
 }
 
-var _ search.TwoPhaseIterator = &innerTwoPhaseIterator{}
+var _ index.TwoPhaseIterator = &innerTwoPhaseIterator{}
 
 type innerTwoPhaseIterator struct {
 	approximation types.DocIdSetIterator
 	scorer        *ReqOptSumScorer
-	reqTwoPhase   search.TwoPhaseIterator
+	reqTwoPhase   index.TwoPhaseIterator
 }
 
 func (i *innerTwoPhaseIterator) Approximation() types.DocIdSetIterator {
@@ -317,7 +317,7 @@ func (i *innerTwoPhaseIterator) MatchCost() float64 {
 	return cost
 }
 
-func (r *ReqOptSumScorer) TwoPhaseIterator() search.TwoPhaseIterator {
+func (r *ReqOptSumScorer) TwoPhaseIterator() index.TwoPhaseIterator {
 	return r.twoPhase
 }
 

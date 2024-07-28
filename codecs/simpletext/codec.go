@@ -1,12 +1,15 @@
 package simpletext
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
+)
 
 func init() {
 	index.RegisterCodec(&Codec{})
 }
 
-var _ index.Codec = &Codec{}
+var _ index2.Codec = &Codec{}
 
 // Codec plain text index format.
 // FOR RECREATIONAL USE ONLY
@@ -43,42 +46,42 @@ func (s *Codec) GetName() string {
 	return "SimpleText"
 }
 
-func (s *Codec) PostingsFormat() index.PostingsFormat {
+func (s *Codec) PostingsFormat() index2.PostingsFormat {
 	return s.postings
 }
 
-func (s *Codec) DocValuesFormat() index.DocValuesFormat {
+func (s *Codec) DocValuesFormat() index2.DocValuesFormat {
 	return s.dvFormat
 }
 
-func (s *Codec) StoredFieldsFormat() index.StoredFieldsFormat {
+func (s *Codec) StoredFieldsFormat() index2.StoredFieldsFormat {
 	return s.storedFields
 }
 
-func (s *Codec) TermVectorsFormat() index.TermVectorsFormat {
+func (s *Codec) TermVectorsFormat() index2.TermVectorsFormat {
 	return s.vectorsFormat
 }
 
-func (s *Codec) FieldInfosFormat() index.FieldInfosFormat {
+func (s *Codec) FieldInfosFormat() index2.FieldInfosFormat {
 	return s.fieldInfosFormat
 }
 
-func (s *Codec) SegmentInfoFormat() index.SegmentInfoFormat {
+func (s *Codec) SegmentInfoFormat() index2.SegmentInfoFormat {
 	return s.segmentInfos
 }
 
-func (s *Codec) NormsFormat() index.NormsFormat {
+func (s *Codec) NormsFormat() index2.NormsFormat {
 	return s.normsFormat
 }
 
-func (s *Codec) LiveDocsFormat() index.LiveDocsFormat {
+func (s *Codec) LiveDocsFormat() index2.LiveDocsFormat {
 	return s.liveDocs
 }
 
-func (s *Codec) CompoundFormat() index.CompoundFormat {
+func (s *Codec) CompoundFormat() index2.CompoundFormat {
 	return s.compoundFormat
 }
 
-func (s *Codec) PointsFormat() index.PointsFormat {
+func (s *Codec) PointsFormat() index2.PointsFormat {
 	return s.pointsFormat
 }

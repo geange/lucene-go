@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/document"
@@ -31,7 +32,7 @@ type PendingDeletes interface {
 
 	// OnNewReader
 	// Called once a new reader is opened for this segment ie. when deletes or updates are applied.
-	OnNewReader(reader CodecReader, info *SegmentCommitInfo) error
+	OnNewReader(reader CodecReader, info *index.SegmentCommitInfo) error
 
 	// DropChanges
 	// Resets the pending docs
@@ -73,7 +74,7 @@ type PendingDeletes interface {
 // pendingDeletes
 // This class handles accounting and applying pending deletes for live segment readers
 type pendingDeletes struct {
-	info *SegmentCommitInfo
+	info *index.SegmentCommitInfo
 
 	// Read-only live docs, null until live docs are initialized or if all docs are alive
 	liveDocs util.Bits
@@ -94,7 +95,7 @@ func (p *pendingDeletes) NeedsRefresh(reader CodecReader) bool {
 }
 
 func (p *pendingDeletes) NumDocs() (int, error) {
-	maxDoc, err := p.info.info.MaxDoc()
+	maxDoc, err := p.info.Info().MaxDoc()
 	if err != nil {
 		return 0, err
 	}
@@ -118,7 +119,7 @@ func (p *pendingDeletes) GetMutableBits() *bitset.BitSet {
 		if p.liveDocs != nil {
 			p.writeableLiveDocs = p.liveDocs.(*bitset.BitSet).Clone()
 		} else {
-			doc, _ := p.info.info.MaxDoc()
+			doc, _ := p.info.Info().MaxDoc()
 			p.writeableLiveDocs = bitset.New(uint(doc))
 			p.writeableLiveDocs.FlipRange(0, uint(doc))
 		}
@@ -151,7 +152,7 @@ func (p *pendingDeletes) NumPendingDeletes() int {
 	return p.pendingDeleteCount
 }
 
-func (p *pendingDeletes) OnNewReader(reader CodecReader, info *SegmentCommitInfo) error {
+func (p *pendingDeletes) OnNewReader(reader CodecReader, info *index.SegmentCommitInfo) error {
 	if p.liveDocsInitialized == false {
 		//assert writeableLiveDocs == null;
 		if reader.HasDeletions() {
@@ -183,7 +184,7 @@ func (p *pendingDeletes) WriteLiveDocs(ctx context.Context, dir store.Directory)
 	// it:
 	trackingDir := store.NewTrackingDirectoryWrapper(dir)
 
-	codec := p.info.info.GetCodec()
+	codec := p.info.Info().GetCodec()
 	err := codec.LiveDocsFormat().WriteLiveDocs(ctx, liveDocs, trackingDir, p.info, p.pendingDeleteCount, store.DEFAULT)
 	if err != nil {
 		return false, err
@@ -200,7 +201,7 @@ func (p *pendingDeletes) WriteLiveDocs(ctx context.Context, dir store.Directory)
 
 func (p *pendingDeletes) IsFullyDeleted(ctx context.Context, readerIOSupplier func() CodecReader) (bool, error) {
 	delCount := p.GetDelCount()
-	maxDoc, err := p.info.info.MaxDoc()
+	maxDoc, err := p.info.Info().MaxDoc()
 	if err != nil {
 		return false, err
 	}
@@ -216,20 +217,20 @@ func (p *pendingDeletes) GetDelCount() int {
 	return delCount
 }
 
-func NewPendingDeletes(reader *SegmentReader, info *SegmentCommitInfo) PendingDeletes {
+func NewPendingDeletes(reader *SegmentReader, info *index.SegmentCommitInfo) PendingDeletes {
 	pd := NewPendingDeletesV2(info, reader.GetLiveDocs(), true).(*pendingDeletes)
 	pd.pendingDeleteCount = reader.NumDeletedDocs() - info.GetDelCount()
 	return pd
 }
 
-func NewPendingDeletesV1(info *SegmentCommitInfo) PendingDeletes {
+func NewPendingDeletesV1(info *index.SegmentCommitInfo) PendingDeletes {
 	return NewPendingDeletesV2(info, nil, info.HasDeletions() == false)
 	// if we don't have deletions we can mark it as initialized since we might receive deletes on a segment
 	// without having a reader opened on it ie. after a merge when we apply the deletes that IW received while merging.
 	// For segments that were published we enforce a reader in the BufferedUpdatesStream.SegmentState ctor
 }
 
-func NewPendingDeletesV2(info *SegmentCommitInfo, liveDocs util.Bits, liveDocsInitialized bool) PendingDeletes {
+func NewPendingDeletesV2(info *index.SegmentCommitInfo, liveDocs util.Bits, liveDocsInitialized bool) PendingDeletes {
 	return &pendingDeletes{
 		info:                info,
 		liveDocs:            liveDocs,

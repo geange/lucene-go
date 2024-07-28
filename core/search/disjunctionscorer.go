@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -19,7 +19,7 @@ type DisjunctionScorer struct {
 	twoPhase *TwoPhase
 }
 
-var _ search.TwoPhaseIterator = &TwoPhase{}
+var _ index.TwoPhaseIterator = &TwoPhase{}
 
 type TwoPhase struct {
 }

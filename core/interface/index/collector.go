@@ -1,8 +1,7 @@
-package search
+package index
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // Collector
@@ -28,7 +27,7 @@ type Collector interface {
 	// Create a new collector to collect the given context.
 	// readerContext: next atomic reader context
 	// Lucene每处理完一个段，就会调用该方法获得下一个段对应的LeafCollector对象。
-	GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (LeafCollector, error)
+	GetLeafCollector(ctx context.Context, readerContext LeafReaderContext) (LeafCollector, error)
 
 	// ScoreMode
 	// Indicates what features are required from the scorer.

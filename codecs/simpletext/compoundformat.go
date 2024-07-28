@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 	"slices"
 	"sort"
@@ -28,7 +29,7 @@ var (
 	OFFSETPATTERN              = "0000000000000000000"
 )
 
-var _ index.CompoundFormat = &CompoundFormat{}
+var _ index2.CompoundFormat = &CompoundFormat{}
 
 // CompoundFormat
 // plain text compound format.
@@ -41,7 +42,7 @@ func NewCompoundFormat() *CompoundFormat {
 	return &CompoundFormat{}
 }
 
-func (s *CompoundFormat) Write(ctx context.Context, dir store.Directory, si *index.SegmentInfo, ioContext *store.IOContext) error {
+func (s *CompoundFormat) Write(ctx context.Context, dir store.Directory, si index2.SegmentInfo, ioContext *store.IOContext) error {
 	dataFile := store.SegmentFileName(si.Name(), "", DATA_EXTENSION)
 
 	numFiles := len(si.Files())
@@ -141,7 +142,7 @@ func (s *CompoundFormat) Write(ctx context.Context, dir store.Directory, si *ind
 	return out.Close()
 }
 
-func (s *CompoundFormat) GetCompoundReader(ctx context.Context, dir store.Directory, si *index.SegmentInfo, context *store.IOContext) (index.CompoundDirectory, error) {
+func (s *CompoundFormat) GetCompoundReader(ctx context.Context, dir store.Directory, si index2.SegmentInfo, context *store.IOContext) (index2.CompoundDirectory, error) {
 
 	dataFile := store.SegmentFileName(si.Name(), "", DATA_EXTENSION)
 	in, err := dir.OpenInput(ctx, dataFile)
@@ -227,7 +228,7 @@ func (s *CompoundFormat) GetCompoundReader(ctx context.Context, dir store.Direct
 	}, nil
 }
 
-var _ index.CompoundDirectory = &innerCompoundDirectory{}
+var _ index2.CompoundDirectory = &innerCompoundDirectory{}
 
 type innerCompoundDirectory struct {
 	*index.BaseCompoundDirectory

@@ -1,25 +1,25 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"io"
 	"sort"
 )
 
-var _ search.Scorer = &BlockMaxConjunctionScorer{}
+var _ index.Scorer = &BlockMaxConjunctionScorer{}
 
 type BlockMaxConjunctionScorer struct {
 	*BaseScorer
 
-	scorers            []search.Scorer
+	scorers            []index.Scorer
 	approximations     []types.DocIdSetIterator
-	twoPhases          []search.TwoPhaseIterator
+	twoPhases          []index.TwoPhaseIterator
 	maxScorePropagator *MaxScoreSumPropagator
 	minScore           float64
 }
 
-func NewBlockMaxConjunctionScorer(weight search.Weight, scorersList []search.Scorer) (*BlockMaxConjunctionScorer, error) {
+func NewBlockMaxConjunctionScorer(weight index.Weight, scorersList []index.Scorer) (*BlockMaxConjunctionScorer, error) {
 	res := &BlockMaxConjunctionScorer{
 		BaseScorer:         NewScorer(weight),
 		scorers:            scorersList,
@@ -38,7 +38,7 @@ func NewBlockMaxConjunctionScorer(weight search.Weight, scorersList []search.Sco
 	}
 	res.maxScorePropagator = maxScorePropagator
 
-	twoPhaseList := make([]search.TwoPhaseIterator, 0)
+	twoPhaseList := make([]index.TwoPhaseIterator, 0)
 	for i := range res.scorers {
 		scorer := res.scorers[i]
 		twoPhase := scorer.TwoPhaseIterator()
@@ -59,7 +59,7 @@ func NewBlockMaxConjunctionScorer(weight search.Weight, scorersList []search.Sco
 
 var _ sort.Interface = &sortScorerByCost{}
 
-type sortScorerByCost []search.Scorer
+type sortScorerByCost []index.Scorer
 
 func (s sortScorerByCost) Len() int {
 	return len(s)
@@ -75,7 +75,7 @@ func (s sortScorerByCost) Swap(i, j int) {
 
 var _ sort.Interface = &sortTwoPhaseIteratorByMatchCost{}
 
-type sortTwoPhaseIteratorByMatchCost []search.TwoPhaseIterator
+type sortTwoPhaseIteratorByMatchCost []index.TwoPhaseIterator
 
 func (s sortTwoPhaseIteratorByMatchCost) Len() int {
 	return len(s)
@@ -129,8 +129,8 @@ func (b *BlockMaxConjunctionScorer) SetMinCompetitiveScore(score float64) error 
 	return b.maxScorePropagator.SetMinCompetitiveScore(score)
 }
 
-func (b *BlockMaxConjunctionScorer) GetChildren() ([]search.ChildScorable, error) {
-	children := make([]search.ChildScorable, 0)
+func (b *BlockMaxConjunctionScorer) GetChildren() ([]index.ChildScorable, error) {
+	children := make([]index.ChildScorable, 0)
 	for _, scorer := range b.scorers {
 		scorables, err := scorer.GetChildren()
 		if err != nil {
@@ -141,7 +141,7 @@ func (b *BlockMaxConjunctionScorer) GetChildren() ([]search.ChildScorable, error
 	return children, nil
 }
 
-func (b *BlockMaxConjunctionScorer) TwoPhaseIterator() search.TwoPhaseIterator {
+func (b *BlockMaxConjunctionScorer) TwoPhaseIterator() index.TwoPhaseIterator {
 	if len(b.twoPhases) == 0 {
 		return nil
 	}
@@ -159,7 +159,7 @@ func (b *BlockMaxConjunctionScorer) TwoPhaseIterator() search.TwoPhaseIterator {
 	}
 }
 
-var _ search.TwoPhaseIterator = &bmcTwoPhaseIterator{}
+var _ index.TwoPhaseIterator = &bmcTwoPhaseIterator{}
 
 type bmcTwoPhaseIterator struct {
 	approx    types.DocIdSetIterator

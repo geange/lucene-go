@@ -3,7 +3,6 @@ package search
 import (
 	"fmt"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/util/structure"
 )
 
@@ -11,36 +10,36 @@ import (
 // Represents hits returned by IndexSearcher.search(Query, int).
 type BaseTopDocs struct {
 	// The total number of hits for the query.
-	totalHits *search.TotalHits
+	totalHits *index.TotalHits
 
 	// The top hits for the query.
-	scoreDocs []search.ScoreDoc
+	scoreDocs []index.ScoreDoc
 }
 
-func (t *BaseTopDocs) GetTotalHits() *search.TotalHits {
+func (t *BaseTopDocs) GetTotalHits() *index.TotalHits {
 	return t.totalHits
 }
 
-func (t *BaseTopDocs) GetScoreDocs() []search.ScoreDoc {
+func (t *BaseTopDocs) GetScoreDocs() []index.ScoreDoc {
 	return t.scoreDocs
 }
 
 // NewTopDocs Constructs a TopDocs.
-func NewTopDocs(totalHits *search.TotalHits, scoreDocs []search.ScoreDoc) *BaseTopDocs {
+func NewTopDocs(totalHits *index.TotalHits, scoreDocs []index.ScoreDoc) *BaseTopDocs {
 	return &BaseTopDocs{totalHits: totalHits, scoreDocs: scoreDocs}
 }
 
-func MergeTopDocs(start, topN int, shardHits []search.TopDocs, setShardIndex bool) (search.TopDocs, error) {
+func MergeTopDocs(start, topN int, shardHits []index.TopDocs, setShardIndex bool) (index.TopDocs, error) {
 	return mergeAuxTopDocs(nil, start, topN, shardHits, setShardIndex)
 }
 
 // Auxiliary method used by the merge impls.
 // A sort value of null is used to indicate that docs should be sorted by score.
-func mergeAuxTopDocs(sort index.Sort, start, size int, shardHits []search.TopDocs, setShardIndex bool) (search.TopDocs, error) {
+func mergeAuxTopDocs(sort index.Sort, start, size int, shardHits []index.TopDocs, setShardIndex bool) (index.TopDocs, error) {
 	if sort == nil {
 		queue := NewScoreMergeSortQueue(shardHits)
 		totalHitCount := int64(0)
-		totalHitsRelation := search.EQUAL_TO
+		totalHitsRelation := index.EQUAL_TO
 		availHitCount := 0
 		for shardIDX := 0; shardIDX < len(shardHits); shardIDX++ {
 			shard := shardHits[shardIDX]
@@ -49,8 +48,8 @@ func mergeAuxTopDocs(sort index.Sort, start, size int, shardHits []search.TopDoc
 			totalHitCount += shard.GetTotalHits().Value
 			// If any hit count is a lower bound then the merged
 			// total hit count is a lower bound as well
-			if shard.GetTotalHits().Relation == search.GREATER_THAN_OR_EQUAL_TO {
-				totalHitsRelation = search.GREATER_THAN_OR_EQUAL_TO
+			if shard.GetTotalHits().Relation == index.GREATER_THAN_OR_EQUAL_TO {
+				totalHitsRelation = index.GREATER_THAN_OR_EQUAL_TO
 			}
 			if shard.GetScoreDocs() != nil && len(shard.GetScoreDocs()) > 0 {
 				availHitCount += len(shard.GetScoreDocs())
@@ -58,11 +57,11 @@ func mergeAuxTopDocs(sort index.Sort, start, size int, shardHits []search.TopDoc
 			}
 		}
 
-		var hits []search.ScoreDoc
+		var hits []index.ScoreDoc
 		if availHitCount <= start {
-			hits = make([]search.ScoreDoc, 0)
+			hits = make([]index.ScoreDoc, 0)
 		} else {
-			hits = make([]search.ScoreDoc, min(size, availHitCount-start))
+			hits = make([]index.ScoreDoc, min(size, availHitCount-start))
 			requestedResultWindow := start + size
 			numIterOnHits := min(availHitCount, requestedResultWindow)
 			hitUpto := 0
@@ -95,7 +94,7 @@ func mergeAuxTopDocs(sort index.Sort, start, size int, shardHits []search.TopDoc
 			}
 		}
 
-		totalHits := search.NewTotalHits(totalHitCount, totalHitsRelation)
+		totalHits := index.NewTotalHits(totalHitCount, totalHitsRelation)
 		if sort == nil {
 			return NewTopDocs(totalHits, hits), nil
 		}
@@ -125,7 +124,7 @@ func NewShardRef(shardIndex int, useScoreDocIndex bool) *ShardRef {
 	}
 }
 
-func (s *ShardRef) GetShardIndex(scoreDoc search.ScoreDoc) int {
+func (s *ShardRef) GetShardIndex(scoreDoc index.ScoreDoc) int {
 	if s.useScoreDocIndex {
 		if scoreDoc.GetShardIndex() == -1 {
 			//throw new IllegalArgumentException("setShardIndex is false but TopDocs[" + shardIndex + "].scoreDocs[" + hitIndex + "] is not set");
@@ -140,12 +139,12 @@ func (s *ShardRef) GetShardIndex(scoreDoc search.ScoreDoc) int {
 type ScoreMergeSortQueue struct {
 	*structure.PriorityQueue[*ShardRef]
 
-	shardHits [][]search.ScoreDoc
+	shardHits [][]index.ScoreDoc
 }
 
-func NewScoreMergeSortQueue(shardHits []search.TopDocs) *ScoreMergeSortQueue {
+func NewScoreMergeSortQueue(shardHits []index.TopDocs) *ScoreMergeSortQueue {
 	queue := &ScoreMergeSortQueue{
-		shardHits: make([][]search.ScoreDoc, len(shardHits)),
+		shardHits: make([][]index.ScoreDoc, len(shardHits)),
 	}
 	for i := range queue.shardHits {
 		queue.shardHits[i] = shardHits[i].GetScoreDocs()
@@ -166,7 +165,7 @@ func NewScoreMergeSortQueue(shardHits []search.TopDocs) *ScoreMergeSortQueue {
 	return queue
 }
 
-func tieBreakLessThan(first *ShardRef, firstDoc search.ScoreDoc, second *ShardRef, secondDoc search.ScoreDoc) bool {
+func tieBreakLessThan(first *ShardRef, firstDoc index.ScoreDoc, second *ShardRef, secondDoc index.ScoreDoc) bool {
 	firstShardIndex := first.GetShardIndex(firstDoc)
 	secondShardIndex := second.GetShardIndex(secondDoc)
 	// Tie break: earlier shard wins

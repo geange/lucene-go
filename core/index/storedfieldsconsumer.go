@@ -8,14 +8,14 @@ import (
 )
 
 type StoredFieldsConsumer struct {
-	codec   Codec
+	codec   index.Codec
 	dir     store.Directory
 	info    *SegmentInfo
 	writer  index.StoredFieldsWriter
 	lastDoc int
 }
 
-func NewStoredFieldsConsumer(codec Codec, dir store.Directory, info *SegmentInfo) *StoredFieldsConsumer {
+func NewStoredFieldsConsumer(codec index.Codec, dir store.Directory, info *SegmentInfo) *StoredFieldsConsumer {
 	return &StoredFieldsConsumer{
 		codec:   codec,
 		dir:     dir,
@@ -76,7 +76,7 @@ func (s *StoredFieldsConsumer) Finish(ctx context.Context, maxDoc int) error {
 	return nil
 }
 
-func (s *StoredFieldsConsumer) Flush(ctx context.Context, state *SegmentWriteState, sortMap *DocMap) error {
+func (s *StoredFieldsConsumer) Flush(ctx context.Context, state *index.SegmentWriteState, sortMap *DocMap) error {
 	maxDoc, err := state.SegmentInfo.MaxDoc()
 	if err != nil {
 		return err

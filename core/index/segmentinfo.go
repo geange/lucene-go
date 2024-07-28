@@ -25,6 +25,8 @@ const (
 	SegmentInfoYES = 1
 )
 
+var _ index.SegmentInfo = &SegmentInfo{}
+
 // SegmentInfo
 // Information about a segment such as its name, directory, and files related to the segment.
 type SegmentInfo struct {
@@ -35,7 +37,7 @@ type SegmentInfo struct {
 	maxDoc         int               // number of docs in seg
 	isCompoundFile bool              //
 	id             []byte            // Id that uniquely identifies this segment.
-	codec          Codec             //
+	codec          index.Codec       //
 	diagnostics    map[string]string //
 	attributes     map[string]string //
 	indexSort      index.Sort        //
@@ -57,7 +59,7 @@ type SegmentInfo struct {
 }
 
 func NewSegmentInfo(dir store.Directory, version, minVersion *version.Version, name string,
-	maxDoc int, isCompoundFile bool, codec Codec, diagnostics map[string]string,
+	maxDoc int, isCompoundFile bool, codec index.Codec, diagnostics map[string]string,
 	id []byte, attributes map[string]string, indexSort index.Sort) *SegmentInfo {
 
 	return &SegmentInfo{
@@ -185,7 +187,7 @@ func (s *SegmentInfo) GetIndexSort() index.Sort {
 	return s.indexSort
 }
 
-func (s *SegmentInfo) GetCodec() Codec {
+func (s *SegmentInfo) GetCodec() index.Codec {
 	return s.codec
 }
 
@@ -236,6 +238,6 @@ func (s *SegmentInfo) NamedForThisSegment(file string) string {
 	return s.name + StripSegmentName(file)
 }
 
-func (s *SegmentInfo) SetCodec(codec Codec) {
+func (s *SegmentInfo) SetCodec(codec index.Codec) {
 	s.codec = codec
 }

@@ -8,7 +8,6 @@ import (
 	"io"
 
 	"github.com/geange/lucene-go/codecs/utils"
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/bytesref"
@@ -18,12 +17,12 @@ var _ index2.PointsReader = &PointsReader{}
 
 type PointsReader struct {
 	dataIn    store.IndexInput
-	readState *index.SegmentReadState
+	readState *index2.SegmentReadState
 	readers   map[string]*BKDReader
 	scratch   *bytes.Buffer
 }
 
-func NewPointsReader(ctx context.Context, readState *index.SegmentReadState) (*PointsReader, error) {
+func NewPointsReader(ctx context.Context, readState *index2.SegmentReadState) (*PointsReader, error) {
 	fieldToFileOffset := make(map[string]int64)
 	indexFileName := store.SegmentFileName(readState.SegmentInfo.Name(), readState.SegmentSuffix, POINT_INDEX_EXTENSION)
 	input, err := store.OpenChecksumInput(readState.Directory, indexFileName)

@@ -2,7 +2,7 @@ package search
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -14,18 +14,18 @@ func (*baseLeafCollector) CompetitiveIterator() (types.DocIdSetIterator, error) 
 }
 
 type FilterLeafCollector struct {
-	in search.LeafCollector
+	in index.LeafCollector
 }
 
-var _ search.LeafCollector = &LeafCollectorAnon{}
+var _ index.LeafCollector = &LeafCollectorAnon{}
 
 type LeafCollectorAnon struct {
-	FnSetScorer           func(scorer search.Scorable) error
+	FnSetScorer           func(scorer index.Scorable) error
 	FnCollect             func(ctx context.Context, doc int) error
 	FnCompetitiveIterator func() (types.DocIdSetIterator, error)
 }
 
-func (l *LeafCollectorAnon) SetScorer(scorer search.Scorable) error {
+func (l *LeafCollectorAnon) SetScorer(scorer index.Scorable) error {
 	return l.FnSetScorer(scorer)
 }
 

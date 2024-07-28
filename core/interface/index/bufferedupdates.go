@@ -4,8 +4,6 @@ import (
 	"sync/atomic"
 
 	"github.com/geange/gods-generic/maps/treemap"
-	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/util/hash"
 )
 
@@ -21,11 +19,15 @@ import (
 type BufferedUpdates struct {
 	numTermDeletes  *atomic.Int64
 	numFieldUpdates *atomic.Int64
-	deleteTerms     *treemap.Map[index.Term, int]
+	deleteTerms     *treemap.Map[Term, int]
 	fieldUpdates    map[string]*FieldUpdatesBuffer
 	gen             int64
 	segmentName     string
-	deleteQueries   *treemap.Map[search.Query, int]
+	deleteQueries   *treemap.Map[Query, int]
+}
+
+func (b *BufferedUpdates) GetNumFieldUpdates() int64 {
+	return b.numFieldUpdates.Load()
 }
 
 type bufferedUpdatesOption struct {
@@ -49,13 +51,13 @@ func NewBufferedUpdates(options ...BufferedUpdatesOption) *BufferedUpdates {
 	return &BufferedUpdates{
 		numTermDeletes:  new(atomic.Int64),
 		numFieldUpdates: new(atomic.Int64),
-		deleteTerms:     treemap.NewWith[index.Term, int](index.TermCompare),
+		deleteTerms:     treemap.NewWith[Term, int](TermCompare),
 		segmentName:     opt.segmentName,
-		deleteQueries:   treemap.NewWith[search.Query, int](hash.Compare[search.Query]),
+		deleteQueries:   treemap.NewWith[Query, int](hash.Compare[Query]),
 	}
 }
 
-func (b *BufferedUpdates) AddTerm(term index.Term, docIDUpto int) {
+func (b *BufferedUpdates) AddTerm(term Term, docIDUpto int) {
 	current, ok := b.deleteTerms.Get(term)
 	if ok {
 		if current > docIDUpto {
@@ -143,4 +145,8 @@ func (b *BufferedUpdates) Any() bool {
 	return b.deleteTerms.Size() > 0 ||
 		b.deleteQueries.Size() > 0 ||
 		b.numFieldUpdates.Load() > 0
+}
+
+func (b *BufferedUpdates) GetDeleteQueries() *treemap.Map[Query, int] {
+	return b.deleteQueries
 }

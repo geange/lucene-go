@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"github.com/geange/lucene-go/core/interface/index"
 	"sync"
 	"sync/atomic"
 )
@@ -87,7 +88,7 @@ type SegmentState struct {
 	onClose func(*ReadersAndUpdates) error
 }
 
-func newSegmentState(rld *ReadersAndUpdates, onClose func(*ReadersAndUpdates) error, info *SegmentCommitInfo) *SegmentState {
+func newSegmentState(rld *ReadersAndUpdates, onClose func(*ReadersAndUpdates) error, info *index.SegmentCommitInfo) *SegmentState {
 	reader, err := rld.GetReader(context.TODO(), nil)
 	if err != nil {
 		return nil

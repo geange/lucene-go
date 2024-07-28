@@ -41,7 +41,7 @@ type DocValuesWriter struct {
 	fieldsSeen map[string]struct{}
 }
 
-func NewDocValuesWriter(ctx context.Context, state *index.SegmentWriteState, ext string) (*DocValuesWriter, error) {
+func NewDocValuesWriter(ctx context.Context, state *index2.SegmentWriteState, ext string) (*DocValuesWriter, error) {
 	fileName := store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, ext)
 	output, err := state.Directory.CreateOutput(ctx, fileName)
 	if err != nil {

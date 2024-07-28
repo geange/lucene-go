@@ -55,7 +55,7 @@ func (s *FieldsReader) Size() int {
 	return -1
 }
 
-func NewSimpleTextFieldsReader(state *index.SegmentReadState) (*FieldsReader, error) {
+func NewSimpleTextFieldsReader(state *iindex.SegmentReadState) (*FieldsReader, error) {
 	maxDoc, err := state.SegmentInfo.MaxDoc()
 	if err != nil {
 		return nil, err

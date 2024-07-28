@@ -2,10 +2,9 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 )
 
-var _ search.MatchesIterator = &TermMatchesIterator{}
+var _ index.MatchesIterator = &TermMatchesIterator{}
 
 // TermMatchesIterator
 // A MatchesIterator over a single term's postings list
@@ -13,10 +12,10 @@ type TermMatchesIterator struct {
 	upto  int
 	pos   int
 	pe    index.PostingsEnum
-	query search.Query
+	query index.Query
 }
 
-func NewTermMatchesIterator(query search.Query, pe index.PostingsEnum) (*TermMatchesIterator, error) {
+func NewTermMatchesIterator(query index.Query, pe index.PostingsEnum) (*TermMatchesIterator, error) {
 	freq, err := pe.Freq()
 	if err != nil {
 		return nil, err
@@ -59,10 +58,10 @@ func (t *TermMatchesIterator) EndOffset() (int, error) {
 	return t.pe.EndOffset()
 }
 
-func (t *TermMatchesIterator) GetSubMatches() (search.MatchesIterator, error) {
+func (t *TermMatchesIterator) GetSubMatches() (index.MatchesIterator, error) {
 	return nil, nil
 }
 
-func (t *TermMatchesIterator) GetQuery() search.Query {
+func (t *TermMatchesIterator) GetQuery() index.Query {
 	return t.query
 }

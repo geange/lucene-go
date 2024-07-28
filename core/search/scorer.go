@@ -1,25 +1,25 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
 type BaseScorer struct {
 	*BaseScorable
 
-	weight search.Weight
+	weight index.Weight
 }
 
-func NewScorer(weight search.Weight) *BaseScorer {
+func NewScorer(weight index.Weight) *BaseScorer {
 	return &BaseScorer{weight: weight}
 }
 
-func (s *BaseScorer) GetWeight() search.Weight {
+func (s *BaseScorer) GetWeight() index.Weight {
 	return s.weight
 }
 
-func (s *BaseScorer) TwoPhaseIterator() search.TwoPhaseIterator {
+func (s *BaseScorer) TwoPhaseIterator() index.TwoPhaseIterator {
 	return nil
 }
 

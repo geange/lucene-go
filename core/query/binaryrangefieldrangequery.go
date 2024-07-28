@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/geange/lucene-go/core/index"
 	index2 "github.com/geange/lucene-go/core/interface/index"
-	search2 "github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/search"
 	"github.com/geange/lucene-go/core/types"
 )
@@ -17,7 +16,7 @@ type BinaryRangeFieldRangeQuery struct {
 	queryType            QueryType
 }
 
-func (b *BinaryRangeFieldRangeQuery) createWeight(query search2.Query, scoreMode search2.ScoreMode, boost float64) search2.Weight {
+func (b *BinaryRangeFieldRangeQuery) createWeight(query index2.Query, scoreMode index2.ScoreMode, boost float64) index2.Weight {
 	weight := &binaryRangeFieldRangeWeight{
 		query:     b,
 		scoreMode: scoreMode,
@@ -34,16 +33,16 @@ func (b *BinaryRangeFieldRangeQuery) getValues(reader index2.LeafReader, field s
 	return NewBinaryRangeDocValues(binaryDocValues, b.numDims, b.numBytesPerDimension), nil
 }
 
-var _ search2.Weight = &binaryRangeFieldRangeWeight{}
+var _ index2.Weight = &binaryRangeFieldRangeWeight{}
 
 type binaryRangeFieldRangeWeight struct {
 	*search.ConstantScoreWeight
 
 	query     *BinaryRangeFieldRangeQuery
-	scoreMode search2.ScoreMode
+	scoreMode index2.ScoreMode
 }
 
-func (b *binaryRangeFieldRangeWeight) Scorer(ctx index2.LeafReaderContext) (search2.Scorer, error) {
+func (b *binaryRangeFieldRangeWeight) Scorer(ctx index2.LeafReaderContext) (index2.Scorer, error) {
 
 	values, err := b.query.getValues(ctx.LeafReader(), b.query.field)
 	if err != nil {
@@ -62,7 +61,7 @@ func (b *binaryRangeFieldRangeWeight) Scorer(ctx index2.LeafReaderContext) (sear
 	return search.NewConstantScoreScorer(b, b.Score(), b.scoreMode, search.AsDocIdSetIterator(iterator))
 }
 
-var _ search2.TwoPhaseIterator = &binaryRangeFieldRangeWeightTwoPhaseIterator{}
+var _ index2.TwoPhaseIterator = &binaryRangeFieldRangeWeightTwoPhaseIterator{}
 
 type binaryRangeFieldRangeWeightTwoPhaseIterator struct {
 	weight *binaryRangeFieldRangeWeight
@@ -94,7 +93,7 @@ func (b *binaryRangeFieldRangeWeight) IsCacheable(ctx index2.LeafReaderContext) 
 	return index.IsCacheable(ctx, b.query.field)
 }
 
-func rangeQueryVisit(field string, query search2.Query, visitor search2.QueryVisitor) error {
+func rangeQueryVisit(field string, query index2.Query, visitor index2.QueryVisitor) error {
 	if visitor.AcceptField(field) {
 		return visitor.VisitLeaf(query)
 	}

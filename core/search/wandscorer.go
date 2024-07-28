@@ -1,11 +1,11 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ search.Scorer = &WANDScorer{}
+var _ index.Scorer = &WANDScorer{}
 
 // WANDScorer
 // This implements the WAND (Weak AND) algorithm for dynamic pruning described in "Efficient
@@ -27,7 +27,7 @@ type WANDScorer struct {
 	// TODO
 }
 
-func newWANDScorer(weight search.Weight, scorers []search.Scorer, minShouldMatch int, scoreMode search.ScoreMode) (*WANDScorer, error) {
+func newWANDScorer(weight index.Weight, scorers []index.Scorer, minShouldMatch int, scoreMode index.ScoreMode) (*WANDScorer, error) {
 	panic("")
 }
 
@@ -56,7 +56,7 @@ func (w *WANDScorer) GetMaxScore(upTo int) (float64, error) {
 // lucene.internal
 type DisiWrapper struct {
 	iterator  types.DocIdSetIterator
-	scorer    search.Scorer
+	scorer    index.Scorer
 	cost      int64
 	matchCost float64      // the match cost for two-phase iterators, 0 otherwise
 	doc       int          // the current doc, used for comparison
@@ -68,7 +68,7 @@ type DisiWrapper struct {
 
 	// A two-phase view of the iterator, or null if the iterator does not support
 	// two-phase iteration
-	twoPhaseView search.TwoPhaseIterator
+	twoPhaseView index.TwoPhaseIterator
 
 	// For WANDScorer
 	maxScore int64

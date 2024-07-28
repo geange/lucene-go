@@ -2,11 +2,10 @@ package simpletext
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/index"
 	index2 "github.com/geange/lucene-go/core/interface/index"
 )
 
-var _ index.PointsFormat = &PointsFormat{}
+var _ index2.PointsFormat = &PointsFormat{}
 
 // PointsFormat For debugging, curiosity, transparency only!! Do not use this codec in production.
 // This codec stores all dimensional data in a single human-readable text file (_N.dim).
@@ -19,11 +18,11 @@ func NewPointsFormat() *PointsFormat {
 	return &PointsFormat{}
 }
 
-func (s *PointsFormat) FieldsWriter(ctx context.Context, state *index.SegmentWriteState) (index2.PointsWriter, error) {
+func (s *PointsFormat) FieldsWriter(ctx context.Context, state *index2.SegmentWriteState) (index2.PointsWriter, error) {
 	return NewSimpleTextPointsWriter(ctx, state)
 }
 
-func (s *PointsFormat) FieldsReader(ctx context.Context, state *index.SegmentReadState) (index2.PointsReader, error) {
+func (s *PointsFormat) FieldsReader(ctx context.Context, state *index2.SegmentReadState) (index2.PointsReader, error) {
 	return NewPointsReader(ctx, state)
 }
 

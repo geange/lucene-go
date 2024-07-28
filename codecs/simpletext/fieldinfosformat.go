@@ -12,7 +12,7 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-var _ index.FieldInfosFormat = &FieldInfosFormat{}
+var _ index2.FieldInfosFormat = &FieldInfosFormat{}
 
 const (
 	// FIELD_INFOS_EXTENSION Extension of field infos
@@ -51,7 +51,7 @@ func NewSimpleTextFieldInfosFormat() *FieldInfosFormat {
 	return &FieldInfosFormat{}
 }
 
-func (s *FieldInfosFormat) Read(ctx context.Context, directory store.Directory, segmentInfo *index.SegmentInfo, segmentSuffix string, ioContext *store.IOContext) (index2.FieldInfos, error) {
+func (s *FieldInfosFormat) Read(ctx context.Context, directory store.Directory, segmentInfo index2.SegmentInfo, segmentSuffix string, ioContext *store.IOContext) (index2.FieldInfos, error) {
 	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
 	input, err := store.OpenChecksumInput(directory, fileName)
 	if err != nil {
@@ -171,7 +171,7 @@ func (s *FieldInfosFormat) Read(ctx context.Context, directory store.Directory, 
 	return fieldInfos, nil
 }
 
-func (s *FieldInfosFormat) Write(ctx context.Context, directory store.Directory, segmentInfo *index.SegmentInfo, segmentSuffix string, infos index2.FieldInfos, ioContext *store.IOContext) error {
+func (s *FieldInfosFormat) Write(ctx context.Context, directory store.Directory, segmentInfo index2.SegmentInfo, segmentSuffix string, infos index2.FieldInfos, ioContext *store.IOContext) error {
 	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
 	out, err := directory.CreateOutput(nil, fileName)
 	if err != nil {

@@ -3,10 +3,9 @@ package query
 import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 )
 
-var _ search.Query = &IntRangeSlowRangeQuery{}
+var _ index.Query = &IntRangeSlowRangeQuery{}
 
 type IntRangeSlowRangeQuery struct {
 	*BinaryRangeFieldRangeQuery
@@ -32,15 +31,15 @@ func NewIntRangeSlowRangeQuery(field string, mins, maxs []int32, queryType Query
 	}, nil
 }
 
-func (i *IntRangeSlowRangeQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (i *IntRangeSlowRangeQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
 	return i.createWeight(i, scoreMode, boost), nil
 }
 
-func (i *IntRangeSlowRangeQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
+func (i *IntRangeSlowRangeQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
 	return i, nil
 }
 
-func (i *IntRangeSlowRangeQuery) Visit(visitor search.QueryVisitor) error {
+func (i *IntRangeSlowRangeQuery) Visit(visitor index.QueryVisitor) error {
 	return rangeQueryVisit(i.field, i, visitor)
 }
 

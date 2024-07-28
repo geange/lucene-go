@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util/version"
 	"github.com/matishsiao/goInfo"
@@ -24,7 +25,7 @@ func init() {
 	osInfo = info
 }
 
-func SetDiagnostics(info *SegmentInfo, source string, details map[string]string) error {
+func SetDiagnostics(info index.SegmentInfo, source string, details map[string]string) error {
 	diagnostics := make(map[string]string)
 
 	diagnostics["source"] = source
@@ -39,7 +40,7 @@ func SetDiagnostics(info *SegmentInfo, source string, details map[string]string)
 	return nil
 }
 
-func CreateCompoundFile(ctx context.Context, directory *store.TrackingDirectoryWrapper, info *SegmentInfo,
+func CreateCompoundFile(ctx context.Context, directory *store.TrackingDirectoryWrapper, info index.SegmentInfo,
 	ioContext *store.IOContext, deleteFiles func(files map[string]struct{})) error {
 
 	// maybe this check is not needed, but why take the risk?

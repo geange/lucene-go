@@ -79,7 +79,7 @@ func (n *NumericDocValuesWriter) AddValue(docID int, value int64) error {
 	return nil
 }
 
-func (n *NumericDocValuesWriter) Flush(state *SegmentWriteState, sortMap DocMap, consumer index.DocValuesConsumer) error {
+func (n *NumericDocValuesWriter) Flush(state *index.SegmentWriteState, sortMap DocMap, consumer index.DocValuesConsumer) error {
 	// TODO: fix it
 	panic("")
 	/*

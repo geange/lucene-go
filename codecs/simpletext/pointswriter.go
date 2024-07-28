@@ -44,11 +44,11 @@ type PointsWriter struct {
 
 	dataOut    store.IndexOutput
 	scratch    *bytes.Buffer
-	writeState *index.SegmentWriteState
+	writeState *index2.SegmentWriteState
 	indexFPs   map[string]int64
 }
 
-func NewSimpleTextPointsWriter(ctx context.Context, writeState *index.SegmentWriteState) (*PointsWriter, error) {
+func NewSimpleTextPointsWriter(ctx context.Context, writeState *index2.SegmentWriteState) (*PointsWriter, error) {
 	fileName := store.SegmentFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix, POINT_EXTENSION)
 	out, err := writeState.Directory.CreateOutput(ctx, fileName)
 	if err != nil {

@@ -1,12 +1,12 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"io"
 )
 
-func AsDocIdSetIterator(twoPhaseIterator search.TwoPhaseIterator) types.DocIdSetIterator {
+func AsDocIdSetIterator(twoPhaseIterator index.TwoPhaseIterator) types.DocIdSetIterator {
 	return &twoPhaseIteratorAsDocIdSetIterator{
 		twoPhaseIterator: twoPhaseIterator,
 		approximation:    twoPhaseIterator.Approximation(),
@@ -16,7 +16,7 @@ func AsDocIdSetIterator(twoPhaseIterator search.TwoPhaseIterator) types.DocIdSet
 var _ types.DocIdSetIterator = &twoPhaseIteratorAsDocIdSetIterator{}
 
 type twoPhaseIteratorAsDocIdSetIterator struct {
-	twoPhaseIterator search.TwoPhaseIterator
+	twoPhaseIterator index.TwoPhaseIterator
 	approximation    types.DocIdSetIterator
 }
 
@@ -66,7 +66,7 @@ func (t *twoPhaseIteratorAsDocIdSetIterator) doNext(doc int) (int, error) {
 	}
 }
 
-func UnwrapIterator(iterator types.DocIdSetIterator) search.TwoPhaseIterator {
+func UnwrapIterator(iterator types.DocIdSetIterator) index.TwoPhaseIterator {
 	if v, ok := iterator.(*twoPhaseIteratorAsDocIdSetIterator); ok {
 		return v.twoPhaseIterator
 	}

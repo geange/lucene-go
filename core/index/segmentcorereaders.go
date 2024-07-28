@@ -25,9 +25,9 @@ type SegmentCoreReaders struct {
 	fields                index.FieldsProducer
 	normsProducer         index.NormsProducer
 	fieldsReaderOrig      index.StoredFieldsReader
-	termVectorsReaderOrig TermVectorsReader
+	termVectorsReaderOrig index.TermVectorsReader
 	pointsReader          index.PointsReader
-	cfsReader             CompoundDirectory
+	cfsReader             index.CompoundDirectory
 	segment               string
 
 	// fieldinfos for this core: means gen=-1. this is the exact fieldinfos these codec components saw at write.
@@ -39,21 +39,21 @@ type SegmentCoreReaders struct {
 	// normsProducer
 
 	fieldsReaderLocal   index.StoredFieldsReader
-	termVectorsLocal    TermVectorsReader
+	termVectorsLocal    index.TermVectorsReader
 	coreClosedListeners ClosedListener
 }
 
-func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si *SegmentCommitInfo, ioContext *store.IOContext) (*SegmentCoreReaders, error) {
+func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si *index.SegmentCommitInfo, ioContext *store.IOContext) (*SegmentCoreReaders, error) {
 
-	codec := si.info.GetCodec()
+	codec := si.Info().GetCodec()
 
 	// confusing name: if (cfs) it's the cfsdir, otherwise it's the segment's directory.
 	var cfsDir store.Directory
 
 	r := &SegmentCoreReaders{}
 
-	if si.info.GetUseCompoundFile() {
-		reader, err := codec.CompoundFormat().GetCompoundReader(ctx, dir, si.info, ioContext)
+	if si.Info().GetUseCompoundFile() {
+		reader, err := codec.CompoundFormat().GetCompoundReader(ctx, dir, si.Info(), ioContext)
 		if err != nil {
 			return nil, err
 		}
@@ -64,14 +64,14 @@ func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si *Segment
 		cfsDir = dir
 	}
 
-	r.segment = si.info.Name()
-	coreFieldInfos, err := codec.FieldInfosFormat().Read(ctx, cfsDir, si.info, "", ioContext)
+	r.segment = si.Info().Name()
+	coreFieldInfos, err := codec.FieldInfosFormat().Read(ctx, cfsDir, si.Info(), "", ioContext)
 	if err != nil {
 		return nil, err
 	}
 	r.coreFieldInfos = coreFieldInfos
 
-	segmentReadState := NewSegmentReadState(cfsDir, si.info, r.coreFieldInfos, ioContext, "")
+	segmentReadState := index.NewSegmentReadState(cfsDir, si.Info(), r.coreFieldInfos, ioContext, "")
 
 	// Ask codec for its Fields
 	fields, err := codec.PostingsFormat().FieldsProducer(ctx, segmentReadState)
@@ -95,7 +95,7 @@ func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si *Segment
 		r.normsProducer = nil
 	}
 
-	fieldsReaderOrig, err := si.info.GetCodec().StoredFieldsFormat().FieldsReader(ctx, cfsDir, si.info, r.coreFieldInfos, ioContext)
+	fieldsReaderOrig, err := si.Info().GetCodec().StoredFieldsFormat().FieldsReader(ctx, cfsDir, si.Info(), r.coreFieldInfos, ioContext)
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +103,8 @@ func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si *Segment
 	r.fieldsReaderLocal = fieldsReaderOrig.Clone(ctx)
 
 	if r.coreFieldInfos.HasVectors() { // open term vector files only as needed
-		termVectorsReaderOrig, err := si.info.GetCodec().TermVectorsFormat().
-			VectorsReader(nil, cfsDir, si.info, r.coreFieldInfos, ioContext)
+		termVectorsReaderOrig, err := si.Info().GetCodec().TermVectorsFormat().
+			VectorsReader(nil, cfsDir, si.Info(), r.coreFieldInfos, ioContext)
 		if err != nil {
 			return nil, err
 		}

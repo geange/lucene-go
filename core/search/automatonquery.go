@@ -5,7 +5,6 @@ import (
 
 	"github.com/geange/lucene-go/core/index"
 	index2 "github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
@@ -91,15 +90,15 @@ func (r *AutomatonQuery) String(field string) string {
 	panic("implement me")
 }
 
-func (r *AutomatonQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (r *AutomatonQuery) CreateWeight(searcher index2.IndexSearcher, scoreMode index2.ScoreMode, boost float64) (index2.Weight, error) {
 	return nil, errors.New("implement me")
 }
 
-func (r *AutomatonQuery) Rewrite(reader index2.IndexReader) (search.Query, error) {
+func (r *AutomatonQuery) Rewrite(reader index2.IndexReader) (index2.Query, error) {
 	return r, nil
 }
 
-func (r *AutomatonQuery) Visit(visitor search.QueryVisitor) error {
+func (r *AutomatonQuery) Visit(visitor index2.QueryVisitor) error {
 	if visitor.AcceptField(r.field) {
 		if err := visit(r.compiled, visitor, r, r.field); err != nil {
 			return err
@@ -108,7 +107,7 @@ func (r *AutomatonQuery) Visit(visitor search.QueryVisitor) error {
 	return nil
 }
 
-func visit(auto *automaton.CompiledAutomaton, visitor search.QueryVisitor, parent search.Query, field string) error {
+func visit(auto *automaton.CompiledAutomaton, visitor index2.QueryVisitor, parent index2.Query, field string) error {
 	if visitor.AcceptField(field) {
 		switch auto.Type() {
 		case automaton.AUTOMATON_TYPE_NORMAL:

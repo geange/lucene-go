@@ -2,7 +2,6 @@ package index
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 
 	"github.com/geange/lucene-go/core/document"
@@ -13,7 +12,7 @@ import (
 // An in-place update to a DocValues field.
 type DocValuesUpdate interface {
 	GetType() document.DocValuesType
-	GetTerm() index.Term
+	GetTerm() Term
 	GetField() string
 	GetDocIDUpto() int
 	GetHasValue() bool
@@ -23,7 +22,7 @@ type DocValuesUpdate interface {
 
 type DocValuesUpdateOptions struct {
 	DType     document.DocValuesType
-	Term      index.Term
+	Term      Term
 	Field     string
 	DocIDUpto int
 	HasValue  bool
@@ -33,7 +32,7 @@ var _ DocValuesUpdate = &NumericDocValuesUpdate{}
 
 type BaseDocValuesUpdate struct {
 	_type     document.DocValuesType
-	term      index.Term
+	term      Term
 	field     string
 	docIDUpto int
 	hasValue  bool
@@ -43,7 +42,7 @@ func (d *BaseDocValuesUpdate) GetType() document.DocValuesType {
 	return d._type
 }
 
-func (d *BaseDocValuesUpdate) GetTerm() index.Term {
+func (d *BaseDocValuesUpdate) GetTerm() Term {
 	return d.term
 }
 
@@ -65,11 +64,11 @@ type NumericDocValuesUpdate struct {
 	value int64
 }
 
-func NewNumericDocValuesUpdate(term index.Term, field string, value int64) *NumericDocValuesUpdate {
+func NewNumericDocValuesUpdate(term Term, field string, value int64) *NumericDocValuesUpdate {
 	return newNumericDocValuesUpdate(term, field, value, math.MaxInt32, true)
 }
 
-func newNumericDocValuesUpdate(term index.Term, field string, value int64, docIDUpTo int, hasValue bool) *NumericDocValuesUpdate {
+func newNumericDocValuesUpdate(term Term, field string, value int64, docIDUpTo int, hasValue bool) *NumericDocValuesUpdate {
 	return &NumericDocValuesUpdate{
 		BaseDocValuesUpdate: BaseDocValuesUpdate{
 			_type:     document.DOC_VALUES_TYPE_NUMERIC,
@@ -102,11 +101,11 @@ type BinaryDocValuesUpdate struct {
 	value []byte
 }
 
-func NewBinaryDocValuesUpdate(term index.Term, field string, value []byte) *BinaryDocValuesUpdate {
+func NewBinaryDocValuesUpdate(term Term, field string, value []byte) *BinaryDocValuesUpdate {
 	return newBinaryDocValuesUpdate(term, field, value, math.MaxInt32)
 }
 
-func newBinaryDocValuesUpdate(term index.Term, field string, value []byte, docIDUpTo int) *BinaryDocValuesUpdate {
+func newBinaryDocValuesUpdate(term Term, field string, value []byte, docIDUpTo int) *BinaryDocValuesUpdate {
 	return &BinaryDocValuesUpdate{
 		BaseDocValuesUpdate: BaseDocValuesUpdate{
 			_type:     document.DOC_VALUES_TYPE_BINARY,

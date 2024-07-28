@@ -1,11 +1,11 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ search.Scorer = &DisjunctionSumScorer{}
+var _ index.Scorer = &DisjunctionSumScorer{}
 
 // DisjunctionSumScorer
 // A Scorer for OR like queries, counterpart of ConjunctionScorer.
@@ -13,7 +13,7 @@ type DisjunctionSumScorer struct {
 	*DisjunctionScorer
 }
 
-func newDisjunctionScorer(weight search.Weight, subScorers []search.Scorer, scoreMode search.ScoreMode) (*DisjunctionSumScorer, error) {
+func newDisjunctionScorer(weight index.Weight, subScorers []index.Scorer, scoreMode index.ScoreMode) (*DisjunctionSumScorer, error) {
 	panic("")
 }
 

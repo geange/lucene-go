@@ -54,7 +54,7 @@ func (p *PendingSoftDeletes) NumPendingDeletes() int {
 	return p.pendingDeletes.NumPendingDeletes() + p.hardDeletes.NumPendingDeletes()
 }
 
-func (p *PendingSoftDeletes) OnNewReader(reader CodecReader, info *SegmentCommitInfo) error {
+func (p *PendingSoftDeletes) OnNewReader(reader CodecReader, info *index.SegmentCommitInfo) error {
 	err := p.pendingDeletes.OnNewReader(reader, info)
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func (p *PendingSoftDeletes) OnDocValuesUpdate(info *document.FieldInfo, iterato
 	p.dvGeneration = info.GetDocValuesGen()
 }
 
-func NewPendingSoftDeletes(field string, info *SegmentCommitInfo) *PendingSoftDeletes {
+func NewPendingSoftDeletes(field string, info *index.SegmentCommitInfo) *PendingSoftDeletes {
 
 	return &PendingSoftDeletes{
 		pendingDeletes: NewPendingDeletesV2(info, nil, info.GetDelCountV1(true) == 0).(*pendingDeletes),
@@ -189,7 +189,7 @@ func NewPendingSoftDeletes(field string, info *SegmentCommitInfo) *PendingSoftDe
 }
 
 func NewPendingSoftDeletesV1(field string,
-	reader *SegmentReader, info *SegmentCommitInfo) *PendingSoftDeletes {
+	reader *SegmentReader, info *index.SegmentCommitInfo) *PendingSoftDeletes {
 
 	return &PendingSoftDeletes{
 		pendingDeletes: NewPendingDeletes(reader, info).(*pendingDeletes),
@@ -223,21 +223,21 @@ func (p *PendingSoftDeletes) MustInitOnDelete() bool {
 }
 
 func (p *PendingSoftDeletes) readFieldInfos(ctx context.Context) (index.FieldInfos, error) {
-	segInfo := p.info.info
-	dir := segInfo.dir
+	segInfo := p.info.Info()
+	dir := segInfo.Dir()
 
 	var err error
 
 	if p.info.HasFieldUpdates() == false {
 		// updates always outside of CFS
 		if segInfo.GetUseCompoundFile() {
-			dir, err = segInfo.GetCodec().CompoundFormat().GetCompoundReader(ctx, segInfo.dir, segInfo, store.READONCE)
+			dir, err = segInfo.GetCodec().CompoundFormat().GetCompoundReader(ctx, segInfo.Dir(), segInfo, store.READONCE)
 			if err != nil {
 				return nil, err
 			}
 			defer dir.Close()
 		} else {
-			dir = segInfo.dir
+			dir = segInfo.Dir()
 		}
 
 		return segInfo.GetCodec().FieldInfosFormat().Read(ctx, dir, segInfo, "", store.READONCE)

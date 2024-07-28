@@ -2,10 +2,9 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 )
 
-var _ search.Query = &MatchNoDocsQuery{}
+var _ index.Query = &MatchNoDocsQuery{}
 
 // MatchNoDocsQuery
 // A query that matches no documents.
@@ -22,17 +21,17 @@ func (m *MatchNoDocsQuery) String(field string) string {
 	panic("implement me")
 }
 
-func (m *MatchNoDocsQuery) CreateWeight(searcher search.IndexSearcher, scoreMode search.ScoreMode, boost float64) (search.Weight, error) {
+func (m *MatchNoDocsQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *MatchNoDocsQuery) Rewrite(reader index.IndexReader) (search.Query, error) {
+func (m *MatchNoDocsQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *MatchNoDocsQuery) Visit(visitor search.QueryVisitor) (err error) {
+func (m *MatchNoDocsQuery) Visit(visitor index.QueryVisitor) (err error) {
 	//TODO implement me
 	panic("implement me")
 }

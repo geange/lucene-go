@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/structure"
 )
 
@@ -13,18 +13,18 @@ import (
 // entirely by passing null to TopDocsCollector(PriorityQueue). In that case however, you might want
 // to consider overriding all methods, in order to avoid a NullPointerException.
 type TopDocsCollector interface {
-	search.Collector
+	index.Collector
 
 	// PopulateResults
 	// Populates the results array with the ScoreDoc instances.
 	// This can be overridden in case a different ScoreDoc type should be returned.
-	PopulateResults(results []search.ScoreDoc, howMany int) error
+	PopulateResults(results []index.ScoreDoc, howMany int) error
 
 	// NewTopDocs
 	// Returns a TopDocs instance containing the given results.
 	// If results is null it means there are no results to return, either because
 	// there were 0 calls to collect() or because the arguments to topDocs were invalid.
-	NewTopDocs(results []search.ScoreDoc, howMany int) (search.TopDocs, error)
+	NewTopDocs(results []index.ScoreDoc, howMany int) (index.TopDocs, error)
 
 	// GetTotalHits
 	// The total number of documents that matched this query.
@@ -36,7 +36,7 @@ type TopDocsCollector interface {
 
 	// TopDocs
 	// Returns the top docs that were collected by this collector.
-	TopDocs() (search.TopDocs, error)
+	TopDocs() (index.TopDocs, error)
 
 	// TopDocsFrom
 	// Returns the documents in the range [start .. pq.size()) that were collected by this collector.
@@ -46,7 +46,7 @@ type TopDocsCollector interface {
 	// If you need to call it more than once, passing each time a different start,
 	// you should call topDocs() and work with the returned TopDocs object,
 	// which will contain all the results this search execution collected.
-	TopDocsFrom(start int) (search.TopDocs, error)
+	TopDocsFrom(start int) (index.TopDocs, error)
 
 	// TopDocsRange
 	// Returns the documents in the range [start .. start+howMany) that were collected by this collector.
@@ -58,25 +58,25 @@ type TopDocsCollector interface {
 	// If you need to call it more than once, passing each time a different range,
 	// you should call topDocs() and work with the returned TopDocs object,
 	// which will contain all the results this search execution collected.
-	TopDocsRange(start, howMany int) (search.TopDocs, error)
+	TopDocsRange(start, howMany int) (index.TopDocs, error)
 }
 
 var EMPTY_TOPDOCS = &BaseTopDocs{
-	totalHits: search.NewTotalHits(0, search.EQUAL_TO),
-	scoreDocs: make([]search.ScoreDoc, 0),
+	totalHits: index.NewTotalHits(0, index.EQUAL_TO),
+	scoreDocs: make([]index.ScoreDoc, 0),
 }
 
-type TopDocsCollectorDefault[T search.ScoreDoc] struct {
+type TopDocsCollectorDefault[T index.ScoreDoc] struct {
 	pq                *structure.PriorityQueue[T]
 	totalHits         int
-	totalHitsRelation search.TotalHitsRelation
+	totalHitsRelation index.TotalHitsRelation
 }
 
-func newTopDocsCollectorDefault[T search.ScoreDoc](pq *structure.PriorityQueue[T]) *TopDocsCollectorDefault[T] {
+func newTopDocsCollectorDefault[T index.ScoreDoc](pq *structure.PriorityQueue[T]) *TopDocsCollectorDefault[T] {
 	return &TopDocsCollectorDefault[T]{pq: pq}
 }
 
-func (t *TopDocsCollectorDefault[T]) PopulateResults(results []search.ScoreDoc, howMany int) error {
+func (t *TopDocsCollectorDefault[T]) PopulateResults(results []index.ScoreDoc, howMany int) error {
 	for i := howMany - 1; i >= 0; i-- {
 		n, err := t.pq.Pop()
 		if err != nil {
@@ -87,11 +87,11 @@ func (t *TopDocsCollectorDefault[T]) PopulateResults(results []search.ScoreDoc, 
 	return nil
 }
 
-func (t *TopDocsCollectorDefault[T]) NewTopDocs(results []search.ScoreDoc, howMany int) (search.TopDocs, error) {
+func (t *TopDocsCollectorDefault[T]) NewTopDocs(results []index.ScoreDoc, howMany int) (index.TopDocs, error) {
 	if len(results) == 0 {
 		return EMPTY_TOPDOCS, nil
 	}
-	return NewTopDocs(search.NewTotalHits(int64(t.totalHits), t.totalHitsRelation), results), nil
+	return NewTopDocs(index.NewTotalHits(int64(t.totalHits), t.totalHitsRelation), results), nil
 }
 
 func (t *TopDocsCollectorDefault[T]) GetTotalHits() int {
@@ -108,15 +108,15 @@ func (t *TopDocsCollectorDefault[T]) TopDocsSize() int {
 	return t.pq.Size()
 }
 
-func (t *TopDocsCollectorDefault[T]) TopDocs() (search.TopDocs, error) {
+func (t *TopDocsCollectorDefault[T]) TopDocs() (index.TopDocs, error) {
 	return t.TopDocsRange(0, t.TopDocsSize())
 }
 
-func (t *TopDocsCollectorDefault[T]) TopDocsFrom(start int) (search.TopDocs, error) {
+func (t *TopDocsCollectorDefault[T]) TopDocsFrom(start int) (index.TopDocs, error) {
 	return t.TopDocsRange(start, t.TopDocsSize())
 }
 
-func (t *TopDocsCollectorDefault[T]) TopDocsRange(start, howMany int) (search.TopDocs, error) {
+func (t *TopDocsCollectorDefault[T]) TopDocsRange(start, howMany int) (index.TopDocs, error) {
 	// In case pq was populated with sentinel values, there might be less
 	// results than pq.size(). Therefore return all results until either
 	// pq.size() or totalHits.
@@ -132,7 +132,7 @@ func (t *TopDocsCollectorDefault[T]) TopDocsRange(start, howMany int) (search.To
 
 	// We know that start < pqsize, so just fix howMany.
 	howMany = min(size-start, howMany)
-	results := make([]search.ScoreDoc, howMany)
+	results := make([]index.ScoreDoc, howMany)
 
 	// pq's pop() returns the 'least' element in the queue, therefore need
 	// to discard the first ones, until we reach the requested range.

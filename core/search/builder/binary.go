@@ -2,7 +2,7 @@ package builder
 
 import (
 	"bytes"
-	search2 "github.com/geange/lucene-go/core/interface/search"
+	search2 "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/search"
 )
 

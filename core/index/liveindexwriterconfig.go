@@ -50,7 +50,7 @@ type LiveIndexWriterConfig interface {
 	GetMergeScheduler() MergeScheduler
 
 	// GetCodec Returns the current Codec.
-	GetCodec() Codec
+	GetCodec() index.Codec
 
 	// GetMergePolicy Returns the current MergePolicy in use by this writer.
 	// See Also: IndexWriterConfig.setMergePolicy(MergePolicy)
@@ -155,7 +155,7 @@ type liveIndexWriterConfig struct {
 	indexingChain IndexingChain
 
 	// Codec used to write new segments.
-	codec Codec
+	codec index.Codec
 
 	// InfoStream for debugging messages.
 	// infoStream io.Writer
@@ -196,7 +196,7 @@ type liveIndexWriterConfig struct {
 	maxFullFlushMergeWaitMillis int64
 }
 
-func newLiveIndexWriterConfig(analyzer analysis.Analyzer, codec Codec, similarity index.Similarity) *liveIndexWriterConfig {
+func newLiveIndexWriterConfig(analyzer analysis.Analyzer, codec index.Codec, similarity index.Similarity) *liveIndexWriterConfig {
 	return &liveIndexWriterConfig{
 		analyzer:                    analyzer,
 		maxBufferedDocs:             DEFAULT_MAX_BUFFERED_DOCS,
@@ -254,7 +254,7 @@ func (r *liveIndexWriterConfig) GetAnalyzer() analysis.Analyzer {
 	return r.analyzer
 }
 
-func (r *liveIndexWriterConfig) GetCodec() Codec {
+func (r *liveIndexWriterConfig) GetCodec() index.Codec {
 	return r.codec
 }
 

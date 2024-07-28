@@ -2,40 +2,40 @@ package search
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/search"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // BooleanClause
 // A clause in a BooleanQuery.
 type BooleanClause struct {
 	// The query whose matching documents are combined by the boolean query.
-	query search.Query
+	query index.Query
 
-	occur search.Occur
+	occur index.Occur
 }
 
-func NewBooleanClause(query search.Query, occur search.Occur) *BooleanClause {
+func NewBooleanClause(query index.Query, occur index.Occur) *BooleanClause {
 	return &BooleanClause{occur: occur, query: query}
 }
 
-func (b *BooleanClause) GetOccur() search.Occur {
+func (b *BooleanClause) GetOccur() index.Occur {
 	return b.occur
 }
 
-func (b *BooleanClause) GetQuery() search.Query {
+func (b *BooleanClause) GetQuery() index.Query {
 	return b.query
 }
 
 func (b *BooleanClause) IsProhibited() bool {
-	return search.OccurMustNot == b.occur
+	return index.OccurMustNot == b.occur
 }
 
 func (b *BooleanClause) IsRequired() bool {
-	return b.occur == search.OccurMust || b.occur == search.OccurFilter
+	return b.occur == index.OccurMust || b.occur == index.OccurFilter
 }
 
 func (b *BooleanClause) IsScoring() bool {
-	return b.occur == search.OccurMust || b.occur == search.OccurShould
+	return b.occur == index.OccurMust || b.occur == index.OccurShould
 }
 
 func (b *BooleanClause) String() string {

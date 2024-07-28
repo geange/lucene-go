@@ -17,7 +17,7 @@ type SegmentDocValues struct {
 }
 
 func (s *SegmentDocValues) GetDocValuesProducer(gen int64,
-	si *SegmentCommitInfo, dir store.Directory, infos index.FieldInfos) (index.DocValuesProducer, error) {
+	si *index.SegmentCommitInfo, dir store.Directory, infos index.FieldInfos) (index.DocValuesProducer, error) {
 
 	dvp, ok := s.genDVProducers[gen]
 	if !ok {
@@ -34,19 +34,19 @@ func (s *SegmentDocValues) GetDocValuesProducer(gen int64,
 	return dvp.Get(), nil
 }
 
-func (s *SegmentDocValues) newDocValuesProducer(si *SegmentCommitInfo,
+func (s *SegmentDocValues) newDocValuesProducer(si *index.SegmentCommitInfo,
 	dir store.Directory, gen int64, infos index.FieldInfos) (*util.RefCount[index.DocValuesProducer], error) {
 
 	dvDir := dir
 	segmentSuffix := ""
 	if gen != -1 {
-		dvDir = si.info.dir // gen'd files are written outside CFS, so use SegInfo directory
+		dvDir = si.Info().Dir() // gen'd files are written outside CFS, so use SegInfo directory
 		segmentSuffix = strconv.FormatInt(gen, 36)
 	}
 
 	// set SegmentReadState to list only the fields that are relevant to that gen
-	srs := NewSegmentReadState(dvDir, si.info, infos, nil, segmentSuffix)
-	dvFormat := si.info.GetCodec().DocValuesFormat()
+	srs := index.NewSegmentReadState(dvDir, si.Info(), infos, nil, segmentSuffix)
+	dvFormat := si.Info().GetCodec().DocValuesFormat()
 
 	producer, err := dvFormat.FieldsProducer(nil, srs)
 	if err != nil {
@@ -85,7 +85,7 @@ type SegmentDocValuesProducer struct {
 	dvGens             []int64
 }
 
-func NewSegmentDocValuesProducer(si *SegmentCommitInfo, dir store.Directory,
+func NewSegmentDocValuesProducer(si *index.SegmentCommitInfo, dir store.Directory,
 	coreInfos, allInfos index.FieldInfos, segDocValues *SegmentDocValues) (*SegmentDocValuesProducer, error) {
 
 	p := &SegmentDocValuesProducer{

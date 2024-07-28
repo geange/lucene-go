@@ -1,8 +1,10 @@
 package search
 
-import "github.com/geange/lucene-go/core/interface/search"
+import (
+	"github.com/geange/lucene-go/core/interface/index"
+)
 
-var _ search.QueryCache = &LRUQueryCache{}
+var _ index.QueryCache = &LRUQueryCache{}
 
 // LRUQueryCache
 // A QueryCache that evicts queries using a LRU (least-recently-used) eviction policy in order to remain
@@ -33,7 +35,7 @@ var _ search.QueryCache = &LRUQueryCache{}
 type LRUQueryCache struct {
 }
 
-func (c *LRUQueryCache) DoCache(weight search.Weight, policy search.QueryCachingPolicy) search.Weight {
+func (c *LRUQueryCache) DoCache(weight index.Weight, policy index.QueryCachingPolicy) index.Weight {
 	//TODO implement me
 	panic("implement me")
 }

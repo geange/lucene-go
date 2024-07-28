@@ -60,7 +60,7 @@ func NewSortedSetSortFieldV1(field string, reverse bool,
 	}
 }
 
-var _ SortFieldProvider = &SortedSetSortFieldProvider{}
+var _ index.SortFieldProvider = &SortedSetSortFieldProvider{}
 
 type SortedSetSortFieldProvider struct {
 }

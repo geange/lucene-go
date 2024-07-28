@@ -21,7 +21,7 @@ func NewFreqProxTermsWriter(intBlockAllocator ints.IntsAllocator,
 }
 
 func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
-	state *SegmentWriteState, sortMap *DocMap, norms index.NormsProducer) error {
+	state *index.SegmentWriteState, sortMap *DocMap, norms index.NormsProducer) error {
 
 	err := f.BaseTermsHash.Flush(fieldsToFlush, state, sortMap, norms)
 	if err != nil {
@@ -68,6 +68,6 @@ func (f *FreqProxTermsWriter) SetTermBytePool(termBytePool *bytesref.BlockPool) 
 	f.termBytePool = termBytePool
 }
 
-func (f *FreqProxTermsWriter) applyDeletes(state *SegmentWriteState, fields index.Fields) error {
+func (f *FreqProxTermsWriter) applyDeletes(state *index.SegmentWriteState, fields index.Fields) error {
 	return nil
 }

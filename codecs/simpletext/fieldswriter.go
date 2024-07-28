@@ -24,13 +24,11 @@ var (
 	FIELDS_PAYLOAD      = []byte("        payload ")
 )
 
-var _ index.FieldsConsumer = &TextFieldsWriter{}
+var _ index2.FieldsConsumer = &TextFieldsWriter{}
 
 type TextFieldsWriter struct {
-	*index.BaseFieldsConsumer // TODO: fix it
-
 	out        store.IndexOutput
-	writeState *index.SegmentWriteState
+	writeState *index2.SegmentWriteState
 	segment    string
 	docCount   int
 
@@ -39,7 +37,7 @@ type TextFieldsWriter struct {
 	lastDocFilePointer           int64
 }
 
-func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, error) {
+func NewFieldsWriter(writeState *index2.SegmentWriteState) (*TextFieldsWriter, error) {
 	fileName := getPostingsFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix)
 	out, err := writeState.Directory.CreateOutput(nil, fileName)
 	if err != nil {
@@ -51,7 +49,6 @@ func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, er
 		return nil, err
 	}
 	return &TextFieldsWriter{
-		BaseFieldsConsumer:           nil,
 		out:                          out,
 		writeState:                   writeState,
 		segment:                      writeState.SegmentInfo.Name(),

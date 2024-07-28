@@ -311,7 +311,7 @@ func inflateGens(infos *SegmentInfos, files map[string]struct{}) {
 	}
 
 	for _, info := range infos.segments {
-		gen := maxPerSegmentGen[info.info.name]
+		gen := maxPerSegmentGen[info.Info().Name()]
 		genLong := gen
 		if info.GetNextWriteDelGen() < genLong+1 {
 			info.SetNextWriteDelGen(genLong + 1)

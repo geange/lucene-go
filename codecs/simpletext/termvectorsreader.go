@@ -9,11 +9,10 @@ import (
 
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/codecs/utils"
-	"github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
-var _ index.TermVectorsReader = &TermVectorsReader{}
+var _ index2.TermVectorsReader = &TermVectorsReader{}
 
 // TermVectorsReader Reads plain-text term vectors.
 // FOR RECREATIONAL USE ONLY
@@ -24,7 +23,7 @@ type TermVectorsReader struct {
 	scratch *bytes.Buffer
 }
 
-func NewTermVectorsReader(ctx context.Context, directory store.Directory, si *index.SegmentInfo, ioContext *store.IOContext) (*TermVectorsReader, error) {
+func NewTermVectorsReader(ctx context.Context, directory store.Directory, si index2.SegmentInfo, ioContext *store.IOContext) (*TermVectorsReader, error) {
 
 	fileName := store.SegmentFileName(si.Name(), "", VECTORS_EXTENSION)
 	in, err := directory.OpenInput(ctx, fileName)
@@ -229,7 +228,7 @@ func (s *TermVectorsReader) CheckIntegrity() error {
 	return nil
 }
 
-func (s *TermVectorsReader) Clone(context.Context) index.TermVectorsReader {
+func (s *TermVectorsReader) Clone(context.Context) index2.TermVectorsReader {
 	return &TermVectorsReader{
 		offsets: s.offsets,
 		in:      s.in.Clone().(store.IndexInput),
@@ -237,6 +236,6 @@ func (s *TermVectorsReader) Clone(context.Context) index.TermVectorsReader {
 	}
 }
 
-func (s *TermVectorsReader) GetMergeInstance() index.TermVectorsReader {
+func (s *TermVectorsReader) GetMergeInstance() index2.TermVectorsReader {
 	return s
 }

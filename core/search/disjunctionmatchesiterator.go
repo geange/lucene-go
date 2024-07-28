@@ -3,7 +3,6 @@ package search
 import (
 	"errors"
 	index2 "github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"io"
 
 	"github.com/geange/lucene-go/core/index"
@@ -11,10 +10,10 @@ import (
 	"github.com/geange/lucene-go/core/util/structure"
 )
 
-var _ search.MatchesIterator = &DisjunctionMatchesIterator{}
+var _ index2.MatchesIterator = &DisjunctionMatchesIterator{}
 
 type DisjunctionMatchesIterator struct {
-	queue   *structure.PriorityQueue[search.MatchesIterator]
+	queue   *structure.PriorityQueue[index2.MatchesIterator]
 	started bool
 }
 
@@ -56,15 +55,15 @@ func (d *DisjunctionMatchesIterator) EndOffset() (int, error) {
 	return d.queue.Top().EndOffset()
 }
 
-func (d *DisjunctionMatchesIterator) GetSubMatches() (search.MatchesIterator, error) {
+func (d *DisjunctionMatchesIterator) GetSubMatches() (index2.MatchesIterator, error) {
 	return d.queue.Top().GetSubMatches()
 }
 
-func (d *DisjunctionMatchesIterator) GetQuery() search.Query {
+func (d *DisjunctionMatchesIterator) GetQuery() index2.Query {
 	return d.queue.Top().GetQuery()
 }
 
-func fromSubIterators(mis []search.MatchesIterator) (search.MatchesIterator, error) {
+func fromSubIterators(mis []index2.MatchesIterator) (index2.MatchesIterator, error) {
 	if len(mis) == 0 {
 		return nil, nil
 	}
@@ -74,8 +73,8 @@ func fromSubIterators(mis []search.MatchesIterator) (search.MatchesIterator, err
 	return newDisjunctionMatchesIterator(mis)
 }
 
-func newDisjunctionMatchesIterator(matches []search.MatchesIterator) (search.MatchesIterator, error) {
-	queue := structure.NewPriorityQueue[search.MatchesIterator](len(matches), func(a, b search.MatchesIterator) bool {
+func newDisjunctionMatchesIterator(matches []index2.MatchesIterator) (index2.MatchesIterator, error) {
+	queue := structure.NewPriorityQueue[index2.MatchesIterator](len(matches), func(a, b index2.MatchesIterator) bool {
 		return a.StartPosition() < b.StartPosition() ||
 			(a.StartPosition() == b.StartPosition() && a.EndPosition() < b.EndPosition()) ||
 			(a.StartPosition() == b.StartPosition() && a.EndPosition() == b.EndPosition())
@@ -95,8 +94,8 @@ func newDisjunctionMatchesIterator(matches []search.MatchesIterator) (search.Mat
 // FromTermsEnumMatchesIterator
 // Create a DisjunctionMatchesIterator over a list of terms extracted from a BytesRefIterator
 // Only terms that have at least one match in the given document will be included
-func FromTermsEnumMatchesIterator(context index2.LeafReaderContext, doc int, query search.Query,
-	field string, terms bytesref.BytesIterator) (search.MatchesIterator, error) {
+func FromTermsEnumMatchesIterator(context index2.LeafReaderContext, doc int, query index2.Query,
+	field string, terms bytesref.BytesIterator) (index2.MatchesIterator, error) {
 
 	t, err := context.Reader().(index2.LeafReader).Terms(field)
 	if err != nil {
@@ -138,19 +137,19 @@ func FromTermsEnumMatchesIterator(context index2.LeafReaderContext, doc int, que
 	return nil, nil
 }
 
-var _ search.MatchesIterator = &termsEnumDisjunctionMatchesIterator{}
+var _ index2.MatchesIterator = &termsEnumDisjunctionMatchesIterator{}
 
 type termsEnumDisjunctionMatchesIterator struct {
-	first search.MatchesIterator
+	first index2.MatchesIterator
 	terms bytesref.BytesIterator
 	te    index2.TermsEnum
 	doc   int
-	query search.Query
-	it    search.MatchesIterator
+	query index2.Query
+	it    index2.MatchesIterator
 }
 
-func newTermsEnumDisjunctionMatchesIterator(first search.MatchesIterator, terms bytesref.BytesIterator,
-	te index2.TermsEnum, doc int, query search.Query) *termsEnumDisjunctionMatchesIterator {
+func newTermsEnumDisjunctionMatchesIterator(first index2.MatchesIterator, terms bytesref.BytesIterator,
+	te index2.TermsEnum, doc int, query index2.Query) *termsEnumDisjunctionMatchesIterator {
 	return &termsEnumDisjunctionMatchesIterator{
 		first: first,
 		terms: terms,
@@ -161,7 +160,7 @@ func newTermsEnumDisjunctionMatchesIterator(first search.MatchesIterator, terms 
 }
 
 func (t *termsEnumDisjunctionMatchesIterator) init() error {
-	mis := make([]search.MatchesIterator, 0)
+	mis := make([]index2.MatchesIterator, 0)
 	mis = append(mis, t.first)
 	var reuse index2.PostingsEnum
 
@@ -225,10 +224,10 @@ func (t *termsEnumDisjunctionMatchesIterator) EndOffset() (int, error) {
 	return t.it.EndOffset()
 }
 
-func (t *termsEnumDisjunctionMatchesIterator) GetSubMatches() (search.MatchesIterator, error) {
+func (t *termsEnumDisjunctionMatchesIterator) GetSubMatches() (index2.MatchesIterator, error) {
 	return t.it.GetSubMatches()
 }
 
-func (t *termsEnumDisjunctionMatchesIterator) GetQuery() search.Query {
+func (t *termsEnumDisjunctionMatchesIterator) GetQuery() index2.Query {
 	return t.it.GetQuery()
 }

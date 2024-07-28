@@ -1,8 +1,10 @@
 package search
 
-import "github.com/geange/lucene-go/core/interface/search"
+import (
+	"github.com/geange/lucene-go/core/interface/index"
+)
 
-var _ search.ScoreDoc = &baseScoreDoc{}
+var _ index.ScoreDoc = &baseScoreDoc{}
 
 // baseScoreDoc
 // Holds one hit in TopDocs.

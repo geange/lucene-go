@@ -40,7 +40,7 @@ func NewOneField() *OneField {
 	return &OneField{}
 }
 
-func NewDocValuesReader(ctx context.Context, state *index.SegmentReadState, ext string) (*DocValuesReader, error) {
+func NewDocValuesReader(ctx context.Context, state *index2.SegmentReadState, ext string) (*DocValuesReader, error) {
 	r := &DocValuesReader{
 		fields:  map[string]*OneField{},
 		scratch: new(bytes.Buffer),

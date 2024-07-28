@@ -14,7 +14,7 @@ type MergeState struct {
 	DocMaps []MergeStateDocMap
 
 	// SegmentInfo of the newly merged segment.
-	SegmentInfo *SegmentInfo
+	SegmentInfo index.SegmentInfo
 
 	// FieldInfos of the newly merged segment.
 	MergeFieldInfos index.FieldInfos
@@ -23,7 +23,7 @@ type MergeState struct {
 	StoredFieldsReaders []index.StoredFieldsReader
 
 	// Term vector producers being merged
-	TermVectorsReaders []TermVectorsReader
+	TermVectorsReaders []index.TermVectorsReader
 
 	// Norms producers being merged
 	NormsProducers []index.NormsProducer
@@ -61,7 +61,7 @@ func NewMergeState(readers []CodecReader, segmentInfo *SegmentInfo) (*MergeState
 
 	state := MergeState{
 		StoredFieldsReaders: make([]index.StoredFieldsReader, numReaders),
-		TermVectorsReaders:  make([]TermVectorsReader, numReaders),
+		TermVectorsReaders:  make([]index.TermVectorsReader, numReaders),
 		NormsProducers:      make([]index.NormsProducer, numReaders),
 		DocValuesProducers:  make([]index.DocValuesProducer, numReaders),
 		FieldInfos:          make([]index.FieldInfos, numReaders),

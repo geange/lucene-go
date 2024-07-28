@@ -23,13 +23,13 @@ const (
 
 type DocumentsWriterPerThread struct {
 	lock                   sync.RWMutex
-	codec                  Codec            // 编码类型
-	directory              store.Directory  // 存储目录
-	consumer               DocConsumer      // 文档消费者，用于处理添加的Document类型
-	pendingUpdates         *BufferedUpdates // updates for our still-in-RAM (to be flushed next) segment
-	segmentInfo            *SegmentInfo     // current segment we are working on
-	aborted                *atomic.Bool     // 是否中断
-	flushPending           *atomic.Bool     // 是否准备flush
+	codec                  index.Codec            // 编码类型
+	directory              store.Directory        // 存储目录
+	consumer               DocConsumer            // 文档消费者，用于处理添加的Document类型
+	pendingUpdates         *index.BufferedUpdates // updates for our still-in-RAM (to be flushed next) segment
+	segmentInfo            *SegmentInfo           // current segment we are working on
+	aborted                *atomic.Bool           // 是否中断
+	flushPending           *atomic.Bool           // 是否准备flush
 	lastCommittedBytesUsed int64
 	hasFlushed             *atomic.Bool
 	fieldInfos             *FieldInfosBuilder
@@ -63,7 +63,7 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 		codec:                  codec,
 		directory:              store.NewTrackingDirectoryWrapper(dir),
 		consumer:               consumer,
-		pendingUpdates:         NewBufferedUpdates(WithSegmentName(segmentName)),
+		pendingUpdates:         index.NewBufferedUpdates(index.WithSegmentName(segmentName)),
 		segmentInfo:            segmentInfo,
 		aborted:                new(atomic.Bool),
 		flushPending:           new(atomic.Bool),
@@ -167,7 +167,7 @@ func (d *DocumentsWriterPerThread) Flush(ctx context.Context) error {
 		return err
 	}
 
-	flushState := NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(), d.pendingUpdates, nil)
+	flushState := index.NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(), d.pendingUpdates, nil)
 	if _, err := d.consumer.Flush(ctx, flushState); err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (*defaultIndexingChain) GetChain(indexCreatedVersionMajor int, segmentInfo 
 }
 
 type FlushedSegment struct {
-	segmentInfo    *SegmentCommitInfo
+	segmentInfo    *index.SegmentCommitInfo
 	fieldInfos     index.FieldInfos
 	segmentUpdates *FrozenBufferedUpdates
 	liveDocs       *bitset.BitSet
@@ -201,8 +201,8 @@ type FlushedSegment struct {
 	delCount       int
 }
 
-func newFlushedSegment(segmentInfo *SegmentCommitInfo, fieldInfos index.FieldInfos,
-	segmentUpdates *BufferedUpdates, liveDocs *bitset.BitSet, delCount int, sortMap *DocMap) *FlushedSegment {
+func newFlushedSegment(segmentInfo *index.SegmentCommitInfo, fieldInfos index.FieldInfos,
+	segmentUpdates *index.BufferedUpdates, liveDocs *bitset.BitSet, delCount int, sortMap *DocMap) *FlushedSegment {
 
 	segment := &FlushedSegment{
 		segmentInfo:    segmentInfo,
@@ -229,7 +229,7 @@ func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications
 	flushInfo := store.NewFlushInfo(int(d.numDocsInRAM.Load()), d.lastCommittedBytesUsed)
 	ioContext := store.NewIOContext(store.WithFlushInfo(flushInfo))
 
-	flushState := NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(),
+	flushState := index.NewSegmentWriteState(d.directory, d.segmentInfo, d.fieldInfos.Finish(),
 		d.pendingUpdates, ioContext)
 
 	// Apply delete-by-docID now (delete-byDocID only
@@ -277,10 +277,10 @@ func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications
 	d.pendingUpdates.ClearDeleteTerms()
 	d.segmentInfo.SetFiles(d.directory.(*store.TrackingDirectoryWrapper).GetCreatedFiles())
 
-	segmentInfoPerCommit := NewSegmentCommitInfo(d.segmentInfo, 0, flushState.SoftDelCountOnFlush, -1, -1, -1, []byte(uuid.New().String()))
+	segmentInfoPerCommit := index.NewSegmentCommitInfo(d.segmentInfo, 0, flushState.SoftDelCountOnFlush, -1, -1, -1, []byte(uuid.New().String()))
 
-	var segmentDeletes *BufferedUpdates
-	if d.pendingUpdates.deleteQueries.Size() == 0 && d.pendingUpdates.numFieldUpdates.Load() == 0 {
+	var segmentDeletes *index.BufferedUpdates
+	if d.pendingUpdates.GetDeleteQueries().Size() == 0 && d.pendingUpdates.GetNumFieldUpdates() == 0 {
 		d.pendingUpdates.Clear()
 		segmentDeletes = nil
 	} else {
@@ -300,11 +300,11 @@ func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications
 func (d *DocumentsWriterPerThread) sealFlushedSegment(ctx context.Context, flushedSegment *FlushedSegment, sortMap *DocMap, flushNotifications FlushNotifications) error {
 	newSegment := flushedSegment.segmentInfo
 
-	if err := SetDiagnostics(newSegment.info, SOURCE_FLUSH, nil); err != nil {
+	if err := SetDiagnostics(newSegment.Info(), SOURCE_FLUSH, nil); err != nil {
 		return err
 	}
 
-	maxDoc, err := newSegment.info.MaxDoc()
+	maxDoc, err := newSegment.Info().MaxDoc()
 	if err != nil {
 		return err
 	}
@@ -315,21 +315,21 @@ func (d *DocumentsWriterPerThread) sealFlushedSegment(ctx context.Context, flush
 	ioContext := store.NewIOContext(store.WithFlushInfo(store.NewFlushInfo(maxDoc, sizeInBytes)))
 
 	if d.indexWriterConfig.GetUseCompoundFile() {
-		originalFiles := newSegment.info.Files()
+		originalFiles := newSegment.Info().Files()
 		// TODO: like addIndexes, we are relying on createCompoundFile to successfully cleanup...
 		if err := CreateCompoundFile(ctx, store.NewTrackingDirectoryWrapper(d.directory),
-			newSegment.info, ioContext, flushNotifications.DeleteUnusedFiles); err != nil {
+			newSegment.Info(), ioContext, flushNotifications.DeleteUnusedFiles); err != nil {
 			return err
 		}
 		maps.Copy(d.filesToDelete, originalFiles)
-		newSegment.info.SetUseCompoundFile(true)
+		newSegment.Info().SetUseCompoundFile(true)
 	}
 
 	// Have codec write SegmentInfo.  Must do this after
 	// creating CFS so that 1) .si isn't slurped into CFS,
 	// and 2) .si reflects useCompoundFile=true change
 	// above:
-	if err := d.codec.SegmentInfoFormat().Write(ctx, d.directory, newSegment.info, ioContext); err != nil {
+	if err := d.codec.SegmentInfoFormat().Write(ctx, d.directory, newSegment.Info(), ioContext); err != nil {
 		return err
 	}
 
@@ -352,7 +352,7 @@ func (d *DocumentsWriterPerThread) sealFlushedSegment(ctx context.Context, flush
 		// filesystem as intermediary here.
 
 		info := flushedSegment.segmentInfo
-		codec := info.info.GetCodec()
+		codec := info.Info().GetCodec()
 		var bits *bitset.BitSet
 		if sortMap == nil {
 			bits = flushedSegment.liveDocs

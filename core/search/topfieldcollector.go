@@ -6,7 +6,6 @@ import (
 	"fmt"
 	cindex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/interface/search"
 	"github.com/geange/lucene-go/core/types"
 	. "github.com/geange/lucene-go/core/util/structure"
 )
@@ -52,10 +51,10 @@ func TopTopFieldCollectorCreate(sort index.Sort, numHits int, after FieldDoc,
 type MultiComparatorLeafCollector struct {
 	comparator index.LeafFieldComparator
 	reverseMul int
-	scorer     search.Scorable
+	scorer     index.Scorable
 }
 
-func (c *MultiComparatorLeafCollector) SetScorer(scorer search.Scorable) error {
+func (c *MultiComparatorLeafCollector) SetScorer(scorer index.Scorable) error {
 	if err := c.comparator.SetScorer(scorer); err != nil {
 		return err
 	}
@@ -102,14 +101,14 @@ type TopFieldCollector struct {
 
 	needsScores bool
 
-	scoreMode search.ScoreMode
+	scoreMode index.ScoreMode
 }
 
-func (t *TopFieldCollector) ScoreMode() search.ScoreMode {
+func (t *TopFieldCollector) ScoreMode() index.ScoreMode {
 	return t.scoreMode
 }
 
-func (t *TopFieldCollector) updateMinCompetitiveScore(scorer search.Scorable) error {
+func (t *TopFieldCollector) updateMinCompetitiveScore(scorer index.Scorable) error {
 	if t.canSetMinScore && t.queueFull && t.hitsThresholdChecker.IsThresholdReached() {
 		//assert bottom != null;
 		minScore := t.firstComparator.Value(t.bottom.slot).(float64)
@@ -119,7 +118,7 @@ func (t *TopFieldCollector) updateMinCompetitiveScore(scorer search.Scorable) er
 				return err
 			}
 			t.minCompetitiveScore = minScore
-			t.totalHitsRelation = search.GREATER_THAN_OR_EQUAL_TO
+			t.totalHitsRelation = index.GREATER_THAN_OR_EQUAL_TO
 			if t.minScoreAcc != nil {
 				err := t.minScoreAcc.Accumulate(t.docBase, float32(minScore))
 				if err != nil {
@@ -131,7 +130,7 @@ func (t *TopFieldCollector) updateMinCompetitiveScore(scorer search.Scorable) er
 	return nil
 }
 
-func (t *TopFieldCollector) updateGlobalMinCompetitiveScore(scorer search.Scorable) error {
+func (t *TopFieldCollector) updateGlobalMinCompetitiveScore(scorer index.Scorable) error {
 	if t.canSetMinScore && t.hitsThresholdChecker.IsThresholdReached() {
 		// we can start checking the global maximum score even
 		// if the local queue is not full because the threshold
@@ -140,7 +139,7 @@ func (t *TopFieldCollector) updateGlobalMinCompetitiveScore(scorer search.Scorab
 		if maxMinScore != nil && maxMinScore.score > t.minCompetitiveScore {
 			scorer.SetMinCompetitiveScore(maxMinScore.score)
 			t.minCompetitiveScore = maxMinScore.score
-			t.totalHitsRelation = search.GREATER_THAN_OR_EQUAL_TO
+			t.totalHitsRelation = index.GREATER_THAN_OR_EQUAL_TO
 		}
 	}
 	return nil
@@ -162,7 +161,7 @@ func NewSimpleFieldCollector(sort index.Sort, queue FieldValueHitQueue[*Entry], 
 	panic("")
 }
 
-func (s *SimpleFieldCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (search.LeafCollector, error) {
+func (s *SimpleFieldCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (index.LeafCollector, error) {
 	// reset the minimum competitive score
 	s.minCompetitiveScore = 0
 	s.docBase = readerContext.DocBase()
@@ -191,7 +190,7 @@ func (s *SimpleFieldCollector) GetLeafCollector(ctx context.Context, readerConte
 
 }
 
-var _ search.LeafCollector = &simpleLeafCollector{}
+var _ index.LeafCollector = &simpleLeafCollector{}
 
 type simpleLeafCollector struct {
 	*MultiComparatorLeafCollector
@@ -210,13 +209,13 @@ func (s *simpleLeafCollector) Collect(ctx context.Context, doc int) error {
 		}
 	}
 
-	if s.scoreMode.IsExhaustive() == false && s.totalHitsRelation == search.EQUAL_TO &&
+	if s.scoreMode.IsExhaustive() == false && s.totalHitsRelation == index.EQUAL_TO &&
 		s.hitsThresholdChecker.IsThresholdReached() {
 		// for the first time hitsThreshold is reached, notify comparator about this
 		if err := s.comparator.SetHitsThresholdReached(); err != nil {
 			return err
 		}
-		s.totalHitsRelation = search.GREATER_THAN_OR_EQUAL_TO
+		s.totalHitsRelation = index.GREATER_THAN_OR_EQUAL_TO
 	}
 
 	if s.queueFull {
@@ -230,12 +229,12 @@ func (s *simpleLeafCollector) Collect(ctx context.Context, doc int) error {
 			// therefore not competitive.
 			if s.searchSortPartOfIndexSort.Value() {
 				if s.hitsThresholdChecker.IsThresholdReached() {
-					s.totalHitsRelation = search.GREATER_THAN_OR_EQUAL_TO
+					s.totalHitsRelation = index.GREATER_THAN_OR_EQUAL_TO
 					return errors.New("CollectionTerminatedException")
 				} else {
 					s.collectedAllCompetitiveHits = true
 				}
-			} else if s.totalHitsRelation == search.EQUAL_TO {
+			} else if s.totalHitsRelation == index.EQUAL_TO {
 				// we can start setting the min competitive score if the
 				// threshold is reached for the first time here.
 				if err := s.updateMinCompetitiveScore(s.scorer); err != nil {
@@ -302,7 +301,7 @@ func NewPagingFieldCollector(sort index.Sort, queue FieldValueHitQueue[*Entry], 
 	panic("")
 }
 
-func (p *PagingFieldCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (search.LeafCollector, error) {
+func (p *PagingFieldCollector) GetLeafCollector(ctx context.Context, readerContext index.LeafReaderContext) (index.LeafCollector, error) {
 	// reset the minimum competitive score
 	p.minCompetitiveScore = 0
 	p.docBase = readerContext.DocBase()
@@ -330,7 +329,7 @@ func (p *PagingFieldCollector) GetLeafCollector(ctx context.Context, readerConte
 	}, nil
 }
 
-var _ search.LeafCollector = &pagingLeafCollector{}
+var _ index.LeafCollector = &pagingLeafCollector{}
 
 type pagingLeafCollector struct {
 	*MultiComparatorLeafCollector
@@ -340,7 +339,7 @@ type pagingLeafCollector struct {
 	afterDoc                    int
 }
 
-func (p *pagingLeafCollector) SetScorer(scorer search.Scorable) error {
+func (p *pagingLeafCollector) SetScorer(scorer index.Scorable) error {
 	if err := p.MultiComparatorLeafCollector.SetScorer(scorer); err != nil {
 		return err
 	}
@@ -369,13 +368,13 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 		}
 	}
 
-	if p.scoreMode.IsExhaustive() == false && p.totalHitsRelation == search.EQUAL_TO &&
+	if p.scoreMode.IsExhaustive() == false && p.totalHitsRelation == index.EQUAL_TO &&
 		p.hitsThresholdChecker.IsThresholdReached() {
 		// for the first time hitsThreshold is reached, notify comparator about this
 		if err := p.comparator.SetHitsThresholdReached(); err != nil {
 			return err
 		}
-		p.totalHitsRelation = search.GREATER_THAN_OR_EQUAL_TO
+		p.totalHitsRelation = index.GREATER_THAN_OR_EQUAL_TO
 	}
 
 	if p.queueFull {
@@ -391,12 +390,12 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 			// therefore not competitive.
 			if p.searchSortPartOfIndexSort.Value() {
 				if p.hitsThresholdChecker.IsThresholdReached() {
-					p.totalHitsRelation = search.GREATER_THAN_OR_EQUAL_TO
+					p.totalHitsRelation = index.GREATER_THAN_OR_EQUAL_TO
 					return errors.New("CollectionTerminatedException")
 				} else {
 					p.collectedAllCompetitiveHits = true
 				}
-			} else if p.totalHitsRelation == search.EQUAL_TO {
+			} else if p.totalHitsRelation == index.EQUAL_TO {
 				// we can start setting the min competitive score if the
 				// threshold is reached for the first time here.
 				if err := p.updateMinCompetitiveScore(p.scorer); err != nil {
@@ -414,7 +413,7 @@ func (p *pagingLeafCollector) Collect(ctx context.Context, doc int) error {
 	topCmp := p.reverseMul * compareTop
 	if topCmp > 0 || (topCmp == 0 && doc <= p.afterDoc) {
 		// Already collected on a previous page
-		if p.totalHitsRelation == search.EQUAL_TO {
+		if p.totalHitsRelation == index.EQUAL_TO {
 			// check if totalHitsThreshold is reached and we can update competitive score
 			// necessary to account for possible update to global min competitive score
 			if err := p.updateMinCompetitiveScore(p.scorer); err != nil {
