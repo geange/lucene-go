@@ -3,11 +3,11 @@ package index
 import (
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/types"
 
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var codesPool = make(map[string]index.Codec)

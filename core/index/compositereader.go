@@ -325,11 +325,11 @@ func NewCompositeReaderContext(fn CompositeReaderContextOption) (*CompositeReade
 }
 
 func newCompositeReaderContext(parent *CompositeReaderContext, reader index.CompositeReader,
-	ordInParent, docbaseInParent int,
+	ordInParent, docBaseInParent int,
 	children, leaves *arraylist.List[index.IndexReaderContext]) *CompositeReaderContext {
 
 	return &CompositeReaderContext{
-		BaseIndexReaderContext: NewBaseIndexReaderContext(parent, ordInParent, docbaseInParent),
+		BaseIndexReaderContext: NewBaseIndexReaderContext(parent, ordInParent, docBaseInParent),
 		children:               children,
 		leaves:                 leaves,
 		reader:                 reader,

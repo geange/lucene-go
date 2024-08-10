@@ -1,11 +1,11 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 
 	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/gods-generic/utils"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // CompetitiveImpactAccumulator This class accumulates the (freq, norm) pairs that may produce competitive scores.
@@ -38,8 +38,8 @@ func (c *CompetitiveImpactAccumulator) Clear() {
 // Add Accumulate a (freq,norm) pair, updating this structure if there is no equivalent or more competitive entry already.
 func (c *CompetitiveImpactAccumulator) Add(freq int, norm int64) {
 	if norm >= math.MinInt8 && norm <= math.MaxInt8 {
-		index := uint(norm)
-		c.maxFreqs[index] = max(c.maxFreqs[index], freq)
+		idx := uint(norm)
+		c.maxFreqs[idx] = max(c.maxFreqs[idx], freq)
 		return
 	}
 	c.add(NewImpact(freq, norm), c.otherFreqNormPairs)

@@ -1,9 +1,10 @@
 package index
 
 import (
+	"io"
+
 	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/types"
-	"io"
 )
 
 var _ types.DocIdSetIterator = &BitSetIterator{}

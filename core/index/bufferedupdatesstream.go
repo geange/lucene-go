@@ -2,9 +2,10 @@ package index
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/index"
 	"sync"
 	"sync/atomic"
+
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // BufferedUpdatesStream

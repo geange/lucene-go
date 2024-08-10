@@ -1,9 +1,10 @@
 package index
 
 import (
-	linked "github.com/geange/gods-generic/lists/singlylinkedlist"
 	"sync"
 	"sync/atomic"
+
+	linked "github.com/geange/gods-generic/lists/singlylinkedlist"
 )
 
 // DocumentsWriterFlushQueue
