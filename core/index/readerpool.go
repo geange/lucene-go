@@ -14,7 +14,7 @@ import (
 // of the SegmentReaders in all these places if it is in "near real-time mode" (getReader() has been
 // called on this instance).
 type ReaderPool struct {
-	readerMap               map[*index.SegmentCommitInfo]*ReadersAndUpdates // Map<SegmentCommitInfo,ReadersAndUpdates>
+	readerMap               map[index.SegmentCommitInfo]*ReadersAndUpdates // Map<SegmentCommitInfo,ReadersAndUpdates>
 	directory               store.Directory
 	originalDirectory       store.Directory
 	fieldNumbers            *FieldNumbers
@@ -42,7 +42,7 @@ func NewReaderPool(directory, originalDirectory store.Directory, segmentInfos *S
 	softDeletesField string, reader *StandardDirectoryReader) (*ReaderPool, error) {
 
 	pool := &ReaderPool{
-		readerMap:               map[*index.SegmentCommitInfo]*ReadersAndUpdates{},
+		readerMap:               map[index.SegmentCommitInfo]*ReadersAndUpdates{},
 		directory:               directory,
 		originalDirectory:       originalDirectory,
 		fieldNumbers:            fieldNumbers,
@@ -95,7 +95,7 @@ func (p *ReaderPool) anyDocValuesChanges() bool {
 	return false
 }
 
-func (p *ReaderPool) newPendingDeletes(info *index.SegmentCommitInfo) PendingDeletes {
+func (p *ReaderPool) newPendingDeletes(info index.SegmentCommitInfo) PendingDeletes {
 
 	if p.softDeletesField == "" {
 		return NewPendingDeletesV1(info)
@@ -103,7 +103,7 @@ func (p *ReaderPool) newPendingDeletes(info *index.SegmentCommitInfo) PendingDel
 	return NewPendingSoftDeletes(p.softDeletesField, info)
 }
 
-func (p *ReaderPool) newPendingDeletesV1(reader *SegmentReader, info *index.SegmentCommitInfo) PendingDeletes {
+func (p *ReaderPool) newPendingDeletesV1(reader *SegmentReader, info index.SegmentCommitInfo) PendingDeletes {
 	if p.softDeletesField == "" {
 		return NewPendingDeletes(reader, info)
 	}
@@ -122,7 +122,7 @@ func (p *ReaderPool) enableReaderPooling() {
 // Get
 // Obtain a ReadersAndLiveDocs instance from the readerPool. If create is true,
 // you must later call release(ReadersAndUpdates, boolean).
-func (p *ReaderPool) Get(info *index.SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
+func (p *ReaderPool) Get(info index.SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
 	if p.closed.Load() {
 		return nil, errors.New("ReaderPool is already closed")
 	}

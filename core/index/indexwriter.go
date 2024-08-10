@@ -72,12 +72,12 @@ const (
 
 type IndexWriter struct {
 	enableTestPoints         bool
-	directoryOrig            store.Directory            // original user directory
-	directory                store.Directory            // wrapped with additional checks
-	changeCount              *atomic.Int64              // increments every time a change is completed
-	lastCommitChangeCount    *atomic.Int64              // last changeCount that was committed
-	rollbackSegments         []*index.SegmentCommitInfo // list of segmentInfo we will fallback to if the commit fails
-	pendingCommit            *SegmentInfos              // set when a commit is pending (after prepareCommit() & before commit())
+	directoryOrig            store.Directory           // original user directory
+	directory                store.Directory           // wrapped with additional checks
+	changeCount              *atomic.Int64             // increments every time a change is completed
+	lastCommitChangeCount    *atomic.Int64             // last changeCount that was committed
+	rollbackSegments         []index.SegmentCommitInfo // list of segmentInfo we will fallback to if the commit fails
+	pendingCommit            *SegmentInfos             // set when a commit is pending (after prepareCommit() & before commit())
 	pendingSeqNo             int64
 	pendingCommitChangeCount int64
 	filesToCommit            map[string]struct{}
@@ -789,7 +789,7 @@ func (w *IndexWriter) GetReader(ctx context.Context, applyAllDeletes bool, write
 	maxFullFlushMergeWaitMillis := w.config.GetMaxFullFlushMergeWaitMillis()
 	openedReadOnlyClones := make(map[string]*SegmentReader)
 
-	readerFactory := func(sci *index.SegmentCommitInfo) (*SegmentReader, error) {
+	readerFactory := func(sci index.SegmentCommitInfo) (*SegmentReader, error) {
 		rld, err := w.getPooledInstance(sci, true)
 		if err != nil {
 			return nil, err
@@ -821,7 +821,7 @@ func (w *IndexWriter) doBeforeFlush() error {
 	return nil
 }
 
-func (w *IndexWriter) getPooledInstance(info *index.SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
+func (w *IndexWriter) getPooledInstance(info index.SegmentCommitInfo, create bool) (*ReadersAndUpdates, error) {
 	return w.readerPool.Get(info, create)
 }
 
@@ -887,7 +887,7 @@ func (w *IndexWriter) writeReaderPool(writeDeletes bool) error {
 	}
 
 	// now do some best effort to check if a segment is fully deleted
-	toDrop := make([]*index.SegmentCommitInfo, 0)
+	toDrop := make([]index.SegmentCommitInfo, 0)
 	for _, info := range w.segmentInfos.AsList() {
 		readersAndUpdates, err := w.readerPool.Get(info, false)
 		if err != nil {
@@ -1134,7 +1134,7 @@ func getDocValuesDocIdSetIterator(field string, reader index.LeafReader) (types.
 	panic("")
 }
 
-func readFieldInfos(si *index.SegmentCommitInfo) (index.FieldInfos, error) {
+func readFieldInfos(si index.SegmentCommitInfo) (index.FieldInfos, error) {
 	codec := si.Info().GetCodec()
 	reader := codec.FieldInfosFormat()
 
@@ -1349,7 +1349,7 @@ func (w *IndexWriter) publishFrozenUpdates(updates *FrozenBufferedUpdates) int64
 	return -1
 }
 
-func (w *IndexWriter) publishFlushedSegment(info *index.SegmentCommitInfo, infos index.FieldInfos,
+func (w *IndexWriter) publishFlushedSegment(info index.SegmentCommitInfo, infos index.FieldInfos,
 	updates *FrozenBufferedUpdates, updates2 *FrozenBufferedUpdates, sortMap index.DocMap) error {
 
 	panic("")
@@ -1363,7 +1363,7 @@ func (w *IndexWriter) checkpoint() error {
 	panic("")
 }
 
-func (w *IndexWriter) dropDeletedSegment(info *index.SegmentCommitInfo) error {
+func (w *IndexWriter) dropDeletedSegment(info index.SegmentCommitInfo) error {
 	panic("")
 }
 

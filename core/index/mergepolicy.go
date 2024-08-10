@@ -61,7 +61,7 @@ type MergePolicy interface {
 	//	 			else, it was a segment produced by a cascaded merge.
 	//	 		mergeContext – the MergeContext to find the merges on
 	FindForcedMerges(segmentInfos *SegmentInfos, maxSegmentCount int,
-		segmentsToMerge map[*index.SegmentCommitInfo]bool, mergeContext MergeContext) (*MergeSpecification, error)
+		segmentsToMerge map[index.SegmentCommitInfo]bool, mergeContext MergeContext) (*MergeSpecification, error)
 
 	// FindForcedDeletesMerges
 	// Determine what set of merge operations is necessary in order to expunge all deletes from the index.
@@ -119,7 +119,7 @@ type MergePolicy interface {
 	// 如果给定mergedInfo的大小小于或等于getMaxCFSSegmentSizeMB()，
 	// 并且大小小于或相等于TotalIndexSize*getNoCFSRatio()，则默认实现返回true，否则为false。
 	UseCompoundFile(infos *SegmentInfos,
-		mergedInfo *index.SegmentCommitInfo, mergeContext MergeContext) (bool, error)
+		mergedInfo index.SegmentCommitInfo, mergeContext MergeContext) (bool, error)
 
 	KeepFullyDeletedSegment(func() index.CodecReader) bool
 
@@ -127,7 +127,7 @@ type MergePolicy interface {
 }
 
 type MergePolicySPI interface {
-	Size(info *index.SegmentCommitInfo, mergeContext MergeContext) (int64, error)
+	Size(info index.SegmentCommitInfo, mergeContext MergeContext) (int64, error)
 	GetNoCFSRatio() float64
 }
 
@@ -152,7 +152,7 @@ func (m *MergePolicyBase) FindFullFlushMerges(mergeTrigger MergeTrigger,
 }
 
 func (m *MergePolicyBase) UseCompoundFile(infos *SegmentInfos,
-	mergedInfo *index.SegmentCommitInfo, mergeContext MergeContext) (bool, error) {
+	mergedInfo index.SegmentCommitInfo, mergeContext MergeContext) (bool, error) {
 
 	if m.GetNoCFSRatio() == 0.0 {
 		return false, nil
@@ -175,7 +175,7 @@ func (m *MergePolicyBase) UseCompoundFile(infos *SegmentInfos,
 	return float64(mergedInfoSize) <= m.GetNoCFSRatio()*float64(totalSize), nil
 }
 
-func (m *MergePolicyBase) size(info *index.SegmentCommitInfo, mergeContext MergeContext) (int64, error) {
+func (m *MergePolicyBase) size(info index.SegmentCommitInfo, mergeContext MergeContext) (int64, error) {
 	byteSize, err := info.SizeInBytes()
 	if err != nil {
 		return 0, err
@@ -219,16 +219,16 @@ type MergeContext interface {
 	// NumDeletesToMerge Returns the number of deletes a merge would claim back if the given segment is merged.
 	// Params: info – the segment to get the number of deletes for
 	// See Also: numDeletesToMerge(SegmentCommitInfo, int, IOSupplier)
-	NumDeletesToMerge(info *index.SegmentCommitInfo) (int, error)
+	NumDeletesToMerge(info index.SegmentCommitInfo) (int, error)
 
 	// NumDeletedDocs Returns the number of deleted documents in the given segments.
-	NumDeletedDocs(info *index.SegmentCommitInfo) int
+	NumDeletedDocs(info index.SegmentCommitInfo) int
 
 	// Returns the info stream that can be used to log messages
 	//getInfoStream() util.InfoStream
 
 	// GetMergingSegments Returns an unmodifiable set of segments that are currently merging.
-	GetMergingSegments() []*index.SegmentCommitInfo
+	GetMergingSegments() []index.SegmentCommitInfo
 }
 
 // OneMerge provides the information necessary to perform an individual primitive merge operation,
@@ -238,11 +238,11 @@ type MergeContext interface {
 // 合并规范包括要合并的线段的子集，以及新线段是否应使用复合文件格式。
 // lucene.experimental
 type OneMerge struct {
-	info           *index.SegmentCommitInfo // used by IndexWriter
-	registerDone   bool                     // used by IndexWriter
-	mergeGen       bool                     // used by IndexWriter
-	isExternal     bool                     // used by IndexWriter
-	maxNumSegments int                      // used by IndexWriter
+	info           index.SegmentCommitInfo // used by IndexWriter
+	registerDone   bool                    // used by IndexWriter
+	mergeGen       bool                    // used by IndexWriter
+	isExternal     bool                    // used by IndexWriter
+	maxNumSegments int                     // used by IndexWriter
 
 	// Estimated size in bytes of the merged segment.
 	estimatedMergeBytes int64 // used by IndexWriter
@@ -251,7 +251,7 @@ type OneMerge struct {
 	totalMergeBytes int64
 
 	mergeReaders []MergeReader // used by IndexWriter
-	segments     []*index.SegmentCommitInfo
+	segments     []index.SegmentCommitInfo
 
 	// Control used to pause/ stop/ resume the merge thread.
 	mergeProgress OneMergeProgress
@@ -310,7 +310,7 @@ func (n *NoMergePolicy) FindMerges(mergeTrigger MergeTrigger, segmentInfos *Segm
 	return nil, nil
 }
 
-func (n *NoMergePolicy) FindForcedMerges(segmentInfos *SegmentInfos, maxSegmentCount int, segmentsToMerge map[*index.SegmentCommitInfo]bool, mergeContext MergeContext) (*MergeSpecification, error) {
+func (n *NoMergePolicy) FindForcedMerges(segmentInfos *SegmentInfos, maxSegmentCount int, segmentsToMerge map[index.SegmentCommitInfo]bool, mergeContext MergeContext) (*MergeSpecification, error) {
 	return nil, nil
 }
 
@@ -322,11 +322,11 @@ func (n *NoMergePolicy) FindFullFlushMerges(mergeTrigger MergeTrigger, segmentIn
 	return nil, nil
 }
 
-func (n *NoMergePolicy) UseCompoundFile(infos *SegmentInfos, newSegment *index.SegmentCommitInfo, mergeContext MergeContext) (bool, error) {
+func (n *NoMergePolicy) UseCompoundFile(infos *SegmentInfos, newSegment index.SegmentCommitInfo, mergeContext MergeContext) (bool, error) {
 	return newSegment.Info().GetUseCompoundFile(), nil
 }
 
-func (n *NoMergePolicy) Size(info *index.SegmentCommitInfo, mergeContext MergeContext) (int64, error) {
+func (n *NoMergePolicy) Size(info index.SegmentCommitInfo, mergeContext MergeContext) (int64, error) {
 	return math.MaxInt64, nil
 }
 

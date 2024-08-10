@@ -192,7 +192,7 @@ func (*defaultIndexingChain) GetChain(indexCreatedVersionMajor int, segmentInfo 
 }
 
 type FlushedSegment struct {
-	segmentInfo    *index.SegmentCommitInfo
+	segmentInfo    index.SegmentCommitInfo
 	fieldInfos     index.FieldInfos
 	segmentUpdates *FrozenBufferedUpdates
 	liveDocs       *bitset.BitSet
@@ -200,7 +200,7 @@ type FlushedSegment struct {
 	delCount       int
 }
 
-func newFlushedSegment(segmentInfo *index.SegmentCommitInfo, fieldInfos index.FieldInfos,
+func newFlushedSegment(segmentInfo index.SegmentCommitInfo, fieldInfos index.FieldInfos,
 	segmentUpdates *index.BufferedUpdates, liveDocs *bitset.BitSet, delCount int, sortMap index.DocMap) *FlushedSegment {
 
 	segment := &FlushedSegment{

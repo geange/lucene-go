@@ -43,7 +43,7 @@ type SegmentCoreReaders struct {
 	coreClosedListeners ClosedListener
 }
 
-func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si *index.SegmentCommitInfo, ioContext *store.IOContext) (*SegmentCoreReaders, error) {
+func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si index.SegmentCommitInfo, ioContext *store.IOContext) (*SegmentCoreReaders, error) {
 
 	codec := si.Info().GetCodec()
 

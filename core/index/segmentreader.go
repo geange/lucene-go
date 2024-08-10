@@ -18,12 +18,12 @@ var _ index.CodecReader = &SegmentReader{}
 type SegmentReader struct {
 	*BaseCodecReader
 
-	si *index.SegmentCommitInfo
+	si index.SegmentCommitInfo
 
 	// this is the original SI that IW uses internally but it's mutated behind the scenes
 	// and we don't want this SI to be used for anything. Yet, IW needs this to do maintainance
 	// and lookup pooled readers etc.
-	originalSi *index.SegmentCommitInfo
+	originalSi index.SegmentCommitInfo
 
 	metaData     index.LeafMetaData
 	liveDocs     util.Bits
@@ -48,7 +48,7 @@ type SegmentReader struct {
 
 // NewSegmentReader
 // Constructs a new SegmentReader with a new core.
-func NewSegmentReader(ctx context.Context, si *index.SegmentCommitInfo,
+func NewSegmentReader(ctx context.Context, si index.SegmentCommitInfo,
 	createdVersionMajor int, ioContext *store.IOContext) (*SegmentReader, error) {
 
 	readers, err := NewSegmentCoreReaders(ctx, si.Info().Dir(), si, ioContext)
@@ -109,7 +109,7 @@ func NewSegmentReader(ctx context.Context, si *index.SegmentCommitInfo,
 // New
 // Create new SegmentReader sharing core from a previous SegmentReader and using the provided liveDocs,
 // and recording whether those liveDocs were carried in ram (isNRT=true).
-func (s *SegmentReader) New(si *index.SegmentCommitInfo, liveDocs, hardLiveDocs util.Bits, numDocs int, isNRT bool) (*SegmentReader, error) {
+func (s *SegmentReader) New(si index.SegmentCommitInfo, liveDocs, hardLiveDocs util.Bits, numDocs int, isNRT bool) (*SegmentReader, error) {
 
 	maxDoc, err := si.Info().MaxDoc()
 	if err != nil {
@@ -239,7 +239,7 @@ func (s *SegmentReader) GetPointsReader() index.PointsReader {
 // GetOriginalSegmentInfo
 // Returns the original SegmentInfo passed to the segment reader on creation time.
 // getSegmentInfo() returns a clone of this instance.
-func (s *SegmentReader) GetOriginalSegmentInfo() *index.SegmentCommitInfo {
+func (s *SegmentReader) GetOriginalSegmentInfo() index.SegmentCommitInfo {
 	return s.originalSi
 }
 

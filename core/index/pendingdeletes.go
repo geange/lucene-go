@@ -32,7 +32,7 @@ type PendingDeletes interface {
 
 	// OnNewReader
 	// Called once a new reader is opened for this segment ie. when deletes or updates are applied.
-	OnNewReader(reader index.CodecReader, info *index.SegmentCommitInfo) error
+	OnNewReader(reader index.CodecReader, info index.SegmentCommitInfo) error
 
 	// DropChanges
 	// Resets the pending docs
@@ -74,7 +74,7 @@ type PendingDeletes interface {
 // pendingDeletes
 // This class handles accounting and applying pending deletes for live segment readers
 type pendingDeletes struct {
-	info *index.SegmentCommitInfo
+	info index.SegmentCommitInfo
 
 	// Read-only live docs, null until live docs are initialized or if all docs are alive
 	liveDocs util.Bits
@@ -152,7 +152,7 @@ func (p *pendingDeletes) NumPendingDeletes() int {
 	return p.pendingDeleteCount
 }
 
-func (p *pendingDeletes) OnNewReader(reader index.CodecReader, info *index.SegmentCommitInfo) error {
+func (p *pendingDeletes) OnNewReader(reader index.CodecReader, info index.SegmentCommitInfo) error {
 	if p.liveDocsInitialized == false {
 		//assert writeableLiveDocs == null;
 		if reader.HasDeletions() {
@@ -217,20 +217,20 @@ func (p *pendingDeletes) GetDelCount() int {
 	return delCount
 }
 
-func NewPendingDeletes(reader *SegmentReader, info *index.SegmentCommitInfo) PendingDeletes {
+func NewPendingDeletes(reader *SegmentReader, info index.SegmentCommitInfo) PendingDeletes {
 	pd := NewPendingDeletesV2(info, reader.GetLiveDocs(), true).(*pendingDeletes)
 	pd.pendingDeleteCount = reader.NumDeletedDocs() - info.GetDelCount()
 	return pd
 }
 
-func NewPendingDeletesV1(info *index.SegmentCommitInfo) PendingDeletes {
+func NewPendingDeletesV1(info index.SegmentCommitInfo) PendingDeletes {
 	return NewPendingDeletesV2(info, nil, info.HasDeletions() == false)
 	// if we don't have deletions we can mark it as initialized since we might receive deletes on a segment
 	// without having a reader opened on it ie. after a merge when we apply the deletes that IW received while merging.
 	// For segments that were published we enforce a reader in the BufferedUpdatesStream.SegmentState ctor
 }
 
-func NewPendingDeletesV2(info *index.SegmentCommitInfo, liveDocs util.Bits, liveDocsInitialized bool) PendingDeletes {
+func NewPendingDeletesV2(info index.SegmentCommitInfo, liveDocs util.Bits, liveDocsInitialized bool) PendingDeletes {
 	return &pendingDeletes{
 		info:                info,
 		liveDocs:            liveDocs,

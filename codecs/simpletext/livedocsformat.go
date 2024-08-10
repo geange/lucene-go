@@ -35,7 +35,7 @@ func NewLiveDocsFormat() *LiveDocsFormat {
 	return &LiveDocsFormat{}
 }
 
-func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, info *index.SegmentCommitInfo, ioContext *store.IOContext) (util.Bits, error) {
+func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, info index.SegmentCommitInfo, ioContext *store.IOContext) (util.Bits, error) {
 	if !info.HasDeletions() {
 		return nil, errors.New("hasDeletions")
 	}
@@ -83,7 +83,7 @@ func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, 
 	return newSimpleTextBits(bits, size), nil
 }
 
-func (s *LiveDocsFormat) WriteLiveDocs(ctx context.Context, bits util.Bits, dir store.Directory, info *index.SegmentCommitInfo, newDelCount int, ioContext *store.IOContext) error {
+func (s *LiveDocsFormat) WriteLiveDocs(ctx context.Context, bits util.Bits, dir store.Directory, info index.SegmentCommitInfo, newDelCount int, ioContext *store.IOContext) error {
 	size := int(bits.Len())
 
 	fileName := coreIndex.FileNameFromGeneration(info.Info().Name(), LIVEDOCS_EXTENSION, info.GetNextDelGen())
@@ -116,7 +116,7 @@ func (s *LiveDocsFormat) WriteLiveDocs(ctx context.Context, bits util.Bits, dir 
 	return out.Close()
 }
 
-func (s *LiveDocsFormat) Files(ctx context.Context, info *index.SegmentCommitInfo, files map[string]struct{}) (map[string]struct{}, error) {
+func (s *LiveDocsFormat) Files(ctx context.Context, info index.SegmentCommitInfo, files map[string]struct{}) (map[string]struct{}, error) {
 	if info.HasDeletions() {
 		fileName := coreIndex.FileNameFromGeneration(info.Info().Name(), LIVEDOCS_EXTENSION, info.GetDelGen())
 		files[fileName] = struct{}{}

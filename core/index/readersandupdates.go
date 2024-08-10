@@ -15,7 +15,7 @@ import (
 type ReadersAndUpdates struct {
 	// Not final because we replace (clone) when we need to
 	// change it and it's been shared:
-	info *index.SegmentCommitInfo
+	info index.SegmentCommitInfo
 
 	// Tracks how many consumers are using this instance:
 	refCount *atomic.Int64
@@ -52,7 +52,7 @@ type ReadersAndUpdates struct {
 }
 
 func NewReadersAndUpdates(indexCreatedVersionMajor int,
-	info *index.SegmentCommitInfo, pendingDeletes PendingDeletes) *ReadersAndUpdates {
+	info index.SegmentCommitInfo, pendingDeletes PendingDeletes) *ReadersAndUpdates {
 
 	return &ReadersAndUpdates{
 		info:                     info,

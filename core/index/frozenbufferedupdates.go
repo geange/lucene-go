@@ -38,7 +38,7 @@ type FrozenBufferedUpdates struct {
 
 // NewFrozenBufferedUpdates
 // TODO: fix it
-func NewFrozenBufferedUpdates(updates *index.BufferedUpdates, privateSegment *index.SegmentCommitInfo) *FrozenBufferedUpdates {
+func NewFrozenBufferedUpdates(updates *index.BufferedUpdates, privateSegment index.SegmentCommitInfo) *FrozenBufferedUpdates {
 	return &FrozenBufferedUpdates{
 		delGen: -1,
 	}

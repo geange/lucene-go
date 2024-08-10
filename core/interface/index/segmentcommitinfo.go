@@ -8,10 +8,43 @@ import (
 	"github.com/google/uuid"
 )
 
-// SegmentCommitInfo
+type SegmentCommitInfo interface {
+	Info() SegmentInfo
+	HasDeletions() bool
+	HasFieldUpdates() bool
+	GetNextFieldInfosGen() int64
+	GetFieldInfosGen() int64
+	GetNextDocValuesGen() int64
+	GetDocValuesGen() int64
+	GetNextDelGen() int64
+	GetDelGen() int64
+	GetDelCount() int
+	GetDelCountWithSoftDeletes(includeSoftDeletes bool) int
+	GetSoftDelCount() int
+	SetDelCount(delCount int)
+	SetSoftDelCount(softDelCount int)
+	Files() (map[string]struct{}, error)
+	GetNextWriteDelGen() int64
+	SetNextWriteDelGen(v int64)
+	GetNextWriteFieldInfosGen() int64
+	SetNextWriteFieldInfosGen(v int64)
+	GetNextWriteDocValuesGen() int64
+	SetNextWriteDocValuesGen(v int64)
+	SetFieldInfosFiles(fieldInfosFiles map[string]struct{})
+	SetDocValuesUpdatesFiles(files map[int]map[string]struct{})
+	Clone() SegmentCommitInfo
+	GetId() []byte
+	SizeInBytes() (int64, error)
+	AdvanceDelGen()
+	GetBufferedDeletesGen() int64
+	GetFieldInfosFiles() map[string]struct{}
+	GetDocValuesUpdatesFiles() map[int]map[string]struct{}
+}
+
+// segmentCommitInfo
 // Embeds a [read-only] SegmentInfo and adds per-commit fields.
 // lucene.experimental
-type SegmentCommitInfo struct {
+type segmentCommitInfo struct {
 	// The SegmentInfo that we wrap.
 	info SegmentInfo
 
@@ -62,7 +95,13 @@ type SegmentCommitInfo struct {
 }
 
 func NewSegmentCommitInfo(info SegmentInfo, delCount, softDelCount int,
-	delGen, fieldInfosGen, docValuesGen int64, id []byte) *SegmentCommitInfo {
+	delGen, fieldInfosGen, docValuesGen int64, id []byte) SegmentCommitInfo {
+
+	return newSegmentCommitInfo(info, delCount, softDelCount, delGen, fieldInfosGen, docValuesGen, id)
+}
+
+func newSegmentCommitInfo(info SegmentInfo, delCount, softDelCount int,
+	delGen, fieldInfosGen, docValuesGen int64, id []byte) *segmentCommitInfo {
 
 	nextWriteDelGen := delGen + 1
 	if delGen == -1 {
@@ -79,7 +118,7 @@ func NewSegmentCommitInfo(info SegmentInfo, delCount, softDelCount int,
 		nextWriteDocValuesGen = 1
 	}
 
-	return &SegmentCommitInfo{
+	return &segmentCommitInfo{
 		info:                   info,
 		id:                     id,
 		delCount:               delCount,
@@ -97,56 +136,56 @@ func NewSegmentCommitInfo(info SegmentInfo, delCount, softDelCount int,
 	}
 }
 
-func (s *SegmentCommitInfo) Info() SegmentInfo {
+func (s *segmentCommitInfo) Info() SegmentInfo {
 	return s.info
 }
 
 // HasDeletions Returns true if there are any deletions for the segment at this commit.
-func (s *SegmentCommitInfo) HasDeletions() bool {
+func (s *segmentCommitInfo) HasDeletions() bool {
 	return s.delGen != -1
 }
 
 // HasFieldUpdates Returns true if there are any field updates for the segment in this commit.
-func (s *SegmentCommitInfo) HasFieldUpdates() bool {
+func (s *segmentCommitInfo) HasFieldUpdates() bool {
 	return s.fieldInfosGen != -1
 }
 
 // GetNextFieldInfosGen Returns the next available generation number of the FieldInfos files.
-func (s *SegmentCommitInfo) GetNextFieldInfosGen() int64 {
+func (s *segmentCommitInfo) GetNextFieldInfosGen() int64 {
 	return s.nextWriteFieldInfosGen
 }
 
 // GetFieldInfosGen Returns the generation number of the field infos file or -1 if there are no field updates yet.
-func (s *SegmentCommitInfo) GetFieldInfosGen() int64 {
+func (s *segmentCommitInfo) GetFieldInfosGen() int64 {
 	return s.fieldInfosGen
 }
 
 // GetNextDocValuesGen Returns the next available generation number of the DocValues files.
-func (s *SegmentCommitInfo) GetNextDocValuesGen() int64 {
+func (s *segmentCommitInfo) GetNextDocValuesGen() int64 {
 	return s.nextWriteDocValuesGen
 }
 
 // GetDocValuesGen Returns the generation number of the DocValues file or -1 if there are no doc-values updates yet.
-func (s *SegmentCommitInfo) GetDocValuesGen() int64 {
+func (s *segmentCommitInfo) GetDocValuesGen() int64 {
 	return s.docValuesGen
 }
 
 // GetNextDelGen Returns the next available generation number of the live docs file.
-func (s *SegmentCommitInfo) GetNextDelGen() int64 {
+func (s *segmentCommitInfo) GetNextDelGen() int64 {
 	return s.nextWriteDelGen
 }
 
 // GetDelGen Returns generation number of the live docs file or -1 if there are no deletes yet.
-func (s *SegmentCommitInfo) GetDelGen() int64 {
+func (s *segmentCommitInfo) GetDelGen() int64 {
 	return s.delGen
 }
 
 // GetDelCount Returns the number of deleted docs in the segment.
-func (s *SegmentCommitInfo) GetDelCount() int {
+func (s *segmentCommitInfo) GetDelCount() int {
 	return s.delCount
 }
 
-func (s *SegmentCommitInfo) GetDelCountV1(includeSoftDeletes bool) int {
+func (s *segmentCommitInfo) GetDelCountWithSoftDeletes(includeSoftDeletes bool) int {
 	if includeSoftDeletes {
 		return s.GetDelCount() + s.GetSoftDelCount()
 	}
@@ -154,19 +193,19 @@ func (s *SegmentCommitInfo) GetDelCountV1(includeSoftDeletes bool) int {
 }
 
 // GetSoftDelCount Returns the number of only soft-deleted docs.
-func (s *SegmentCommitInfo) GetSoftDelCount() int {
+func (s *segmentCommitInfo) GetSoftDelCount() int {
 	return s.softDelCount
 }
 
-func (s *SegmentCommitInfo) SetDelCount(delCount int) {
+func (s *segmentCommitInfo) SetDelCount(delCount int) {
 	s.delCount = delCount
 }
 
-func (s *SegmentCommitInfo) SetSoftDelCount(softDelCount int) {
+func (s *segmentCommitInfo) SetSoftDelCount(softDelCount int) {
 	s.softDelCount = softDelCount
 }
 
-func (s *SegmentCommitInfo) Files() (map[string]struct{}, error) {
+func (s *segmentCommitInfo) Files() (map[string]struct{}, error) {
 	files := s.info.Files()
 
 	// Must separately add any live docs files:
@@ -188,31 +227,31 @@ func (s *SegmentCommitInfo) Files() (map[string]struct{}, error) {
 	return files, nil
 }
 
-func (s *SegmentCommitInfo) GetNextWriteDelGen() int64 {
+func (s *segmentCommitInfo) GetNextWriteDelGen() int64 {
 	return s.nextWriteDelGen
 }
 
-func (s *SegmentCommitInfo) SetNextWriteDelGen(v int64) {
+func (s *segmentCommitInfo) SetNextWriteDelGen(v int64) {
 	s.nextWriteDelGen = v
 }
 
-func (s *SegmentCommitInfo) GetNextWriteFieldInfosGen() int64 {
+func (s *segmentCommitInfo) GetNextWriteFieldInfosGen() int64 {
 	return s.nextWriteFieldInfosGen
 }
 
-func (s *SegmentCommitInfo) SetNextWriteFieldInfosGen(v int64) {
+func (s *segmentCommitInfo) SetNextWriteFieldInfosGen(v int64) {
 	s.nextWriteFieldInfosGen = v
 }
 
-func (s *SegmentCommitInfo) GetNextWriteDocValuesGen() int64 {
+func (s *segmentCommitInfo) GetNextWriteDocValuesGen() int64 {
 	return s.nextWriteDocValuesGen
 }
 
-func (s *SegmentCommitInfo) SetNextWriteDocValuesGen(v int64) {
+func (s *segmentCommitInfo) SetNextWriteDocValuesGen(v int64) {
 	s.nextWriteDocValuesGen = v
 }
 
-func (s *SegmentCommitInfo) SetFieldInfosFiles(fieldInfosFiles map[string]struct{}) {
+func (s *segmentCommitInfo) SetFieldInfosFiles(fieldInfosFiles map[string]struct{}) {
 	s.fieldInfosFiles = map[string]struct{}{}
 	for file := range fieldInfosFiles {
 		segmentName := s.info.NamedForThisSegment(file)
@@ -220,19 +259,20 @@ func (s *SegmentCommitInfo) SetFieldInfosFiles(fieldInfosFiles map[string]struct
 	}
 }
 
-func (s *SegmentCommitInfo) SetDocValuesUpdatesFiles(files map[int]map[string]struct{}) {
+func (s *segmentCommitInfo) SetDocValuesUpdatesFiles(files map[int]map[string]struct{}) {
 	s.dvUpdatesFiles = map[int]map[string]struct{}{}
 	for k, values := range files {
 		s.dvUpdatesFiles[k] = maps.Clone(values)
 	}
 }
 
-func (s *SegmentCommitInfo) Clone() *SegmentCommitInfo {
-	other := NewSegmentCommitInfo(s.info, s.delCount, s.softDelCount, s.delGen, s.fieldInfosGen, s.docValuesGen, s.GetId())
+func (s *segmentCommitInfo) Clone() SegmentCommitInfo {
+	other := newSegmentCommitInfo(s.info, s.delCount, s.softDelCount, s.delGen, s.fieldInfosGen, s.docValuesGen, s.GetId())
 	// Not clear that we need to carry over nextWriteDelGen
 	// (i.e. do we ever clone after a failed write and
 	// before the next successful write?), but just do it to
 	// be safe:
+
 	other.nextWriteDelGen = s.nextWriteDelGen
 	other.nextWriteFieldInfosGen = s.nextWriteFieldInfosGen
 	other.nextWriteDocValuesGen = s.nextWriteDocValuesGen
@@ -248,14 +288,14 @@ func (s *SegmentCommitInfo) Clone() *SegmentCommitInfo {
 	return other
 }
 
-func (s *SegmentCommitInfo) GetId() []byte {
+func (s *segmentCommitInfo) GetId() []byte {
 	if len(s.id) > 0 {
 		return slices.Clone(s.id)
 	}
 	return nil
 }
 
-func (s *SegmentCommitInfo) SizeInBytes() (int64, error) {
+func (s *segmentCommitInfo) SizeInBytes() (int64, error) {
 	if s.sizeInBytes == -1 {
 		sum := int64(0)
 
@@ -275,26 +315,26 @@ func (s *SegmentCommitInfo) SizeInBytes() (int64, error) {
 
 // AdvanceDelGen
 // Called when we succeed in writing deletes
-func (s *SegmentCommitInfo) AdvanceDelGen() {
+func (s *segmentCommitInfo) AdvanceDelGen() {
 	s.delGen = s.nextWriteDelGen
 	s.nextWriteDelGen = s.delGen + 1
 	s.generationAdvanced()
 }
 
-func (s *SegmentCommitInfo) generationAdvanced() {
+func (s *segmentCommitInfo) generationAdvanced() {
 	s.sizeInBytes = -1
 	r, _ := uuid.NewRandom()
 	s.id = []byte(r.String())
 }
 
-func (s *SegmentCommitInfo) GetBufferedDeletesGen() int64 {
+func (s *segmentCommitInfo) GetBufferedDeletesGen() int64 {
 	return s.bufferedDeletesGen
 }
 
-func (s *SegmentCommitInfo) GetFieldInfosFiles() map[string]struct{} {
+func (s *segmentCommitInfo) GetFieldInfosFiles() map[string]struct{} {
 	return s.fieldInfosFiles
 }
 
-func (s *SegmentCommitInfo) GetDocValuesUpdatesFiles() map[int]map[string]struct{} {
+func (s *segmentCommitInfo) GetDocValuesUpdatesFiles() map[int]map[string]struct{} {
 	return s.dvUpdatesFiles
 }

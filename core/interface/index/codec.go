@@ -516,16 +516,16 @@ type LiveDocsFormat interface {
 
 	// ReadLiveDocs
 	// Read live docs bits.
-	ReadLiveDocs(ctx context.Context, directory store.Directory, info *SegmentCommitInfo, context *store.IOContext) (util.Bits, error)
+	ReadLiveDocs(ctx context.Context, directory store.Directory, info SegmentCommitInfo, context *store.IOContext) (util.Bits, error)
 
 	// WriteLiveDocs
 	// Persist live docs bits. Use SegmentCommitInfo.getNextDelGen to determine
 	// the generation of the deletes file you should write to.
-	WriteLiveDocs(ctx context.Context, bits util.Bits, directory store.Directory, info *SegmentCommitInfo, newDelCount int, ioContext *store.IOContext) error
+	WriteLiveDocs(ctx context.Context, bits util.Bits, directory store.Directory, info SegmentCommitInfo, newDelCount int, ioContext *store.IOContext) error
 
 	// Files
 	// Records all files in use by this SegmentCommitInfo into the files argument.
-	Files(ctx context.Context, info *SegmentCommitInfo, files map[string]struct{}) (map[string]struct{}, error)
+	Files(ctx context.Context, info SegmentCommitInfo, files map[string]struct{}) (map[string]struct{}, error)
 }
 
 // NormsFormat

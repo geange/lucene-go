@@ -17,7 +17,7 @@ type SegmentDocValues struct {
 }
 
 func (s *SegmentDocValues) GetDocValuesProducer(gen int64,
-	si *index.SegmentCommitInfo, dir store.Directory, infos index.FieldInfos) (index.DocValuesProducer, error) {
+	si index.SegmentCommitInfo, dir store.Directory, infos index.FieldInfos) (index.DocValuesProducer, error) {
 
 	dvp, ok := s.genDVProducers[gen]
 	if !ok {
@@ -34,7 +34,7 @@ func (s *SegmentDocValues) GetDocValuesProducer(gen int64,
 	return dvp.Get(), nil
 }
 
-func (s *SegmentDocValues) newDocValuesProducer(si *index.SegmentCommitInfo,
+func (s *SegmentDocValues) newDocValuesProducer(si index.SegmentCommitInfo,
 	dir store.Directory, gen int64, infos index.FieldInfos) (*util.RefCount[index.DocValuesProducer], error) {
 
 	dvDir := dir
@@ -85,7 +85,7 @@ type SegmentDocValuesProducer struct {
 	dvGens             []int64
 }
 
-func NewSegmentDocValuesProducer(si *index.SegmentCommitInfo, dir store.Directory,
+func NewSegmentDocValuesProducer(si index.SegmentCommitInfo, dir store.Directory,
 	coreInfos, allInfos index.FieldInfos, segDocValues *SegmentDocValues) (*SegmentDocValuesProducer, error) {
 
 	p := &SegmentDocValuesProducer{
