@@ -85,7 +85,7 @@ func OpenDirectoryReader(ctx context.Context, directory store.Directory,
 
 // OpenStandardDirectoryReader
 // Used by near real-time search
-func OpenStandardDirectoryReader(writer *IndexWriter, readerFunction func(*index.SegmentCommitInfo) (*SegmentReader, error),
+func OpenStandardDirectoryReader(writer *IndexWriter, readerFunction func(index.SegmentCommitInfo) (*SegmentReader, error),
 	infos *SegmentInfos, applyAllDeletes, writeAllDeletes bool) (index.DirectoryReader, error) {
 
 	// IndexWriter synchronizes externally before calling

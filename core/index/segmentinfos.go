@@ -90,7 +90,7 @@ type SegmentInfos struct {
 	// Opaque Map<String, String> that user can specify during IndexWriter.commit
 	userData map[string]string
 
-	segments []*index.SegmentCommitInfo
+	segments []index.SegmentCommitInfo
 
 	// Id for this commit; only written starting with Lucene 5.0
 	id []byte
@@ -116,7 +116,7 @@ func NewSegmentInfos(indexCreatedVersionMajor int) *SegmentInfos {
 		generation:     0,
 		lastGeneration: 0,
 		userData:       map[string]string{},
-		segments:       make([]*index.SegmentCommitInfo, 0),
+		segments:       make([]index.SegmentCommitInfo, 0),
 		//infoStream:               nil,
 		id:                       nil,
 		luceneVersion:            nil,
@@ -180,7 +180,7 @@ func (s *SegmentInfos) Files(includeSegmentsFile bool) (map[string]struct{}, err
 	return files, nil
 }
 
-func (s *SegmentInfos) Info(j int) *index.SegmentCommitInfo {
+func (s *SegmentInfos) Info(j int) index.SegmentCommitInfo {
 	return s.segments[j]
 }
 
@@ -188,7 +188,7 @@ func (s *SegmentInfos) SetNextWriteGeneration(generation int64) {
 	s.generation = generation
 }
 
-func (s *SegmentInfos) Add(si *index.SegmentCommitInfo) error {
+func (s *SegmentInfos) Add(si index.SegmentCommitInfo) error {
 	if s.indexCreatedVersionMajor >= 7 && si.Info().GetMinVersion() == nil {
 		return errors.New("all segments must record the minVersion for indices created on or after Lucene 7")
 	}
@@ -207,8 +207,8 @@ func (s *SegmentInfos) UpdateGeneration(other *SegmentInfos) {
 	s.generation = other.generation
 }
 
-func (s *SegmentInfos) CreateBackupSegmentInfos() []*index.SegmentCommitInfo {
-	list := make([]*index.SegmentCommitInfo, 0, s.Size())
+func (s *SegmentInfos) CreateBackupSegmentInfos() []index.SegmentCommitInfo {
+	list := make([]index.SegmentCommitInfo, 0, s.Size())
 	for _, segment := range s.segments {
 		list = append(list, segment.Clone())
 	}
@@ -228,7 +228,7 @@ func (s *SegmentInfos) Clone() *SegmentInfos {
 		generation:               s.generation,
 		lastGeneration:           s.lastGeneration,
 		userData:                 map[string]string{},
-		segments:                 []*index.SegmentCommitInfo{},
+		segments:                 []index.SegmentCommitInfo{},
 		id:                       make([]byte, len(s.id)),
 		luceneVersion:            s.luceneVersion.Clone(),
 		minSegmentLuceneVersion:  s.luceneVersion.Clone(),
@@ -434,11 +434,11 @@ func (s *SegmentInfos) Replace(other *SegmentInfos) error {
 	return nil
 }
 
-func (s *SegmentInfos) AsList() []*index.SegmentCommitInfo {
+func (s *SegmentInfos) AsList() []index.SegmentCommitInfo {
 	return s.segments
 }
 
-func (s *SegmentInfos) AddAll(sis []*index.SegmentCommitInfo) error {
+func (s *SegmentInfos) AddAll(sis []index.SegmentCommitInfo) error {
 	for _, si := range sis {
 		if err := s.Add(si); err != nil {
 			return err
@@ -447,7 +447,7 @@ func (s *SegmentInfos) AddAll(sis []*index.SegmentCommitInfo) error {
 	return nil
 }
 
-func (s *SegmentInfos) rollbackSegmentInfos(list []*index.SegmentCommitInfo) error {
+func (s *SegmentInfos) rollbackSegmentInfos(list []index.SegmentCommitInfo) error {
 	s.segments = s.segments[:0]
 	return s.AddAll(list)
 }

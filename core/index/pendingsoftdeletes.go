@@ -54,7 +54,7 @@ func (p *PendingSoftDeletes) NumPendingDeletes() int {
 	return p.pendingDeletes.NumPendingDeletes() + p.hardDeletes.NumPendingDeletes()
 }
 
-func (p *PendingSoftDeletes) OnNewReader(reader index.CodecReader, info *index.SegmentCommitInfo) error {
+func (p *PendingSoftDeletes) OnNewReader(reader index.CodecReader, info index.SegmentCommitInfo) error {
 	err := p.pendingDeletes.OnNewReader(reader, info)
 	if err != nil {
 		return err
@@ -181,10 +181,10 @@ func (p *PendingSoftDeletes) OnDocValuesUpdate(info *document.FieldInfo, iterato
 	p.dvGeneration = info.GetDocValuesGen()
 }
 
-func NewPendingSoftDeletes(field string, info *index.SegmentCommitInfo) *PendingSoftDeletes {
+func NewPendingSoftDeletes(field string, info index.SegmentCommitInfo) *PendingSoftDeletes {
 
 	return &PendingSoftDeletes{
-		pendingDeletes: NewPendingDeletesV2(info, nil, info.GetDelCountV1(true) == 0).(*pendingDeletes),
+		pendingDeletes: NewPendingDeletesV2(info, nil, info.GetDelCountWithSoftDeletes(true) == 0).(*pendingDeletes),
 		field:          field,
 		dvGeneration:   -2,
 		hardDeletes:    NewPendingDeletesV1(info),
@@ -192,7 +192,7 @@ func NewPendingSoftDeletes(field string, info *index.SegmentCommitInfo) *Pending
 }
 
 func NewPendingSoftDeletesV1(field string,
-	reader *SegmentReader, info *index.SegmentCommitInfo) *PendingSoftDeletes {
+	reader *SegmentReader, info index.SegmentCommitInfo) *PendingSoftDeletes {
 
 	return &PendingSoftDeletes{
 		pendingDeletes: NewPendingDeletes(reader, info).(*pendingDeletes),
