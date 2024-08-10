@@ -185,7 +185,7 @@ func (b *BinaryDocValuesWriter) AddValue(docID int, value []byte) error {
 	return b.docsWithField.Add(docID)
 }
 
-func (b *BinaryDocValuesWriter) Flush(state *index.SegmentWriteState, sortMap DocMap, consumer index.DocValuesConsumer) error {
+func (b *BinaryDocValuesWriter) Flush(state *index.SegmentWriteState, sortMap index.DocMap, consumer index.DocValuesConsumer) error {
 	return consumer.AddBinaryField(context.TODO(), b.fieldInfo, &EmptyDocValuesProducer{
 		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error) {
 			iterator, err := b.docsWithField.Iterator()

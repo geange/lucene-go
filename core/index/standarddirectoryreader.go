@@ -3,11 +3,12 @@ package index
 import (
 	"context"
 	"errors"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
 
-var _ DirectoryReader = &StandardDirectoryReader{}
+var _ index.DirectoryReader = &StandardDirectoryReader{}
 
 // StandardDirectoryReader
 // Default implementation of DirectoryReader.
@@ -45,10 +46,10 @@ type CompareLeafReader func(a, b index.LeafReader) int
 // OpenDirectoryReader
 // called from DirectoryReader.open(...) methods
 func OpenDirectoryReader(ctx context.Context, directory store.Directory,
-	commit IndexCommit, compareFunc CompareLeafReader) (DirectoryReader, error) {
+	commit IndexCommit, compareFunc CompareLeafReader) (index.DirectoryReader, error) {
 
-	segmentsFile := NewFindSegmentsFile[DirectoryReader](directory)
-	fnDoBody := func(ctx context.Context, segmentFileName string) (DirectoryReader, error) {
+	segmentsFile := NewFindSegmentsFile[index.DirectoryReader](directory)
+	fnDoBody := func(ctx context.Context, segmentFileName string) (index.DirectoryReader, error) {
 		sis, err := ReadCommit(ctx, segmentsFile.directory, segmentFileName)
 		if err != nil {
 			return nil, err
@@ -85,7 +86,7 @@ func OpenDirectoryReader(ctx context.Context, directory store.Directory,
 // OpenStandardDirectoryReader
 // Used by near real-time search
 func OpenStandardDirectoryReader(writer *IndexWriter, readerFunction func(*index.SegmentCommitInfo) (*SegmentReader, error),
-	infos *SegmentInfos, applyAllDeletes, writeAllDeletes bool) (*StandardDirectoryReader, error) {
+	infos *SegmentInfos, applyAllDeletes, writeAllDeletes bool) (index.DirectoryReader, error) {
 
 	// IndexWriter synchronizes externally before calling
 	// us, which ensures infos will not change; so there's
@@ -108,7 +109,7 @@ func OpenStandardDirectoryReader(writer *IndexWriter, readerFunction func(*index
 		if err != nil {
 			return nil, err
 		}
-		if reader.NumDocs() > 0 || writer.GetConfig().mergePolicy.KeepFullyDeletedSegment(func() CodecReader {
+		if reader.NumDocs() > 0 || writer.GetConfig().mergePolicy.KeepFullyDeletedSegment(func() index.CodecReader {
 			return reader
 		}) {
 			// Steal the ref:
@@ -158,7 +159,7 @@ func (s *StandardDirectoryReader) IsCurrent(ctx context.Context) (bool, error) {
 	return s.writer.nrtIsCurrent(s.segmentInfos), nil
 }
 
-func (s *StandardDirectoryReader) GetIndexCommit() (IndexCommit, error) {
+func (s *StandardDirectoryReader) GetIndexCommit() (index.IndexCommit, error) {
 	return NewReaderCommit(s, s.segmentInfos, s.directory)
 }
 
@@ -166,7 +167,7 @@ func (s *StandardDirectoryReader) GetSegmentInfos() *SegmentInfos {
 	return s.segmentInfos
 }
 
-var _ IndexCommit = &ReaderCommit{}
+var _ index.IndexCommit = &ReaderCommit{}
 
 type ReaderCommit struct {
 	segmentsFileName string
@@ -229,12 +230,12 @@ func (r *ReaderCommit) GetUserData() (map[string]string, error) {
 	return r.userData, nil
 }
 
-func (r *ReaderCommit) CompareTo(commit IndexCommit) int {
+func (r *ReaderCommit) CompareTo(commit index.IndexCommit) int {
 	gen := r.GetGeneration()
 	comgen := commit.GetGeneration()
 	return Compare(gen, comgen)
 }
 
-func (r *ReaderCommit) GetReader() *StandardDirectoryReader {
+func (r *ReaderCommit) GetReader() index.DirectoryReader {
 	return r.reader
 }

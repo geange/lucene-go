@@ -293,7 +293,10 @@ type IndexReaderContext interface {
 }
 
 type LeafReaderContext interface {
-	IndexReaderContext
+	Reader() IndexReader
+	Leaves() ([]LeafReaderContext, error)
+	Children() []IndexReaderContext
+	Identity() string
 
 	Ord() int
 	DocBase() int

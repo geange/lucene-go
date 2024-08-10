@@ -53,7 +53,7 @@ func (p *PointValuesWriter) AddPackedValue(docID int, value []byte) error {
 	return nil
 }
 
-func (p *PointValuesWriter) Flush(ctx context.Context, state *index.SegmentWriteState, docMap *DocMap, writer index.PointsWriter) error {
+func (p *PointValuesWriter) Flush(ctx context.Context, state *index.SegmentWriteState, docMap index.DocMap, writer index.PointsWriter) error {
 	bytesReader, err := p.bytes.Freeze(false)
 	if err != nil {
 		return err

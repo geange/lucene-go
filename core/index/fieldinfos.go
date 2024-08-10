@@ -3,10 +3,11 @@ package index
 import (
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
-	"sync"
 )
 
 // FieldInfos

@@ -32,7 +32,7 @@ type PendingDeletes interface {
 
 	// OnNewReader
 	// Called once a new reader is opened for this segment ie. when deletes or updates are applied.
-	OnNewReader(reader CodecReader, info *index.SegmentCommitInfo) error
+	OnNewReader(reader index.CodecReader, info *index.SegmentCommitInfo) error
 
 	// DropChanges
 	// Resets the pending docs
@@ -44,7 +44,7 @@ type PendingDeletes interface {
 
 	// IsFullyDeleted
 	// Returns true iff the segment represented by this PendingDeletes is fully deleted
-	IsFullyDeleted(ctx context.Context, readerIOSupplier func() CodecReader) (bool, error)
+	IsFullyDeleted(ctx context.Context, readerIOSupplier func() index.CodecReader) (bool, error)
 
 	// OnDocValuesUpdate
 	// Called for every field update for the given field at flush time
@@ -54,7 +54,7 @@ type PendingDeletes interface {
 
 	// NeedsRefresh
 	// Returns true if the given reader needs to be refreshed in order to see the latest deletes
-	NeedsRefresh(reader CodecReader) bool
+	NeedsRefresh(reader index.CodecReader) bool
 
 	// GetDelCount
 	// Returns the number of deleted docs in the segment.
@@ -90,7 +90,7 @@ type pendingDeletes struct {
 	liveDocsInitialized bool
 }
 
-func (p *pendingDeletes) NeedsRefresh(reader CodecReader) bool {
+func (p *pendingDeletes) NeedsRefresh(reader index.CodecReader) bool {
 	return reader.GetLiveDocs() != p.GetLiveDocs() || reader.NumDeletedDocs() != p.GetDelCount()
 }
 
@@ -152,7 +152,7 @@ func (p *pendingDeletes) NumPendingDeletes() int {
 	return p.pendingDeleteCount
 }
 
-func (p *pendingDeletes) OnNewReader(reader CodecReader, info *index.SegmentCommitInfo) error {
+func (p *pendingDeletes) OnNewReader(reader index.CodecReader, info *index.SegmentCommitInfo) error {
 	if p.liveDocsInitialized == false {
 		//assert writeableLiveDocs == null;
 		if reader.HasDeletions() {
@@ -199,7 +199,7 @@ func (p *pendingDeletes) WriteLiveDocs(ctx context.Context, dir store.Directory)
 	return true, nil
 }
 
-func (p *pendingDeletes) IsFullyDeleted(ctx context.Context, readerIOSupplier func() CodecReader) (bool, error) {
+func (p *pendingDeletes) IsFullyDeleted(ctx context.Context, readerIOSupplier func() index.CodecReader) (bool, error) {
 	delCount := p.GetDelCount()
 	maxDoc, err := p.info.Info().MaxDoc()
 	if err != nil {

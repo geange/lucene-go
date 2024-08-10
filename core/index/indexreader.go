@@ -3,11 +3,11 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 	"sync/atomic"
 
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 type IndexReaderSPI interface {

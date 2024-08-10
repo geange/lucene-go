@@ -14,7 +14,7 @@ type SegmentMerger struct {
 	fieldInfosBuilder *FieldInfosBuilder
 }
 
-func NewSegmentMerger(readers []CodecReader, segmentInfo *SegmentInfo, dir store.Directory,
+func NewSegmentMerger(readers []index.CodecReader, segmentInfo *SegmentInfo, dir store.Directory,
 	fieldNumbers *FieldNumbers, ioCtx *store.IOContext) (*SegmentMerger, error) {
 
 	//if ioCtx.Type != store.CONTEXT_MERGE {

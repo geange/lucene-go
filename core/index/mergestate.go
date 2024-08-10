@@ -52,7 +52,7 @@ type MergeState struct {
 	NeedsIndexSort bool
 }
 
-func NewMergeState(readers []CodecReader, segmentInfo *SegmentInfo) (*MergeState, error) {
+func NewMergeState(readers []index.CodecReader, segmentInfo *SegmentInfo) (*MergeState, error) {
 	if err := verifyIndexSort(readers, segmentInfo); err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func NewMergeState(readers []CodecReader, segmentInfo *SegmentInfo) (*MergeState
 	return &state, nil
 }
 
-func verifyIndexSort(readers []CodecReader, segmentInfo *SegmentInfo) error {
+func verifyIndexSort(readers []index.CodecReader, segmentInfo *SegmentInfo) error {
 	indexSort := segmentInfo.GetIndexSort()
 	if indexSort == nil {
 		return nil
@@ -128,7 +128,7 @@ func verifyIndexSort(readers []CodecReader, segmentInfo *SegmentInfo) error {
 	return nil
 }
 
-func buildDocMaps(readers []CodecReader, indexSort index.Sort) []MergeStateDocMap {
+func buildDocMaps(readers []index.CodecReader, indexSort index.Sort) []MergeStateDocMap {
 	if indexSort == nil {
 		// no index sort ... we only must map around deletions, and rebase to the merged segment's docID space
 		return buildDeletionDocMaps(readers)
@@ -139,7 +139,7 @@ func buildDocMaps(readers []CodecReader, indexSort index.Sort) []MergeStateDocMa
 	panic("")
 }
 
-func buildDeletionDocMaps(readers []CodecReader) []MergeStateDocMap {
+func buildDeletionDocMaps(readers []index.CodecReader) []MergeStateDocMap {
 	docMaps := make([]MergeStateDocMap, 0, len(readers))
 	var totalDocs int
 

@@ -41,7 +41,7 @@ func (t *TermVectorsConsumer) SetTermBytePool(termBytePool *bytesref.BlockPool) 
 }
 
 func (t *TermVectorsConsumer) Flush(fieldsToFlush map[string]TermsHashPerField,
-	state *index.SegmentWriteState, sortMap *DocMap, norms index.NormsProducer) error {
+	state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
 
 	if t.writer != nil {
 		numDocs, err := state.SegmentInfo.MaxDoc()

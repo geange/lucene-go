@@ -14,7 +14,7 @@ import (
 	"github.com/geange/lucene-go/core/util/ints"
 )
 
-var _ DocConsumer = &DefaultIndexingChain{}
+var _ index.DocConsumer = &DefaultIndexingChain{}
 
 // DefaultIndexingChain
 // Default general purpose indexing chain, which handles indexing all types of fields.
@@ -153,7 +153,7 @@ func (r *defaultIndexingChainLeafReader) GetFieldInfos() index.FieldInfos {
 	return r.chain.fieldInfos.Finish()
 }
 
-func (d *DefaultIndexingChain) maybeSortSegment(state *index.SegmentWriteState) (*DocMap, error) {
+func (d *DefaultIndexingChain) maybeSortSegment(state *index.SegmentWriteState) (index.DocMap, error) {
 	indexSort := state.SegmentInfo.GetIndexSort()
 	if indexSort == nil {
 		return nil, nil
@@ -185,7 +185,7 @@ func (d *DefaultIndexingChain) maybeSortSegment(state *index.SegmentWriteState) 
 	return SortByComparators(maxDoc, comparators)
 }
 
-func (d *DefaultIndexingChain) Flush(ctx context.Context, state *index.SegmentWriteState) (*DocMap, error) {
+func (d *DefaultIndexingChain) Flush(ctx context.Context, state *index.SegmentWriteState) (index.DocMap, error) {
 	// NOTE: caller (DocumentsWriterPerThread) handles
 	// aborting on any exception from this method
 	sortMap, err := d.maybeSortSegment(state)
@@ -244,7 +244,7 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *index.SegmentWr
 }
 
 // Writes all buffered points.
-func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *index.SegmentWriteState, sortMap *DocMap) error {
+func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *index.SegmentWriteState, sortMap index.DocMap) error {
 	var pointsWriter index.PointsWriter
 	var err error
 
@@ -285,7 +285,7 @@ func (d *DefaultIndexingChain) writePoints(ctx context.Context, state *index.Seg
 }
 
 // Writes all buffered doc values (called from Flush).
-func (d *DefaultIndexingChain) writeDocValues(state *index.SegmentWriteState, sortMap *DocMap) error {
+func (d *DefaultIndexingChain) writeDocValues(state *index.SegmentWriteState, sortMap index.DocMap) error {
 	var dvConsumer index.DocValuesConsumer
 	var err error
 	for _, perField := range d.fieldHash {
@@ -303,7 +303,7 @@ func (d *DefaultIndexingChain) writeDocValues(state *index.SegmentWriteState, so
 					return err
 				}
 			}
-			if err := perField.docValuesWriter.Flush(state, *sortMap, dvConsumer); err != nil {
+			if err := perField.docValuesWriter.Flush(state, sortMap, dvConsumer); err != nil {
 				return err
 			}
 			perField.docValuesWriter = nil
@@ -320,7 +320,7 @@ func (d *DefaultIndexingChain) writeDocValues(state *index.SegmentWriteState, so
 	return nil
 }
 
-func (d *DefaultIndexingChain) writeNorms(state *index.SegmentWriteState, sortMap *DocMap) error {
+func (d *DefaultIndexingChain) writeNorms(state *index.SegmentWriteState, sortMap index.DocMap) error {
 	var normsConsumer index.NormsConsumer
 	var err error
 	if state.FieldInfos.HasNorms() {

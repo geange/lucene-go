@@ -13,7 +13,7 @@ import (
 // Consumers of this class, eg FreqProxTermsWriter and TermVectorsConsumer, write their own byte
 // streams under each term.
 type TermsHash interface {
-	Flush(fieldsToFlush map[string]TermsHashPerField, state *index.SegmentWriteState, sortMap *DocMap, norms index.NormsProducer) error
+	Flush(fieldsToFlush map[string]TermsHashPerField, state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error
 
 	AddField(fieldInvertState *index.FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error)
 
@@ -67,7 +67,7 @@ func (h *BaseTermsHash) GetTermBytePool() *bytesref.BlockPool {
 }
 
 func (h *BaseTermsHash) Flush(fieldsToFlush map[string]TermsHashPerField,
-	state *index.SegmentWriteState, sortMap *DocMap, norms index.NormsProducer) error {
+	state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
 
 	if h.nextTermsHash != nil {
 		nextChildFields := make(map[string]TermsHashPerField)

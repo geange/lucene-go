@@ -30,19 +30,9 @@ import (
 // NOTE: IndexReader instances are completely thread safe, meaning multiple threads can call any of its
 // methods, concurrently. If your application requires external synchronization, you should not
 // synchronize on the IndexReader instance; use your own (non-Lucene) objects instead.
-type CompositeReader interface {
-	index.IndexReader
+//type CompositeReader index.CompositeReader
 
-	// GetSequentialSubReaders
-	// Expert: returns the sequential sub readers that this reader is logically composed of.
-	// This method may not return null.
-	// NOTE: In contrast to previous Lucene versions this method is no longer public, code that
-	// wants to get all LeafReaders this composite is composed of should use Reader.leaves().
-	// See Also: Reader.leaves()
-	GetSequentialSubReaders() []index.IndexReader
-}
-
-var _ CompositeReader = &baseCompositeReader{}
+var _ index.CompositeReader = &baseCompositeReader{}
 
 type baseCompositeReader struct {
 	*baseIndexReader
@@ -255,7 +245,7 @@ type CompositeReaderContext struct {
 
 	children *arraylist.List[index.IndexReaderContext]
 	leaves   *arraylist.List[index.IndexReaderContext]
-	reader   CompositeReader
+	reader   index.CompositeReader
 }
 
 type compositeReaderContextOption struct {
@@ -265,31 +255,31 @@ type compositeReaderContextOption struct {
 }
 
 type compositeReaderContextOptionV1 struct {
-	reader CompositeReader
+	reader index.CompositeReader
 }
 
 type compositeReaderContextOptionV2 struct {
 	parent          *CompositeReaderContext
-	reader          CompositeReader
+	reader          index.CompositeReader
 	ordInParent     int
 	docbaseInParent int
 	children        *arraylist.List[index.IndexReaderContext]
 }
 
 type compositeReaderContextOptionV3 struct {
-	reader           CompositeReader
+	reader           index.CompositeReader
 	children, leaves *arraylist.List[index.IndexReaderContext]
 }
 
 type CompositeReaderContextOption func(*compositeReaderContextOption)
 
-func WithCompositeReaderContextV1(reader CompositeReader) CompositeReaderContextOption {
+func WithCompositeReaderContextV1(reader index.CompositeReader) CompositeReaderContextOption {
 	return func(o *compositeReaderContextOption) {
 		o.opt1 = &compositeReaderContextOptionV1{reader: reader}
 	}
 }
 
-func WithCompositeReaderContextV2(parent *CompositeReaderContext, reader CompositeReader,
+func WithCompositeReaderContextV2(parent *CompositeReaderContext, reader index.CompositeReader,
 	ordInParent, docbaseInParent int, children *arraylist.List[index.IndexReaderContext]) CompositeReaderContextOption {
 	return func(o *compositeReaderContextOption) {
 		o.opt2 = &compositeReaderContextOptionV2{
@@ -302,7 +292,7 @@ func WithCompositeReaderContextV2(parent *CompositeReaderContext, reader Composi
 	}
 }
 
-func WithCompositeReaderContextV3(reader CompositeReader,
+func WithCompositeReaderContextV3(reader index.CompositeReader,
 	children, leaves *arraylist.List[index.IndexReaderContext]) CompositeReaderContextOption {
 	return func(o *compositeReaderContextOption) {
 		o.opt3 = &compositeReaderContextOptionV3{
@@ -334,7 +324,7 @@ func NewCompositeReaderContext(fn CompositeReaderContextOption) (*CompositeReade
 	return nil, errors.New("todo")
 }
 
-func newCompositeReaderContext(parent *CompositeReaderContext, reader CompositeReader,
+func newCompositeReaderContext(parent *CompositeReaderContext, reader index.CompositeReader,
 	ordInParent, docbaseInParent int,
 	children, leaves *arraylist.List[index.IndexReaderContext]) *CompositeReaderContext {
 
@@ -368,13 +358,13 @@ func (c *CompositeReaderContext) Children() []index.IndexReaderContext {
 }
 
 type CompositeReaderBuilder struct {
-	reader CompositeReader
+	reader index.CompositeReader
 	//leaves      []ReaderContext
 	leaves      *arraylist.List[index.IndexReaderContext]
 	leafDocBase int
 }
 
-func NewCompositeReaderBuilder(reader CompositeReader) *CompositeReaderBuilder {
+func NewCompositeReaderBuilder(reader index.CompositeReader) *CompositeReaderBuilder {
 	return &CompositeReaderBuilder{
 		reader: reader,
 		leaves: arraylist.New[index.IndexReaderContext](),
@@ -398,7 +388,7 @@ func (c *CompositeReaderBuilder) build(parent *CompositeReaderContext, reader in
 		return ctx, nil
 	}
 
-	cr := reader.(CompositeReader)
+	cr := reader.(index.CompositeReader)
 	sequentialSubReaders := cr.GetSequentialSubReaders()
 	children := arraylist.New[index.IndexReaderContext](make([]index.IndexReaderContext, len(sequentialSubReaders))...)
 	var newParent *CompositeReaderContext

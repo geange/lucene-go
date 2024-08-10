@@ -121,7 +121,7 @@ type MergePolicy interface {
 	UseCompoundFile(infos *SegmentInfos,
 		mergedInfo *index.SegmentCommitInfo, mergeContext MergeContext) (bool, error)
 
-	KeepFullyDeletedSegment(func() CodecReader) bool
+	KeepFullyDeletedSegment(func() index.CodecReader) bool
 
 	MergePolicySPI
 }
@@ -205,7 +205,7 @@ func (m *MergePolicyBase) getNoCFSRatio() float64 {
 	return m.noCFSRatio
 }
 
-func (m *MergePolicyBase) KeepFullyDeletedSegment(func() CodecReader) bool {
+func (m *MergePolicyBase) KeepFullyDeletedSegment(func() index.CodecReader) bool {
 	return false
 }
 

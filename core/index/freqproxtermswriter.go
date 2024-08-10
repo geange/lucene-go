@@ -21,7 +21,7 @@ func NewFreqProxTermsWriter(intBlockAllocator ints.IntsAllocator,
 }
 
 func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
-	state *index.SegmentWriteState, sortMap *DocMap, norms index.NormsProducer) error {
+	state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
 
 	err := f.BaseTermsHash.Flush(fieldsToFlush, state, sortMap, norms)
 	if err != nil {
