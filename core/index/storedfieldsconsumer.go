@@ -76,7 +76,7 @@ func (s *StoredFieldsConsumer) Finish(ctx context.Context, maxDoc int) error {
 	return nil
 }
 
-func (s *StoredFieldsConsumer) Flush(ctx context.Context, state *index.SegmentWriteState, sortMap *DocMap) error {
+func (s *StoredFieldsConsumer) Flush(ctx context.Context, state *index.SegmentWriteState, sortMap index.DocMap) error {
 	maxDoc, err := state.SegmentInfo.MaxDoc()
 	if err != nil {
 		return err

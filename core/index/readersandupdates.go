@@ -48,7 +48,7 @@ type ReadersAndUpdates struct {
 	mergingDVUpdates map[string][]DocValuesFieldUpdates
 
 	// Only set if there are doc values updates against this segment, and the index is sorted:
-	sortMap DocMap
+	sortMap index.DocMap
 }
 
 func NewReadersAndUpdates(indexCreatedVersionMajor int,
@@ -166,6 +166,6 @@ func (r *ReadersAndUpdates) IsFullyDeleted() (bool, error) {
 	return r.pendingDeletes.IsFullyDeleted(nil, r.getLatestReader)
 }
 
-func (r *ReadersAndUpdates) getLatestReader() CodecReader {
+func (r *ReadersAndUpdates) getLatestReader() index.CodecReader {
 	panic("")
 }

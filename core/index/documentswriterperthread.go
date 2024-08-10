@@ -24,7 +24,7 @@ type DocumentsWriterPerThread struct {
 	lock                   sync.RWMutex
 	codec                  index.Codec            // 编码类型
 	directory              store.Directory        // 存储目录
-	consumer               DocConsumer            // 文档消费者，用于处理添加的Document类型
+	consumer               index.DocConsumer      // 文档消费者，用于处理添加的Document类型
 	pendingUpdates         *index.BufferedUpdates // updates for our still-in-RAM (to be flushed next) segment
 	segmentInfo            *SegmentInfo           // current segment we are working on
 	aborted                *atomic.Bool           // 是否中断
@@ -176,7 +176,7 @@ func (d *DocumentsWriterPerThread) Flush(ctx context.Context) error {
 
 type IndexingChain interface {
 	GetChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo, directory store.Directory,
-		fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) DocConsumer
+		fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) index.DocConsumer
 }
 
 var _ IndexingChain = &defaultIndexingChain{}
@@ -187,7 +187,7 @@ type defaultIndexingChain struct {
 }
 
 func (*defaultIndexingChain) GetChain(indexCreatedVersionMajor int, segmentInfo *SegmentInfo,
-	dir store.Directory, fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) DocConsumer {
+	dir store.Directory, fieldInfos *FieldInfosBuilder, indexWriterConfig *liveIndexWriterConfig) index.DocConsumer {
 	return NewDefaultIndexingChain(indexCreatedVersionMajor, segmentInfo, dir, fieldInfos, indexWriterConfig)
 }
 
@@ -196,12 +196,12 @@ type FlushedSegment struct {
 	fieldInfos     index.FieldInfos
 	segmentUpdates *FrozenBufferedUpdates
 	liveDocs       *bitset.BitSet
-	sortMap        *DocMap
+	sortMap        index.DocMap
 	delCount       int
 }
 
 func newFlushedSegment(segmentInfo *index.SegmentCommitInfo, fieldInfos index.FieldInfos,
-	segmentUpdates *index.BufferedUpdates, liveDocs *bitset.BitSet, delCount int, sortMap *DocMap) *FlushedSegment {
+	segmentUpdates *index.BufferedUpdates, liveDocs *bitset.BitSet, delCount int, sortMap index.DocMap) *FlushedSegment {
 
 	segment := &FlushedSegment{
 		segmentInfo:    segmentInfo,
@@ -220,7 +220,7 @@ func newFlushedSegment(segmentInfo *index.SegmentCommitInfo, fieldInfos index.Fi
 }
 
 // Flush all pending docs to a new segment
-func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications FlushNotifications) (*FlushedSegment, error) {
+func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications index.FlushNotifications) (*FlushedSegment, error) {
 	if err := d.segmentInfo.SetMaxDoc(int(d.numDocsInRAM.Load())); err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications
 		return nil, nil
 	}
 
-	var sortMap *DocMap
+	var sortMap index.DocMap
 
 	var softDeletedDocs types.DocIdSetIterator
 	if d.indexWriterConfig.GetSoftDeletesField() != "" {
@@ -296,7 +296,7 @@ func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications
 }
 
 // Seals the SegmentInfo for the new flushed segment and persists the deleted documents FixedBitSet.
-func (d *DocumentsWriterPerThread) sealFlushedSegment(ctx context.Context, flushedSegment *FlushedSegment, sortMap *DocMap, flushNotifications FlushNotifications) error {
+func (d *DocumentsWriterPerThread) sealFlushedSegment(ctx context.Context, flushedSegment *FlushedSegment, sortMap index.DocMap, flushNotifications index.FlushNotifications) error {
 	newSegment := flushedSegment.segmentInfo
 
 	if err := SetDiagnostics(newSegment.Info(), SOURCE_FLUSH, nil); err != nil {
@@ -408,7 +408,7 @@ func (d *DocumentsWriterPerThread) abort() error {
 	return nil
 }
 
-func sortLiveDocs(liveDocs *bitset.BitSet, sortMap *DocMap) *bitset.BitSet {
+func sortLiveDocs(liveDocs *bitset.BitSet, sortMap index.DocMap) *bitset.BitSet {
 	sortedLiveDocs := bitset.New(liveDocs.Len())
 	sortedLiveDocs.FlipRange(0, liveDocs.Len())
 

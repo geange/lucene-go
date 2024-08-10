@@ -4,11 +4,11 @@ import (
 	"errors"
 
 	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 )
 
-var _ DocIdSet = &DocsWithFieldSet{}
+var _ index.DocIdSet = &DocsWithFieldSet{}
 
 // DocsWithFieldSet
 // Accumulator for documents that have a value for a field.
@@ -31,7 +31,7 @@ func (d *DocsWithFieldSet) Iterator() (types.DocIdSetIterator, error) {
 	return NewBitSetIterator(d.set, int64(d.cost)), nil
 }
 
-func (d *DocsWithFieldSet) Bits() (util.Bits, error) {
+func (d *DocsWithFieldSet) Bits() (index.Bits, error) {
 	return d.set, nil
 }
 

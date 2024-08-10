@@ -113,7 +113,7 @@ type IndexWriter struct {
 	startCommitTime       int64
 	pendingNumDocs        *atomic.Int64
 	softDeletesEnabled    bool
-	flushNotifications    FlushNotifications
+	flushNotifications    index.FlushNotifications
 	boolMaybeMerge        *atomic.Bool
 }
 
@@ -778,7 +778,7 @@ func (w *IndexWriter) nrtIsCurrent(infos *SegmentInfos) bool {
 	//return isCurrent
 }
 
-func (w *IndexWriter) GetReader(ctx context.Context, applyAllDeletes bool, writeAllDeletes bool) (DirectoryReader, error) {
+func (w *IndexWriter) GetReader(ctx context.Context, applyAllDeletes bool, writeAllDeletes bool) (index.DirectoryReader, error) {
 	if writeAllDeletes && applyAllDeletes == false {
 		return nil, errors.New("applyAllDeletes must be true when writeAllDeletes=true")
 	}
@@ -955,7 +955,7 @@ func (w *IndexWriter) IncRefDeleter(segmentInfos *SegmentInfos) error {
 // NOTE: empty segments are dropped by this method and not added to this index.
 // NOTE: this merges all given LeafReaders in one merge. If you intend to merge a large number of readers, it may be better to call this method multiple times, each time with a small set of readers. In principle, if you use a merge policy with a mergeFactor or maxMergeAtOnce parameter, you should pass that many readers in one call.
 // NOTE: this method does not call or make use of the MergeScheduler, so any custom bandwidth throttling is at the moment ignored.
-func (w *IndexWriter) AddIndexesFromReaders(readers ...CodecReader) (int64, error) {
+func (w *IndexWriter) AddIndexesFromReaders(readers ...index.CodecReader) (int64, error) {
 
 	if err := w.ensureOpen(); err != nil {
 		return 0, err
@@ -1350,7 +1350,7 @@ func (w *IndexWriter) publishFrozenUpdates(updates *FrozenBufferedUpdates) int64
 }
 
 func (w *IndexWriter) publishFlushedSegment(info *index.SegmentCommitInfo, infos index.FieldInfos,
-	updates *FrozenBufferedUpdates, updates2 *FrozenBufferedUpdates, sortMap *DocMap) error {
+	updates *FrozenBufferedUpdates, updates2 *FrozenBufferedUpdates, sortMap index.DocMap) error {
 
 	panic("")
 }

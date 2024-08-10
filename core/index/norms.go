@@ -153,7 +153,7 @@ func (n *NormValuesWriter) Finish(maxDoc int) {
 
 }
 
-func (n *NormValuesWriter) Flush(state *index.SegmentWriteState, sortMap *DocMap, normsConsumer index.NormsConsumer) error {
+func (n *NormValuesWriter) Flush(state *index.SegmentWriteState, sortMap index.DocMap, normsConsumer index.NormsConsumer) error {
 	//values := n.pending.Build()
 	// TODO: impl it
 	panic("")

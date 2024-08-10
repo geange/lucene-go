@@ -60,9 +60,9 @@ func CreateCompoundFile(ctx context.Context, directory *store.TrackingDirectoryW
 	return nil
 }
 
-var _ FlushNotifications = &flushNotifications{}
+var _ index.FlushNotifications = &flushNotifications{}
 
-func (w *IndexWriter) newFlushNotifications() FlushNotifications {
+func (w *IndexWriter) newFlushNotifications() index.FlushNotifications {
 	return &flushNotifications{
 		w:          w,
 		eventQueue: w.eventQueue,
@@ -80,7 +80,7 @@ func (f *flushNotifications) DeleteUnusedFiles(files map[string]struct{}) {
 	})
 }
 
-func (f *flushNotifications) FlushFailed(info *SegmentInfo) {
+func (f *flushNotifications) FlushFailed(info index.SegmentInfo) {
 	f.eventQueue.Add(func(w *IndexWriter) error {
 		files := info.Files()
 		return w.deleteNewFiles(files)

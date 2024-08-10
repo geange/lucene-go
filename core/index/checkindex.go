@@ -1,8 +1,12 @@
 package index
 
-import "errors"
+import (
+	"errors"
 
-func TestLiveDocs(reader CodecReader) error {
+	"github.com/geange/lucene-go/core/interface/index"
+)
+
+func TestLiveDocs(reader index.CodecReader) error {
 	numDocs := reader.NumDocs()
 	if reader.HasDeletions() {
 		liveDocs := reader.GetLiveDocs()

@@ -39,10 +39,7 @@ func (p *BasePointsWriter) MergeOneField(ctx context.Context, mergeState *MergeS
 	finalMaxPointCount := maxPointCount
 	finalDocCount := docCount
 
-	return p.WriteField(ctx, fieldInfo, &innerPointsReader{
-		size:     finalMaxPointCount,
-		docCount: finalDocCount,
-	})
+	return p.WriteField(ctx, fieldInfo, newInnerPointsReader(finalMaxPointCount, finalDocCount))
 }
 
 var _ index.PointsReader = &innerPointsReader{}
@@ -52,23 +49,27 @@ type innerPointsReader struct {
 	docCount int
 }
 
-func (i innerPointsReader) Close() error {
+func newInnerPointsReader(size int, docCount int) *innerPointsReader {
+	return &innerPointsReader{size: size, docCount: docCount}
+}
+
+func (i *innerPointsReader) Close() error {
 	return nil
 }
 
-func (i innerPointsReader) CheckIntegrity() error {
+func (i *innerPointsReader) CheckIntegrity() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (i innerPointsReader) GetValues(ctx context.Context, field string) (types.PointValues, error) {
+func (i *innerPointsReader) GetValues(ctx context.Context, field string) (types.PointValues, error) {
 	return &innerPointValues{
 		size:     i.size,
 		docCount: i.docCount,
 	}, nil
 }
 
-func (i innerPointsReader) GetMergeInstance() index.PointsReader {
+func (i *innerPointsReader) GetMergeInstance() index.PointsReader {
 	return i
 }
 

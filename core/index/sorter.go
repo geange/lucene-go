@@ -7,36 +7,13 @@ const (
 	INSERTION_SORT_THRESHOLD = 16
 )
 
-// Sorter Base class for sorting algorithms implementations.
-// lucene.internal
-type Sorter interface {
-	// Compare entries found in slots i and j. The contract for the returned item is the same as cmp.CompareFn(Object, Object).
-	Compare(i, j int) int
-
-	Swap(i, j int) int
-}
-
 type SorterDefault struct {
 	pivotIndex int
 	fnCompare  func(i, j int) int
 	fnSwap     func(i, j int)
 }
 
-// DocMap A permutation of doc IDs. For every document ID between 0 and Reader.maxDoc(),
-// oldToNew(newToOld(docID)) must return docID.
-type DocMap struct {
-	// Given a doc ID from the original index, return its ordinal in the sorted index.
-	OldToNew func(docID int) int
-
-	// Given the ordinal of a doc ID, return its doc ID in the original index.
-	NewToOld func(docID int) int
-
-	// Return the number of documents in this map.
-	// This must be equal to the number of documents of the LeafReader which is sorted.
-	Size func() int
-}
-
-func SortByComparator(maxDoc int, comparator index.DocComparator) *DocMap {
+func SortByComparator(maxDoc int, comparator index.DocComparator) index.DocMap {
 	// TODO: fix it
 	panic("")
 	/*
@@ -94,7 +71,7 @@ func (e *EmptyDocComparator) Compare(docID1, docID2 int) int {
 	return e.FnCompare(docID1, docID2)
 }
 
-func SortByComparators(maxDoc int, comparators []index.DocComparator) (*DocMap, error) {
+func SortByComparators(maxDoc int, comparators []index.DocComparator) (index.DocMap, error) {
 	// TODO: fix it
 	/*
 		return SortByComparator(maxDoc, &EmptyDocComparator{

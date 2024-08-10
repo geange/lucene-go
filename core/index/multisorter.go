@@ -7,7 +7,7 @@ import (
 
 // SortCodecReader
 // Does a merge sort of the leaves of the incoming reader, returning MergeState.DocMap to map each leaf's documents into the merged segment. The documents for each incoming leaf reader must already be sorted by the same sort! Returns null if the merge sort is not needed (segments are already in index sort order).
-func SortCodecReader(sort index.Sort, readers []CodecReader) ([]MergeStateDocMap, error) {
+func SortCodecReader(sort index.Sort, readers []index.CodecReader) ([]MergeStateDocMap, error) {
 	//fields := sort.GetSort()
 	//
 	//comparables := make([][]ComparableProvider, len(fields))

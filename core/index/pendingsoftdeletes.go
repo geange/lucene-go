@@ -54,7 +54,7 @@ func (p *PendingSoftDeletes) NumPendingDeletes() int {
 	return p.pendingDeletes.NumPendingDeletes() + p.hardDeletes.NumPendingDeletes()
 }
 
-func (p *PendingSoftDeletes) OnNewReader(reader CodecReader, info *index.SegmentCommitInfo) error {
+func (p *PendingSoftDeletes) OnNewReader(reader index.CodecReader, info *index.SegmentCommitInfo) error {
 	err := p.pendingDeletes.OnNewReader(reader, info)
 	if err != nil {
 		return err
@@ -72,7 +72,10 @@ func (p *PendingSoftDeletes) OnNewReader(reader CodecReader, info *index.Segment
 		}
 		//var newDelCount int
 		if iterator != nil { // nothing is deleted we don't have a soft deletes field in this segment
-			applySoftDeletes(iterator, p.GetMutableBits())
+			_, err := applySoftDeletes(iterator, p.GetMutableBits())
+			if err != nil {
+				return err
+			}
 		} else {
 			//newDelCount = 0
 		}
@@ -129,7 +132,7 @@ func (p *PendingSoftDeletes) WriteLiveDocs(ctx context.Context, dir store.Direct
 	return false, nil
 }
 
-func (p *PendingSoftDeletes) IsFullyDeleted(ctx context.Context, readerIOSupplier func() CodecReader) (bool, error) {
+func (p *PendingSoftDeletes) IsFullyDeleted(ctx context.Context, readerIOSupplier func() index.CodecReader) (bool, error) {
 	err := p.ensureInitialized(ctx, readerIOSupplier)
 	if err != nil {
 		return false, err
@@ -137,7 +140,7 @@ func (p *PendingSoftDeletes) IsFullyDeleted(ctx context.Context, readerIOSupplie
 	return p.pendingDeletes.IsFullyDeleted(ctx, readerIOSupplier)
 }
 
-func (p *PendingSoftDeletes) ensureInitialized(ctx context.Context, readerIOSupplier func() CodecReader) error {
+func (p *PendingSoftDeletes) ensureInitialized(ctx context.Context, readerIOSupplier func() index.CodecReader) error {
 	if p.dvGeneration == -2 {
 		fieldInfos, err := p.readFieldInfos(ctx)
 		if err != nil {

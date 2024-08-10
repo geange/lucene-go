@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-var _ CodecReader = &SegmentReader{}
+var _ index.CodecReader = &SegmentReader{}
 
 // SegmentReader
 // IndexReader implementation over a single segment.

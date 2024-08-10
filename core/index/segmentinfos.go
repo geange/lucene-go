@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"strconv"
 	"strings"
 
 	"github.com/geange/lucene-go/codecs/utils"
 	codecUtil "github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/version"
@@ -91,9 +91,6 @@ type SegmentInfos struct {
 	userData map[string]string
 
 	segments []*index.SegmentCommitInfo
-
-	// If non-null, information about loading segments_N files will be printed here. @see #setInfoStream.
-	//infoStream io.Writer
 
 	// Id for this commit; only written starting with Lucene 5.0
 	id []byte

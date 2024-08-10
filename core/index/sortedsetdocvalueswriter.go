@@ -10,7 +10,7 @@ var _ DocValuesWriter = &SortedSetDocValuesWriter{}
 type SortedSetDocValuesWriter struct {
 }
 
-func (s *SortedSetDocValuesWriter) Flush(state *index.SegmentWriteState, sortMap DocMap, consumer index.DocValuesConsumer) error {
+func (s *SortedSetDocValuesWriter) Flush(state *index.SegmentWriteState, sortMap index.DocMap, consumer index.DocValuesConsumer) error {
 	//TODO implement me
 	panic("implement me")
 }

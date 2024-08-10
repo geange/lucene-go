@@ -2,7 +2,6 @@ package index
 
 import (
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util"
 )
 
 // A DocIdSet contains a set of doc ids. Implementing classes must only implement iterator to provide access to the set.
@@ -27,5 +26,5 @@ type DocIdSet interface {
 	// access to every docid in O(1) time without external disk access
 	// (as Bits interface cannot throw IOException). This is generally true for bit sets
 	// like org.apache.lucene.util.FixedBitSet, which return itself if they are used as DocIdSet.
-	Bits() (util.Bits, error)
+	Bits() (Bits, error)
 }
