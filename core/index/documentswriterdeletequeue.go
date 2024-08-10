@@ -1,10 +1,11 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 	"sync"
 	"sync/atomic"
+
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // DocumentsWriterDeleteQueue is a non-blocking linked pending deletes queue.

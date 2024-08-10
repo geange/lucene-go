@@ -2,9 +2,9 @@ package index
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/index"
 	"strings"
 
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
 

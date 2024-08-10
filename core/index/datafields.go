@@ -3,10 +3,10 @@ package index
 import (
 	"bytes"
 	"context"
-	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 var _ index.Fields = &DataFields{}
