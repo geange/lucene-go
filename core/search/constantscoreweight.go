@@ -27,7 +27,7 @@ func NewConstantScoreWeight(score float64, query index.Query, spi WeightScorer) 
 	return weight
 }
 
-func (c *ConstantScoreWeight) Explain(ctx index.LeafReaderContext, doc int) (*types.Explanation, error) {
+func (c *ConstantScoreWeight) Explain(ctx index.LeafReaderContext, doc int) (types.Explanation, error) {
 	s, err := c.scorer.Scorer(ctx)
 	if err != nil {
 		return nil, err
