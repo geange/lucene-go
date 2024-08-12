@@ -5,7 +5,14 @@ import (
 	"fmt"
 )
 
-// TermStatistics Contains statistics for a specific term
+type TermStatistics interface {
+	Term() []byte
+	DocFreq() int64
+	TotalTermFreq() int64
+}
+
+// TermStatistics
+// Contains statistics for a specific term
 // This class holds statistics for this term across all documents for scoring purposes:
 // docFreq: number of documents this term occurs in.
 // totalTermFreq: number of tokens for this term.
@@ -17,7 +24,7 @@ import (
 // Values may include statistics on deleted documents that have not yet been merged away.
 // Be careful when performing calculations on these values because they are represented as 64-bit integer
 // values, you may need to cast to double for your use.
-type TermStatistics struct {
+type termStatistics struct {
 	term          []byte
 	docFreq       int64
 	totalTermFreq int64
@@ -31,9 +38,9 @@ type TermStatistics struct {
 //
 // Throws: 	NullPointerException – if term is null.
 //
-//	IllegalArgumentException – if docFreq is negative or zero.
-//	IllegalArgumentException – if totalTermFreq is less than docFreq.
-func NewTermStatistics(term []byte, docFreq, totalTermFreq int64) (*TermStatistics, error) {
+// IllegalArgumentException – if docFreq is negative or zero.
+// IllegalArgumentException – if totalTermFreq is less than docFreq.
+func NewTermStatistics(term []byte, docFreq, totalTermFreq int64) (TermStatistics, error) {
 	if len(term) == 0 {
 		return nil, errors.New("term require not nil")
 	}
@@ -51,21 +58,21 @@ func NewTermStatistics(term []byte, docFreq, totalTermFreq int64) (*TermStatisti
 			totalTermFreq, docFreq)
 	}
 
-	return &TermStatistics{
+	return &termStatistics{
 		term:          term,
 		docFreq:       docFreq,
 		totalTermFreq: totalTermFreq,
 	}, nil
 }
 
-func (t *TermStatistics) Term() []byte {
+func (t *termStatistics) Term() []byte {
 	return t.term
 }
 
-func (t *TermStatistics) DocFreq() int64 {
+func (t *termStatistics) DocFreq() int64 {
 	return t.docFreq
 }
 
-func (t *TermStatistics) TotalTermFreq() int64 {
+func (t *termStatistics) TotalTermFreq() int64 {
 	return t.totalTermFreq
 }

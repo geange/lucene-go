@@ -136,7 +136,7 @@ func (b *BM25Similarity) ComputeNorm(state *index.FieldInvertState) int64 {
 //
 // Returns: an Explain object that includes both an idf score factor and an explanation for the term.
 func (b *BM25Similarity) IdfExplain(
-	collectionStats types.CollectionStatistics, termStats *types.TermStatistics) types.Explanation {
+	collectionStats types.CollectionStatistics, termStats types.TermStatistics) types.Explanation {
 
 	df := termStats.DocFreq()
 	docCount := collectionStats.DocCount()
@@ -163,7 +163,7 @@ func (b *BM25Similarity) IdfExplainV1(
 	idfValue := 0.0
 	details := make([]types.Explanation, 0)
 	for _, stat := range termStats {
-		idfExplain := b.IdfExplain(collectionStats, &stat)
+		idfExplain := b.IdfExplain(collectionStats, stat)
 		details = append(details, idfExplain)
 		v, ok := idfExplain.GetValue().(float64)
 		if ok {
@@ -177,7 +177,7 @@ func (b *BM25Similarity) Scorer(boost float64, collectionStats types.CollectionS
 
 	var idfValue types.Explanation
 	if len(termStats) == 1 {
-		idfValue = b.IdfExplain(collectionStats, &termStats[0])
+		idfValue = b.IdfExplain(collectionStats, termStats[0])
 	} else {
 		idfValue = b.IdfExplainV1(collectionStats, termStats)
 	}

@@ -3,17 +3,18 @@ package search
 import (
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/document"
-	index2 "github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/types"
 	"reflect"
+
+	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 const (
 	TOTAL_HITS_THRESHOLD = 1000
 )
 
-var _ index2.IndexSearcher = &indexSearcher{}
+var _ index.IndexSearcher = &indexSearcher{}
 
 // indexSearcher
 // Implements search over a single Reader.
@@ -37,42 +38,42 @@ var _ index2.IndexSearcher = &indexSearcher{}
 // methods, concurrently. If your application requires external synchronization, you should not synchronize on
 // the indexSearcher instance; use your own (non-Lucene) objects instead.
 type indexSearcher struct {
-	reader index2.IndexReader
+	reader index.IndexReader
 
 	// NOTE: these members might change in incompatible ways
 	// in the next release
-	readerContext index2.IndexReaderContext
-	leafContexts  []index2.LeafReaderContext
+	readerContext index.IndexReaderContext
+	leafContexts  []index.LeafReaderContext
 
 	// used with executor - each slice holds a set of leafs executed within one thread
-	leafSlices []index2.LeafSlice
+	leafSlices []index.LeafSlice
 
 	// These are only used for multi-threaded search
 	executor Executor
 
 	// the default Similarity
-	similarity index2.Similarity
+	similarity index.Similarity
 
-	queryCache         index2.QueryCache
-	queryCachingPolicy index2.QueryCachingPolicy
+	queryCache         index.QueryCache
+	queryCachingPolicy index.QueryCachingPolicy
 }
 
-func (r *indexSearcher) GetQueryCache() index2.QueryCache {
+func (r *indexSearcher) GetQueryCache() index.QueryCache {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *indexSearcher) SetQueryCachingPolicy(queryCachingPolicy index2.QueryCachingPolicy) {
+func (r *indexSearcher) SetQueryCachingPolicy(queryCachingPolicy index.QueryCachingPolicy) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *indexSearcher) GetQueryCachingPolicy() index2.QueryCachingPolicy {
+func (r *indexSearcher) GetQueryCachingPolicy() index.QueryCachingPolicy {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *indexSearcher) Slices(leaves []index2.LeafReaderContext) []index2.LeafSlice {
+func (r *indexSearcher) Slices(leaves []index.LeafReaderContext) []index.LeafSlice {
 	//TODO implement me
 	panic("implement me")
 }
@@ -92,17 +93,17 @@ func (r *indexSearcher) DocLimitFields(docID int, fieldsToLoad []string) (*docum
 	panic("implement me")
 }
 
-func (r *indexSearcher) Count(query index2.Query) (int, error) {
+func (r *indexSearcher) Count(query index.Query) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *indexSearcher) GetSlices() []index2.LeafSlice {
+func (r *indexSearcher) GetSlices() []index.LeafSlice {
 	//TODO implement me
 	panic("implement me")
 }
 
-func NewIndexSearcher(r index2.IndexReader) (index2.IndexSearcher, error) {
+func NewIndexSearcher(r index.IndexReader) (index.IndexSearcher, error) {
 	ctx, err := r.GetContext()
 	if err != nil {
 		return nil, err
@@ -110,7 +111,7 @@ func NewIndexSearcher(r index2.IndexReader) (index2.IndexSearcher, error) {
 	return newIndexSearcher(ctx)
 }
 
-func newIndexSearcher(readerContext index2.IndexReaderContext) (*indexSearcher, error) {
+func newIndexSearcher(readerContext index.IndexReaderContext) (*indexSearcher, error) {
 	leaves, err := readerContext.Leaves()
 	if err != nil {
 		return nil, err
@@ -132,23 +133,23 @@ func newIndexSearcher(readerContext index2.IndexReaderContext) (*indexSearcher, 
 	}, nil
 }
 
-func (r *indexSearcher) GetTopReaderContext() index2.IndexReaderContext {
+func (r *indexSearcher) GetTopReaderContext() index.IndexReaderContext {
 	return r.readerContext
 }
 
-func (r *indexSearcher) GetIndexReader() index2.IndexReader {
+func (r *indexSearcher) GetIndexReader() index.IndexReader {
 	return r.reader
 }
 
-func (r *indexSearcher) SetSimilarity(similarity index2.Similarity) {
+func (r *indexSearcher) SetSimilarity(similarity index.Similarity) {
 	r.similarity = similarity
 }
 
-func (r *indexSearcher) SetQueryCache(queryCache index2.QueryCache) {
+func (r *indexSearcher) SetQueryCache(queryCache index.QueryCache) {
 	r.queryCache = queryCache
 }
 
-func (r *indexSearcher) Search(query index2.Query, results index2.Collector) error {
+func (r *indexSearcher) Search(query index.Query, results index.Collector) error {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
@@ -167,7 +168,7 @@ func (r *indexSearcher) Search(query index2.Query, results index2.Collector) err
 // By passing the bottom result from a previous page as after, this method can be used for
 // efficient 'deep-paging' across potentially large result sets.
 // Throws: BooleanQuery.TooManyClauses – If a query would exceed BooleanQuery.getMaxClauseCount() clauses.
-func (r *indexSearcher) SearchAfter(after index2.ScoreDoc, query index2.Query, numHits int) (index2.TopDocs, error) {
+func (r *indexSearcher) SearchAfter(after index.ScoreDoc, query index.Query, numHits int) (index.TopDocs, error) {
 	limit := max(1, r.reader.MaxDoc())
 	if after != nil && after.GetDoc() >= limit {
 		return nil, errors.New("after.doc exceeds the number of documents in the reader")
@@ -200,7 +201,7 @@ func (r *indexSearcher) SearchAfter(after index2.ScoreDoc, query index2.Query, n
 		return nil, err
 	}
 
-	topDocs, ok := v.(index2.TopDocs)
+	topDocs, ok := v.(index.TopDocs)
 	if !ok {
 		return nil, errors.New("object is not TopDocs")
 	}
@@ -214,15 +215,15 @@ type searchAfterCollectorManager struct {
 	hitsThresholdChecker HitsThresholdChecker
 	minScoreAcc          *MaxScoreAccumulator
 	cappedNumHits        int
-	after                index2.ScoreDoc
+	after                index.ScoreDoc
 }
 
-func (s *searchAfterCollectorManager) NewCollector() (index2.Collector, error) {
+func (s *searchAfterCollectorManager) NewCollector() (index.Collector, error) {
 	return TopScoreDocCollectorCreate(s.cappedNumHits, s.after, s.hitsThresholdChecker, s.minScoreAcc)
 }
 
-func (s *searchAfterCollectorManager) Reduce(collectors []index2.Collector) (any, error) {
-	topDocs := make([]index2.TopDocs, len(collectors))
+func (s *searchAfterCollectorManager) Reduce(collectors []index.Collector) (any, error) {
+	topDocs := make([]index.TopDocs, len(collectors))
 	for i, collector := range collectors {
 		docs, err := collector.(TopScoreDocCollector).TopDocs()
 		if err != nil {
@@ -239,7 +240,7 @@ func (s *searchAfterCollectorManager) Reduce(collectors []index2.Collector) (any
 // Executor in order to parallelize execution of the collection on the configured leafSlices.
 // See Also: CollectorManager
 // lucene.experimental
-func (r *indexSearcher) SearchByCollectorManager(query index2.Query, collectorManager CollectorManager) (any, error) {
+func (r *indexSearcher) SearchByCollectorManager(query index.Query, collectorManager CollectorManager) (any, error) {
 	if r.executor == nil || len(r.leafSlices) <= 1 {
 		collector, err := collectorManager.NewCollector()
 		if err != nil {
@@ -248,18 +249,18 @@ func (r *indexSearcher) SearchByCollectorManager(query index2.Query, collectorMa
 		if err := r.SearchCollector(query, collector); err != nil {
 			return nil, err
 		}
-		return collectorManager.Reduce([]index2.Collector{collector.(TopScoreDocCollector)})
+		return collectorManager.Reduce([]index.Collector{collector.(TopScoreDocCollector)})
 	}
 
 	// TODO: fix it
 	panic("")
 }
 
-func (r *indexSearcher) SearchTopN(query index2.Query, n int) (index2.TopDocs, error) {
+func (r *indexSearcher) SearchTopN(query index.Query, n int) (index.TopDocs, error) {
 	return r.SearchAfter(nil, query, n)
 }
 
-func (r *indexSearcher) SearchCollector(query index2.Query, results index2.Collector) error {
+func (r *indexSearcher) SearchCollector(query index.Query, results index.Collector) error {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
@@ -272,7 +273,7 @@ func (r *indexSearcher) SearchCollector(query index2.Query, results index2.Colle
 	return r.Search3(r.leafContexts, weight, results)
 }
 
-func (r *indexSearcher) Search3(leaves []index2.LeafReaderContext, weight index2.Weight, collector index2.Collector) error {
+func (r *indexSearcher) Search3(leaves []index.LeafReaderContext, weight index.Weight, collector index.Collector) error {
 
 	for _, leaf := range leaves {
 		leafCollector, err := collector.GetLeafCollector(context.TODO(), leaf)
@@ -295,7 +296,7 @@ func (r *indexSearcher) Search3(leaves []index2.LeafReaderContext, weight index2
 	return nil
 }
 
-func (r *indexSearcher) CreateWeight(query index2.Query, scoreMode index2.ScoreMode, boost float64) (index2.Weight, error) {
+func (r *indexSearcher) CreateWeight(query index.Query, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
 	queryCache := r.queryCache
 	weight, err := query.CreateWeight(r, scoreMode, boost)
 	if err != nil {
@@ -308,7 +309,7 @@ func (r *indexSearcher) CreateWeight(query index2.Query, scoreMode index2.ScoreM
 	return weight, nil
 }
 
-func (r *indexSearcher) Rewrite(query index2.Query) (index2.Query, error) {
+func (r *indexSearcher) Rewrite(query index.Query) (index.Query, error) {
 	rewrittenQuery, err := query.Rewrite(r.reader)
 	if err != nil {
 		return nil, err
@@ -328,7 +329,7 @@ func (r *indexSearcher) Rewrite(query index2.Query) (index2.Query, error) {
 // GetSimilarity
 // Expert: Get the Similarity to use to compute scores. This returns the Similarity
 // that has been set through setSimilarity(Similarity) or the default Similarity if none has been set explicitly.
-func (r *indexSearcher) GetSimilarity() index2.Similarity {
+func (r *indexSearcher) GetSimilarity() index.Similarity {
 	return r.similarity
 }
 
@@ -387,7 +388,7 @@ func (r *indexSearcher) CollectionStatistics(field string) (types.CollectionStat
 // totalTermFreq – The total term frequency.
 // Returns:
 // A TermStatistics (never null).
-func (r *indexSearcher) TermStatistics(term index2.Term, docFreq, totalTermFreq int) (*types.TermStatistics, error) {
+func (r *indexSearcher) TermStatistics(term index.Term, docFreq, totalTermFreq int) (types.TermStatistics, error) {
 	return types.NewTermStatistics(term.Bytes(), int64(docFreq), int64(totalTermFreq))
 }
 

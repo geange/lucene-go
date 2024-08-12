@@ -223,7 +223,7 @@ func (t *TermQuery) NewTermWeight(searcher index.IndexSearcher, scoreMode index.
 	weight.BaseWeight = NewBaseWeight(weight, weight)
 
 	var collectionStats types.CollectionStatistics
-	var termStats *types.TermStatistics
+	var termStats types.TermStatistics
 	var err error
 	if scoreMode.NeedsScores() {
 		collectionStats, err = searcher.CollectionStatistics(t.term.Field())
@@ -265,7 +265,7 @@ func (t *TermQuery) NewTermWeight(searcher index.IndexSearcher, scoreMode index.
 	if termStats == nil {
 		weight.simScorer = nil
 	} else {
-		weight.simScorer = weight.similarity.Scorer(boost, collectionStats, []types.TermStatistics{*termStats})
+		weight.simScorer = weight.similarity.Scorer(boost, collectionStats, []types.TermStatistics{termStats})
 	}
 	return weight, nil
 }

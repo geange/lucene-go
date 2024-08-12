@@ -230,7 +230,7 @@ type IndexSearcher interface {
 	Count(query Query) (int, error)
 	GetSlices() []LeafSlice
 	CreateWeight(query Query, scoreMode ScoreMode, boost float64) (Weight, error)
-	TermStatistics(term Term, docFreq, totalTermFreq int) (*types.TermStatistics, error)
+	TermStatistics(term Term, docFreq, totalTermFreq int) (types.TermStatistics, error)
 	CollectionStatistics(field string) (types.CollectionStatistics, error)
 	GetTopReaderContext() IndexReaderContext
 	Search(query Query, results Collector) error
