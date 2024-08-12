@@ -334,7 +334,7 @@ func (r *indexSearcher) GetSimilarity() index2.Similarity {
 
 // CollectionStatistics
 // Returns CollectionStatistics for a field, or null if the field does not exist (has no indexed terms) This can be overridden for example, to return a field's statistics across a distributed collection.
-func (r *indexSearcher) CollectionStatistics(field string) (*types.CollectionStatistics, error) {
+func (r *indexSearcher) CollectionStatistics(field string) (types.CollectionStatistics, error) {
 	docCount := 0
 	sumTotalTermFreq := int64(0)
 	sumDocFreq := int64(0)

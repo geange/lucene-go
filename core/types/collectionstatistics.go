@@ -2,6 +2,14 @@ package types
 
 import "fmt"
 
+type CollectionStatistics interface {
+	Field() string
+	MaxDoc() int64
+	DocCount() int64
+	SumTotalTermFreq() int64
+	SumDocFreq() int64
+}
+
 // CollectionStatistics
 // Contains statistics for a collection (field).
 // This class holds statistics across all documents for scoring purposes:
@@ -17,7 +25,7 @@ import "fmt"
 // Values may include statistics on deleted documents that have not yet been merged away.
 // Be careful when performing calculations on these values because they are represented as 64-bit integer
 // values, you may need to cast to double for your use.
-type CollectionStatistics struct {
+type collectionStatistics struct {
 	field            string
 	maxDoc           int64
 	docCount         int64
@@ -26,7 +34,7 @@ type CollectionStatistics struct {
 }
 
 func NewCollectionStatistics(field string,
-	maxDoc, docCount, sumTotalTermFreq, sumDocFreq int64) (*CollectionStatistics, error) {
+	maxDoc, docCount, sumTotalTermFreq, sumDocFreq int64) (CollectionStatistics, error) {
 
 	if maxDoc <= 0 {
 		return nil, fmt.Errorf("maxDoc must be positive, maxDoc: %d", maxDoc)
@@ -59,7 +67,7 @@ func NewCollectionStatistics(field string,
 			sumTotalTermFreq, sumDocFreq)
 	}
 
-	return &CollectionStatistics{
+	return &collectionStatistics{
 		field:            field,
 		maxDoc:           maxDoc,
 		docCount:         docCount,
@@ -68,22 +76,22 @@ func NewCollectionStatistics(field string,
 	}, nil
 }
 
-func (c *CollectionStatistics) Field() string {
+func (c *collectionStatistics) Field() string {
 	return c.field
 }
 
-func (c *CollectionStatistics) MaxDoc() int64 {
+func (c *collectionStatistics) MaxDoc() int64 {
 	return c.maxDoc
 }
 
-func (c *CollectionStatistics) DocCount() int64 {
+func (c *collectionStatistics) DocCount() int64 {
 	return c.docCount
 }
 
-func (c *CollectionStatistics) SumTotalTermFreq() int64 {
+func (c *collectionStatistics) SumTotalTermFreq() int64 {
 	return c.sumTotalTermFreq
 }
 
-func (c *CollectionStatistics) SumDocFreq() int64 {
+func (c *collectionStatistics) SumDocFreq() int64 {
 	return c.sumDocFreq
 }

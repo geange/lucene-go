@@ -63,7 +63,7 @@ type Similarity interface {
 	// collectionStats: collection-level statistics, such as the number of tokens in the collection.
 	// termStats: term-level statistics, such as the document frequency of a term across the collection.
 	// Returns: SimWeight object with the information this Similarity needs to score a query.
-	Scorer(boost float64, collectionStats *types.CollectionStatistics, termStats []types.TermStatistics) SimScorer
+	Scorer(boost float64, collectionStats types.CollectionStatistics, termStats []types.TermStatistics) SimScorer
 }
 
 // SimScorer Stores the weight for a query across the indexed collection. This abstract implementation is empty;
@@ -84,5 +84,5 @@ type SimScorer interface {
 	// Returns: document's Score
 	Score(freq float64, norm int64) float64
 
-	Explain(freq *types.Explanation, norm int64) (*types.Explanation, error)
+	Explain(freq types.Explanation, norm int64) (types.Explanation, error)
 }

@@ -43,7 +43,7 @@ func (r *LeafSimScorer) Score(doc int, freq float64) (float64, error) {
 // This method must be called on non-decreasing sequences of doc ids.
 // See Also:
 // org.apache.lucene.search.similarities.Similarity.SimScorer.explain(Explanation, long)
-func (r *LeafSimScorer) Explain(doc int, freqExp *types.Explanation) (*types.Explanation, error) {
+func (r *LeafSimScorer) Explain(doc int, freqExp types.Explanation) (types.Explanation, error) {
 	normValue, err := r.getNormValue(doc)
 	if err != nil {
 		return nil, err

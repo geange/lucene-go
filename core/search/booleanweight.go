@@ -61,7 +61,7 @@ func (b *BooleanWeight) ExtractTerms(terms *treeset.Set[index2.Term]) error {
 	return nil
 }
 
-func (b *BooleanWeight) Explain(ctx index2.LeafReaderContext, doc int) (*types.Explanation, error) {
+func (b *BooleanWeight) Explain(ctx index2.LeafReaderContext, doc int) (types.Explanation, error) {
 	//TODO implement me
 	panic("implement me")
 }

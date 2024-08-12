@@ -101,7 +101,7 @@ func (t *TermWeight) ExtractTerms(terms *treeset.Set[index.Term]) error {
 	return nil
 }
 
-func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (*types.Explanation, error) {
+func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (types.Explanation, error) {
 	scorer, err := t.Scorer(context)
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func (t *TermQuery) NewTermWeight(searcher index.IndexSearcher, scoreMode index.
 
 	weight.BaseWeight = NewBaseWeight(weight, weight)
 
-	var collectionStats *types.CollectionStatistics
+	var collectionStats types.CollectionStatistics
 	var termStats *types.TermStatistics
 	var err error
 	if scoreMode.NeedsScores() {

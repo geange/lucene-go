@@ -113,7 +113,7 @@ type Weight interface {
 	// doc: the document's id relative to the given context's reader
 	// Returns: an Explanation for the score
 	// Throws: 	IOException – if an IOException occurs
-	Explain(readerContext LeafReaderContext, doc int) (*types.Explanation, error)
+	Explain(readerContext LeafReaderContext, doc int) (types.Explanation, error)
 
 	// GetQuery The query that this concerns.
 	GetQuery() Query
@@ -231,7 +231,7 @@ type IndexSearcher interface {
 	GetSlices() []LeafSlice
 	CreateWeight(query Query, scoreMode ScoreMode, boost float64) (Weight, error)
 	TermStatistics(term Term, docFreq, totalTermFreq int) (*types.TermStatistics, error)
-	CollectionStatistics(field string) (*types.CollectionStatistics, error)
+	CollectionStatistics(field string) (types.CollectionStatistics, error)
 	GetTopReaderContext() IndexReaderContext
 	Search(query Query, results Collector) error
 	SearchTopN(query Query, n int) (TopDocs, error)
