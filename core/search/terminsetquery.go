@@ -1,10 +1,15 @@
 package search
 
-import "github.com/geange/lucene-go/core/index"
+import (
+	coreIndex "github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
+)
 
 const (
 	BOOLEAN_REWRITE_TERM_COUNT_THRESHOLD = 16
 )
+
+var _ index.Query = &TermInSetQuery{}
 
 // TermInSetQuery
 // Specialization for a disjunction over many terms that behaves like a ConstantScoreQuery over
@@ -25,5 +30,25 @@ const (
 // NOTE: This query produces scores that are equal to its boost
 type TermInSetQuery struct {
 	field    string
-	termData *index.PrefixCodedTerms
+	termData *coreIndex.PrefixCodedTerms
+}
+
+func (t *TermInSetQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermInSetQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermInSetQuery) Visit(visitor index.QueryVisitor) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermInSetQuery) String(field string) string {
+	//TODO implement me
+	panic("implement me")
 }
