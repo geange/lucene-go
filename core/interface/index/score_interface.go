@@ -312,6 +312,10 @@ type Query interface {
 	String(field string) string
 }
 
+type QueryExt interface {
+	IsPointQuery() bool
+}
+
 // QueryVisitor
 // Allows recursion through a query tree
 // See Also: Query.visit(QueryVisitor)

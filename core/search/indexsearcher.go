@@ -297,15 +297,15 @@ func (r *indexSearcher) Search3(leaves []index.LeafReaderContext, weight index.W
 }
 
 func (r *indexSearcher) CreateWeight(query index.Query, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
-	queryCache := r.queryCache
+	//queryCache := r.queryCache
 	weight, err := query.CreateWeight(r, scoreMode, boost)
 	if err != nil {
 		return nil, err
 	}
 
-	if !scoreMode.NeedsScores() && queryCache != nil {
-		weight = queryCache.DoCache(weight, r.queryCachingPolicy)
-	}
+	//if !scoreMode.NeedsScores() && queryCache != nil {
+	//	weight = queryCache.DoCache(weight, r.queryCachingPolicy)
+	//}
 	return weight, nil
 }
 
