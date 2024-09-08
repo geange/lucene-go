@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
@@ -33,7 +34,7 @@ func (d *DocValuesLeafReader) MaxDoc() int {
 	return 0
 }
 
-func (d *DocValuesLeafReader) DocumentWithVisitor(docID int, visitor document.StoredFieldVisitor) error {
+func (d *DocValuesLeafReader) DocumentWithVisitor(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error {
 	return errors.New("func DocumentWithVisitor is not yet implemented")
 }
 

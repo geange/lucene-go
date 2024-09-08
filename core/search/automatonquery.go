@@ -3,8 +3,8 @@ package search
 import (
 	"errors"
 
-	"github.com/geange/lucene-go/core/index"
-	index2 "github.com/geange/lucene-go/core/interface/index"
+	coreIndex "github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/automaton"
 )
@@ -26,19 +26,18 @@ var _ MultiTermQuery = &AutomatonQuery{}
 type AutomatonQuery struct {
 	field string
 
-	//  the automaton to match index terms against
+	// the automaton to match index terms against
 	automaton *automaton.Automaton
 	compiled  *automaton.CompiledAutomaton
 
 	// term containing the field, and possibly some pattern structure
-	term index2.Term
+	term index.Term
 
 	automatonIsBinary bool
-
-	rewriteMethod RewriteMethod
+	rewriteMethod     RewriteMethod
 }
 
-func NewAutomatonQuery(term index2.Term, auto *automaton.Automaton, determinizeWorkLimit int, isBinary bool) *AutomatonQuery {
+func NewAutomatonQuery(term index.Term, auto *automaton.Automaton, determinizeWorkLimit int, isBinary bool) *AutomatonQuery {
 	return &AutomatonQuery{
 		field:             term.Field(),
 		automaton:         auto,
@@ -52,14 +51,14 @@ func (r *AutomatonQuery) GetField() string {
 	return r.field
 }
 
-func (r *AutomatonQuery) GetTermsEnum(terms index2.Terms, atts *attribute.Source) (index2.TermsEnum, error) {
+func (r *AutomatonQuery) GetTermsEnum(terms index.Terms, atts *attribute.Source) (index.TermsEnum, error) {
 	return GetTermsEnum(r.compiled, terms)
 }
 
-func GetTermsEnum(r *automaton.CompiledAutomaton, terms index2.Terms) (index2.TermsEnum, error) {
+func GetTermsEnum(r *automaton.CompiledAutomaton, terms index.Terms) (index.TermsEnum, error) {
 	switch r.Type() {
 	case automaton.AUTOMATON_TYPE_NONE:
-		return index.EmptyTermsEnum, nil
+		return coreIndex.EmptyTermsEnum, nil
 	case automaton.AUTOMATON_TYPE_ALL:
 		return terms.Iterator()
 	case automaton.AUTOMATON_TYPE_SINGLE:
@@ -67,7 +66,7 @@ func GetTermsEnum(r *automaton.CompiledAutomaton, terms index2.Terms) (index2.Te
 		if err != nil {
 			return nil, err
 		}
-		return index.NewSingleTermsEnum(it, r.Term()), nil
+		return coreIndex.NewSingleTermsEnum(it, r.Term()), nil
 	case automaton.AUTOMATON_TYPE_NORMAL:
 		return terms.Intersect(r, nil)
 	default:
@@ -90,15 +89,15 @@ func (r *AutomatonQuery) String(field string) string {
 	panic("implement me")
 }
 
-func (r *AutomatonQuery) CreateWeight(searcher index2.IndexSearcher, scoreMode index2.ScoreMode, boost float64) (index2.Weight, error) {
+func (r *AutomatonQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
 	return nil, errors.New("implement me")
 }
 
-func (r *AutomatonQuery) Rewrite(reader index2.IndexReader) (index2.Query, error) {
+func (r *AutomatonQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
 	return r, nil
 }
 
-func (r *AutomatonQuery) Visit(visitor index2.QueryVisitor) error {
+func (r *AutomatonQuery) Visit(visitor index.QueryVisitor) error {
 	if visitor.AcceptField(r.field) {
 		if err := visit(r.compiled, visitor, r, r.field); err != nil {
 			return err
@@ -107,7 +106,7 @@ func (r *AutomatonQuery) Visit(visitor index2.QueryVisitor) error {
 	return nil
 }
 
-func visit(auto *automaton.CompiledAutomaton, visitor index2.QueryVisitor, parent index2.Query, field string) error {
+func visit(auto *automaton.CompiledAutomaton, visitor index.QueryVisitor, parent index.Query, field string) error {
 	if visitor.AcceptField(field) {
 		switch auto.Type() {
 		case automaton.AUTOMATON_TYPE_NORMAL:
@@ -118,7 +117,7 @@ func visit(auto *automaton.CompiledAutomaton, visitor index2.QueryVisitor, paren
 				return automaton.NewByteRunAutomaton(automaton.MakeAnyString())
 			})
 		case automaton.AUTOMATON_TYPE_SINGLE:
-			visitor.ConsumeTerms(parent, index.NewTerm(field, auto.Term()))
+			visitor.ConsumeTerms(parent, coreIndex.NewTerm(field, auto.Term()))
 		default:
 			return errors.New("unhandled case")
 		}

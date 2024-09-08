@@ -217,14 +217,14 @@ type MatchesIterator interface {
 
 type IndexSearcher interface {
 	SetQueryCache(queryCache QueryCache)
-	GetQueryCache() QueryCache
+	GetQueryCache() (QueryCache, error)
 	SetQueryCachingPolicy(queryCachingPolicy QueryCachingPolicy)
-	GetQueryCachingPolicy() QueryCachingPolicy
+	GetQueryCachingPolicy() (QueryCachingPolicy, error)
 	Slices(leaves []LeafReaderContext) []LeafSlice
 	GetIndexReader() IndexReader
-	Doc(docID int) (*document.Document, error)
-	DocWithVisitor(docID int, fieldVisitor document.StoredFieldVisitor) (*document.Document, error)
-	DocLimitFields(docID int, fieldsToLoad []string) (*document.Document, error)
+	Doc(ctx context.Context, docID int) (*document.Document, error)
+	DocWithVisitor(ctx context.Context, docID int, fieldVisitor document.StoredFieldVisitor) error
+	DocLimitFields(ctx context.Context, docID int, fieldsToLoad []string) (*document.Document, error)
 	SetSimilarity(similarity Similarity)
 	GetSimilarity() Similarity
 	Count(query Query) (int, error)
@@ -234,9 +234,16 @@ type IndexSearcher interface {
 	CollectionStatistics(field string) (types.CollectionStatistics, error)
 	GetTopReaderContext() IndexReaderContext
 	Search(query Query, results Collector) error
-	SearchTopN(query Query, n int) (TopDocs, error)
-	SearchCollector(query Query, results Collector) error
-	Search3(leaves []LeafReaderContext, weight Weight, collector Collector) error
+	SearchTopN(ctx context.Context, query Query, n int) (TopDocs, error)
+	SearchCollector(ctx context.Context, query Query, results Collector) error
+	SearchLeaves(ctx context.Context, leaves []LeafReaderContext, weight Weight, collector Collector) error
+}
+
+type OptionDocument func(opt *optionDocument)
+
+type optionDocument struct {
+	visitor      document.StoredFieldVisitor
+	fieldsToLoad []string
 }
 
 type LeafSlice struct {

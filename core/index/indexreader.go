@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -14,7 +15,7 @@ type IndexReaderSPI interface {
 	GetTermVectors(docID int) (index.Fields, error)
 	NumDocs() int
 	MaxDoc() int
-	DocumentWithVisitor(docID int, visitor document.StoredFieldVisitor) error
+	DocumentWithVisitor(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error
 	GetContext() (index.IndexReaderContext, error)
 	DoClose() error
 }
@@ -40,9 +41,9 @@ func (r *baseIndexReader) Close() error {
 	return r.spi.DoClose()
 }
 
-func (r *baseIndexReader) DocumentWithFields(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error) {
-	visitor := document.NewDocumentStoredFieldVisitorV1(fieldsToLoad)
-	if err := r.spi.DocumentWithVisitor(docID, visitor); err != nil {
+func (r *baseIndexReader) DocumentWithFields(ctx context.Context, docID int, fieldsToLoad []string) (*document.Document, error) {
+	visitor := document.NewDocumentStoredFieldVisitor(fieldsToLoad...)
+	if err := r.spi.DocumentWithVisitor(ctx, docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil
@@ -148,9 +149,9 @@ func (r *baseIndexReader) NumDeletedDocs() int {
 	return r.spi.MaxDoc() - r.spi.NumDocs()
 }
 
-func (r *baseIndexReader) Document(docID int) (*document.Document, error) {
+func (r *baseIndexReader) Document(ctx context.Context, docID int) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitor()
-	if err := r.spi.DocumentWithVisitor(docID, visitor); err != nil {
+	if err := r.spi.DocumentWithVisitor(nil, docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil
