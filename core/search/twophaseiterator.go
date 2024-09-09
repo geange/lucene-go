@@ -1,9 +1,10 @@
 package search
 
 import (
+	"io"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
-	"io"
 )
 
 func AsDocIdSetIterator(twoPhaseIterator index.TwoPhaseIterator) types.DocIdSetIterator {

@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 
@@ -56,7 +57,7 @@ func (m *IndexReader) MaxDoc() int {
 	return 1
 }
 
-func (m *IndexReader) DocumentWithVisitor(docID int, visitor document.StoredFieldVisitor) error {
+func (m *IndexReader) DocumentWithVisitor(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error {
 	return nil
 }
 

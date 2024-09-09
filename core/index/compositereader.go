@@ -146,13 +146,13 @@ func (b *baseCompositeReader) MaxDoc() int {
 	return b.maxDoc
 }
 
-func (b *baseCompositeReader) DocumentWithVisitor(docID int, visitor document.StoredFieldVisitor) error {
+func (b *baseCompositeReader) DocumentWithVisitor(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error {
 	//ensureOpen();
 	i, err := b.readerIndex(docID) // find subreader num
 	if err != nil {
 		return err
 	}
-	return b.subReaders[i].DocumentWithVisitor(docID-b.starts[i], visitor) // dispatch to subreader
+	return b.subReaders[i].DocumentWithVisitor(ctx, docID-b.starts[i], visitor) // dispatch to subreader
 }
 
 func (b *baseCompositeReader) DocFreq(ctx context.Context, term index.Term) (int, error) {

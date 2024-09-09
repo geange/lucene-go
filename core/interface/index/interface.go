@@ -38,8 +38,9 @@ func TermCompare(a, b Term) int {
 // vectors per document.
 type Fields interface {
 
-	// DVFUIterator Returns an iterator that will step through all fields names. This will not return null.
-	//DVFUIterator() func() string
+	// DVFUIterator
+	// Returns an iterator that will step through all fields names. This will not return null.
+	// DVFUIterator() func() string
 
 	Names() []string
 
@@ -185,18 +186,18 @@ type IndexReader interface {
 	// Throws: CorruptIndexException – if the index is corrupt
 	// IOException – if there is a low-level IO error
 	// TODO: we need a separate StoredField, so that the document returned here contains that class not IndexableField
-	Document(docID int) (*document.Document, error)
+	Document(ctx context.Context, docID int) (*document.Document, error)
 
 	// DocumentWithVisitor
 	// Expert: visits the fields of a stored document, for custom processing/loading of each field.
 	// If you simply want to load all fields, use document(int). If you want to load a subset,
 	// use DocumentStoredFieldVisitor.
-	DocumentWithVisitor(docID int, visitor document.StoredFieldVisitor) error
+	DocumentWithVisitor(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error
 
 	// DocumentWithFields
 	// Like Document(docID int) but only loads the specified fields. Note that this is simply sugar for
 	// DocumentStoredFieldVisitor.DocumentStoredFieldVisitor(Set).
-	DocumentWithFields(docID int, fieldsToLoad map[string]struct{}) (*document.Document, error)
+	DocumentWithFields(ctx context.Context, docID int, fieldsToLoad []string) (*document.Document, error)
 
 	// HasDeletions
 	// Returns true if any documents have been deleted. Implementers should consider overriding

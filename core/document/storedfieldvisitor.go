@@ -53,26 +53,19 @@ type DocStoredFieldVisitor struct {
 	fieldsToAdd map[string]struct{}
 }
 
-func NewDocumentStoredFieldVisitor() *DocStoredFieldVisitor {
-	return &DocStoredFieldVisitor{
-		doc:         NewDocument(),
-		fieldsToAdd: nil,
-	}
-}
-
-func NewDocumentStoredFieldVisitorV1(fieldsToAdd map[string]struct{}) *DocStoredFieldVisitor {
-	return &DocStoredFieldVisitor{
-		doc:         NewDocument(),
-		fieldsToAdd: fieldsToAdd,
-	}
-}
-
-func NewDocumentStoredFieldVisitorV2(fields ...string) *DocStoredFieldVisitor {
+func NewDocumentStoredFieldVisitor(fields ...string) *DocStoredFieldVisitor {
 	fieldsToAdd := make(map[string]struct{}, len(fields))
 	for _, field := range fields {
 		fieldsToAdd[field] = struct{}{}
 	}
-	return NewDocumentStoredFieldVisitorV1(fieldsToAdd)
+	return newDocumentStoredFieldVisitor(fieldsToAdd)
+}
+
+func newDocumentStoredFieldVisitor(fieldsToAdd map[string]struct{}) *DocStoredFieldVisitor {
+	return &DocStoredFieldVisitor{
+		doc:         NewDocument(),
+		fieldsToAdd: fieldsToAdd,
+	}
 }
 
 func (r *DocStoredFieldVisitor) GetDocument() *Document {

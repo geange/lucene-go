@@ -71,7 +71,7 @@ func NewBaseCodecReader(reader index.CodecReader) *BaseCodecReader {
 	return codec
 }
 
-func (c *BaseCodecReader) DocumentWithVisitor(docID int, visitor document.StoredFieldVisitor) error {
+func (c *BaseCodecReader) DocumentWithVisitor(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error {
 	return c.GetFieldsReader().VisitDocument(nil, docID, visitor)
 }
 
