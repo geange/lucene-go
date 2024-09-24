@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
@@ -21,14 +22,14 @@ func newReqExclBulkScorer(req index.BulkScorer, excl types.DocIdSetIterator) *Re
 	}
 }
 
-func (r *ReqExclBulkScorer) Score(collector index.LeafCollector, acceptDocs util.Bits) error {
-	if _, err := r.ScoreRange(collector, acceptDocs, 0, math.MaxInt32); err != nil {
+func (r *ReqExclBulkScorer) Score(ctx context.Context, collector index.LeafCollector, acceptDocs util.Bits) error {
+	if _, err := r.ScoreRange(ctx, collector, acceptDocs, 0, math.MaxInt32); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *ReqExclBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs util.Bits, minDoc, maxDoc int) (int, error) {
+func (r *ReqExclBulkScorer) ScoreRange(ctx context.Context, collector index.LeafCollector, acceptDocs util.Bits, minDoc, maxDoc int) (int, error) {
 	upTo := minDoc
 	exclDoc := r.excl.DocID()
 
@@ -49,7 +50,7 @@ func (r *ReqExclBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs
 				return 0, err
 			}
 		} else {
-			upTo, err = r.req.ScoreRange(collector, acceptDocs, upTo, min(exclDoc, maxDoc))
+			upTo, err = r.req.ScoreRange(ctx, collector, acceptDocs, upTo, min(exclDoc, maxDoc))
 			if err != nil {
 				return 0, err
 			}
@@ -57,7 +58,7 @@ func (r *ReqExclBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs
 	}
 
 	if upTo == maxDoc {
-		upTo, err = r.req.ScoreRange(collector, acceptDocs, upTo, upTo)
+		upTo, err = r.req.ScoreRange(ctx, collector, acceptDocs, upTo, upTo)
 		if err != nil {
 			return 0, err
 		}

@@ -2,8 +2,9 @@ package search
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
+
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 var _ index.ScorerSupplier = &Boolean2ScorerSupplier{}
@@ -154,16 +155,16 @@ func (b *Boolean2ScorerSupplier) req(requiredNoScoring, requiredScoring []index.
 		var req index.Scorer
 		var err error
 
-		if len(requiredNoScoring) == 0 {
-			req, err = requiredScoring[0].Get(leadCost)
-			if err != nil {
-				return nil, err
-			}
+		var supplier index.ScorerSupplier
+		if len(requiredNoScoring) > 0 {
+			supplier = requiredNoScoring[0]
 		} else {
-			req, err = requiredNoScoring[0].Get(leadCost)
-			if err != nil {
-				return nil, err
-			}
+			supplier = requiredScoring[0]
+		}
+
+		req, err = supplier.Get(leadCost)
+		if err != nil {
+			return nil, err
 		}
 
 		if len(requiredScoring) == 0 {

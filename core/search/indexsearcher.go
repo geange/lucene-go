@@ -377,7 +377,7 @@ func (r *IndexSearcher) SearchCollector(ctx context.Context, query index.Query, 
 func (r *IndexSearcher) SearchLeaves(ctx context.Context, leaves []index.LeafReaderContext, weight index.Weight, collector index.Collector) error {
 
 	for _, leaf := range leaves {
-		leafCollector, err := collector.GetLeafCollector(context.TODO(), leaf)
+		leafCollector, err := collector.GetLeafCollector(ctx, leaf)
 		if err != nil {
 			continue
 		}
@@ -388,7 +388,7 @@ func (r *IndexSearcher) SearchLeaves(ctx context.Context, leaves []index.LeafRea
 		}
 
 		if scorer != nil {
-			if err := scorer.Score(leafCollector, leaf.LeafReader().GetLiveDocs()); err != nil {
+			if err := scorer.Score(ctx, leafCollector, leaf.LeafReader().GetLiveDocs()); err != nil {
 				return err
 			}
 		}

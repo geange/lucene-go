@@ -1,12 +1,14 @@
 package search
 
 import (
+	"context"
 	"errors"
+	"io"
+	"math"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
-	"io"
-	"math"
 )
 
 type WeightScorer interface {
@@ -124,13 +126,13 @@ func NewDefaultBulkScorer(scorer index.Scorer) *DefaultBulkScorer {
 	}
 }
 
-func (d *DefaultBulkScorer) Score(collector index.LeafCollector, acceptDocs util.Bits) error {
+func (d *DefaultBulkScorer) Score(ctx context.Context, collector index.LeafCollector, acceptDocs util.Bits) error {
 	NoMoreDocs := math.MaxInt32
-	_, err := d.ScoreRange(collector, acceptDocs, 0, NoMoreDocs)
+	_, err := d.ScoreRange(nil, collector, acceptDocs, 0, NoMoreDocs)
 	return err
 }
 
-func (d *DefaultBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
+func (d *DefaultBulkScorer) ScoreRange(ctx context.Context, collector index.LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
 	err := collector.SetScorer(d.scorer)
 	if err != nil {
 		return 0, err

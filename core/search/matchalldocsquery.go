@@ -1,12 +1,13 @@
 package search
 
 import (
-	context2 "context"
+	"context"
+	"io"
+	"math"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
-	"io"
-	"math"
 )
 
 var _ index.Query = &MatchAllDocsQuery{}
@@ -68,7 +69,7 @@ func (c *matchAllDocsWeight) BulkScorer(readerContext index.LeafReaderContext) (
 	maxDoc := readerContext.Reader().MaxDoc()
 
 	return &BaseBulkScorer{
-		FnScoreRange: func(collector index.LeafCollector, acceptDocs util.Bits, fromDoc, toDoc int) (int, error) {
+		FnScoreRange: func(ctx context.Context, collector index.LeafCollector, acceptDocs util.Bits, fromDoc, toDoc int) (int, error) {
 			toDoc = min(maxDoc, toDoc)
 			scorer := NewScoreAndDoc()
 			scorer.score = score
@@ -78,7 +79,7 @@ func (c *matchAllDocsWeight) BulkScorer(readerContext index.LeafReaderContext) (
 			for doc := fromDoc; doc < toDoc; doc++ {
 				scorer.doc = doc
 				if acceptDocs == nil || acceptDocs.Test(uint(doc)) {
-					if err := collector.Collect(context2.Background(), doc); err != nil {
+					if err := collector.Collect(ctx, doc); err != nil {
 						return 0, err
 					}
 				}

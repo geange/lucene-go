@@ -33,9 +33,10 @@ type Scorable interface {
 	// Score is particularly important when the Scorer returns a product of probabilities so that the
 	// document Score does not go to zero when one probability is zero. This can return 0 or a smoothing Score.
 	//
-	// Smoothing scores are described in many papers, including: Metzler, D. and Croft, W. B. , "Combining
-	// the Language Model and Inference Network Approaches to Retrieval," Information Processing and Management
-	// Special Issue on Bayesian Networks and Information Retrieval, 40(5), pp.735-750.
+	// Smoothing scores are described in many papers, including: Metzler, D. and Croft, W. B. ,
+	// "Combining the Language Model and Inference Network Approaches to Retrieval,"
+	// Information Processing and Management Special Issue on Bayesian Networks and Information Retrieval,
+	// 40(5), pp.735-750.
 	SmoothingScore(docId int) (float64, error)
 
 	// DocID
@@ -529,7 +530,7 @@ type BulkScorer interface {
 	// Score Scores and collects all matching documents.
 	// Params: 	collector – The collector to which all matching documents are passed.
 	//			acceptDocs – Bits that represents the allowed documents to match, or null if they are all allowed to match.
-	Score(collector LeafCollector, acceptDocs util.Bits) error
+	Score(ctx context.Context, collector LeafCollector, acceptDocs util.Bits) error
 
 	// ScoreRange
 	// Params:
@@ -538,7 +539,7 @@ type BulkScorer interface {
 	// 		min – Score starting at, including, this document
 	// 		max – Score up to, but not including, this doc
 	// Returns: an under-estimation of the next matching doc after max
-	ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error)
+	ScoreRange(ctx context.Context, collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error)
 
 	// Cost Same as DocIdSetIterator.cost() for bulk scorers.
 	Cost() int64

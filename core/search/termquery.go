@@ -55,15 +55,14 @@ func (t *TermQuery) GetTerm() index.Term {
 func (t *TermQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
 	readerContext := searcher.GetTopReaderContext()
 
-	var termState *coreIndex.TermStates
-	var err error
-	if t.perReaderTermState == nil || !t.perReaderTermState.WasBuiltFor(readerContext) {
+	termState := t.perReaderTermState
+
+	if t.perReaderTermState == nil || (t.perReaderTermState != nil && !t.perReaderTermState.WasBuiltFor(readerContext)) {
+		var err error
 		termState, err = coreIndex.BuildTermStates(readerContext, t.term, scoreMode.NeedsScores())
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		termState = t.perReaderTermState
 	}
 
 	return t.NewTermWeight(searcher, scoreMode, boost, termState)
@@ -84,8 +83,8 @@ var _ index.Weight = &TermWeight{}
 
 type TermWeight struct {
 	*BaseWeight
-	*TermQuery
 
+	termQuery  *TermQuery
 	similarity index.Similarity
 	simScorer  index.SimScorer
 	termStates *coreIndex.TermStates
@@ -97,7 +96,7 @@ func (t *TermWeight) IsCacheable(ctx index.LeafReaderContext) bool {
 }
 
 func (t *TermWeight) ExtractTerms(terms *treeset.Set[index.Term]) error {
-	terms.Add(t.GetTerm())
+	terms.Add(t.termQuery.GetTerm())
 	return nil
 }
 
@@ -125,7 +124,7 @@ func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (types.Ex
 			return nil, err
 		}
 
-		docScorer, err := NewLeafSimScorer(t.simScorer, context.Reader().(index.LeafReader), t.term.Field(), true)
+		docScorer, err := NewLeafSimScorer(t.simScorer, context.Reader().(index.LeafReader), t.termQuery.term.Field(), true)
 		if err != nil {
 			return nil, err
 		}
@@ -145,8 +144,7 @@ func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (types.Ex
 }
 
 func (t *TermWeight) GetQuery() index.Query {
-	//TODO implement me
-	panic("implement me")
+	return t.parentQuery
 }
 
 func (t *TermWeight) Scorer(ctx index.LeafReaderContext) (index.Scorer, error) {
@@ -159,7 +157,7 @@ func (t *TermWeight) Scorer(ctx index.LeafReaderContext) (index.Scorer, error) {
 		return nil, nil
 	}
 
-	scorer, err := NewLeafSimScorer(t.simScorer, ctx.LeafReader(), t.term.Field(), t.scoreMode.NeedsScores())
+	scorer, err := NewLeafSimScorer(t.simScorer, ctx.LeafReader(), t.termQuery.term.Field(), t.scoreMode.NeedsScores())
 	if err != nil {
 		return nil, err
 	}
@@ -170,18 +168,18 @@ func (t *TermWeight) Scorer(ctx index.LeafReaderContext) (index.Scorer, error) {
 			return nil, err
 		}
 		return NewTermScorerWithImpacts(t, impacts, scorer), nil
-	} else {
-		flags := coreIndex.POSTINGS_ENUM_FREQS
-		if !t.scoreMode.NeedsScores() {
-			flags = coreIndex.POSTINGS_ENUM_NONE
-		}
-
-		postings, err := termsEnum.Postings(nil, flags)
-		if err != nil {
-			return nil, err
-		}
-		return NewTermScorerWithPostings(t, postings, scorer), nil
 	}
+
+	flags := coreIndex.POSTINGS_ENUM_FREQS
+	if !t.scoreMode.NeedsScores() {
+		flags = coreIndex.POSTINGS_ENUM_NONE
+	}
+
+	postings, err := termsEnum.Postings(nil, flags)
+	if err != nil {
+		return nil, err
+	}
+	return NewTermScorerWithPostings(t, postings, scorer), nil
 }
 
 // Returns a TermsEnum positioned at this weights Term or null if the term does not exist in the given context
@@ -194,7 +192,7 @@ func (t *TermWeight) getTermsEnum(context index.LeafReaderContext) (index.TermsE
 		return nil, nil
 	}
 
-	terms, err := context.LeafReader().Terms(t.term.Field())
+	terms, err := context.LeafReader().Terms(t.termQuery.term.Field())
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +202,7 @@ func (t *TermWeight) getTermsEnum(context index.LeafReaderContext) (index.TermsE
 		return nil, err
 	}
 
-	if err := termsEnum.SeekExactExpert(nil, t.term.Bytes(), state); err != nil {
+	if err := termsEnum.SeekExactExpert(nil, t.termQuery.term.Bytes(), state); err != nil {
 		return nil, err
 	}
 
@@ -213,14 +211,15 @@ func (t *TermWeight) getTermsEnum(context index.LeafReaderContext) (index.TermsE
 
 func (t *TermQuery) NewTermWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode,
 	boost float64, termStates *coreIndex.TermStates) (*TermWeight, error) {
+
 	weight := &TermWeight{
 		similarity: searcher.GetSimilarity(),
 		termStates: termStates,
 		scoreMode:  scoreMode,
-		TermQuery:  t,
+		termQuery:  t,
 	}
 
-	weight.BaseWeight = NewBaseWeight(weight, weight)
+	weight.BaseWeight = NewBaseWeight(t, weight)
 
 	var collectionStats types.CollectionStatistics
 	var termStats types.TermStatistics
