@@ -88,7 +88,7 @@ func (r *IndexSearcher) DocLimitFields(ctx context.Context, docId int, fieldsToL
 	return r.reader.DocumentWithFields(ctx, docId, fieldsToLoad)
 }
 
-func (r *IndexSearcher) Count(query index.Query) (int, error) {
+func (r *IndexSearcher) Count(ctx context.Context, query index.Query) (int, error) {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return 0, err
@@ -118,7 +118,7 @@ func (r *IndexSearcher) Count(query index.Query) (int, error) {
 		}
 
 		for _, leaf := range leaves {
-			docFreq, err := leaf.LeafReader().DocFreq(nil, term)
+			docFreq, err := leaf.LeafReader().DocFreq(ctx, term)
 			if err != nil {
 				return 0, err
 			}
@@ -127,7 +127,7 @@ func (r *IndexSearcher) Count(query index.Query) (int, error) {
 		return count, nil
 	}
 
-	v, err := r.SearchByCollectorManager(nil, query, &collectorManager{})
+	v, err := r.SearchByCollectorManager(ctx, query, &collectorManager{})
 	if err != nil {
 		return 0, err
 	}
@@ -143,7 +143,7 @@ func (c *collectorManager) NewCollector() (index.Collector, error) {
 	return NewTotalHitCountCollector(), nil
 }
 
-func (c *collectorManager) Reduce(collectors []index.Collector) (any, error) {
+func (c *collectorManager) Reduce(_ context.Context, collectors []index.Collector) (any, error) {
 	total := 0
 	for _, collector := range collectors {
 		total += collector.(*TotalHitCountCollector).GetTotalHits()
@@ -156,11 +156,11 @@ func (r *IndexSearcher) GetSlices() []index.LeafSlice {
 }
 
 func NewIndexSearcher(r index.IndexReader) (index.IndexSearcher, error) {
-	ctx, err := r.GetContext()
+	readerContext, err := r.GetContext()
 	if err != nil {
 		return nil, err
 	}
-	return newIndexSearcher(ctx)
+	return newIndexSearcher(readerContext)
 }
 
 func newIndexSearcher(readerContext index.IndexReaderContext) (*IndexSearcher, error) {
@@ -201,7 +201,7 @@ func (r *IndexSearcher) SetQueryCache(queryCache index.QueryCache) {
 	r.queryCache = queryCache
 }
 
-func (r *IndexSearcher) Search(query index.Query, results index.Collector) error {
+func (r *IndexSearcher) Search(ctx context.Context, query index.Query, results index.Collector) error {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
@@ -212,10 +212,11 @@ func (r *IndexSearcher) Search(query index.Query, results index.Collector) error
 		return err
 	}
 
-	return r.SearchLeaves(nil, r.leafContexts, weight, results)
+	return r.SearchLeaves(ctx, r.leafContexts, weight, results)
 }
 
 // SearchAfter
+// TODO: fix it
 // Finds the top n hits for query where all results are after a previous result (after).
 // By passing the bottom result from a previous page as after, this method can be used for
 // efficient 'deep-paging' across potentially large result sets.
@@ -248,7 +249,7 @@ func (r *IndexSearcher) SearchAfter(ctx context.Context, after index.ScoreDoc, q
 		manager.hitsThresholdChecker = hitsThresholdChecker
 	}
 
-	v, err := r.SearchByCollectorManager(nil, query, manager)
+	v, err := r.SearchByCollectorManager(ctx, query, manager)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +275,7 @@ func (s *searchAfterCollectorManager) NewCollector() (index.Collector, error) {
 	return TopScoreDocCollectorCreate(s.cappedNumHits, s.after, s.hitsThresholdChecker, s.minScoreAcc)
 }
 
-func (s *searchAfterCollectorManager) Reduce(collectors []index.Collector) (any, error) {
+func (s *searchAfterCollectorManager) Reduce(ctx context.Context, collectors []index.Collector) (any, error) {
 	topDocs := make([]index.TopDocs, len(collectors))
 	for i, collector := range collectors {
 		docs, err := collector.(TopScoreDocCollector).TopDocs()
@@ -283,7 +284,7 @@ func (s *searchAfterCollectorManager) Reduce(collectors []index.Collector) (any,
 		}
 		topDocs[i] = docs
 	}
-	return MergeTopDocs(0, s.cappedNumHits, topDocs, true)
+	return MergeTopDocs(ctx, 0, s.cappedNumHits, topDocs, true)
 }
 
 // SearchByCollectorManager
@@ -300,15 +301,16 @@ func (r *IndexSearcher) SearchByCollectorManager(ctx context.Context,
 		if err != nil {
 			return nil, err
 		}
-		if err := r.SearchCollector(nil, query, collector); err != nil {
+		if err := r.SearchCollector(ctx, query, collector); err != nil {
 			return nil, err
 		}
-		return collectorManager.Reduce([]index.Collector{collector.(TopScoreDocCollector)})
+		return collectorManager.Reduce(nil, []index.Collector{collector})
 	}
 
 	// TODO: fix it
 	collectors := make([]index.Collector, 0, len(r.leafSlices))
-	var scoreMode *index.ScoreMode
+	var scoreMode index.ScoreMode
+	flag := false
 	for i := 0; i < len(r.leafSlices); i++ {
 		collector, err := collectorManager.NewCollector()
 		if err != nil {
@@ -316,20 +318,21 @@ func (r *IndexSearcher) SearchByCollectorManager(ctx context.Context,
 		}
 		collectors = append(collectors, collector)
 
-		if scoreMode == nil {
+		if !flag {
 			mode := collector.ScoreMode()
-			scoreMode = &mode
+			scoreMode = mode
+			flag = true
 		} else {
 			mode := collector.ScoreMode()
-			if mode != *scoreMode {
+			if mode != scoreMode {
 				return nil, errors.New("CollectorManager does not always produce collectors with the same score mode")
 			}
 		}
 	}
 
-	if scoreMode == nil {
+	if !flag {
 		// no segments
-		scoreMode = &COMPLETE
+		scoreMode = COMPLETE
 	}
 
 	query, err := r.Rewrite(query)
@@ -337,7 +340,7 @@ func (r *IndexSearcher) SearchByCollectorManager(ctx context.Context,
 		return nil, err
 	}
 
-	weight, err := r.CreateWeight(query, *scoreMode, 1)
+	weight, err := r.CreateWeight(query, scoreMode, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +357,7 @@ func (r *IndexSearcher) SearchByCollectorManager(ctx context.Context,
 		}
 	}
 
-	return collectorManager.Reduce(collectors)
+	return collectorManager.Reduce(nil, collectors)
 }
 
 func (r *IndexSearcher) SearchTopN(ctx context.Context, query index.Query, n int) (index.TopDocs, error) {

@@ -17,6 +17,14 @@ type TotalHits struct {
 	Relation TotalHitsRelation
 }
 
+func (t *TotalHits) GetValue() int64 {
+	return t.Value
+}
+
+func (t *TotalHits) GetRelation() TotalHitsRelation {
+	return t.Relation
+}
+
 func NewTotalHits(value int64, relation TotalHitsRelation) *TotalHits {
 	return &TotalHits{Value: value, Relation: relation}
 }

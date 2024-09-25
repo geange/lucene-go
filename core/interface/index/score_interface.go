@@ -228,13 +228,13 @@ type IndexSearcher interface {
 	DocLimitFields(ctx context.Context, docID int, fieldsToLoad []string) (*document.Document, error)
 	SetSimilarity(similarity Similarity)
 	GetSimilarity() Similarity
-	Count(query Query) (int, error)
+	Count(ctx context.Context, query Query) (int, error)
 	GetSlices() []LeafSlice
 	CreateWeight(query Query, scoreMode ScoreMode, boost float64) (Weight, error)
 	TermStatistics(term Term, docFreq, totalTermFreq int) (types.TermStatistics, error)
 	CollectionStatistics(field string) (types.CollectionStatistics, error)
 	GetTopReaderContext() IndexReaderContext
-	Search(query Query, results Collector) error
+	Search(ctx context.Context, query Query, results Collector) error
 	SearchTopN(ctx context.Context, query Query, n int) (TopDocs, error)
 	SearchCollector(ctx context.Context, query Query, results Collector) error
 	SearchLeaves(ctx context.Context, leaves []LeafReaderContext, weight Weight, collector Collector) error

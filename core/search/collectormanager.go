@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/interface/index"
 )
 
@@ -14,5 +15,5 @@ import (
 // lucene.experimental
 type CollectorManager interface {
 	NewCollector() (index.Collector, error)
-	Reduce(collectors []index.Collector) (any, error)
+	Reduce(ctx context.Context, collectors []index.Collector) (any, error)
 }

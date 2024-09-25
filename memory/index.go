@@ -308,7 +308,7 @@ func (r *Index) Search(query index2.Query) float64 {
 
 	scores := make([]float64, 1)
 	collector := newSimpleCollector(scores)
-	err := searcher.Search(query, collector)
+	err := searcher.Search(nil, query, collector)
 	if err != nil {
 		return 0
 	}

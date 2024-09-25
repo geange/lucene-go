@@ -89,16 +89,16 @@ func newTopScoreDocCollector(numHits int, hitsThresholdChecker HitsThresholdChec
 		minScoreAcc:          minScoreAcc,
 	}
 
-	queue := structure.NewPriorityQueueV1(numHits,
-		func() index.ScoreDoc {
-			return newScoreDoc(math.MaxInt32, math.Inf(-1))
-		},
-		func(hitA, hitB index.ScoreDoc) bool {
-			if hitA.GetScore() == hitB.GetScore() {
-				return hitA.GetDoc() > hitB.GetDoc()
-			}
-			return hitA.GetScore() < hitB.GetScore()
-		})
+	compareFunc := func(hitA, hitB index.ScoreDoc) bool {
+		if hitA.GetScore() == hitB.GetScore() {
+			return hitA.GetDoc() > hitB.GetDoc()
+		}
+		return hitA.GetScore() < hitB.GetScore()
+	}
+	supplierFunc := func() index.ScoreDoc {
+		return newScoreDoc(math.MaxInt32, math.Inf(-1))
+	}
+	queue := structure.NewPriorityQueueWithSupplier(numHits, compareFunc, supplierFunc)
 	queue.SetSize(numHits)
 
 	ts.TopDocsCollectorDefault = newTopDocsCollectorDefault(queue)

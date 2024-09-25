@@ -6,22 +6,37 @@ import (
 	"reflect"
 )
 
+type PriorityQueueInterface[T any] interface {
+	Add(element T) T
+	Top() T
+	UpdateTop() T
+	Pop() (T, error)
+}
+
 type PriorityQueue[T any] struct {
 	size     int
 	maxSize  int
 	heap     []T
 	none     T
-	lessThan func(a, b T) bool
+	lessThan CompareFunc[T]
 }
 
-func NewPriorityQueue[T any](maxSize int, lessThan func(a, b T) bool) *PriorityQueue[T] {
-	var a T
-	return NewPriorityQueueV1(maxSize, func() T {
-		return a
-	}, lessThan)
+type CompareFunc[T any] func(a, b T) bool
+
+func NewPriorityQueue[T any](maxSize int, lessThan CompareFunc[T]) *PriorityQueue[T] {
+	if maxSize < 2 {
+		maxSize = 2
+	}
+
+	queue := &PriorityQueue[T]{
+		maxSize:  maxSize,
+		heap:     make([]T, maxSize+1),
+		lessThan: lessThan,
+	}
+	return queue
 }
 
-func NewPriorityQueueV1[T any](maxSize int, supplier func() T, lessThan func(a, b T) bool) *PriorityQueue[T] {
+func NewPriorityQueueWithSupplier[T any](maxSize int, lessThan CompareFunc[T], supplierFunc func() T) *PriorityQueue[T] {
 	if maxSize < 2 {
 		maxSize = 2
 	}
@@ -32,7 +47,7 @@ func NewPriorityQueueV1[T any](maxSize int, supplier func() T, lessThan func(a, 
 		lessThan: lessThan,
 	}
 	for i := range queue.heap {
-		queue.heap[i] = supplier()
+		queue.heap[i] = supplierFunc()
 	}
 	return queue
 }
@@ -160,7 +175,7 @@ func (p *PriorityQueue[T]) Remove(element T) bool {
 
 func (p *PriorityQueue[T]) Iterator() Iterator[T] {
 	return &PriorityQueueIterator[T]{
-		i:             1,
+		idx:           1,
 		PriorityQueue: p,
 	}
 }
@@ -198,19 +213,20 @@ func (p *PriorityQueue[T]) downHeap(i int) {
 }
 
 type PriorityQueueIterator[T any] struct {
-	i int
 	*PriorityQueue[T]
+
+	idx int
 }
 
 func (p *PriorityQueueIterator[T]) HasNext() bool {
-	return p.i <= p.size
+	return p.idx <= p.size
 }
 
 func (p *PriorityQueueIterator[T]) Next(context.Context) (T, error) {
 	if !p.HasNext() {
 		return p.none, io.EOF
 	}
-	idx := p.i
-	p.i++
+	idx := p.idx
+	p.idx++
 	return p.heap[idx], nil
 }
