@@ -2,14 +2,15 @@ package search
 
 import (
 	"errors"
-	"github.com/bits-and-blooms/bitset"
-	"github.com/geange/lucene-go/core/index"
-	index2 "github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/array"
 	"io"
 	"math"
 	"sort"
+
+	"github.com/bits-and-blooms/bitset"
+	coreIndex "github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util/array"
 )
 
 // DocIdSetBuilder
@@ -41,7 +42,7 @@ func NewDocIdSetBuilder(maxDoc int) *DocIdSetBuilder {
 
 // NewDocIdSetBuilderV1
 // Create a DocIdSetBuilder instance that is optimized for accumulating docs that match the given Terms.
-func NewDocIdSetBuilderV1(maxDoc int, terms index2.Terms) (*DocIdSetBuilder, error) {
+func NewDocIdSetBuilderV1(maxDoc int, terms index.Terms) (*DocIdSetBuilder, error) {
 	docCount, err := terms.GetDocCount()
 	if err != nil {
 		return nil, err
@@ -89,7 +90,7 @@ func newDocIdSetBuilder(maxDoc, docCount int, valueCount int64) *DocIdSetBuilder
 // you should rather use RoaringDocIdSet.Builder.
 func (d *DocIdSetBuilder) Add(iter types.DocIdSetIterator) error {
 	if d.bitSet != nil {
-		it, ok := iter.(*index.BitSetIterator)
+		it, ok := iter.(*coreIndex.BitSetIterator)
 		if ok {
 			d.bitSet = d.bitSet.Union(it.GetBitSet())
 		} else {

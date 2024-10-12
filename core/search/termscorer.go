@@ -1,12 +1,12 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/index"
-	index2 "github.com/geange/lucene-go/core/interface/index"
+	coreIndex "github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 
-var _ index2.Scorer = &TermScorer{}
+var _ index.Scorer = &TermScorer{}
 
 // TermScorer
 // Expert: A Scorer for documents matching a Term.
@@ -14,18 +14,18 @@ type TermScorer struct {
 	*BaseScorer
 
 	//weight       Weight
-	postingsEnum index2.PostingsEnum
-	impactsEnum  index2.ImpactsEnum
+	postingsEnum index.PostingsEnum
+	impactsEnum  index.ImpactsEnum
 	iterator     types.DocIdSetIterator
 	docScorer    *LeafSimScorer
 	impactsDISI  *ImpactsDISI
 }
 
-func NewTermScorerWithPostings(weight index2.Weight, postingsEnum index2.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
+func NewTermScorerWithPostings(weight index.Weight, postingsEnum index.PostingsEnum, docScorer *LeafSimScorer) *TermScorer {
 	this := &TermScorer{
 		iterator:     postingsEnum,
 		postingsEnum: postingsEnum,
-		impactsEnum:  index.NewSlowImpactsEnum(postingsEnum),
+		impactsEnum:  coreIndex.NewSlowImpactsEnum(postingsEnum),
 		docScorer:    docScorer,
 	}
 	this.BaseScorer = NewScorer(weight)
@@ -34,7 +34,7 @@ func NewTermScorerWithPostings(weight index2.Weight, postingsEnum index2.Posting
 	return this
 }
 
-func NewTermScorerWithImpacts(weight index2.Weight, impactsEnum index2.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
+func NewTermScorerWithImpacts(weight index.Weight, impactsEnum index.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
 	this := &TermScorer{
 		postingsEnum: impactsEnum,
 		impactsEnum:  impactsEnum,
@@ -80,11 +80,11 @@ func (t *TermScorer) SetMinCompetitiveScore(minScore float64) error {
 	return t.impactsDISI.setMinCompetitiveScore(float64(minScore))
 }
 
-func (t *TermScorer) GetChildren() ([]index2.ChildScorable, error) {
-	return []index2.ChildScorable{}, nil
+func (t *TermScorer) GetChildren() ([]index.ChildScorable, error) {
+	return []index.ChildScorable{}, nil
 }
 
-func (t *TermScorer) GetWeight() index2.Weight {
+func (t *TermScorer) GetWeight() index.Weight {
 	return t.weight
 }
 
@@ -92,7 +92,7 @@ func (t *TermScorer) Iterator() types.DocIdSetIterator {
 	return t.iterator
 }
 
-func (t *TermScorer) TwoPhaseIterator() index2.TwoPhaseIterator {
+func (t *TermScorer) TwoPhaseIterator() index.TwoPhaseIterator {
 	return nil
 }
 

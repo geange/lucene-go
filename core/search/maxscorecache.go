@@ -1,14 +1,14 @@
 package search
 
 import (
-	index2 "github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // MaxScoreCache Compute maximum scores based on Impacts and keep them in a cache in order not to run
 // expensive similarity score computations multiple times on the same data.
 type MaxScoreCache struct {
-	impactsSource     index2.ImpactsSource
-	scorer            index2.SimScorer
+	impactsSource     index.ImpactsSource
+	scorer            index.SimScorer
 	maxScoreCache     []float64
 	maxScoreCacheUpTo []int
 }
@@ -62,7 +62,7 @@ func (c *MaxScoreCache) ensureCacheSize(size int) {
 	}
 }
 
-func (c *MaxScoreCache) computeMaxScore(impacts []index2.Impact) float64 {
+func (c *MaxScoreCache) computeMaxScore(impacts []index.Impact) float64 {
 	maxScore := float64(0)
 	for _, impact := range impacts {
 		maxScore = max(c.scorer.Score(float64(impact.GetFreq()), impact.GetNorm()), maxScore)
@@ -71,7 +71,7 @@ func (c *MaxScoreCache) computeMaxScore(impacts []index2.Impact) float64 {
 }
 
 // Return the maximum level at which scores are all less than minScore, or -1 if none.
-func (c *MaxScoreCache) getSkipLevel(impacts index2.Impacts, minScore float64) (int, error) {
+func (c *MaxScoreCache) getSkipLevel(impacts index.Impacts, minScore float64) (int, error) {
 	numLevels := impacts.NumLevels()
 	for level := 0; level < numLevels; level++ {
 		forLevel, err := c.GetMaxScoreForLevel(level)
@@ -102,7 +102,7 @@ func (c *MaxScoreCache) GetLevel(upTo int) (int, error) {
 	return -1, nil
 }
 
-func NewMaxScoreCache(impactsSource index2.ImpactsSource, scorer index2.SimScorer) *MaxScoreCache {
+func NewMaxScoreCache(impactsSource index.ImpactsSource, scorer index.SimScorer) *MaxScoreCache {
 	return &MaxScoreCache{
 		impactsSource:     impactsSource,
 		scorer:            scorer,

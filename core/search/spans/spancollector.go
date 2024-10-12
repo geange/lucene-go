@@ -2,7 +2,7 @@ package spans
 
 import (
 	"github.com/geange/lucene-go/core/interface/index"
-	index2 "github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/types"
 )
 
 // SpanCollector
@@ -14,7 +14,7 @@ type SpanCollector interface {
 	// postings: a PostingsEnum
 	// position: – the position of the PostingsEnum
 	// term: – the Term for this postings list
-	CollectLeaf(postings index.PostingsEnum, position int, term *index2.Term) error
+	CollectLeaf(postings index.PostingsEnum, position int, term *types.Term) error
 
 	// Reset
 	// Call to indicate that the driving Spans has moved to a new position
