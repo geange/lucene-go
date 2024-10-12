@@ -837,7 +837,7 @@ func (s SortFieldType) String() string {
 	case REWRITEABLE:
 		return "REWRITEABLE"
 	default:
-		return ""
+		return "UnknownSortFieldType"
 	}
 }
 

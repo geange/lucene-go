@@ -1,14 +1,14 @@
 package memory
 
 import (
-	index2 "github.com/geange/lucene-go/core/interface/index"
 	"io"
 
-	"github.com/geange/lucene-go/core/index"
+	coreIndex "github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
-var _ index2.NumericDocValues = &numericDocValues{}
+var _ index.NumericDocValues = &numericDocValues{}
 
 type numericDocValues struct {
 	iterator *docValuesIterator
@@ -65,17 +65,17 @@ func (i *numericDocValues) LongValue() (int64, error) {
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 
-var _ index2.SortedDocValues = &sortedDocValues{}
+var _ index.SortedDocValues = &sortedDocValues{}
 
 type sortedDocValues struct {
-	*index.BaseSortedDocValues
+	*coreIndex.BaseSortedDocValues
 
 	value []byte
 	it    *docValuesIterator
 }
 
-func (i *sortedDocValues) TermsEnum() (index2.TermsEnum, error) {
-	return index.NewSortedDocValuesTermsEnum(i), nil
+func (i *sortedDocValues) TermsEnum() (index.TermsEnum, error) {
+	return coreIndex.NewSortedDocValuesTermsEnum(i), nil
 }
 
 func newSortedDocValues(value []byte) *sortedDocValues {
@@ -84,7 +84,7 @@ func newSortedDocValues(value []byte) *sortedDocValues {
 		value:               value,
 		it:                  newDocValuesIterator(),
 	}
-	values.BaseSortedDocValues = index.NewBaseSortedDocValues(&index.SortedDocValuesDefaultConfig{
+	values.BaseSortedDocValues = coreIndex.NewBaseSortedDocValues(&coreIndex.SortedDocValuesDefaultConfig{
 		OrdValue:      values.OrdValue,
 		LookupOrd:     values.LookupOrd,
 		GetValueCount: values.GetValueCount,
@@ -143,7 +143,7 @@ func (i *sortedDocValues) GetValueCount() int {
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 
-var _ index2.SortedNumericDocValues = &sortedNumericDocValues{}
+var _ index.SortedNumericDocValues = &sortedNumericDocValues{}
 
 type sortedNumericDocValues struct {
 	it     *docValuesIterator
@@ -210,7 +210,7 @@ func (i *sortedNumericDocValues) DocValueCount() int {
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 
-var _ index2.SortedSetDocValues = &sortedSetDocValues{}
+var _ index.SortedSetDocValues = &sortedSetDocValues{}
 
 type sortedSetDocValues struct {
 	ord      int64

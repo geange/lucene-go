@@ -2,7 +2,6 @@ package search
 
 import (
 	"github.com/geange/lucene-go/core/interface/index"
-	index2 "github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
@@ -216,12 +215,12 @@ type weightOrDocIdSet struct {
 
 type termAndState struct {
 	term          []byte
-	state         index2.TermState
+	state         index.TermState
 	docFreq       int
 	totalTermFreq int64
 }
 
-func newTermAndState(term []byte, state index2.TermState, docFreq int, totalTermFreq int64) *termAndState {
+func newTermAndState(term []byte, state index.TermState, docFreq int, totalTermFreq int64) *termAndState {
 	return &termAndState{term: term, state: state, docFreq: docFreq, totalTermFreq: totalTermFreq}
 }
 

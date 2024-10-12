@@ -2,21 +2,21 @@ package memory
 
 import (
 	"errors"
-	index2 "github.com/geange/lucene-go/core/interface/index"
 	"reflect"
 
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/index"
+	coreIndex "github.com/geange/lucene-go/core/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/search"
 	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
 
-// High-performance single-document main memory Apache Lucene fulltext search index.
+// High-performance single-document main memory Apache Lucene fulltext search coreIndex.
 
-// Index High-performance single-document main memory Apache Lucene fulltext search index.
+// Index High-performance single-document main memory Apache Lucene fulltext search coreIndex.
 // Overview
 // This class is a replacement/substitute for a large subset of RAMDirectory functionality. It is designed to
 // enable maximum efficiency for on-the-fly matchmaking combining structured and fuzzy fulltext search in
@@ -61,16 +61,16 @@ import (
 //
 //	Analyzer analyzer = new SimpleAnalyzer(version);
 //	MemoryIndex index = new MemoryIndex();
-//	index.addField("content", "Readings about Salmons and other select Alaska fishing Manuals", analyzer);
-//	index.addField("author", "Tales of James", analyzer);
+//	coreIndex.addField("content", "Readings about Salmons and other select Alaska fishing Manuals", analyzer);
+//	coreIndex.addField("author", "Tales of James", analyzer);
 //	QueryParser parser = new QueryParser(version, "content", analyzer);
-//	float score = index.search(parser.parse("+author:james +salmon~ +fish* manual~"));
+//	float score = coreIndex.search(parser.parse("+author:james +salmon~ +fish* manual~"));
 //	if (score > 0.0f) {
 //	    System.out.println("it's a match");
 //	} else {
 //	    System.out.println("no match found");
 //	}
-//	System.out.println("indexData=" + index.toString());
+//	System.out.println("indexData=" + coreIndex.toString());
 //
 // Example XQuery Usage
 //
@@ -109,7 +109,7 @@ type Index struct {
 	postingsWriter    *ints.SliceWriter
 	payloadsBytesRefs *bytesref.Array //non null only when storePayloads
 	frozen            bool
-	normSimilarity    index2.Similarity
+	normSimilarity    index.Similarity
 	defaultFieldType  *document.FieldType
 }
 
@@ -224,7 +224,7 @@ func (r *Index) NewIndexReader(fields *treemap.Map[string, *info]) *IndexReader 
 		fieldInfosArr[i] = fInfo.fieldInfo
 		i++
 	}
-	return newIndexReader(r.newFields(fields), index.NewFieldInfos(fieldInfosArr), fields)
+	return newIndexReader(r.newFields(fields), coreIndex.NewFieldInfos(fieldInfosArr), fields)
 }
 
 // AddIndexAbleField Adds a lucene IndexableField to the Index using the provided analyzer. Also stores doc
@@ -299,7 +299,7 @@ func (r *Index) AddIndexAbleField(field document.IndexableField, analyzer analys
 // Returns: the relevance score of the matchmaking; A number in the range [0.0 .. 1.0], with 0.0 indicating
 //
 //	no match. The higher the number the better the match.
-func (r *Index) Search(query index2.Query) float64 {
+func (r *Index) Search(query index.Query) float64 {
 	if query == nil {
 		return 0
 	}
@@ -371,7 +371,7 @@ func (r *Index) AddFieldString(fieldName string, text string, analyzer analysis.
 }
 
 // SetSimilarity Set the Similarity to be used for calculating field norms
-func (r *Index) SetSimilarity(similarity index2.Similarity) error {
+func (r *Index) SetSimilarity(similarity index.Similarity) error {
 	if r.frozen {
 		return errors.New("cannot set Similarity when MemoryIndex is frozen")
 	}
@@ -387,7 +387,7 @@ func (r *Index) SetSimilarity(similarity index2.Similarity) error {
 	return nil
 }
 
-func (r *Index) CreateSearcher() index2.IndexSearcher {
+func (r *Index) CreateSearcher() index.IndexSearcher {
 	reader := r.NewIndexReader(r.fields)
 	searcher, _ := search.NewIndexSearcher(reader)
 	searcher.SetSimilarity(r.normSimilarity)
