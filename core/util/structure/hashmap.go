@@ -21,18 +21,21 @@ func NewMap[K Hash, V any]() *Map[K, V] {
 func (m *Map[K, V]) Put(key K, value V) {
 	code := key.Hash()
 	idx, ok := m.mp[code]
-	if !ok {
-		if len(m.rmIdx) > 0 {
-			idx := m.rmIdx[len(m.rmIdx)-1]
-			m.values[idx].Key = key
-			m.values[idx].Value = value
-		} else {
-			m.values = append(m.values, &MapEntry[K, V]{Key: key, Value: value})
-			m.mp[code] = len(m.values) - 1
-		}
+	if ok {
+		m.values[idx].Key = key
+		m.values[idx].Value = value
+		return
 	}
+	if len(m.rmIdx) == 0 {
+		m.values = append(m.values, &MapEntry[K, V]{Key: key, Value: value})
+		m.mp[code] = len(m.values) - 1
+		return
+	}
+	idx = m.rmIdx[len(m.rmIdx)-1]  
+	m.mp[code] = idx
 	m.values[idx].Key = key
 	m.values[idx].Value = value
+	m.rmIdx = m.rmIdx[:len(m.rmIdx)-1]
 }
 
 func (m *Map[K, V]) Get(key K) (v V, ok bool) {
