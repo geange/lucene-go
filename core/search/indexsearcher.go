@@ -201,7 +201,7 @@ func (r *IndexSearcher) SetQueryCache(queryCache index.QueryCache) {
 	r.queryCache = queryCache
 }
 
-func (r *IndexSearcher) Search(query index.Query, results index.Collector) error {
+func (r *IndexSearcher) Search(ctx context.Context, query index.Query, results index.Collector) error {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
@@ -212,7 +212,7 @@ func (r *IndexSearcher) Search(query index.Query, results index.Collector) error
 		return err
 	}
 
-	return r.SearchLeaves(nil, r.leafContexts, weight, results)
+	return r.SearchLeaves(ctx, r.leafContexts, weight, results)
 }
 
 // SearchAfter

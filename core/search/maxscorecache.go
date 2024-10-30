@@ -4,7 +4,8 @@ import (
 	"github.com/geange/lucene-go/core/interface/index"
 )
 
-// MaxScoreCache Compute maximum scores based on Impacts and keep them in a cache in order not to run
+// MaxScoreCache
+// Compute maximum scores based on Impacts and keep them in a cache in order not to run
 // expensive similarity score computations multiple times on the same data.
 type MaxScoreCache struct {
 	impactsSource     index.ImpactsSource

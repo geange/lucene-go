@@ -562,11 +562,15 @@ type TermsEnum interface {
 	TermState() (TermState, error)
 }
 
+// Impact
+// Per-document scoring factors.
 type Impact interface {
 	GetFreq() int
 	GetNorm() int64
 }
 
+// Impacts
+// Information about upcoming impacts, ie. (freq, norm) pairs.
 type Impacts interface {
 
 	// NumLevels Return the number of levels on which we have impacts.
@@ -593,9 +597,11 @@ type ImpactsEnum interface {
 	ImpactsSource
 }
 
-// ImpactsSource Source of Impacts.
+// ImpactsSource
+// Source of Impacts.
 type ImpactsSource interface {
-	// AdvanceShallow Shallow-advance to target. This is cheaper than calling DocIdSetIterator.advance(int)
+	// AdvanceShallow
+	// Shallow-advance to target. This is cheaper than calling DocIdSetIterator.advance(int)
 	// and allows further calls to getImpacts() to ignore doc IDs that are less than target in order to get
 	// more precise information about impacts. This method may not be called on targets that are less than
 	// the current DocIdSetIterator.docID(). After this method has been called, DocIdSetIterator.nextDoc()
@@ -603,7 +609,8 @@ type ImpactsSource interface {
 	// may not be called on targets that are less than target.
 	AdvanceShallow(target int) error
 
-	// GetImpacts Get information about upcoming impacts for doc ids that are greater than or equal to the
+	// GetImpacts
+	// Get information about upcoming impacts for doc ids that are greater than or equal to the
 	// maximum of DocIdSetIterator.docID() and the last target that was passed to advanceShallow(int).
 	// This method may not be called on an unpositioned iterator on which advanceShallow(int) has never been
 	// called. NOTE: advancing this iterator may invalidate the returned impacts, so they should not be used

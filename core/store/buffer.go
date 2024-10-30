@@ -11,6 +11,7 @@ var (
 
 type BufferOutput struct {
 	*BaseDataOutput
+
 	buf *bytes.Buffer
 }
 
@@ -71,7 +72,7 @@ func (b *BufferInput) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (b *BufferInput) GetFilePointer() int64 {
-	return -1
+	return int64(b.buf.Len())
 }
 
 func (b *BufferInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {

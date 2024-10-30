@@ -1,6 +1,7 @@
 package simpletext
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/geange/lucene-go/codecs/utils"
@@ -30,12 +31,14 @@ var (
 	CHILD_POINTER = []byte("        childPointer ")
 )
 
-// TODO: fix
-//var _ coreIndex.MultiLevelSkipListWriter = &SkipWriter{}
-
 type SkipWriter struct {
-	*coreIndex.BaseMultiLevelSkipListWriter
+	sw  *skipWriter
+	mwc *coreIndex.MultiLevelSkipListWriterContext
+}
 
+var _ coreIndex.MultiLevelSkipListWriterSPI = &skipWriter{}
+
+type skipWriter struct {
 	wroteHeaderPerLevelMap  map[int]bool
 	curDoc                  int
 	curDocFilePointer       int64
@@ -43,39 +46,35 @@ type SkipWriter struct {
 }
 
 func NewSkipWriter(writeState *index.SegmentWriteState) (*SkipWriter, error) {
-	maxDoc, err := writeState.SegmentInfo.MaxDoc()
-	if err != nil {
-		// TODO: remove
-		fmt.Println(maxDoc)
-		return nil, err
-	}
 
-	writer := &SkipWriter{
+	writer := &skipWriter{
 		wroteHeaderPerLevelMap:  make(map[int]bool),
 		curDoc:                  0,
 		curDocFilePointer:       0,
 		curCompetitiveFreqNorms: make([]*coreIndex.CompetitiveImpactAccumulator, maxSkipLevels),
 	}
-
 	for i := range writer.curCompetitiveFreqNorms {
 		writer.curCompetitiveFreqNorms[i] = coreIndex.NewCompetitiveImpactAccumulator()
 	}
 
-	writer.BaseMultiLevelSkipListWriter = coreIndex.NewBaseMultiLevelSkipListWriter(&coreIndex.BaseMultiLevelSkipListWriterConfig{
-		SkipInterval:      BLOCK_SIZE,
-		SkipMultiplier:    skipMultiplier,
-		MaxSkipLevels:     maxSkipLevels,
-		DF:                maxDoc,
-		WriteSkipData:     writer.WriteSkipData,
-		WriteLevelLength:  writer.WriteLevelLength,
-		WriteChildPointer: writer.WriteChildPointer,
-	})
+	maxDoc, err := writeState.SegmentInfo.MaxDoc()
+	if err != nil {
+		return nil, err
+	}
+	mwc := coreIndex.NewMultiLevelSkipListWriterContext(BLOCK_SIZE, skipMultiplier, maxSkipLevels, maxDoc)
 
-	writer.ResetSkip()
-	return writer, nil
+	err = writer.ResetSkip(mwc)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SkipWriter{
+		sw:  writer,
+		mwc: mwc,
+	}, nil
 }
 
-func (s *SkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) error {
+func (s *skipWriter) WriteSkipData(ctx context.Context, level int, skipBuffer store.IndexOutput, mwc *coreIndex.MultiLevelSkipListWriterContext) error {
 	wroteHeader := s.wroteHeaderPerLevelMap[level]
 
 	w := utils.NewTextWriter(skipBuffer)
@@ -116,7 +115,7 @@ func (s *SkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) erro
 	competitiveFreqNorms := s.curCompetitiveFreqNorms[level]
 	impacts := competitiveFreqNorms.GetCompetitiveFreqNormPairs()
 	//assert impacts.size() > 0;
-	if level+1 < s.NumberOfSkipLevels() {
+	if level+1 < mwc.NumberOfSkipLevels {
 		s.curCompetitiveFreqNorms[level+1].AddAll(competitiveFreqNorms)
 	}
 	if err := w.Bytes(IMPACTS); err != nil {
@@ -164,18 +163,19 @@ func (s *SkipWriter) WriteSkipData(level int, skipBuffer store.IndexOutput) erro
 	return nil
 }
 
-func (s *SkipWriter) ResetSkip() {
-	// TODO: fix
-	//s.MultiLevelSkipListWriterDefault.ResetSkip()
-	s.wroteHeaderPerLevelMap = map[int]bool{}
+func (s *skipWriter) ResetSkip(mwc *coreIndex.MultiLevelSkipListWriterContext) error {
+	mwc.ResetSkip()
+
+	clear(s.wroteHeaderPerLevelMap)
 	s.curDoc = -1
 	s.curDocFilePointer = -1
 	for _, norm := range s.curCompetitiveFreqNorms {
 		norm.Clear()
 	}
+	return nil
 }
 
-func (s *SkipWriter) WriteSkip(output store.IndexOutput) (int64, error) {
+func (s *skipWriter) WriteSkip(ctx context.Context, output store.IndexOutput, mwc *coreIndex.MultiLevelSkipListWriterContext) (int64, error) {
 	skipOffset := output.GetFilePointer()
 
 	w := utils.NewTextWriter(output)
@@ -186,26 +186,11 @@ func (s *SkipWriter) WriteSkip(output store.IndexOutput) (int64, error) {
 	if err := w.NewLine(); err != nil {
 		return 0, err
 	}
-
-	// TODO: fix
-	/*
-		if _, err := s.MultiLevelSkipListWriterDefault.WriteSkip(output); err != nil {
-			return 0, err
-		}
-
-	*/
+	mwc.ResetSkip()
 	return skipOffset, nil
 }
 
-//func (s *SimpleTextSkipWriter) BufferSkipV1(doc int, docFilePointer int64, numDocs int, competitiveImpactAccumulator *coreIndex.CompetitiveImpactAccumulator) error {
-//	//assert doc > curDoc;
-//	s.curDoc = doc
-//	s.curDocFilePointer = docFilePointer
-//	s.curCompetitiveFreqNorms[0].AddAll(competitiveImpactAccumulator)
-//	return s.BufferSkip(numDocs)
-//}
-
-func (s *SkipWriter) WriteLevelLength(levelLength int64, output store.IndexOutput) error {
+func (s *skipWriter) WriteLevelLength(ctx context.Context, levelLength int64, output store.IndexOutput) error {
 	if err := utils.WriteBytes(output, LEVEL_LENGTH); err != nil {
 		return err
 	}
@@ -218,7 +203,7 @@ func (s *SkipWriter) WriteLevelLength(levelLength int64, output store.IndexOutpu
 	return nil
 }
 
-func (s *SkipWriter) WriteChildPointer(childPointer int64, skipBuffer store.DataOutput) error {
+func (s *skipWriter) WriteChildPointer(ctx context.Context, childPointer int64, skipBuffer store.DataOutput) error {
 	if err := utils.WriteBytes(skipBuffer, CHILD_POINTER); err != nil {
 		return err
 	}
@@ -231,14 +216,23 @@ func (s *SkipWriter) WriteChildPointer(childPointer int64, skipBuffer store.Data
 	return nil
 }
 
-func (s *SkipWriter) bufferSkip(doc int, docFilePointer int64, numDocs int, accumulator *coreIndex.CompetitiveImpactAccumulator) error {
+func (s *skipWriter) bufferSkip(doc int, docFilePointer int64, numDocs int, accumulator *coreIndex.CompetitiveImpactAccumulator) {
 	s.curDoc = doc
 	s.curDocFilePointer = docFilePointer
 	s.curCompetitiveFreqNorms[0].AddAll(accumulator)
-	return nil
-	// TODO: fix
-	/*
-		return s.BufferSkip(numDocs)
+}
 
-	*/
+func (s *SkipWriter) ResetSkip() error {
+	return s.sw.ResetSkip(s.mwc)
+}
+
+func (s *SkipWriter) WriteSkip(ctx context.Context, out store.IndexOutput) (int64, error) {
+	return s.sw.WriteSkip(ctx, out, s.mwc)
+}
+
+func (s *SkipWriter) BufferSkip(ctx context.Context, doc int, docFilePointer int64, numDocs int,
+	accumulator *coreIndex.CompetitiveImpactAccumulator) error {
+
+	s.sw.bufferSkip(doc, docFilePointer, numDocs, accumulator)
+	return s.mwc.BufferSkip(ctx, numDocs, s.sw)
 }
