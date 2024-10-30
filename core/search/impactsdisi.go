@@ -96,20 +96,20 @@ func (d *ImpactsDISI) advanceTarget(target int) (int, error) {
 		return target, nil
 	}
 
-	var err error
-	d.upTo, err = d.advanceShallow(target)
+	upTo, err := d.advanceShallow(target)
 	if err != nil {
 		return 0, err
 	}
+	d.upTo = upTo
+
 	maxScore, err := d.maxScoreCache.GetMaxScoreForLevel(0)
 	if err != nil {
 		return 0, err
 	}
+	d.maxScore = maxScore
 
 	for {
-		//assert upTo >= target;
-
-		if maxScore >= d.minCompetitiveScore {
+		if d.maxScore >= d.minCompetitiveScore {
 			return target, nil
 		}
 
@@ -128,10 +128,12 @@ func (d *ImpactsDISI) advanceTarget(target int) (int, error) {
 		} else {
 			target = skipUpTo + 1
 		}
+
 		d.upTo, err = d.advanceShallow(target)
 		if err != nil {
 			return 0, err
 		}
+
 		d.maxScore, err = d.maxScoreCache.GetMaxScoreForLevel(0)
 		if err != nil {
 			return 0, err

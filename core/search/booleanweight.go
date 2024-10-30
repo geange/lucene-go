@@ -22,17 +22,17 @@ func NewBooleanWeight(query *BooleanQuery, searcher index.IndexSearcher,
 	}
 	weight.BaseWeight = NewBaseWeight(query, weight)
 
-	for _, c := range query.Clauses() {
+	for _, booleanClause := range query.Clauses() {
 		mode := COMPLETE_NO_SCORES
-		if c.IsScoring() {
+		if booleanClause.IsScoring() {
 			mode = scoreMode
 		}
 
-		w, err := searcher.CreateWeight(c.GetQuery(), mode, boost)
+		subWeight, err := searcher.CreateWeight(booleanClause.GetQuery(), mode, boost)
 		if err != nil {
 			return nil, err
 		}
-		weight.weightedClauses = append(weight.weightedClauses, newWeightedBooleanClause(c, w))
+		weight.weightedClauses = append(weight.weightedClauses, newWeightedBooleanClause(booleanClause, subWeight))
 	}
 
 	weight.query = query

@@ -14,7 +14,8 @@ import (
 
 var _ index.Query = &TermQuery{}
 
-// TermQuery A Query that matches documents containing a term.
+// TermQuery
+// A Query that matches documents containing a term.
 // This may be combined with other terms with a BooleanQuery.
 type TermQuery struct {
 	term               index.Term
@@ -36,6 +37,11 @@ func NewTermQuery(term index.Term) *TermQuery {
 		term:               term,
 		perReaderTermState: nil,
 	}
+}
+
+func (t *TermQuery) SetStates(states *coreIndex.TermStates) *TermQuery {
+	t.perReaderTermState = states
+	return t
 }
 
 // NewTermQueryV1

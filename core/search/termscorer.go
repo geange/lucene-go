@@ -35,16 +35,16 @@ func NewTermScorerWithPostings(weight index.Weight, postingsEnum index.PostingsE
 }
 
 func NewTermScorerWithImpacts(weight index.Weight, impactsEnum index.ImpactsEnum, docScorer *LeafSimScorer) *TermScorer {
-	this := &TermScorer{
+	termScorer := &TermScorer{
 		postingsEnum: impactsEnum,
 		impactsEnum:  impactsEnum,
 		docScorer:    docScorer,
 	}
-	this.BaseScorer = NewScorer(weight)
+	termScorer.BaseScorer = NewScorer(weight)
 
-	this.impactsDISI = NewImpactsDISI(this.impactsEnum, this.impactsEnum, docScorer.GetSimScorer())
-	this.iterator = this.impactsDISI
-	return this
+	termScorer.impactsDISI = NewImpactsDISI(termScorer.impactsEnum, termScorer.impactsEnum, docScorer.GetSimScorer())
+	termScorer.iterator = termScorer.impactsDISI
+	return termScorer
 }
 
 func (t *TermScorer) Score() (float64, error) {

@@ -233,7 +233,7 @@ type IndexSearcher interface {
 	TermStatistics(term Term, docFreq, totalTermFreq int) (types.TermStatistics, error)
 	CollectionStatistics(field string) (types.CollectionStatistics, error)
 	GetTopReaderContext() IndexReaderContext
-	Search(query Query, results Collector) error
+	Search(ctx context.Context, query Query, results Collector) error
 	SearchTopN(ctx context.Context, query Query, n int) (TopDocs, error)
 	SearchCollector(ctx context.Context, query Query, results Collector) error
 	SearchLeaves(ctx context.Context, leaves []LeafReaderContext, weight Weight, collector Collector) error
