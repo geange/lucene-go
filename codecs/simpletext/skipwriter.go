@@ -74,16 +74,17 @@ func NewSkipWriter(writeState *index.SegmentWriteState) (*SkipWriter, error) {
 	}, nil
 }
 
-func (s *skipWriter) WriteSkipData(ctx context.Context, level int, skipBuffer store.IndexOutput, mwc *coreIndex.MultiLevelSkipListWriterContext) error {
-	wroteHeader := s.wroteHeaderPerLevelMap[level]
+func (s *skipWriter) WriteSkipData(ctx context.Context, level int,
+	skipBuffer store.IndexOutput, mwc *coreIndex.MultiLevelSkipListWriterContext) error {
 
 	w := utils.NewTextWriter(skipBuffer)
 
-	if !wroteHeader {
+	// 检查是否已经写入过header，每个level只写一次，
+	if !s.wroteHeaderPerLevelMap[level] {
 		if err := w.Bytes(LEVEL); err != nil {
 			return err
 		}
-		if err := w.String(fmt.Sprintf("%d", level)); err != nil {
+		if err := w.String(fmt.Sprint(level)); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {
@@ -95,7 +96,7 @@ func (s *skipWriter) WriteSkipData(ctx context.Context, level int, skipBuffer st
 	if err := w.Bytes(SKIP_DOC); err != nil {
 		return err
 	}
-	if err := w.String(fmt.Sprintf("%d", s.curDoc)); err != nil {
+	if err := w.String(fmt.Sprint(s.curDoc)); err != nil {
 		return err
 	}
 	if err := w.NewLine(); err != nil {
@@ -105,7 +106,7 @@ func (s *skipWriter) WriteSkipData(ctx context.Context, level int, skipBuffer st
 	if err := w.Bytes(SKIP_DOC_FP); err != nil {
 		return err
 	}
-	if err := w.String(fmt.Sprintf("%d", s.curDocFilePointer)); err != nil {
+	if err := w.String(fmt.Sprint(s.curDocFilePointer)); err != nil {
 		return err
 	}
 	if err := w.NewLine(); err != nil {
@@ -135,7 +136,7 @@ func (s *skipWriter) WriteSkipData(ctx context.Context, level int, skipBuffer st
 		if err := w.Bytes(FREQ); err != nil {
 			return err
 		}
-		if err := w.String(fmt.Sprintf("%d", impact.GetFreq())); err != nil {
+		if err := w.String(fmt.Sprint(impact.GetFreq())); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {
@@ -145,7 +146,7 @@ func (s *skipWriter) WriteSkipData(ctx context.Context, level int, skipBuffer st
 		if err := w.Bytes(NORM); err != nil {
 			return err
 		}
-		if err := w.String(fmt.Sprintf("%d", impact.GetNorm())); err != nil {
+		if err := w.String(fmt.Sprint(impact.GetNorm())); err != nil {
 			return err
 		}
 		if err := w.NewLine(); err != nil {
@@ -194,7 +195,7 @@ func (s *skipWriter) WriteLevelLength(ctx context.Context, levelLength int64, ou
 	if err := utils.WriteBytes(output, LEVEL_LENGTH); err != nil {
 		return err
 	}
-	if err := utils.WriteString(output, fmt.Sprintf("%d", levelLength)); err != nil {
+	if err := utils.WriteString(output, fmt.Sprint(levelLength)); err != nil {
 		return err
 	}
 	if err := utils.NewLine(output); err != nil {
@@ -207,7 +208,7 @@ func (s *skipWriter) WriteChildPointer(ctx context.Context, childPointer int64, 
 	if err := utils.WriteBytes(skipBuffer, CHILD_POINTER); err != nil {
 		return err
 	}
-	if err := utils.WriteString(skipBuffer, fmt.Sprintf("%d", childPointer)); err != nil {
+	if err := utils.WriteString(skipBuffer, fmt.Sprint(childPointer)); err != nil {
 		return err
 	}
 	if err := utils.NewLine(skipBuffer); err != nil {
