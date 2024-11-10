@@ -8,7 +8,8 @@ import (
 	"github.com/geange/lucene-go/core/interface/index"
 )
 
-// CompetitiveImpactAccumulator This class accumulates the (freq, norm) pairs that may produce competitive scores.
+// CompetitiveImpactAccumulator
+// accumulates the (freq, norm) pairs that may produce competitive scores.
 type CompetitiveImpactAccumulator struct {
 	// We speed up accumulation for common norm values with this array that maps
 	// norm values in -128..127 to the maximum frequency observed for these norm
@@ -52,26 +53,35 @@ func (c *CompetitiveImpactAccumulator) add(newEntry index.Impact, freqNormPairs 
 		}
 		return false
 	})
-	if !ok {
-		freqNormPairs.Add(newEntry)
-	} else if utils.Int64Comparator(next.GetNorm(), newEntry.GetNorm()) <= 0 {
-		return
-	} else {
-		freqNormPairs.Add(newEntry)
+	if ok {
+		if utils.Int64Comparator(next.GetNorm(), newEntry.GetNorm()) <= 0 {
+			return
+		}
 	}
+	freqNormPairs.Add(newEntry)
 
-	iterator := freqNormPairs.Iterator()
+	it := freqNormPairs.Iterator()
 
-	iterator.NextTo(func(index int, value index.Impact) bool {
-		if ImpactComparator(newEntry, value) > 0 {
-			if utils.Int64Comparator(newEntry.GetNorm(), value.GetNorm()) >= 0 {
-				freqNormPairs.Remove(value)
-			}
+	// TODO: 需要重新实现下
+	// 迭代移除freqNormPairs中
+	it.NextTo(func(index int, value index.Impact) bool {
+		if utils.Int64Comparator(newEntry.GetNorm(), value.GetNorm()) >= 0 {
+			// less competitive
+			freqNormPairs.Remove(value)
 			return true
 		}
-
 		return false
 	})
+	// for (Iterator<Impact> it = freqNormPairs.headSet(newEntry, false).descendingIterator(); it.hasNext(); ) {
+	//      Impact entry = it.next();
+	//      if (Long.compareUnsigned(entry.norm, newEntry.norm) >= 0) {
+	//        // less competitive
+	//        it.remove();
+	//      } else {
+	//        // lesser freq but better norm, further entries are not comparable
+	//        break;
+	//      }
+	//    }
 }
 
 // AddAll Merge acc into this.
@@ -88,7 +98,8 @@ func (c *CompetitiveImpactAccumulator) AddAll(acc *CompetitiveImpactAccumulator)
 	}
 }
 
-// GetCompetitiveFreqNormPairs Get the set of competitive freq and norm pairs, ordered by increasing freq and norm.
+// GetCompetitiveFreqNormPairs
+// Get the set of competitive freq and norm pairs, ordered by increasing freq and norm.
 func (c *CompetitiveImpactAccumulator) GetCompetitiveFreqNormPairs() []index.Impact {
 	impacts := make([]index.Impact, 0)
 	maxFreqForLowerNorms := 0

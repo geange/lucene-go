@@ -86,7 +86,12 @@ func NewMultiLevelSkipListWriterContext(skipInterval, skipMultiplier, maxSkipLev
 	if numberOfSkipLevels > maxSkipLevels {
 		numberOfSkipLevels = maxSkipLevels
 	}
-	return &MultiLevelSkipListWriterContext{SkipInterval: skipInterval, NumberOfSkipLevels: numberOfSkipLevels, SkipMultiplier: skipMultiplier}
+
+	return &MultiLevelSkipListWriterContext{
+		SkipInterval:       skipInterval,
+		NumberOfSkipLevels: numberOfSkipLevels,
+		SkipMultiplier:     skipMultiplier,
+	}
 }
 
 func (m *MultiLevelSkipListWriterContext) init() {
@@ -107,7 +112,9 @@ func (m *MultiLevelSkipListWriterContext) ResetSkip() {
 	}
 }
 
-func (m *MultiLevelSkipListWriterContext) BufferSkip(ctx context.Context, df int, spi MultiLevelSkipListWriterSPI) error {
+func (m *MultiLevelSkipListWriterContext) BufferSkip(ctx context.Context, df int,
+	spi MultiLevelSkipListWriterSPI) error {
+
 	numLevels := 1
 	df /= m.SkipInterval
 
@@ -120,8 +127,7 @@ func (m *MultiLevelSkipListWriterContext) BufferSkip(ctx context.Context, df int
 	childPointer := int64(0)
 
 	for level := 0; level < numLevels; level++ {
-		err := spi.WriteSkipData(ctx, level, m.SkipBuffer[level], m)
-		if err != nil {
+		if err := spi.WriteSkipData(ctx, level, m.SkipBuffer[level], m); err != nil {
 			return err
 		}
 
@@ -129,8 +135,7 @@ func (m *MultiLevelSkipListWriterContext) BufferSkip(ctx context.Context, df int
 
 		if level != 0 {
 			// store child pointers for all levels except the lowest
-			err := spi.WriteChildPointer(ctx, childPointer, m.SkipBuffer[level])
-			if err != nil {
+			if err := spi.WriteChildPointer(ctx, childPointer, m.SkipBuffer[level]); err != nil {
 				return err
 			}
 		}
