@@ -3,7 +3,7 @@ module github.com/geange/lucene-go
 go 1.23.3
 
 require (
-	github.com/bits-and-blooms/bitset v1.16.0
+	github.com/bits-and-blooms/bitset v1.17.0
 	github.com/geange/gods-generic v0.0.0-20231208144256-fc5f66e86023
 	github.com/google/uuid v1.6.0
 	github.com/matishsiao/goInfo v0.0.0-20240924010139-10388a85396f
