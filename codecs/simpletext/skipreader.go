@@ -2,7 +2,9 @@ package simpletext
 
 import (
 	"bytes"
+	"github.com/geange/lucene-go/codecs/utils"
 	"math"
+	"strconv"
 
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
@@ -91,8 +93,104 @@ func (i *innerImpacts) GetImpacts(level int) []index.Impact {
 }
 
 func (s *SkipReader) ReadSkipData(level int, skipStream store.IndexInput) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	s.perLevelImpacts[level] = nil
+
+	skipDoc := types.NO_MORE_DOCS
+
+	input := store.NewBufferedChecksumIndexInput(skipStream)
+	freq := int64(1)
+
+	for {
+		err := utils.ReadLine(input, s.scratch)
+		if err != nil {
+			return 0, err
+		}
+
+		content := s.scratch.Bytes()
+
+		if bytes.Equal(content, FIELDS_END) {
+			err := utils.CheckFooter(input)
+			if err != nil {
+				return 0, err
+			}
+			break
+		}
+
+		if bytes.Equal(content, IMPACTS_END) ||
+			bytes.Equal(content, FIELDS_TERM) ||
+			bytes.Equal(content, FIELDS_FIELD) {
+			break
+		}
+
+		if bytes.Equal(content, SKIP_LIST) {
+			continue
+		}
+
+		if bytes.Equal(content, SKIP_DOC) {
+			offset := len(SKIP_DOC)
+			num, err := strconv.ParseInt(string(content[offset:]), 10, 64)
+			if err != nil {
+				return 0, err
+			}
+			//Because the MultiLevelSkipListReader stores doc id delta,but simple text codec stores doc id
+			skipDoc = int(num) - (s.GetSkipDoc(level))
+			continue
+		}
+
+		if bytes.Equal(content, SKIP_DOC_FP) {
+			offset := len(SKIP_DOC_FP)
+			num, err := strconv.ParseInt(string(content[offset:]), 10, 64)
+			if err != nil {
+				return 0, err
+			}
+			s.nextSkipDocFP = num
+			continue
+		}
+
+		if bytes.Equal(content, IMPACTS) {
+			continue
+		}
+
+		if bytes.Equal(content, FREQ) {
+			offset := len(FREQ)
+			num, err := strconv.ParseInt(string(content[offset:]), 10, 64)
+			if err != nil {
+				return 0, err
+			}
+			freq = num
+			continue
+		}
+
+		if bytes.Equal(content, NORM) {
+			offset := len(NORM)
+			norm, err := strconv.ParseInt(string(content[offset:]), 10, 64)
+			if err != nil {
+				return 0, err
+			}
+			impact := coreIndex.NewImpact(int(freq), norm)
+			s.perLevelImpacts[level] = append(s.perLevelImpacts[level], impact)
+			continue
+		}
+	}
+	return skipDoc, nil
+}
+
+func (s *SkipReader) ReadLevelLength(skipStream store.IndexInput) (int64, error) {
+	err := utils.ReadLine(skipStream, s.scratch)
+	if err != nil {
+		return 0, err
+	}
+	content := s.scratch.Bytes()
+	return strconv.ParseInt(string(content[len(LEVEL_LENGTH):]), 10, 64)
+}
+
+func (s *SkipReader) ReadChildPointer(skipStream store.IndexInput) (int64, error) {
+	err := utils.ReadLine(skipStream, s.scratch)
+	if err != nil {
+		return 0, err
+	}
+	content := s.scratch.Bytes()
+	return strconv.ParseInt(string(content[len(CHILD_POINTER):]), 10, 64)
 }
 
 func (s *SkipReader) getNextSkipDoc() int {
