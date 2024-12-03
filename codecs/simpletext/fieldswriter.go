@@ -44,7 +44,7 @@ func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, er
 		return nil, err
 	}
 
-	skipWriter, err := NewSkipWriter(writeState)
+	sw, err := NewSkipWriter(writeState)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, er
 		writeState:                   writeState,
 		segment:                      writeState.SegmentInfo.Name(),
 		docCount:                     0,
-		skipWriter:                   skipWriter,
+		skipWriter:                   sw,
 		competitiveImpactAccumulator: coreIndex.NewCompetitiveImpactAccumulator(),
 		lastDocFilePointer:           0,
 	}, nil

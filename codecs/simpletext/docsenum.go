@@ -177,10 +177,10 @@ func (s *DocsEnum) AdvanceShallow(target int) error {
 		if _, err := s.skipReader.SkipTo(target); err != nil {
 			return err
 		}
-		if s.skipReader.getNextSkipDoc() != types.NO_MORE_DOCS {
-			s.seekTo = s.skipReader.getNextSkipDocFP()
+		if s.skipReader.GetNextSkipDoc() != types.NO_MORE_DOCS {
+			s.seekTo = s.skipReader.GetNextSkipDocFP()
 		}
-		s.nextSkipDoc = s.skipReader.getNextSkipDoc()
+		s.nextSkipDoc = s.skipReader.GetNextSkipDoc()
 	}
 	return nil
 }
@@ -189,5 +189,5 @@ func (s *DocsEnum) GetImpacts() (index.Impacts, error) {
 	if err := s.AdvanceShallow(s.docID); err != nil {
 		return nil, err
 	}
-	return s.skipReader.getImpacts(), nil
+	return s.skipReader.GetImpacts(), nil
 }
