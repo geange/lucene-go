@@ -620,10 +620,10 @@ func (s *simpleTextDocsEnum) AdvanceShallow(target int) error {
 		if err != nil {
 			return err
 		}
-		if s.skipReader.getNextSkipDoc() != types.NO_MORE_DOCS {
-			s.seekTo = s.skipReader.getNextSkipDocFP()
+		if s.skipReader.GetNextSkipDoc() != types.NO_MORE_DOCS {
+			s.seekTo = s.skipReader.GetNextSkipDocFP()
 		}
-		s.nextSkipDoc = s.skipReader.getNextSkipDoc()
+		s.nextSkipDoc = s.skipReader.GetNextSkipDoc()
 	}
 	return nil
 }
@@ -649,7 +649,7 @@ func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPoint
 	s.docID = -1
 	s.tf = 1
 	s.cost = int64(docFreq)
-	err = s.skipReader.reset(skipPointer, docFreq)
+	err = s.skipReader.Reset(skipPointer, docFreq)
 	if err != nil {
 		return nil, err
 	}
