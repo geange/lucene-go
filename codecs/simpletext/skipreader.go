@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"math"
 	"strconv"
 
@@ -32,7 +33,7 @@ func NewSkipReader(skipStream store.IndexInput) *SkipReader {
 }
 
 func (s *SkipReader) SkipTo(target int) (int, error) {
-	return s.sr.SkipTo(target, s.mtx)
+	return s.sr.SkipTo(nil, target, s.mtx)
 }
 
 func (s *SkipReader) GetNextSkipDoc() int {
@@ -47,9 +48,11 @@ func (s *SkipReader) GetImpacts() index.Impacts {
 	return s.sr.getImpacts()
 }
 
-func (s *SkipReader) Reset(skipPointer int64, docFreq int) error {
-	return s.sr.reset(skipPointer, docFreq, s.mtx)
+func (s *SkipReader) Reset(ctx context.Context, skipPointer int64, docFreq int) error {
+	return s.sr.reset(ctx, skipPointer, docFreq, s.mtx)
 }
+
+var _ coreIndex.MultiLevelSkipListReaderSPI = &skipReader{}
 
 // SkipReader
 // This class reads skip lists with multiple levels.
@@ -87,10 +90,10 @@ func newSkipReader(mtx *coreIndex.MultiLevelSkipListReaderContext) *skipReader {
 	return reader
 }
 
-func (s *skipReader) reset(skipPointer int64, docFreq int, mtx *coreIndex.MultiLevelSkipListReaderContext) error {
+func (s *skipReader) reset(ctx context.Context, skipPointer int64, docFreq int, mtx *coreIndex.MultiLevelSkipListReaderContext) error {
 	s.init(mtx)
 	if skipPointer > 0 {
-		if err := mtx.Init(skipPointer, docFreq, s); err != nil {
+		if err := mtx.Init(ctx, skipPointer, docFreq, s); err != nil {
 			return err
 		}
 		s.hasSkipList = true
@@ -110,8 +113,8 @@ func (s *skipReader) init(mtx *coreIndex.MultiLevelSkipListReaderContext) {
 	s.hasSkipList = false
 }
 
-func (s *skipReader) SkipTo(target int, mtx *coreIndex.MultiLevelSkipListReaderContext) (int, error) {
-	return mtx.SkipToWithSPI(target, s)
+func (s *skipReader) SkipTo(ctx context.Context, target int, mtx *coreIndex.MultiLevelSkipListReaderContext) (int, error) {
+	return mtx.SkipToWithSPI(ctx, target, s)
 }
 
 var _ index.Impacts = &innerImpacts{}
@@ -135,7 +138,7 @@ func (i *innerImpacts) GetImpacts(level int) []index.Impact {
 
 var _ coreIndex.MultiLevelSkipListReaderSPI = &skipReader{}
 
-func (s *skipReader) ReadSkipData(level int, skipStream store.IndexInput, mtx *coreIndex.MultiLevelSkipListReaderContext) (int64, error) {
+func (s *skipReader) ReadSkipData(ctx context.Context, level int, skipStream store.IndexInput, mtx *coreIndex.MultiLevelSkipListReaderContext) (int64, error) {
 	s.perLevelImpacts[level] = nil
 
 	skipDoc := types.NO_MORE_DOCS
@@ -218,7 +221,7 @@ func (s *skipReader) ReadSkipData(level int, skipStream store.IndexInput, mtx *c
 	return int64(skipDoc), nil
 }
 
-func (s *skipReader) ReadLevelLength(skipStream store.IndexInput, mtx *coreIndex.MultiLevelSkipListReaderContext) (int64, error) {
+func (s *skipReader) ReadLevelLength(ctx context.Context, skipStream store.IndexInput, mtx *coreIndex.MultiLevelSkipListReaderContext) (int64, error) {
 	err := utils.ReadLine(skipStream, s.scratch)
 	if err != nil {
 		return 0, err
@@ -227,7 +230,7 @@ func (s *skipReader) ReadLevelLength(skipStream store.IndexInput, mtx *coreIndex
 	return strconv.ParseInt(string(content[len(LEVEL_LENGTH):]), 10, 64)
 }
 
-func (s *skipReader) ReadChildPointer(skipStream store.IndexInput, mtx *coreIndex.MultiLevelSkipListReaderContext) (int64, error) {
+func (s *skipReader) ReadChildPointer(ctx context.Context, skipStream store.IndexInput, mtx *coreIndex.MultiLevelSkipListReaderContext) (int64, error) {
 	err := utils.ReadLine(skipStream, s.scratch)
 	if err != nil {
 		return 0, err
@@ -251,10 +254,10 @@ func (s *skipReader) getImpacts() index.Impacts {
 	return s.impacts
 }
 
-func (s *skipReader) Reset(skipPointer int64, docFreq int, mtx *coreIndex.MultiLevelSkipListReaderContext) {
+func (s *skipReader) Reset(ctx context.Context, skipPointer int64, docFreq int, mtx *coreIndex.MultiLevelSkipListReaderContext) {
 	s.init(mtx)
 	if skipPointer > 0 {
-		_ = mtx.Init(skipPointer, docFreq, s)
+		_ = mtx.Init(ctx, skipPointer, docFreq, s)
 		s.hasSkipList = true
 	}
 }

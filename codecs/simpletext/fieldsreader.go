@@ -536,7 +536,7 @@ func (s *simpleTextPostingsEnum) Reset(fp int64, indexOptions document.IndexOpti
 		s.endOffset = -1
 	}
 	s.cost = docFreq
-	s.skipReader.Reset(skipPointer, docFreq)
+	s.skipReader.Reset(nil, skipPointer, docFreq)
 	s.nextSkipDoc = 0
 	s.seekTo = -1
 	return s
@@ -649,7 +649,7 @@ func (s *simpleTextDocsEnum) Reset(fp int64, omitTF bool, docFreq int, skipPoint
 	s.docID = -1
 	s.tf = 1
 	s.cost = int64(docFreq)
-	err = s.skipReader.Reset(skipPointer, docFreq)
+	err = s.skipReader.Reset(nil, skipPointer, docFreq)
 	if err != nil {
 		return nil, err
 	}
