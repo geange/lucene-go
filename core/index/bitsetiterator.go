@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"io"
 
 	"github.com/bits-and-blooms/bitset"
@@ -34,10 +35,10 @@ func (b *BitSetIterator) DocID() int {
 }
 
 func (b *BitSetIterator) NextDoc() (int, error) {
-	return b.Advance(b.doc + 1)
+	return b.Advance(nil, b.doc+1)
 }
 
-func (b *BitSetIterator) Advance(target int) (int, error) {
+func (b *BitSetIterator) Advance(ctx context.Context, target int) (int, error) {
 	value, ok := b.bits.NextSet(uint(target))
 	if !ok {
 		return 0, io.EOF
@@ -47,7 +48,7 @@ func (b *BitSetIterator) Advance(target int) (int, error) {
 	return b.doc, nil
 }
 
-func (b *BitSetIterator) SlowAdvance(target int) (int, error) {
+func (b *BitSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(b, target)
 }
 

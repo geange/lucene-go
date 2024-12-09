@@ -1,6 +1,7 @@
 package bkd
 
 import (
+	"context"
 	"io"
 
 	"github.com/geange/lucene-go/core/types"
@@ -38,11 +39,11 @@ func (r *readerDocIDSetIterator) NextDoc() (int, error) {
 	return r.docID, nil
 }
 
-func (r *readerDocIDSetIterator) Advance(target int) (int, error) {
-	return r.SlowAdvance(target)
+func (r *readerDocIDSetIterator) Advance(ctx context.Context, target int) (int, error) {
+	return r.SlowAdvance(ctx, target)
 }
 
-func (r *readerDocIDSetIterator) SlowAdvance(target int) (int, error) {
+func (r *readerDocIDSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(r, target)
 }
 

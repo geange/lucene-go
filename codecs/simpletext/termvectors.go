@@ -274,11 +274,11 @@ func (s *SimpleTVPostingsEnum) NextDoc() (int, error) {
 	return -1, io.EOF
 }
 
-func (s *SimpleTVPostingsEnum) Advance(target int) (int, error) {
-	return s.SlowAdvance(target)
+func (s *SimpleTVPostingsEnum) Advance(ctx context.Context, target int) (int, error) {
+	return s.SlowAdvance(nil, target)
 }
 
-func (s *SimpleTVPostingsEnum) SlowAdvance(target int) (int, error) {
+func (s *SimpleTVPostingsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(s, target)
 }
 
@@ -359,11 +359,11 @@ func (s *SimpleTVDocsEnum) NextDoc() (int, error) {
 	return 0, io.EOF
 }
 
-func (s *SimpleTVDocsEnum) Advance(target int) (int, error) {
-	return s.SlowAdvance(target)
+func (s *SimpleTVDocsEnum) Advance(ctx context.Context, target int) (int, error) {
+	return s.SlowAdvance(nil, target)
 }
 
-func (s *SimpleTVDocsEnum) SlowAdvance(target int) (int, error) {
+func (s *SimpleTVDocsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(s, target)
 }
 

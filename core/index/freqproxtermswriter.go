@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/bytesref"
@@ -20,8 +21,7 @@ func NewFreqProxTermsWriter(intBlockAllocator ints.IntsAllocator,
 		NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nextTermsHash)}
 }
 
-func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
-	state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
+func (f *FreqProxTermsWriter) Flush(ctx context.Context, fieldsToFlush map[string]TermsHashPerField, state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
 
 	err := f.BaseTermsHash.Flush(fieldsToFlush, state, sortMap, norms)
 	if err != nil {

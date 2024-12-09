@@ -200,7 +200,7 @@ func (d *DataPostingsEnum) NextDoc() (int, error) {
 	return d.DocID(), nil
 }
 
-func (d *DataPostingsEnum) Advance(target int) (int, error) {
+func (d *DataPostingsEnum) Advance(ctx context.Context, target int) (int, error) {
 	// Slow linear impl:
 	if _, err := d.NextDoc(); err != nil {
 		return 0, err
@@ -214,7 +214,7 @@ func (d *DataPostingsEnum) Advance(target int) (int, error) {
 	return d.DocID(), nil
 }
 
-func (d *DataPostingsEnum) SlowAdvance(target int) (int, error) {
+func (d *DataPostingsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }

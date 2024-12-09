@@ -199,11 +199,11 @@ func (s *DocValuesReader) GetNumeric(ctx context.Context, fieldInfo *document.Fi
 		FnNextDoc: func() (int, error) {
 			return docsWithField.NextDoc()
 		},
-		FnAdvance: func(target int) (int, error) {
-			return docsWithField.Advance(target)
+		FnAdvance: func(ctx context.Context, target int) (int, error) {
+			return docsWithField.Advance(ctx, target)
 		},
-		FnSlowAdvance: func(target int) (int, error) {
-			return docsWithField.Advance(target)
+		FnSlowAdvance: func(ctx context.Context, target int) (int, error) {
+			return docsWithField.Advance(ctx, target)
 		},
 		FnCost: func() int64 {
 			return docsWithField.Cost()
@@ -279,10 +279,10 @@ func (i *innerDocValuesIterator1) DocID() int {
 }
 
 func (i *innerDocValuesIterator1) NextDoc() (int, error) {
-	return i.Advance(i.DocID() + 1)
+	return i.Advance(nil, i.DocID()+1)
 }
 
-func (i *innerDocValuesIterator1) Advance(target int) (int, error) {
+func (i *innerDocValuesIterator1) Advance(ctx context.Context, target int) (int, error) {
 	for idx := target; idx < i.reader.maxDoc; idx++ {
 		offset := i.field.dataStartFilePointer + int64((1+len(i.field.pattern)+2)*idx)
 		if _, err := i.in.Seek(offset, io.SeekStart); err != nil {
@@ -307,8 +307,8 @@ func (i *innerDocValuesIterator1) Advance(target int) (int, error) {
 	return i.doc, nil
 }
 
-func (i *innerDocValuesIterator1) SlowAdvance(target int) (int, error) {
-	return i.Advance(target)
+func (i *innerDocValuesIterator1) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return i.Advance(nil, target)
 }
 
 func (i *innerDocValuesIterator1) Cost() int64 {
@@ -418,10 +418,10 @@ func (i *innerDocValuesIterator2) DocID() int {
 }
 
 func (i *innerDocValuesIterator2) NextDoc() (int, error) {
-	return i.Advance(i.DocID() + 1)
+	return i.Advance(nil, i.DocID()+1)
 }
 
-func (i *innerDocValuesIterator2) Advance(target int) (int, error) {
+func (i *innerDocValuesIterator2) Advance(ctx context.Context, target int) (int, error) {
 	for idx := target; idx < i.reader.maxDoc; idx++ {
 		position := i.field.dataStartFilePointer + int64((9+len(i.field.pattern)+i.field.maxLength+2)*idx)
 		if _, err := i.in.Seek(position, io.SeekStart); err != nil {
@@ -465,8 +465,8 @@ func (i *innerDocValuesIterator2) Advance(target int) (int, error) {
 	return i.doc, nil
 }
 
-func (i *innerDocValuesIterator2) SlowAdvance(target int) (int, error) {
-	return i.Advance(target)
+func (i *innerDocValuesIterator2) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return i.Advance(nil, target)
 }
 
 func (i *innerDocValuesIterator2) Cost() int64 {
@@ -584,10 +584,10 @@ func (i *innerSortedDocValues) DocID() int {
 }
 
 func (i *innerSortedDocValues) NextDoc() (int, error) {
-	return i.Advance(i.DocID() + 1)
+	return i.Advance(nil, i.DocID()+1)
 }
 
-func (i *innerSortedDocValues) Advance(target int) (int, error) {
+func (i *innerSortedDocValues) Advance(ctx context.Context, target int) (int, error) {
 	for idx := target; idx < i.reader.maxDoc; idx++ {
 		offset := i.field.dataStartFilePointer +
 			i.field.numValues*int64(9+len(i.field.pattern)+i.field.maxLength) +
@@ -613,8 +613,8 @@ func (i *innerSortedDocValues) Advance(target int) (int, error) {
 	return i.doc, nil
 }
 
-func (i *innerSortedDocValues) SlowAdvance(target int) (int, error) {
-	return i.Advance(target)
+func (i *innerSortedDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return i.Advance(nil, target)
 }
 
 func (i *innerSortedDocValues) Cost() int64 {
@@ -684,8 +684,8 @@ func (i *innerSortedNumericDocValues) NextDoc() (int, error) {
 	return doc, nil
 }
 
-func (i *innerSortedNumericDocValues) Advance(target int) (int, error) {
-	doc, err := i.binary.Advance(target)
+func (i *innerSortedNumericDocValues) Advance(ctx context.Context, target int) (int, error) {
+	doc, err := i.binary.Advance(nil, target)
 	if err != nil {
 		return 0, err
 	}
@@ -696,8 +696,8 @@ func (i *innerSortedNumericDocValues) Advance(target int) (int, error) {
 	return doc, nil
 }
 
-func (i *innerSortedNumericDocValues) SlowAdvance(target int) (int, error) {
-	return i.Advance(target)
+func (i *innerSortedNumericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return i.Advance(nil, target)
 }
 
 func (i *innerSortedNumericDocValues) Cost() int64 {
@@ -794,10 +794,10 @@ func (i *innerSortedSetDocValues) DocID() int {
 }
 
 func (i *innerSortedSetDocValues) NextDoc() (int, error) {
-	return i.Advance(i.doc + 1)
+	return i.Advance(nil, i.doc+1)
 }
 
-func (i *innerSortedSetDocValues) Advance(target int) (int, error) {
+func (i *innerSortedSetDocValues) Advance(ctx context.Context, target int) (int, error) {
 	for idx := target; idx < i.reader.maxDoc; idx++ {
 		offset := i.field.dataStartFilePointer + i.field.numValues*
 			int64(9+len(i.field.pattern)+i.field.maxLength) +
@@ -824,8 +824,8 @@ func (i *innerSortedSetDocValues) Advance(target int) (int, error) {
 	return i.doc, nil
 }
 
-func (i *innerSortedSetDocValues) SlowAdvance(target int) (int, error) {
-	return i.Advance(target)
+func (i *innerSortedSetDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return i.Advance(nil, target)
 }
 
 func (i *innerSortedSetDocValues) Cost() int64 {

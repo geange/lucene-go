@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
@@ -171,13 +172,13 @@ func (r *innerDocIdSetIterator) NextDoc() (int, error) {
 	return r.advanceInternal(r.scorer.reqApproximation.DocID() + 1)
 }
 
-func (r *innerDocIdSetIterator) Advance(target int) (int, error) {
+func (r *innerDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
 	return r.advanceInternal(target)
 }
 
 func (r *innerDocIdSetIterator) advanceInternal(target int) (int, error) {
 	if target == types.NO_MORE_DOCS {
-		if _, err := r.scorer.reqApproximation.Advance(target); err != nil {
+		if _, err := r.scorer.reqApproximation.Advance(nil, target); err != nil {
 			return 0, err
 		}
 		return types.NO_MORE_DOCS, nil
@@ -196,7 +197,7 @@ OUTER:
 			}
 		}
 		if r.scorer.reqApproximation.DocID() < reqDoc {
-			reqDoc, err = r.scorer.reqApproximation.Advance(reqDoc)
+			reqDoc, err = r.scorer.reqApproximation.Advance(nil, reqDoc)
 			if err != nil {
 				return 0, err
 			}
@@ -217,7 +218,7 @@ OUTER:
 		for {
 			optDoc := r.scorer.optApproximation.DocID()
 			if optDoc < reqDoc {
-				optDoc, err = r.scorer.optApproximation.Advance(reqDoc)
+				optDoc, err = r.scorer.optApproximation.Advance(nil, reqDoc)
 				if err != nil {
 					return 0, err
 				}
@@ -228,7 +229,7 @@ OUTER:
 			}
 
 			if optDoc != reqDoc {
-				reqDoc, err = r.scorer.reqApproximation.Advance(optDoc)
+				reqDoc, err = r.scorer.reqApproximation.Advance(nil, optDoc)
 				if err != nil {
 					return 0, err
 				}
@@ -245,7 +246,7 @@ OUTER:
 	}
 }
 
-func (r *innerDocIdSetIterator) SlowAdvance(target int) (int, error) {
+func (r *innerDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(r, target)
 }
 
@@ -281,7 +282,7 @@ func (i *innerTwoPhaseIterator) Matches() (bool, error) {
 			// after the opt approximation was advanced and before it was confirmed.
 			if i.scorer.reqScorer.DocID() != i.scorer.optApproximation.DocID() {
 				if i.scorer.optApproximation.DocID() < i.scorer.reqScorer.DocID() {
-					if _, err := i.scorer.optApproximation.Advance(i.scorer.reqScorer.DocID()); err != nil {
+					if _, err := i.scorer.optApproximation.Advance(nil, i.scorer.reqScorer.DocID()); err != nil {
 						return false, err
 					}
 				}
@@ -331,7 +332,7 @@ func (r *ReqOptSumScorer) Score() (float64, error) {
 
 	optScorerDoc := r.optApproximation.DocID()
 	if optScorerDoc < curDoc {
-		optScorerDoc, err = r.optApproximation.Advance(curDoc)
+		optScorerDoc, err = r.optApproximation.Advance(nil, curDoc)
 		if err != nil {
 			return 0, err
 		}

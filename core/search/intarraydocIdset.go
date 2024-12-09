@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"io"
@@ -55,11 +56,11 @@ func (r *IntArrayDocIdSetIterator) NextDoc() (int, error) {
 	return r.doc, nil
 }
 
-func (r *IntArrayDocIdSetIterator) Advance(target int) (int, error) {
-	return r.SlowAdvance(target)
+func (r *IntArrayDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
+	return r.SlowAdvance(nil, target)
 }
 
-func (r *IntArrayDocIdSetIterator) SlowAdvance(target int) (int, error) {
+func (r *IntArrayDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(r, target)
 }
 

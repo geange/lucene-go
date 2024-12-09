@@ -14,7 +14,7 @@ func TestNewNumericDocValues(t *testing.T) {
 	id := numDocValues.DocID()
 	assert.Equal(t, math.MaxInt32, id)
 
-	advance, err := numDocValues.Advance(1)
+	advance, err := numDocValues.Advance(nil, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, advance)
 
@@ -27,7 +27,7 @@ func TestNewSortedDocValues(t *testing.T) {
 	content := []byte("xxxxxxx")
 
 	docValues := newSortedDocValues(content)
-	advance, err := docValues.Advance(1)
+	advance, err := docValues.Advance(nil, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, advance)
 	assert.Equal(t, 1, docValues.DocID())
@@ -47,7 +47,7 @@ func TestNewSortedDocValues(t *testing.T) {
 	assert.Equal(t, 4, docId)
 	assert.Equal(t, 4, docValues.DocID())
 
-	slowAdvance, err := docValues.SlowAdvance(10)
+	slowAdvance, err := docValues.SlowAdvance(nil, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, 10, slowAdvance)
 

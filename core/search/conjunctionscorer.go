@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"errors"
 	"math"
 	"sort"
@@ -316,12 +317,12 @@ func (b *BitSetConjunctionDISI) NextDoc() (int, error) {
 	panic("implement me")
 }
 
-func (b *BitSetConjunctionDISI) Advance(target int) (int, error) {
+func (b *BitSetConjunctionDISI) Advance(ctx context.Context, target int) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (b *BitSetConjunctionDISI) SlowAdvance(target int) (int, error) {
+func (b *BitSetConjunctionDISI) SlowAdvance(ctx context.Context, target int) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }

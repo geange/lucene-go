@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"io"
 	"math"
 )
@@ -45,11 +46,11 @@ type DocIdSetIterator interface {
 	// cannot efficiently determine that it should exhaust, it is recommended that you check for that item in
 	// each call to this method.
 	// Since: 2.9
-	Advance(target int) (int, error)
+	Advance(ctx context.Context, target int) (int, error)
 
 	// SlowAdvance
 	// Slow (linear) implementation of advance relying on nextDoc() to advance beyond the target position.
-	SlowAdvance(target int) (int, error)
+	SlowAdvance(ctx context.Context, target int) (int, error)
 
 	// Cost
 	// Returns the estimated cost of this DocIdSetIterator.
@@ -88,7 +89,7 @@ type docIdSetIteratorAll struct {
 	maxDoc int
 }
 
-func (d *docIdSetIteratorAll) SlowAdvance(target int) (int, error) {
+func (d *docIdSetIteratorAll) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return SlowAdvance(d, target)
 }
 
@@ -97,10 +98,10 @@ func (d *docIdSetIteratorAll) DocID() int {
 }
 
 func (d *docIdSetIteratorAll) NextDoc() (int, error) {
-	return d.Advance(d.doc + 1)
+	return d.Advance(nil, d.doc+1)
 }
 
-func (d *docIdSetIteratorAll) Advance(target int) (int, error) {
+func (d *docIdSetIteratorAll) Advance(ctx context.Context, target int) (int, error) {
 	d.doc = target
 	if d.doc >= d.maxDoc {
 		d.doc = NO_MORE_DOCS
@@ -135,12 +136,12 @@ func (e *emptyDocIdSetIterator) NextDoc() (int, error) {
 	return NO_MORE_DOCS, io.EOF
 }
 
-func (e *emptyDocIdSetIterator) Advance(target int) (int, error) {
+func (e *emptyDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
 	e.exhausted = true
 	return NO_MORE_DOCS, io.EOF
 }
 
-func (e *emptyDocIdSetIterator) SlowAdvance(target int) (int, error) {
+func (e *emptyDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return SlowAdvance(e, target)
 }
 

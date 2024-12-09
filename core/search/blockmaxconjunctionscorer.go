@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"io"
@@ -210,16 +211,16 @@ func (b *bmcDocIdSetIterator) DocID() int {
 }
 
 func (b *bmcDocIdSetIterator) NextDoc() (int, error) {
-	return b.Advance(b.DocID() + 1)
+	return b.Advance(nil, b.DocID()+1)
 }
 
-func (b *bmcDocIdSetIterator) Advance(target int) (int, error) {
+func (b *bmcDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
 	advanceTarget, err := b.advanceTarget(target)
 	if err != nil {
 		return 0, err
 	}
 
-	advance, err := b.lead.Advance(advanceTarget)
+	advance, err := b.lead.Advance(nil, advanceTarget)
 	if err != nil {
 		return 0, err
 	}
@@ -244,7 +245,7 @@ advanceHead:
 				return 0, err
 			}
 			if nextTarget != doc {
-				doc, err = b.lead.Advance(nextTarget)
+				doc, err = b.lead.Advance(nil, nextTarget)
 				if err != nil {
 					return 0, err
 				}
@@ -259,7 +260,7 @@ advanceHead:
 			// other.doc may already be equal to doc if we "continued advanceHead"
 			// on the previous iteration and the advance on the lead scorer exactly matched.
 			if other.DocID() < doc {
-				next, err := other.Advance(doc)
+				next, err := other.Advance(nil, doc)
 				if err != nil {
 					return 0, err
 				}
@@ -270,7 +271,7 @@ advanceHead:
 					if err != nil {
 						return 0, err
 					}
-					doc, err = b.lead.Advance(advanceTarget)
+					doc, err = b.lead.Advance(nil, advanceTarget)
 					if err != nil {
 						return 0, err
 					}
@@ -282,7 +283,7 @@ advanceHead:
 	}
 }
 
-func (b *bmcDocIdSetIterator) SlowAdvance(target int) (int, error) {
+func (b *bmcDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(b, target)
 }
 

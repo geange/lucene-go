@@ -301,7 +301,7 @@ func (r *Reader) visitDocValuesNoCardinality(ctx context.Context, commonPrefixLe
 
 func (r *Reader) visitDocValuesWithCardinality(ctx context.Context, commonPrefixLengths []int, scratchDataPackedValue, scratchMinIndexPackedValue, scratchMaxIndexPackedValue []byte, in store.IndexInput, scratchIterator *readerDocIDSetIterator, count int, visitor types.IntersectVisitor) error {
 
-	if err := r.readCommonPrefixes(nil, commonPrefixLengths, scratchDataPackedValue, in); err != nil {
+	if err := r.readCommonPrefixes(ctx, commonPrefixLengths, scratchDataPackedValue, in); err != nil {
 		return err
 	}
 
@@ -343,7 +343,7 @@ func (r *Reader) visitDocValuesWithCardinality(ctx context.Context, commonPrefix
 
 			if relation == types.CELL_INSIDE_QUERY {
 				for i := 0; i < count; i++ {
-					if err := visitor.Visit(nil, scratchIterator.docIDs[i]); err != nil {
+					if err := visitor.Visit(ctx, scratchIterator.docIDs[i]); err != nil {
 						return err
 					}
 				}
@@ -359,7 +359,7 @@ func (r *Reader) visitDocValuesWithCardinality(ctx context.Context, commonPrefix
 			}
 		} else {
 			// high cardinality
-			if err := r.visitCompressedDocValues(nil, commonPrefixLengths, scratchDataPackedValue, in, scratchIterator, count, visitor, compressedDim); err != nil {
+			if err := r.visitCompressedDocValues(ctx, commonPrefixLengths, scratchDataPackedValue, in, scratchIterator, count, visitor, compressedDim); err != nil {
 				return err
 			}
 		}

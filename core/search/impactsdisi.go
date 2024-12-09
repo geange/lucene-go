@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"math"
 
 	"github.com/geange/lucene-go/core/interface/index"
@@ -46,8 +47,8 @@ func (d *ImpactsDISI) setMinCompetitiveScore(minCompetitiveScore float64) error 
 
 // Implement the contract of Scorer.advanceShallow(int) based on the wrapped ImpactsEnum.
 // See Also: Scorer.advanceShallow(int)
-func (d *ImpactsDISI) advanceShallow(target int) (int, error) {
-	err := d.impactsSource.AdvanceShallow(target)
+func (d *ImpactsDISI) advanceShallow(ctx context.Context, target int) (int, error) {
+	err := d.impactsSource.AdvanceShallow(ctx, target)
 	if err != nil {
 		return 0, err
 	}
@@ -78,25 +79,25 @@ func (d *ImpactsDISI) DocID() int {
 }
 
 func (d *ImpactsDISI) NextDoc() (int, error) {
-	return d.Advance(d.in.DocID() + 1)
+	return d.Advance(nil, d.in.DocID()+1)
 }
 
-func (d *ImpactsDISI) Advance(target int) (int, error) {
-	target, err := d.advanceTarget(target)
+func (d *ImpactsDISI) Advance(ctx context.Context, target int) (int, error) {
+	target, err := d.advanceTarget(nil, target)
 	if err != nil {
 		return 0, err
 	}
-	return d.in.Advance(target)
+	return d.in.Advance(nil, target)
 }
 
-func (d *ImpactsDISI) advanceTarget(target int) (int, error) {
+func (d *ImpactsDISI) advanceTarget(ctx context.Context, target int) (int, error) {
 	if target <= d.upTo {
 		// we are still in the current block, which is considered competitive
 		// according to impacts, no skipping
 		return target, nil
 	}
 
-	upTo, err := d.advanceShallow(target)
+	upTo, err := d.advanceShallow(ctx, target)
 	if err != nil {
 		return 0, err
 	}
@@ -129,7 +130,7 @@ func (d *ImpactsDISI) advanceTarget(target int) (int, error) {
 			target = skipUpTo + 1
 		}
 
-		d.upTo, err = d.advanceShallow(target)
+		d.upTo, err = d.advanceShallow(ctx, target)
 		if err != nil {
 			return 0, err
 		}
@@ -141,8 +142,8 @@ func (d *ImpactsDISI) advanceTarget(target int) (int, error) {
 	}
 }
 
-func (d *ImpactsDISI) SlowAdvance(target int) (int, error) {
-	return d.Advance(target)
+func (d *ImpactsDISI) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return d.Advance(nil, target)
 }
 
 func (d *ImpactsDISI) Cost() int64 {

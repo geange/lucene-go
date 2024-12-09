@@ -36,7 +36,7 @@ func (c *ConstantScoreWeight) Explain(ctx index.LeafReaderContext, doc int) (typ
 	if s != nil {
 		twoPhase := s.TwoPhaseIterator()
 		if twoPhase == nil {
-			advance, err := s.Iterator().Advance(doc)
+			advance, err := s.Iterator().Advance(nil, doc)
 			if err != nil {
 				if !errors.Is(err, io.EOF) {
 					return nil, err
@@ -50,7 +50,7 @@ func (c *ConstantScoreWeight) Explain(ctx index.LeafReaderContext, doc int) (typ
 				return nil, err
 			}
 
-			advance, err := twoPhase.Approximation().Advance(doc)
+			advance, err := twoPhase.Approximation().Advance(nil, doc)
 			if err != nil {
 				return nil, err
 			}

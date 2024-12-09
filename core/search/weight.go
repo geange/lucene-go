@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
@@ -49,7 +50,7 @@ func (r *BaseWeight) Matches(ctx index.LeafReaderContext, doc int) (index.Matche
 	}
 	twoPhase := scorer.TwoPhaseIterator()
 	if twoPhase == nil {
-		advance, err := scorer.Iterator().Advance(doc)
+		advance, err := scorer.Iterator().Advance(nil, doc)
 		if err != nil {
 			return nil, err
 		}
@@ -57,7 +58,7 @@ func (r *BaseWeight) Matches(ctx index.LeafReaderContext, doc int) (index.Matche
 			return nil, nil
 		}
 	} else {
-		advance, err := twoPhase.Approximation().Advance(doc)
+		advance, err := twoPhase.Approximation().Advance(nil, doc)
 		if err != nil {
 			return nil, err
 		}
@@ -178,7 +179,7 @@ func (d *DefaultBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs
 	} else {
 		doc := filteredIterator.DocID()
 		if doc < min {
-			doc, err = filteredIterator.Advance(min)
+			doc, err = filteredIterator.Advance(nil, min)
 			if err != nil {
 				return 0, err
 			}
@@ -297,20 +298,20 @@ func (s *StartDISIWrapper) DocID() int {
 }
 
 func (s *StartDISIWrapper) NextDoc() (int, error) {
-	return s.Advance(s.docID + 1)
+	return s.Advance(nil, s.docID+1)
 }
 
-func (s *StartDISIWrapper) Advance(target int) (int, error) {
+func (s *StartDISIWrapper) Advance(ctx context.Context, target int) (int, error) {
 	if target <= s.startDocID {
 		s.docID = s.startDocID
 		return s.docID, nil
 	}
 	var err error
-	s.docID, err = s.in.Advance(target)
+	s.docID, err = s.in.Advance(nil, target)
 	return s.docID, err
 }
 
-func (s *StartDISIWrapper) SlowAdvance(target int) (int, error) {
+func (s *StartDISIWrapper) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(s, target)
 }
 

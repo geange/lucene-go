@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/types"
 	"sort"
 )
@@ -55,12 +56,12 @@ func (c *ConjunctionDISI) NextDoc() (int, error) {
 	panic("implement me")
 }
 
-func (c *ConjunctionDISI) Advance(target int) (int, error) {
+func (c *ConjunctionDISI) Advance(ctx context.Context, target int) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *ConjunctionDISI) SlowAdvance(target int) (int, error) {
+func (c *ConjunctionDISI) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(c, target)
 }
 

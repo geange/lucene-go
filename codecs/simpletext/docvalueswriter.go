@@ -501,8 +501,8 @@ func (i *innerBinaryDocValues) NextDoc() (int, error) {
 	return doc, nil
 }
 
-func (i *innerBinaryDocValues) Advance(target int) (int, error) {
-	doc, err := i.values.Advance(target)
+func (i *innerBinaryDocValues) Advance(ctx context.Context, target int) (int, error) {
+	doc, err := i.values.Advance(nil, target)
 	if err != nil {
 		return 0, err
 	}
@@ -512,8 +512,8 @@ func (i *innerBinaryDocValues) Advance(target int) (int, error) {
 	return doc, nil
 }
 
-func (i *innerBinaryDocValues) SlowAdvance(target int) (int, error) {
-	return i.Advance(target)
+func (i *innerBinaryDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return i.Advance(nil, target)
 }
 
 func (i *innerBinaryDocValues) Cost() int64 {

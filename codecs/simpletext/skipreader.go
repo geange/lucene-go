@@ -32,8 +32,8 @@ func NewSkipReader(skipStream store.IndexInput) *SkipReader {
 	}
 }
 
-func (s *SkipReader) SkipTo(target int) (int, error) {
-	return s.sr.SkipTo(nil, target, s.mtx)
+func (s *SkipReader) SkipTo(ctx context.Context, target int) (int, error) {
+	return s.sr.SkipTo(ctx, target, s.mtx)
 }
 
 func (s *SkipReader) GetNextSkipDoc() int {
@@ -58,8 +58,6 @@ var _ coreIndex.MultiLevelSkipListReaderSPI = &skipReader{}
 // This class reads skip lists with multiple levels.
 // See TextFieldsWriter for the information about the encoding of the multi level skip lists.
 type skipReader struct {
-	//mtx *coreIndex.MultiLevelSkipListReaderContext
-
 	scratchUTF16    *bytes.Buffer
 	scratch         *bytes.Buffer
 	impacts         index.Impacts

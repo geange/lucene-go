@@ -107,7 +107,7 @@ func (f *FilteredTermsEnumBase) TotalTermFreq() (int64, error) {
 }
 
 func (f *FilteredTermsEnumBase) SeekExact(ctx context.Context, text []byte) (bool, error) {
-	return f.tenum.SeekExact(nil, text)
+	return f.tenum.SeekExact(ctx, text)
 }
 
 func (f *FilteredTermsEnumBase) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {

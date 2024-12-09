@@ -607,7 +607,7 @@ type ImpactsSource interface {
 	// the current DocIdSetIterator.docID(). After this method has been called, DocIdSetIterator.nextDoc()
 	// may not be called if the current doc ID is less than target - 1 and DocIdSetIterator.advance(int)
 	// may not be called on targets that are less than target.
-	AdvanceShallow(target int) error
+	AdvanceShallow(ctx context.Context, target int) error
 
 	// GetImpacts
 	// Get information about upcoming impacts for doc ids that are greater than or equal to the
