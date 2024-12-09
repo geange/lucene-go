@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
@@ -40,8 +41,7 @@ func (t *TermVectorsConsumer) SetTermBytePool(termBytePool *bytesref.BlockPool) 
 	t.termBytePool = termBytePool
 }
 
-func (t *TermVectorsConsumer) Flush(fieldsToFlush map[string]TermsHashPerField,
-	state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
+func (t *TermVectorsConsumer) Flush(ctx context.Context, fieldsToFlush map[string]TermsHashPerField, state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
 
 	if t.writer != nil {
 		numDocs, err := state.SegmentInfo.MaxDoc()
@@ -51,7 +51,7 @@ func (t *TermVectorsConsumer) Flush(fieldsToFlush map[string]TermsHashPerField,
 		if err := t.fill(numDocs); err != nil {
 			return err
 		}
-		if err := t.writer.Finish(nil, state.FieldInfos, numDocs); err != nil {
+		if err := t.writer.Finish(ctx, state.FieldInfos, numDocs); err != nil {
 			return err
 		}
 		return t.writer.Close()
@@ -96,7 +96,7 @@ func (t *TermVectorsConsumer) addFieldToFlush(fieldToFlush *TermVectorsConsumerP
 	return nil
 }
 
-func (t *TermVectorsConsumer) FinishDocument(docID int) error {
+func (t *TermVectorsConsumer) FinishDocument(ctx context.Context, docID int) error {
 	if !t.hasVectors {
 		return nil
 	}
@@ -112,14 +112,22 @@ func (t *TermVectorsConsumer) FinishDocument(docID int) error {
 		return err
 	}
 
-	t.writer.StartDocument(nil, t.numVectorFields)
-	for i := 0; i < t.numVectorFields; i++ {
-		t.perFields[i].FinishDocument()
+	if err := t.writer.StartDocument(ctx, t.numVectorFields); err != nil {
+		return err
 	}
-	t.writer.FinishDocument(nil)
+	for i := 0; i < t.numVectorFields; i++ {
+		if err := t.perFields[i].FinishDocument(); err != nil {
+			return err
+		}
+	}
+	if err := t.writer.FinishDocument(ctx); err != nil {
+		return err
+	}
 
 	t.lastDocID++
-	t.Reset()
+	if err := t.Reset(); err != nil {
+		return err
+	}
 	t.resetFields()
 	return nil
 }

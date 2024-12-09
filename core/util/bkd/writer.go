@@ -125,7 +125,7 @@ func (w *Writer) init() error {
 	return nil
 }
 
-func (w *Writer) Add(packedValue []byte, docID int) error {
+func (w *Writer) Add(ctx context.Context, packedValue []byte, docID int) error {
 	config := w.config
 
 	if len(packedValue) != config.PackedIndexBytesLength() {
@@ -169,7 +169,7 @@ func (w *Writer) Add(packedValue []byte, docID int) error {
 		}
 	}
 
-	if err := w.pointWriter.Append(nil, packedValue, docID); err != nil {
+	if err := w.pointWriter.Append(ctx, packedValue, docID); err != nil {
 		return err
 	}
 	w.pointCount++
@@ -215,7 +215,7 @@ var (
 // WriteField Write a field from a MutablePointValues. This way of writing points is faster than regular writes with add since there is opportunity for reordering points before writing them to disk. This method does not use transient disk in order to reorder points.
 func (w *Writer) WriteField(ctx context.Context, metaOut, indexOut, dataOut store.IndexOutput, fieldName string, reader types.MutablePointValues) (Runnable, error) {
 	if w.config.NumDims() == 1 {
-		return w.writeField1Dim(metaOut, indexOut, dataOut, fieldName, reader)
+		return w.writeField1Dim(nil, metaOut, indexOut, dataOut, fieldName, reader)
 	} else {
 		return w.writeFieldNDims(ctx, metaOut, indexOut, dataOut, fieldName, reader)
 	}
@@ -343,8 +343,7 @@ func (l *leafNodesWriteFieldNDims) GetSplitDimension(index int) int {
 
 // In the 1D case, we can simply sort points in ascending order and use the
 // same writing logic as we use at merge time.
-func (w *Writer) writeField1Dim(metaOut, indexOut, dataOut store.IndexOutput,
-	fieldName string, reader types.MutablePointValues) (Runnable, error) {
+func (w *Writer) writeField1Dim(ctx context.Context, metaOut, indexOut, dataOut store.IndexOutput, fieldName string, reader types.MutablePointValues) (Runnable, error) {
 
 	sorter := NewMutablePointValuesSorter(w.config, w.maxDoc, reader, 0, reader.Size())
 	sort.Sort(sorter)
@@ -354,12 +353,12 @@ func (w *Writer) writeField1Dim(metaOut, indexOut, dataOut store.IndexOutput,
 		return nil, err
 	}
 
-	err = reader.Intersect(nil, &writeField1DimVisitor{oneDimWriter: oneDimWriter})
+	err = reader.Intersect(ctx, &writeField1DimVisitor{oneDimWriter: oneDimWriter})
 	if err != nil {
 		return nil, err
 	}
 
-	return oneDimWriter.Finish()
+	return oneDimWriter.Finish(ctx)
 }
 
 var _ types.IntersectVisitor = &writeField1DimVisitor{}

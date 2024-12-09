@@ -36,7 +36,7 @@ func (r *ReqExclBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs
 
 	for upTo < maxDoc {
 		if exclDoc < upTo {
-			exclDoc, err = r.excl.Advance(upTo)
+			exclDoc, err = r.excl.Advance(nil, upTo)
 			if err != nil {
 				return 0, err
 			}

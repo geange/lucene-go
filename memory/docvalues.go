@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"io"
 
 	coreIndex "github.com/geange/lucene-go/core/index"
@@ -30,11 +31,11 @@ func (i *numericDocValues) NextDoc() (int, error) {
 	return i.iterator.nextDoc(), nil
 }
 
-func (i *numericDocValues) Advance(target int) (int, error) {
+func (i *numericDocValues) Advance(ctx context.Context, target int) (int, error) {
 	return i.iterator.advance(target), nil
 }
 
-func (i *numericDocValues) SlowAdvance(target int) (int, error) {
+func (i *numericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
@@ -51,7 +52,7 @@ func (i *numericDocValues) Cost() int64 {
 }
 
 func (i *numericDocValues) AdvanceExact(target int) (bool, error) {
-	advance, err := i.Advance(target)
+	advance, err := i.Advance(nil, target)
 	if err != nil {
 		return false, err
 	}
@@ -100,11 +101,11 @@ func (i *sortedDocValues) NextDoc() (int, error) {
 	return i.it.nextDoc(), nil
 }
 
-func (i *sortedDocValues) Advance(target int) (int, error) {
+func (i *sortedDocValues) Advance(ctx context.Context, target int) (int, error) {
 	return i.it.advance(target), nil
 }
 
-func (i *sortedDocValues) SlowAdvance(target int) (int, error) {
+func (i *sortedDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
@@ -121,7 +122,7 @@ func (i *sortedDocValues) Cost() int64 {
 }
 
 func (i *sortedDocValues) AdvanceExact(target int) (bool, error) {
-	advance, err := i.Advance(target)
+	advance, err := i.Advance(nil, target)
 	if err != nil {
 		return false, err
 	}
@@ -169,11 +170,11 @@ func (i *sortedNumericDocValues) NextDoc() (int, error) {
 	return i.it.nextDoc(), nil
 }
 
-func (i *sortedNumericDocValues) Advance(target int) (int, error) {
+func (i *sortedNumericDocValues) Advance(ctx context.Context, target int) (int, error) {
 	return i.it.advance(target), nil
 }
 
-func (i *sortedNumericDocValues) SlowAdvance(target int) (int, error) {
+func (i *sortedNumericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
@@ -190,7 +191,7 @@ func (i *sortedNumericDocValues) Cost() int64 {
 }
 
 func (i *sortedNumericDocValues) AdvanceExact(target int) (bool, error) {
-	advance, err := i.Advance(target)
+	advance, err := i.Advance(nil, target)
 	if err != nil {
 		return false, err
 	}
@@ -231,11 +232,11 @@ func (i *sortedSetDocValues) NextDoc() (int, error) {
 	return i.it.nextDoc(), nil
 }
 
-func (i *sortedSetDocValues) Advance(target int) (int, error) {
+func (i *sortedSetDocValues) Advance(ctx context.Context, target int) (int, error) {
 	return i.it.advance(target), nil
 }
 
-func (i *sortedSetDocValues) SlowAdvance(target int) (int, error) {
+func (i *sortedSetDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
@@ -254,7 +255,7 @@ func (i *sortedSetDocValues) Cost() int64 {
 func (i *sortedSetDocValues) AdvanceExact(target int) (bool, error) {
 	i.ord = 0
 
-	advance, err := i.Advance(target)
+	advance, err := i.Advance(nil, target)
 	if err != nil {
 		return false, err
 	}

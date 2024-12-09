@@ -49,7 +49,7 @@ func TestWriterReader2Dim(t *testing.T) {
 			binary.BigEndian.PutUint64(packedBytes, uint64((docID*j)%256))
 			binary.BigEndian.PutUint64(packedBytes[8:], uint64((docID*j+1)%256))
 
-			err := w.Add(packedBytes, docID)
+			err := w.Add(nil, packedBytes, docID)
 			assert.Nil(t, err)
 			counter++
 		}
@@ -117,7 +117,7 @@ func TestJustWriter(t *testing.T) {
 			binary.BigEndian.PutUint32(packedBytes, uint32((docID*j)%256))
 			binary.BigEndian.PutUint32(packedBytes[4:], uint32((docID*j+1)%256))
 
-			err := w.Add(packedBytes, docID)
+			err := w.Add(nil, packedBytes, docID)
 			assert.Nil(t, err)
 			counter++
 		}
@@ -165,7 +165,7 @@ func TestWriterReaderForDebug(t *testing.T) {
 			binary.BigEndian.PutUint32(packedBytes, uint32((docID*j)%256))
 			binary.BigEndian.PutUint32(packedBytes[4:], uint32((docID*j+1)%256))
 
-			err := w.Add(packedBytes, docID)
+			err := w.Add(nil, packedBytes, docID)
 			assert.Nil(t, err)
 			counter++
 		}
@@ -226,7 +226,7 @@ func doWriteField(t *testing.T, numDocs, numDims, numIndexDims, bytesPerDim int)
 	for docID := 0; docID < numDocs; docID++ {
 		for j := 0; j < 26; j++ {
 			nextBytes(rand.NewSource(time.Now().Unix()), packedBytes)
-			err := w.Add(packedBytes, docID)
+			err := w.Add(nil, packedBytes, docID)
 			assert.Nil(t, err)
 			counter++
 		}

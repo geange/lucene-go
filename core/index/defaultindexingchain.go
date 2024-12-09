@@ -231,7 +231,7 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *index.SegmentWr
 		}
 
 		normsMergeInstance := norms.GetMergeInstance()
-		if err := d.termsHash.Flush(fieldsToFlush, state, sortMap, normsMergeInstance); err != nil {
+		if err := d.termsHash.Flush(nil, fieldsToFlush, state, sortMap, normsMergeInstance); err != nil {
 			return nil, err
 		}
 	}
@@ -394,7 +394,7 @@ func (d *DefaultIndexingChain) ProcessDocument(ctx context.Context, docId int, d
 		}
 	}
 
-	return d.termsHash.FinishDocument(docId)
+	return d.termsHash.FinishDocument(nil, docId)
 }
 
 func (d *DefaultIndexingChain) processField(ctx context.Context, docId int, field document.IndexableField, fieldGen int64, fieldCount int) (int, error) {

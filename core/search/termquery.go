@@ -121,7 +121,7 @@ func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (types.Ex
 		return nil, errors.New("no matching term")
 	}
 
-	newDoc, err := tScorer.Iterator().Advance(doc)
+	newDoc, err := tScorer.Iterator().Advance(nil, doc)
 	if err != nil {
 		return nil, err
 	}

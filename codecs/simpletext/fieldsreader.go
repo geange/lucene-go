@@ -475,12 +475,12 @@ func (s *simpleTextPostingsEnum) NextDoc() (int, error) {
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) Advance(target int) (int, error) {
+func (s *simpleTextPostingsEnum) Advance(ctx context.Context, target int) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) SlowAdvance(target int) (int, error) {
+func (s *simpleTextPostingsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -515,7 +515,7 @@ func (s *simpleTextPostingsEnum) GetPayload() ([]byte, error) {
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) AdvanceShallow(target int) error {
+func (s *simpleTextPostingsEnum) AdvanceShallow(ctx context.Context, target int) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -575,19 +575,19 @@ func (s *simpleTextDocsEnum) DocID() int {
 }
 
 func (s *simpleTextDocsEnum) NextDoc() (int, error) {
-	return s.Advance(s.docID + 1)
+	return s.Advance(nil, s.docID+1)
 }
 
-func (s *simpleTextDocsEnum) Advance(target int) (int, error) {
-	err := s.AdvanceShallow(target)
+func (s *simpleTextDocsEnum) Advance(ctx context.Context, target int) (int, error) {
+	err := s.AdvanceShallow(nil, target)
 	if err != nil {
 		return 0, err
 	}
 	return s.advanceTarget(target)
 }
 
-func (s *simpleTextDocsEnum) SlowAdvance(target int) (int, error) {
-	return s.Advance(target)
+func (s *simpleTextDocsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return s.Advance(nil, target)
 }
 
 func (s *simpleTextDocsEnum) Cost() int64 {
@@ -614,9 +614,9 @@ func (s *simpleTextDocsEnum) GetPayload() ([]byte, error) {
 	return nil, nil
 }
 
-func (s *simpleTextDocsEnum) AdvanceShallow(target int) error {
+func (s *simpleTextDocsEnum) AdvanceShallow(ctx context.Context, target int) error {
 	if target > s.nextSkipDoc {
-		_, err := s.skipReader.SkipTo(target)
+		_, err := s.skipReader.SkipTo(nil, target)
 		if err != nil {
 			return err
 		}
@@ -629,7 +629,7 @@ func (s *simpleTextDocsEnum) AdvanceShallow(target int) error {
 }
 
 func (s *simpleTextDocsEnum) GetImpacts() (index.Impacts, error) {
-	err := s.AdvanceShallow(s.docID)
+	err := s.AdvanceShallow(nil, s.docID)
 	if err != nil {
 		return nil, err
 	}

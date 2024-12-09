@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"github.com/geange/lucene-go/core/interface/index"
 	"io"
@@ -16,8 +17,8 @@ var _ index.NumericDocValues = &NumericDocValuesDefault{}
 type NumericDocValuesDefault struct {
 	FnDocID        func() int
 	FnNextDoc      func() (int, error)
-	FnAdvance      func(target int) (int, error)
-	FnSlowAdvance  func(target int) (int, error)
+	FnAdvance      func(ctx context.Context, target int) (int, error)
+	FnSlowAdvance  func(ctx context.Context, target int) (int, error)
 	FnCost         func() int64
 	FnAdvanceExact func(target int) (bool, error)
 	FnLongValue    func() (int64, error)
@@ -31,12 +32,12 @@ func (n *NumericDocValuesDefault) NextDoc() (int, error) {
 	return n.FnNextDoc()
 }
 
-func (n *NumericDocValuesDefault) Advance(target int) (int, error) {
-	return n.FnAdvance(target)
+func (n *NumericDocValuesDefault) Advance(ctx context.Context, target int) (int, error) {
+	return n.FnAdvance(ctx, target)
 }
 
-func (n *NumericDocValuesDefault) SlowAdvance(target int) (int, error) {
-	return n.FnSlowAdvance(target)
+func (n *NumericDocValuesDefault) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return n.FnSlowAdvance(ctx, target)
 }
 
 func (n *NumericDocValuesDefault) Cost() int64 {
@@ -140,11 +141,11 @@ func (b *BufferedNumericDocValues) NextDoc() (int, error) {
 	return docID, nil
 }
 
-func (b *BufferedNumericDocValues) Advance(target int) (int, error) {
+func (b *BufferedNumericDocValues) Advance(ctx context.Context, target int) (int, error) {
 	return 0, errors.New("unsupported Operation")
 }
 
-func (b *BufferedNumericDocValues) SlowAdvance(target int) (int, error) {
+func (b *BufferedNumericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(b, target)
 }
 
@@ -181,11 +182,11 @@ func (s *SortingNumericDocValues) NextDoc() (int, error) {
 	return s.docID, nil
 }
 
-func (s *SortingNumericDocValues) Advance(target int) (int, error) {
+func (s *SortingNumericDocValues) Advance(ctx context.Context, target int) (int, error) {
 	return 0, errors.New("unsupported Operation")
 }
 
-func (s *SortingNumericDocValues) SlowAdvance(target int) (int, error) {
+func (s *SortingNumericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(s, target)
 }
 
