@@ -401,7 +401,7 @@ func (r *notAllDocsScorerSupplier) Get(leadCost int64) (coreIndex.Scorer, error)
 func (r *notAllDocsScorerSupplier) Cost() int64 {
 	if r.cost == -1 {
 		// Computing the cost may be expensive, so only do it if necessary
-		cost, _ := r.values.EstimateDocCount(r.visitor)
+		cost, _ := r.values.EstimateDocCount(nil, r.visitor)
 		r.cost = int64(cost)
 		//assert cost >= 0;
 	}

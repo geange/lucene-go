@@ -629,8 +629,8 @@ func (r *Reader) estimatePointCount(state *IntersectState, cellMinPacked, cellMa
 	return leftCost + rightCost, nil
 }
 
-func (r *Reader) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
-	return types.EstimateDocCount(r, visitor)
+func (r *Reader) EstimateDocCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(ctx, r, visitor)
 }
 
 func (r *Reader) GetMinPackedValue() ([]byte, error) {

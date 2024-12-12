@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -90,7 +91,7 @@ func NewBKDWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string
 	}
 }
 
-func (s *BKDWriter) Add(packedValue []byte, docID int) error {
+func (s *BKDWriter) Add(ctx context.Context, packedValue []byte, docID int) error {
 	if len(packedValue) != s.config.PackedBytesLength() {
 		return fmt.Errorf("packedValue should be length=%d (got: %d)",
 			s.config.PackedBytesLength(), len(packedValue))
@@ -134,7 +135,7 @@ func (s *BKDWriter) Add(packedValue []byte, docID int) error {
 		}
 	}
 
-	if err := s.pointWriter.Append(nil, packedValue, docID); err != nil {
+	if err := s.pointWriter.Append(ctx, packedValue, docID); err != nil {
 		return err
 	}
 	s.pointCount++
