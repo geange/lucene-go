@@ -328,7 +328,7 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 
 	valueCount, maxLength := 0, -1
 
-	sorted, err := valuesProducer.GetSorted(nil, field)
+	sorted, err := valuesProducer.GetSorted(ctx, field)
 	if err != nil {
 		return err
 	}
@@ -338,7 +338,7 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 	}
 
 	for {
-		value, err := terms.Next(nil)
+		value, err := terms.Next(ctx)
 		if err != nil {
 			return err
 		}
@@ -376,7 +376,7 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 
 	// for asserts:
 	valuesSeen := 0
-	sorted, err = valuesProducer.GetSorted(nil, field)
+	sorted, err = valuesProducer.GetSorted(ctx, field)
 	if err != nil {
 		return err
 	}
@@ -431,11 +431,9 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 	}
 	for i := 0; i < s.numDocs; i++ {
 		if values.DocID() < i {
-			_, err := values.NextDoc()
-			if err != nil {
+			if _, err := values.NextDoc(); err != nil {
 				return err
 			}
-			// assert values.docID() >= i;
 		}
 		ord := -1
 		if values.DocID() == i {
@@ -465,7 +463,7 @@ func (s *DocValuesWriter) AddSortedNumericField(ctx context.Context, field *docu
 
 	return s.doAddBinaryField(field, &coreIndex.EmptyDocValuesProducer{
 		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error) {
-			values, err := valuesProducer.GetSortedNumeric(nil, field)
+			values, err := valuesProducer.GetSortedNumeric(ctx, field)
 			if err != nil {
 				return nil, err
 			}

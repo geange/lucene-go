@@ -108,7 +108,7 @@ func (s *DocValuesFormat) GetName() string {
 }
 
 func (s *DocValuesFormat) FieldsConsumer(ctx context.Context, state *index.SegmentWriteState) (index.DocValuesConsumer, error) {
-	return NewDocValuesWriter(nil, state, "dat")
+	return NewDocValuesWriter(ctx, state, "dat")
 }
 
 func (s *DocValuesFormat) FieldsProducer(ctx context.Context, state *index.SegmentReadState) (index.DocValuesProducer, error) {

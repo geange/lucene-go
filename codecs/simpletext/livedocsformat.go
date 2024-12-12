@@ -67,11 +67,11 @@ func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, 
 	}
 	for !bytes.HasPrefix(scratch.Bytes(), LIVE_DOCS_FORMAT_END) {
 		scratch.Next(len(LIVE_DOCS_FORMAT_DOC))
-		docid, err := strconv.Atoi(scratch.String())
+		docId, err := strconv.Atoi(scratch.String())
 		if err != nil {
 			return nil, err
 		}
-		bits.Set(uint(docid))
+		bits.Set(uint(docId))
 
 		if err := r.ReadLine(); err != nil {
 			return nil, err
