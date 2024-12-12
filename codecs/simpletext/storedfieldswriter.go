@@ -55,7 +55,7 @@ func (s *StoredFieldsWriter) Close() error {
 	return s.out.Close()
 }
 
-func (s *StoredFieldsWriter) StartDocument(context.Context) error {
+func (s *StoredFieldsWriter) StartDocument(ctx context.Context) error {
 	if err := s.write(STORED_FIELD_DOC); err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (s *StoredFieldsWriter) StartDocument(context.Context) error {
 	return nil
 }
 
-func (s *StoredFieldsWriter) FinishDocument(context.Context) error {
+func (s *StoredFieldsWriter) FinishDocument(ctx context.Context) error {
 	return nil
 }
 
