@@ -271,9 +271,8 @@ func (s *BKDReader) EstimatePointCount(ctx context.Context, visitor types.Inters
 	return s.estimatePointCount(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue), nil
 }
 
-func (s *BKDReader) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
-	//TODO implement me
-	panic("implement me")
+func (s *BKDReader) EstimateDocCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(ctx, s, visitor)
 }
 
 func (s *BKDReader) estimatePointCount(state *IntersectState, nodeID int,

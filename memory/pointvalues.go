@@ -31,8 +31,8 @@ func (m *memPointValues) EstimatePointCount(ctx context.Context, visitor types.I
 	return 1, nil
 }
 
-func (m *memPointValues) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
-	return types.EstimateDocCount(m, visitor)
+func (m *memPointValues) EstimateDocCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(ctx, m, visitor)
 }
 
 func (m *memPointValues) GetMinPackedValue() ([]byte, error) {

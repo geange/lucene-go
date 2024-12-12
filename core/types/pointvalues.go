@@ -72,7 +72,7 @@ type PointValues interface {
 	// PointValues.IntersectVisitor. This should run many times faster than
 	// intersect(PointValues.IntersectVisitor).
 	// See Also: DocIdSetIterator.cost
-	EstimateDocCount(visitor IntersectVisitor) (int, error)
+	EstimateDocCount(ctx context.Context, visitor IntersectVisitor) (int, error)
 
 	// GetMinPackedValue Returns minimum item for each dimension, packed, or null if size is 0
 	GetMinPackedValue() ([]byte, error)
@@ -102,9 +102,9 @@ type EstimateDocCountSPI interface {
 	GetDocCount() int
 }
 
-func EstimateDocCount(spi EstimateDocCountSPI, visitor IntersectVisitor) (int, error) {
+func EstimateDocCount(ctx context.Context, spi EstimateDocCountSPI, visitor IntersectVisitor) (int, error) {
 
-	estimatedPointCount, err := spi.EstimatePointCount(nil, visitor)
+	estimatedPointCount, err := spi.EstimatePointCount(ctx, visitor)
 	if err != nil {
 		return 0, err
 	}
@@ -153,7 +153,7 @@ type BytesVisitor struct {
 	// VisitLeafFn Called for all documents in a leaf cell that crosses the query. The consumer should scrutinize the
 	// packedValue to decide whether to accept it. In the 1D case, values are visited in increasing order,
 	// and in the case of ties, in increasing docID order.
-	VisitLeafFn func(docID int, packedValue []byte) error
+	VisitLeafFn func(ctx context.Context, docID int, packedValue []byte) error
 
 	// CompareFn Called for non-leaf cells to test how the cell relates to the query,
 	// to determine how to further recurse down the tree.
@@ -168,7 +168,7 @@ func (r *BytesVisitor) Visit(ctx context.Context, docID int) error {
 }
 
 func (r *BytesVisitor) VisitLeaf(ctx context.Context, docID int, packedValue []byte) error {
-	return r.VisitLeafFn(docID, packedValue)
+	return r.VisitLeafFn(ctx, docID, packedValue)
 }
 
 func (r *BytesVisitor) Compare(minPackedValue, maxPackedValue []byte) Relation {
@@ -194,7 +194,7 @@ func Visit(ctx context.Context, visitor IntersectVisitor, iterator DocIdSetItera
 	}
 }
 
-func (r *BytesVisitor) VisitIterator(iterator DocValuesIterator, packedValue []byte) error {
+func (r *BytesVisitor) VisitIterator(ctx context.Context, iterator DocValuesIterator, packedValue []byte) error {
 	for {
 		docID, err := iterator.NextDoc()
 		if err != nil {
@@ -203,7 +203,7 @@ func (r *BytesVisitor) VisitIterator(iterator DocValuesIterator, packedValue []b
 			}
 			return err
 		}
-		if err := r.VisitLeafFn(docID, packedValue); err != nil {
+		if err := r.VisitLeafFn(ctx, docID, packedValue); err != nil {
 			return err
 		}
 	}
