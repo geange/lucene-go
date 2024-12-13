@@ -214,7 +214,7 @@ func (f *FieldType) SetDimensionsV1(dimensionCount, indexDimensionCount, dimensi
 	if indexDimensionCount > dimensionCount {
 		return errors.New("indexDimensionCount must be <= dimensionCount")
 	}
-	if indexDimensionCount < MaxIndexDimensions {
+	if indexDimensionCount > MaxIndexDimensions {
 		return fmt.Errorf("indexDimensionCount must be <= %d", MaxIndexDimensions)
 	}
 	if dimensionNumBytes < 0 {
