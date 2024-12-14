@@ -43,6 +43,16 @@ func (b *BufferedUpdatesStream) GetCompletedDelGen() int64 {
 	return b.finishedSegments.GetCompletedDelGen()
 }
 
+func (b *BufferedUpdatesStream) GetNextGen() int64 {
+	gen := b.nextGen
+	b.nextGen++
+	return gen
+}
+
+func (b *BufferedUpdatesStream) FinishedSegment(delGen int64) {
+	b.finishedSegments.FinishedSegment(delGen)
+}
+
 // FinishedSegments Tracks the contiguous range of packets that have finished resolving.
 // We need this because the packets are concurrently resolved, and we can only write to
 // disk the contiguous completed packets.
@@ -76,6 +86,19 @@ func (f *FinishedSegments) GetCompletedDelGen() int64 {
 	defer f.RUnlock()
 
 	return f.completedDelGen
+}
+
+func (f *FinishedSegments) FinishedSegment(delGen int64) {
+	f.finishedDelGens[delGen] = struct{}{}
+	for {
+		key := f.completedDelGen + 1
+		if _, ok := f.finishedDelGens[key]; ok {
+			delete(f.finishedDelGens, key)
+			f.completedDelGen++
+		} else {
+			break
+		}
+	}
 }
 
 type SegmentState struct {

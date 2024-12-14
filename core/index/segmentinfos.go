@@ -572,11 +572,11 @@ func ReadCommitFromChecksumIndexInput(ctx context.Context, directory store.Direc
 	infos.lastGeneration = generation
 	infos.luceneVersion = luceneVersion
 
-	ver, err := input.ReadUint64(ctx)
+	versionU64, err := input.ReadUint64(ctx)
 	if err != nil {
 		return nil, err
 	}
-	infos.version = int64(ver)
+	infos.version = int64(versionU64)
 
 	if format > VERSION_70 {
 		count, err := input.ReadUvarint(ctx)

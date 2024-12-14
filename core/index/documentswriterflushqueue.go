@@ -3,16 +3,21 @@ package index
 import (
 	"sync"
 	"sync/atomic"
-
-	linked "github.com/geange/gods-generic/lists/singlylinkedlist"
 )
 
 // DocumentsWriterFlushQueue
 // lucene.internal
 type DocumentsWriterFlushQueue struct {
 	purgeLock   sync.Mutex
-	queue       linked.List[*FlushTicket]
+	queue       []*FlushTicket
 	ticketCount *atomic.Int32
+}
+
+func NewDocumentsWriterFlushQueue() *DocumentsWriterFlushQueue {
+	return &DocumentsWriterFlushQueue{
+		queue:       make([]*FlushTicket, 0),
+		ticketCount: new(atomic.Int32),
+	}
 }
 
 func (q *DocumentsWriterFlushQueue) hasTickets() bool {
@@ -40,7 +45,7 @@ func (q *DocumentsWriterFlushQueue) AddFlushTicket(dwpt *DocumentsWriterPerThrea
 	}
 
 	ticket := NewFlushTicket(frozenBufferedUpdates, true)
-	q.queue.Add(ticket)
+	q.queue = append(q.queue, ticket)
 
 	return ticket, nil
 }
@@ -69,10 +74,11 @@ func (q *DocumentsWriterFlushQueue) tryPurge(consumer func(*FlushTicket) error) 
 
 func (q *DocumentsWriterFlushQueue) innerPurge(consumer func(ticket *FlushTicket) error) error {
 	for {
-		head, ok := q.queue.Get(0)
-		if !ok {
+		if len(q.queue) == 0 {
 			break
 		}
+
+		head := q.queue[0]
 		canPublish := head != nil && head.canPublish() // do this synced
 
 		if canPublish {
@@ -81,7 +87,7 @@ func (q *DocumentsWriterFlushQueue) innerPurge(consumer func(ticket *FlushTicket
 				return err
 			}
 		}
-		q.queue.Remove(0)
+		q.queue = q.queue[1:]
 	}
 	return nil
 }

@@ -833,7 +833,7 @@ func (w *IndexWriter) getPooledInstance(info index.SegmentCommitInfo, create boo
 // if false the call will try to acquire the queue lock and exits if it's held by another thread.
 // FIXME: 需要完善
 func (w *IndexWriter) publishFlushedSegments(forced bool) error {
-	err := w.docWriter.purgeFlushTickets(false, func(ticket *FlushTicket) error {
+	err := w.docWriter.purgeFlushTickets(forced, func(ticket *FlushTicket) error {
 		newSegment := ticket.getFlushedSegment()
 		bufferedUpdates := ticket.getFrozenUpdates()
 		ticket.markPublished()
@@ -1349,10 +1349,84 @@ func (w *IndexWriter) publishFrozenUpdates(updates *FrozenBufferedUpdates) int64
 	return -1
 }
 
-func (w *IndexWriter) publishFlushedSegment(info index.SegmentCommitInfo, infos index.FieldInfos,
-	updates *FrozenBufferedUpdates, updates2 *FrozenBufferedUpdates, sortMap index.DocMap) error {
+// Atomically adds the segment private delete packet and publishes the flushed segments SegmentInfo to the index writer.
+func (w *IndexWriter) publishFlushedSegment(newSegment index.SegmentCommitInfo, fieldInfos index.FieldInfos,
+	packet *FrozenBufferedUpdates, globalPacket *FrozenBufferedUpdates, sortMap index.DocMap) error {
 
-	panic("")
+	published := false
+
+	if globalPacket != nil && globalPacket.Any() {
+		w.publishFrozenUpdates(globalPacket)
+	}
+
+	// Publishing the segment must be sync'd on IW -> BDS to make the sure
+	// that no merge prunes away the seg. private delete packet
+	var nextGen int64
+	if packet != nil && packet.Any() {
+		nextGen = w.publishFrozenUpdates(packet)
+	} else {
+		// Since we don't have a delete packet to apply we can get a new
+		// generation right away
+		nextGen = w.bufferedUpdatesStream.GetNextGen()
+		// No deletes/updates here, so marked finished immediately:
+		w.bufferedUpdatesStream.FinishedSegment(nextGen)
+	}
+
+	newSegment.SetBufferedDeletesGen(nextGen)
+	w.segmentInfos.Add(newSegment)
+	published = true
+	w.checkpoint()
+	if packet != nil && packet.Any() && sortMap != nil {
+		// TODO: not great we do this heavyish op while holding IW's monitor lock,
+		// but it only applies if you are using sorted indices and updating doc values:
+		rld, err := w.getPooledInstance(newSegment, true)
+		if err != nil {
+			return err
+		}
+		rld.sortMap = sortMap
+		// DON't release this ReadersAndUpdates we need to stick with that sortMap
+	}
+	fieldInfo := fieldInfos.FieldInfo(w.config.softDeletesField) // will return null if no soft deletes are present
+	// this is a corner case where documents delete them-self with soft deletes. This is used to
+	// build delete tombstones etc. in this case we haven't seen any updates to the DV in this fresh flushed segment.
+	// if we have seen updates the update code checks if the segment is fully deleted.
+	hasInitialSoftDeleted := fieldInfo != nil &&
+		fieldInfo.GetDocValuesGen() == -1 &&
+		fieldInfo.GetDocValuesType() != document.DOC_VALUES_TYPE_NONE
+
+	infoMaxCount, err := newSegment.Info().MaxDoc()
+	if err != nil {
+		return err
+	}
+	isFullyHardDeleted := newSegment.GetDelCount() == infoMaxCount
+	// we either have a fully hard-deleted segment or one or more docs are soft-deleted. In both cases we need
+	// to go and check if they are fully deleted. This has the nice side-effect that we now have accurate numbers
+	// for the soft delete right after we flushed to disk.
+	if hasInitialSoftDeleted || isFullyHardDeleted {
+		// this operation is only really executed if needed an if soft-deletes are not configured it only be executed
+		// if we deleted all docs in this newly flushed segment.
+		rld, err := w.getPooledInstance(newSegment, true)
+		if err != nil {
+			return err
+		}
+		if ok, _ := w.isFullyDeleted(rld); ok {
+			w.dropDeletedSegment(newSegment)
+			w.checkpoint()
+		}
+		w.release(rld, true)
+	}
+
+	if published == false {
+		maxDoc, err := newSegment.Info().MaxDoc()
+		if err != nil {
+			return err
+		}
+		w.adjustPendingNumDocs(int64(-maxDoc))
+	}
+	w.flushCount.Add(1)
+	w.doAfterFlush()
+
+	return nil
 }
 
 func (w *IndexWriter) checkpointNoSIS() error {
@@ -1360,7 +1434,8 @@ func (w *IndexWriter) checkpointNoSIS() error {
 }
 
 func (w *IndexWriter) checkpoint() error {
-	panic("")
+	w.changed()
+	return w.deleter.Checkpoint(w.segmentInfos, false)
 }
 
 func (w *IndexWriter) dropDeletedSegment(info index.SegmentCommitInfo) error {
@@ -1373,6 +1448,16 @@ func (w *IndexWriter) isFullyDeleted(readersAndUpdates *ReadersAndUpdates) (bool
 		return false, err
 	}
 	return isFullyDeleted, nil
+}
+
+func (w *IndexWriter) adjustPendingNumDocs(numDocs int64) int64 {
+	count := w.pendingNumDocs.Add(numDocs)
+	return count
+}
+
+func (w *IndexWriter) changed() {
+	w.changeCount.Add(1)
+	w.segmentInfos.Changed()
 }
 
 // ReaderWarmer
