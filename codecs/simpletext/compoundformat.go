@@ -277,6 +277,7 @@ func (i *innerCompoundDirectory) CheckIntegrity() error {
 	return nil
 }
 
+// TODO: 需要修复获取index的
 func (i *innerCompoundDirectory) getIndex(name string) (int, error) {
 	idx := sort.SearchStrings(i.fileNames, name)
 	if idx < 0 {
