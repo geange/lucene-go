@@ -492,7 +492,7 @@ func ReadCommit(ctx context.Context, directory store.Directory, segmentFileName 
 		return nil, err
 	}
 
-	input, err := store.OpenChecksumInput(directory, segmentFileName)
+	input, err := store.OpenChecksumInput(ctx, directory, segmentFileName)
 	if err != nil {
 		return nil, err
 	}

@@ -221,6 +221,10 @@ func newFlushedSegment(segmentInfo index.SegmentCommitInfo, fieldInfos index.Fie
 
 // Flush all pending docs to a new segment
 func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications index.FlushNotifications) (*FlushedSegment, error) {
+	defer func() {
+		d.hasFlushed.Store(true)
+	}()
+
 	if err := d.segmentInfo.SetMaxDoc(int(d.numDocsInRAM.Load())); err != nil {
 		return nil, err
 	}
@@ -422,17 +426,3 @@ func sortLiveDocs(liveDocs *bitset.BitSet, sortMap index.DocMap) *bitset.BitSet 
 	}
 	return sortedLiveDocs
 }
-
-/**
-  private FixedBitSet sortLiveDocs(Bits liveDocs, Sorter.DocMap sortMap) {
-    assert liveDocs != null && sortMap != null;
-    FixedBitSet sortedLiveDocs = new FixedBitSet(liveDocs.length());
-    sortedLiveDocs.set(0, liveDocs.length());
-    for (int i = 0; i < liveDocs.length(); i++) {
-      if (liveDocs.get(i) == false) {
-        sortedLiveDocs.clear(sortMap.oldToNew(i));
-      }
-    }
-    return sortedLiveDocs;
-  }
-*/

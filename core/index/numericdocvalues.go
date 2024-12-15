@@ -169,6 +169,14 @@ type SortingNumericDocValues struct {
 	cost  int
 }
 
+func NewSortingNumericDocValues(dvs *NumericDVs) *SortingNumericDocValues {
+	return &SortingNumericDocValues{
+		dvs:   dvs,
+		docID: -1,
+		cost:  -1,
+	}
+}
+
 func (s *SortingNumericDocValues) DocID() int {
 	return s.docID
 }
@@ -211,4 +219,22 @@ type NumericDVs struct {
 
 func NewNumericDVs(values []int64, docsWithField *bitset.BitSet) *NumericDVs {
 	return &NumericDVs{values: values, docsWithField: docsWithField}
+}
+
+func SortDocValues(maxDoc int, sortMap index.DocMap, oldDocValues index.NumericDocValues) *NumericDVs {
+	docsWithField := bitset.New(uint(maxDoc))
+	values := make([]int64, maxDoc)
+
+	for {
+		docID, err := oldDocValues.NextDoc()
+		if err != nil {
+			break
+		}
+
+		newDocID := sortMap.OldToNew(docID)
+		docsWithField.Set(uint(newDocID))
+		num, _ := oldDocValues.LongValue()
+		values[newDocID] = num
+	}
+	return NewNumericDVs(values, docsWithField)
 }

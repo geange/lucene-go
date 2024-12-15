@@ -78,6 +78,7 @@ func NewDocumentsWriter(flushNotifications index.FlushNotifications, indexCreate
 		perThreadPool:                    nil,
 		flushControl: &DocumentsWriterFlushControl{
 			flushDeletes: new(atomic.Bool),
+			next:         new(atomic.Bool),
 			perThread: NewDocumentsWriterPerThread(indexCreatedVersionMajor,
 				segmentName, directoryOrig,
 				directory, config, deleteQueue, infos,
@@ -111,7 +112,10 @@ func (d *DocumentsWriter) updateDocuments(ctx context.Context, docs []*document.
 }
 
 func (d *DocumentsWriter) Flush(ctx context.Context) error {
-	dwpt := d.flushControl.ObtainAndLock()
+	dwpt := d.flushControl.NextPendingFlush()
+	if dwpt == nil {
+		return nil
+	}
 	_, err := d.doFlush(ctx, dwpt)
 	return err
 }
@@ -121,6 +125,10 @@ func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWr
 	hasEvents := false
 
 	for flushingDWPT != nil {
+		if flushingDWPT.hasFlushed.Load() {
+			return false, nil
+		}
+
 		hasEvents = true
 
 		dwptSuccess := true
@@ -134,9 +142,6 @@ func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWr
 		newSegment, err := flushingDWPT.flush(ctx, d.flushNotifications)
 		if err != nil {
 			return false, err
-		}
-		if _, err := flushingDWPT.flush(ctx, d.flushNotifications); err != nil {
-			dwptSuccess = false
 		}
 		d.ticketQueue.AddSegment(ticket, newSegment)
 		//
@@ -154,7 +159,7 @@ func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWr
 		if err := d.flushControl.DoAfterFlush(flushingDWPT); err != nil {
 			return false, err
 		}
-		flushingDWPT = d.flushControl.NextPendingFlush()
+		//flushingDWPT = d.flushControl.NextPendingFlush()
 	}
 
 	if hasEvents {
@@ -235,6 +240,7 @@ func (d *DocumentsWriter) flushAllThreads() int64 {
 	} else {
 		return seqNo
 	}
+
 }
 
 func (d *DocumentsWriter) finishFullFlush(success bool) error {
@@ -275,4 +281,30 @@ func (d *DocumentsWriter) applyAllDeletes() (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (d *DocumentsWriter) Close() error {
+	d.closed = true
+	return nil
+}
+
+// TODO: fixme
+func (d *DocumentsWriter) Abort() error {
+	return nil
+}
+
+func (d *DocumentsWriter) doAfterFlush(dwpt *DocumentsWriterPerThread) error {
+	//d.flushingWriters.remove(dwpt);
+	//d.updateStallState();
+	return nil
+}
+
+func (d *DocumentsWriter) abortPendingFlushes(ctx context.Context) error {
+	dwpt := d.flushControl.ObtainAndLock()
+	//if _, err := d.doFlush(ctx, dwpt); err != nil {
+	//	return err
+	//}
+	dwpt.abort()
+	d.doAfterFlush(dwpt)
+	return nil
 }

@@ -94,7 +94,9 @@ func (s *SimpleTextNormsConsumer) Close() error {
 func (s *SimpleTextNormsConsumer) AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer index.NormsProducer) error {
 	producer := struct {
 		*coreIndex.EmptyDocValuesProducer
-	}{}
+	}{
+		&coreIndex.EmptyDocValuesProducer{},
+	}
 	producer.FnGetNumeric = func(ctx context.Context, field *document.FieldInfo) (index.NumericDocValues, error) {
 		return normsProducer.GetNorms(field)
 	}
