@@ -106,7 +106,7 @@ func (b *RadixSelector) findCommonPrefixAndHistogram(points *OfflinePointWriter,
 	commonPrefixPosition := b.bytesSorted
 	offset := dim * b.config.bytesPerDim
 
-	reader, err := points.getReader(from, to-from, b.offlineBuffer)
+	reader, err := points.getReader(nil, from, to-from, b.offlineBuffer)
 	if err != nil {
 		return 0, err
 	}
@@ -287,7 +287,7 @@ func (b *RadixSelector) offlinePartition(points *OfflinePointWriter, left, right
 	offset := dim * b.config.bytesPerDim
 	tiebreakCounter := 0
 
-	reader, err := points.getReader(from, to-from, b.offlineBuffer)
+	reader, err := points.getReader(nil, from, to-from, b.offlineBuffer)
 	if err != nil {
 		return err
 	}

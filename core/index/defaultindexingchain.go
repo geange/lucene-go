@@ -383,18 +383,18 @@ func (d *DefaultIndexingChain) ProcessDocument(ctx context.Context, docId int, d
 			return err
 		}
 		fieldCount = count
+	}
 
-		for i := 0; i < fieldCount; i++ {
-			if err := d.fields[i].Finish(docId); err != nil {
-				return err
-			}
-		}
-		if err := d.finishStoredFields(); err != nil {
+	for i := 0; i < fieldCount; i++ {
+		if err := d.fields[i].Finish(docId); err != nil {
 			return err
 		}
 	}
+	if err := d.finishStoredFields(); err != nil {
+		return err
+	}
 
-	return d.termsHash.FinishDocument(nil, docId)
+	return d.termsHash.FinishDocument(ctx, docId)
 }
 
 func (d *DefaultIndexingChain) processField(ctx context.Context, docId int, field document.IndexableField, fieldGen int64, fieldCount int) (int, error) {

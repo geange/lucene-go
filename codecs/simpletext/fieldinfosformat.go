@@ -53,7 +53,7 @@ func NewSimpleTextFieldInfosFormat() *FieldInfosFormat {
 
 func (s *FieldInfosFormat) Read(ctx context.Context, directory store.Directory, segmentInfo index.SegmentInfo, segmentSuffix string, ioContext *store.IOContext) (index.FieldInfos, error) {
 	fileName := store.SegmentFileName(segmentInfo.Name(), segmentSuffix, FIELD_INFOS_EXTENSION)
-	input, err := store.OpenChecksumInput(directory, fileName)
+	input, err := store.OpenChecksumInput(ctx, directory, fileName)
 	if err != nil {
 		return nil, err
 	}

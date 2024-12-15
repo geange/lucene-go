@@ -43,7 +43,7 @@ func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, 
 	fileName := coreIndex.FileNameFromGeneration(info.Info().Name(), LIVEDOCS_EXTENSION, info.GetDelGen())
 
 	scratch := new(bytes.Buffer)
-	in, err := store.OpenChecksumInput(dir, fileName)
+	in, err := store.OpenChecksumInput(ctx, dir, fileName)
 	if err != nil {
 		return nil, err
 	}

@@ -671,10 +671,58 @@ func (w *IndexWriter) shutdown(ctx context.Context) error {
 
 	// Ensure that only one thread actually gets to do the closing
 
-	err := w.docWriter.Flush(nil)
+	// TODO:
+	//err := w.docWriter.Flush(ctx)
+	//if err != nil {
+	//	return err
+	//}
+	return w.rollbackInternal(ctx)
+}
+
+func (w *IndexWriter) rollbackInternal(ctx context.Context) error {
+	return w.rollbackInternalNoCommit(ctx)
+}
+
+func (w *IndexWriter) rollbackInternalNoCommit(ctx context.Context) error {
+	// Must pre-close in case it increments changeCount so that we can then
+	// set it to false before calling rollbackInternal
+	err := w.mergeScheduler.Close()
 	if err != nil {
 		return err
 	}
+
+	w.docWriter.Close() // mark it as closed first to prevent subsequent indexing actions/flushes
+	w.docWriter.Abort() // don't sync on IW here
+	//w.docWriter.flushControl.waitForFlush(); // wait for all concurrently running flushes
+	if err := w.publishFlushedSegments(true); err != nil {
+		return err
+	}
+
+	if w.pendingCommit != nil {
+		if err := w.pendingCommit.RollbackCommit(w.directory); err != nil {
+			return err
+		}
+		//w.deleter.decRef(pendingCommit);
+		//try {
+		//
+		//} finally {
+		//	pendingCommit = null;
+		//	notifyAll();
+		//}
+	}
+
+	totalMaxDoc := w.segmentInfos.TotalMaxDoc()
+	// Keep the same segmentInfos instance but replace all
+	// of its SegmentInfo instances so IFD below will remove
+	// any segments we flushed since the last commit:
+	if err := w.segmentInfos.rollbackSegmentInfos(w.rollbackSegments); err != nil {
+		return err
+	}
+	rollbackMaxDoc := w.segmentInfos.TotalMaxDoc()
+	// now we need to adjust this back to the rolled back SI but don't set it to the absolute value
+	// otherwise we might hide internal bugsf
+	w.adjustPendingNumDocs(-(totalMaxDoc - rollbackMaxDoc))
+
 	return nil
 }
 

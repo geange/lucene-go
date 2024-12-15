@@ -108,8 +108,8 @@ type Directory interface {
 	//GetPendingDeletions() (map[string]struct{}, error)
 }
 
-func OpenChecksumInput(dir Directory, name string) (ChecksumIndexInput, error) {
-	input, err := dir.OpenInput(nil, name)
+func OpenChecksumInput(ctx context.Context, dir Directory, name string) (ChecksumIndexInput, error) {
+	input, err := dir.OpenInput(ctx, name)
 	if err != nil {
 		return nil, err
 	}

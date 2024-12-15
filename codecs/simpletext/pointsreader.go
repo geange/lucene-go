@@ -25,7 +25,7 @@ type PointsReader struct {
 func NewPointsReader(ctx context.Context, readState *index.SegmentReadState) (*PointsReader, error) {
 	fieldToFileOffset := make(map[string]int64)
 	indexFileName := store.SegmentFileName(readState.SegmentInfo.Name(), readState.SegmentSuffix, POINT_INDEX_EXTENSION)
-	input, err := store.OpenChecksumInput(readState.Directory, indexFileName)
+	input, err := store.OpenChecksumInput(ctx, readState.Directory, indexFileName)
 	if err != nil {
 		return nil, err
 	}
