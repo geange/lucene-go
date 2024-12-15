@@ -54,13 +54,15 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 		false, codec, map[string]string{}, util.RandomId(),
 		map[string]string{}, indexWriterConfig.GetIndexSort())
 
+	trackingDir := store.NewTrackingDirectoryWrapper(dir)
+
 	consumer := indexWriterConfig.GetIndexingChain().
-		GetChain(indexVersionCreated, segmentInfo, dir, fieldInfos, indexWriterConfig)
+		GetChain(indexVersionCreated, segmentInfo, trackingDir, fieldInfos, indexWriterConfig)
 
 	return &DocumentsWriterPerThread{
 		lock:                   sync.RWMutex{},
 		codec:                  codec,
-		directory:              store.NewTrackingDirectoryWrapper(dir),
+		directory:              trackingDir,
 		consumer:               consumer,
 		pendingUpdates:         index.NewBufferedUpdates(index.WithSegmentName(segmentName)),
 		segmentInfo:            segmentInfo,
@@ -280,7 +282,7 @@ func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications
 	d.pendingUpdates.ClearDeleteTerms()
 	d.segmentInfo.SetFiles(d.directory.(*store.TrackingDirectoryWrapper).GetCreatedFiles())
 
-	segmentInfoPerCommit := index.NewSegmentCommitInfo(d.segmentInfo, 0, flushState.SoftDelCountOnFlush, -1, -1, -1, []byte(uuid.New().String()))
+	segmentInfoPerCommit := index.NewSegmentCommitInfo(d.segmentInfo, 0, flushState.SoftDelCountOnFlush, -1, -1, -1, []byte(uuid.New().String()[:ID_LENGTH]))
 
 	var segmentDeletes *index.BufferedUpdates
 	if d.pendingUpdates.GetDeleteQueries().Size() == 0 && d.pendingUpdates.GetNumFieldUpdates() == 0 {
