@@ -26,7 +26,7 @@ func (s *SlowImpactsEnum) NextDoc() (int, error) {
 }
 
 func (s *SlowImpactsEnum) Advance(ctx context.Context, target int) (int, error) {
-	return s.delegate.Advance(nil, target)
+	return s.delegate.Advance(ctx, target)
 }
 
 func (s *SlowImpactsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {

@@ -231,7 +231,7 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *index.SegmentWr
 		}
 
 		normsMergeInstance := norms.GetMergeInstance()
-		if err := d.termsHash.Flush(nil, fieldsToFlush, state, sortMap, normsMergeInstance); err != nil {
+		if err := d.termsHash.Flush(ctx, fieldsToFlush, state, sortMap, normsMergeInstance); err != nil {
 			return nil, err
 		}
 	}

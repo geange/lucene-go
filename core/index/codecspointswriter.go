@@ -25,7 +25,7 @@ func (p *BasePointsWriter) MergeOneField(ctx context.Context, mergeState *MergeS
 		if pointsReader != nil {
 			readerFieldInfo := mergeState.FieldInfos[i].FieldInfo(fieldInfo.Name())
 			if readerFieldInfo != nil && readerFieldInfo.GetPointIndexDimensionCount() > 0 {
-				values, err := pointsReader.GetValues(nil, fieldInfo.Name())
+				values, err := pointsReader.GetValues(ctx, fieldInfo.Name())
 				if err != nil {
 					return err
 				}

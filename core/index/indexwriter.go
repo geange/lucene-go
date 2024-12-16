@@ -262,7 +262,7 @@ func NewIndexWriter(ctx context.Context, dir store.Directory, conf *IndexWriterC
 				return nil, errors.New("IndexCommit's directory doesn't match my directory")
 			}
 
-			oldInfos, err := ReadCommit(nil, writer.directoryOrig, commit.GetSegmentsFileName())
+			oldInfos, err := ReadCommit(ctx, writer.directoryOrig, commit.GetSegmentsFileName())
 			if err != nil {
 				return nil, err
 			}
