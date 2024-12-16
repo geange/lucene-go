@@ -305,6 +305,10 @@ func (r *PostingOutput) Common(v Output) (Output, error) {
 }
 
 func (r *PostingOutput) Sub(v Output) (Output, error) {
+	if v == nil {
+		return r, nil
+	}
+
 	output, err := r.check(v)
 	if err != nil {
 		return nil, err
@@ -337,6 +341,10 @@ func (r *PostingOutput) Merge(v Output) (Output, error) {
 }
 
 func (r *PostingOutput) IsNoOutput() bool {
+	if r == nil {
+		return true
+	}
+
 	return r.LastDocsStart == 0 &&
 		r.SkipPointer == 0 &&
 		r.DocFreq == 0 &&
@@ -376,7 +384,7 @@ func NewPostingOutputManager() *PostingOutputManager {
 }
 
 func (p *PostingOutputManager) EmptyOutput() Output {
-	if p.emptyOutput != nil {
+	if p.emptyOutput == nil {
 		p.emptyOutput = p.New()
 	}
 	return p.emptyOutput
