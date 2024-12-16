@@ -614,17 +614,27 @@ const (
 
 // ScoreMode
 // Different modes of search.
-type ScoreMode uint8
+type ScoreMode struct {
+	needsScores  bool
+	isExhaustive bool
+}
+
+func NewScoreMode(isExhaustive bool, needsScores bool) ScoreMode {
+	return ScoreMode{
+		needsScores:  needsScores,
+		isExhaustive: isExhaustive,
+	}
+}
 
 // NeedsScores
 // Whether this ScoreMode needs to compute scores.
 func (r ScoreMode) NeedsScores() bool {
-	return r&1<<needsScoresShift > 0
+	return r.needsScores
 }
 
 // IsExhaustive
 // Returns true if for this ScoreMode it is necessary to process all documents, or false if
 // is enough to go through top documents only.
 func (r ScoreMode) IsExhaustive() bool {
-	return r&1<<isExhaustiveShift > 0
+	return r.isExhaustive
 }

@@ -49,10 +49,15 @@ func (r *TermStates) WasBuiltFor(context index.IndexReaderContext) bool {
 //
 //	Otherwise, the TermState objects will be built only when requested
 func BuildTermStates(context index.IndexReaderContext, term index.Term, needsStats bool) (*TermStates, error) {
-	var perReaderTermState *TermStates
-	if needsStats {
-		perReaderTermState = NewTermStates(nil, context)
+	innerTerm := func() index.Term {
+		if needsStats {
+			return nil
+		}
+		return term
+	}()
+	perReaderTermState := NewTermStates(innerTerm, context)
 
+	if needsStats {
 		leaves, err := context.Leaves()
 		if err != nil {
 			return nil, err
@@ -81,9 +86,6 @@ func BuildTermStates(context index.IndexReaderContext, term index.Term, needsSta
 				perReaderTermState.Register(termState, ctx.Ord(), docFreq, totalTermFreq)
 			}
 		}
-
-	} else {
-		perReaderTermState = NewTermStates(term, context)
 	}
 
 	return perReaderTermState, nil

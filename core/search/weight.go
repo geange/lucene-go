@@ -171,8 +171,7 @@ func (d *DefaultBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs
 	}
 
 	if filteredIterator.DocID() == -1 && min == 0 && max == types.NO_MORE_DOCS {
-		err := scoreAll(collector, filteredIterator, d.twoPhase, acceptDocs)
-		if err != nil {
+		if err := scoreAll(collector, filteredIterator, d.twoPhase, acceptDocs); err != nil {
 			return 0, err
 		}
 		return types.NO_MORE_DOCS, nil
