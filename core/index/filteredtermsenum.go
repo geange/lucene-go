@@ -111,7 +111,7 @@ func (f *FilteredTermsEnumBase) SeekExact(ctx context.Context, text []byte) (boo
 }
 
 func (f *FilteredTermsEnumBase) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
-	return f.tenum.SeekCeil(nil, text)
+	return f.tenum.SeekCeil(ctx, text)
 }
 
 func (f *FilteredTermsEnumBase) SeekExactByOrd(ctx context.Context, ord int64) error {

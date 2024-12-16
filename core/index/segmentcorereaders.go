@@ -104,7 +104,7 @@ func NewSegmentCoreReaders(ctx context.Context, dir store.Directory, si index.Se
 
 	if r.coreFieldInfos.HasVectors() { // open term vector files only as needed
 		termVectorsReaderOrig, err := si.Info().GetCodec().TermVectorsFormat().
-			VectorsReader(nil, cfsDir, si.Info(), r.coreFieldInfos, ioContext)
+			VectorsReader(ctx, cfsDir, si.Info(), r.coreFieldInfos, ioContext)
 		if err != nil {
 			return nil, err
 		}

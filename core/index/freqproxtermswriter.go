@@ -48,7 +48,7 @@ func (f *FreqProxTermsWriter) Flush(ctx context.Context, fieldsToFlush map[strin
 		return err
 	}
 
-	consumer, err := state.SegmentInfo.GetCodec().PostingsFormat().FieldsConsumer(nil, state)
+	consumer, err := state.SegmentInfo.GetCodec().PostingsFormat().FieldsConsumer(ctx, state)
 	if err != nil {
 		return err
 	}
