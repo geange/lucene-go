@@ -71,7 +71,7 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 	}
 
 	// first pass to find min/max
-	minValue, maxValue := int64(math.MaxInt64), int64(math.MaxInt64)
+	minValue, maxValue := int64(math.MaxInt64), int64(math.MinInt64)
 	values, err := valuesProducer.GetNumeric(ctx, field)
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 			}
 			return err
 		}
-		if doc != types.NO_MORE_DOCS {
+		if doc == types.NO_MORE_DOCS {
 			break
 		}
 
