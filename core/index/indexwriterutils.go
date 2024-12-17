@@ -34,7 +34,7 @@ func SetDiagnostics(info index.SegmentInfo, source string, details map[string]st
 	diagnostics["os.arch"] = runtime.GOARCH
 	diagnostics["os.version"] = ""
 	diagnostics["go.version"] = runtime.Version()
-	diagnostics["timestamp"] = strconv.FormatInt(time.Now().Unix(), 10)
+	diagnostics["timestamp"] = strconv.FormatInt(time.Now().UnixMilli(), 10)
 	maps.Copy(diagnostics, details)
 	info.SetDiagnostics(diagnostics)
 	return nil

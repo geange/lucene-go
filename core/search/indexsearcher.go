@@ -220,7 +220,6 @@ func (r *IndexSearcher) Search(ctx context.Context, query index.Query, results i
 // By passing the bottom result from a previous page as after, this method can be used for
 // efficient 'deep-paging' across potentially large result sets.
 // Throws: BooleanQuery.TooManyClauses – If a query would exceed BooleanQuery.getMaxClauseCount() clauses.
-// FIXME: 实现上有问题
 func (r *IndexSearcher) SearchAfter(ctx context.Context, after index.ScoreDoc, query index.Query, numHits int) (index.TopDocs, error) {
 	limit := max(1, r.reader.MaxDoc())
 	if after != nil && after.GetDoc() >= limit {
@@ -349,8 +348,7 @@ func (r *IndexSearcher) SearchByCollectorManager(ctx context.Context,
 		collector := collectors[i]
 
 		// TODO: try use WaitGroup
-		err := r.SearchLeaves(ctx, leaves, weight, collector)
-		if err != nil {
+		if err := r.SearchLeaves(ctx, leaves, weight, collector); err != nil {
 			return nil, err
 		}
 	}

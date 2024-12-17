@@ -167,7 +167,7 @@ func (n *NormValuesWriter) Finish(maxDoc int) {
 
 }
 
-func (n *NormValuesWriter) Flush(state *index.SegmentWriteState, sortMap index.DocMap, normsConsumer index.NormsConsumer) error {
+func (n *NormValuesWriter) Flush(ctx context.Context, state *index.SegmentWriteState, sortMap index.DocMap, normsConsumer index.NormsConsumer) error {
 	values, err := n.pending.Build()
 	if err != nil {
 		return err
@@ -189,7 +189,7 @@ func (n *NormValuesWriter) Flush(state *index.SegmentWriteState, sortMap index.D
 	}
 
 	producer := &normsProducer{sorted: sorted, w: n, values: values}
-	return normsConsumer.AddNormsField(context.Background(), n.fieldInfo, producer)
+	return normsConsumer.AddNormsField(ctx, n.fieldInfo, producer)
 }
 
 var _ index.NumericDocValues = &BufferedNorms{}
@@ -213,13 +213,14 @@ func (b *BufferedNorms) DocID() int {
 
 func (b *BufferedNorms) NextDoc() (int, error) {
 	docID, err := b.docsWithField.NextDoc()
-	if !errors.Is(err, io.EOF) {
-		value, err := b.iter.Next()
-		if err != nil {
-			return 0, err
-		}
-		b.value = int64(value)
+	if err != nil {
+		return docID, err
 	}
+	value, err := b.iter.Next()
+	if err != nil {
+		return 0, err
+	}
+	b.value = int64(value)
 	return docID, nil
 }
 

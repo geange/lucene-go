@@ -197,7 +197,7 @@ func (d *DefaultIndexingChain) Flush(ctx context.Context, state *index.SegmentWr
 		return nil, err
 	}
 
-	if err := d.writeNorms(state, sortMap); err != nil {
+	if err := d.writeNorms(ctx, state, sortMap); err != nil {
 		return nil, err
 	}
 
@@ -320,12 +320,12 @@ func (d *DefaultIndexingChain) writeDocValues(state *index.SegmentWriteState, so
 	return nil
 }
 
-func (d *DefaultIndexingChain) writeNorms(state *index.SegmentWriteState, sortMap index.DocMap) error {
+func (d *DefaultIndexingChain) writeNorms(ctx context.Context, state *index.SegmentWriteState, sortMap index.DocMap) error {
 	var normsConsumer index.NormsConsumer
 	var err error
 	if state.FieldInfos.HasNorms() {
 		normsFormat := state.SegmentInfo.GetCodec().NormsFormat()
-		normsConsumer, err = normsFormat.NormsConsumer(nil, state)
+		normsConsumer, err = normsFormat.NormsConsumer(ctx, state)
 		if err != nil {
 			return err
 		}
@@ -341,7 +341,7 @@ func (d *DefaultIndexingChain) writeNorms(state *index.SegmentWriteState, sortMa
 					return err
 				}
 				perField.norms.Finish(maxDoc)
-				if err := perField.norms.Flush(state, sortMap, normsConsumer); err != nil {
+				if err := perField.norms.Flush(ctx, state, sortMap, normsConsumer); err != nil {
 					return err
 				}
 			}
@@ -698,6 +698,7 @@ func (d *DefaultIndexingChain) NewPerField(indexCreatedVersionMajor int, fieldIn
 	invert bool, similarity index.Similarity, analyzer analysis.Analyzer) (*PerField, error) {
 
 	perField := &PerField{
+		fieldGen:                 -1,
 		chain:                    d,
 		indexCreatedVersionMajor: indexCreatedVersionMajor,
 		fieldInfo:                fieldInfo,
