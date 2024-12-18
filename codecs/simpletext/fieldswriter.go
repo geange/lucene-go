@@ -37,9 +37,9 @@ type TextFieldsWriter struct {
 	lastDocFilePointer           int64
 }
 
-func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, error) {
+func NewFieldsWriter(ctx context.Context, writeState *index.SegmentWriteState) (*TextFieldsWriter, error) {
 	fileName := getPostingsFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix)
-	out, err := writeState.Directory.CreateOutput(nil, fileName)
+	out, err := writeState.Directory.CreateOutput(ctx, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -73,10 +73,10 @@ func (s *TextFieldsWriter) Close() error {
 }
 
 func (s *TextFieldsWriter) Write(ctx context.Context, fields index.Fields, norms index.NormsProducer) error {
-	return s.WriteV1(ctx, s.writeState.FieldInfos, fields, norms)
+	return s.writeFields(ctx, s.writeState.FieldInfos, fields, norms)
 }
 
-func (s *TextFieldsWriter) WriteV1(ctx context.Context, fieldInfos index.FieldInfos, fields index.Fields,
+func (s *TextFieldsWriter) writeFields(ctx context.Context, fieldInfos index.FieldInfos, fields index.Fields,
 	normsProducer index.NormsProducer) error {
 
 	names := fields.Names()
@@ -131,7 +131,7 @@ func (s *TextFieldsWriter) WriteV1(ctx context.Context, fieldInfos index.FieldIn
 
 		// for each term in field
 		for {
-			term, err := termsEnum.Next(nil)
+			term, err := termsEnum.Next(ctx)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break

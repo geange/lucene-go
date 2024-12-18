@@ -151,7 +151,6 @@ func (f *FreqProxTermsEnum) Next(context.Context) ([]byte, error) {
 		return nil, io.EOF
 	}
 	textStart := f.postingsArray.textStarts[f.sortedTermIDs[f.ord]]
-	var err error
 	scratch, err := f.terms.bytePool.GetAddress(textStart)
 	if err != nil {
 		return nil, err

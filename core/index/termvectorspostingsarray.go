@@ -3,7 +3,7 @@ package index
 var _ ParallelPostingsArray = &TermVectorsPostingsArray{}
 
 type TermVectorsPostingsArray struct {
-	*ParallelPostingsArrayDefault
+	*BaseParallelPostingsArray
 
 	freqs         []int // How many times this term occurred in the current doc
 	lastOffsets   []int // Last offset we saw
@@ -12,19 +12,19 @@ type TermVectorsPostingsArray struct {
 
 func NewTermVectorsPostingsArray() *TermVectorsPostingsArray {
 	return &TermVectorsPostingsArray{
-		ParallelPostingsArrayDefault: NewParallelPostingsArrayDefault(),
-		freqs:                        []int{},
-		lastOffsets:                  []int{},
-		lastPositions:                []int{},
+		BaseParallelPostingsArray: NewBaseParallelPostingsArray(),
+		freqs:                     []int{},
+		lastOffsets:               []int{},
+		lastPositions:             []int{},
 	}
 }
 
 func (t *TermVectorsPostingsArray) NewInstance() ParallelPostingsArray {
 	return &TermVectorsPostingsArray{
-		ParallelPostingsArrayDefault: NewParallelPostingsArrayDefault(),
-		freqs:                        []int{},
-		lastOffsets:                  []int{},
-		lastPositions:                []int{},
+		BaseParallelPostingsArray: NewBaseParallelPostingsArray(),
+		freqs:                     []int{},
+		lastOffsets:               []int{},
+		lastPositions:             []int{},
 	}
 }
 
@@ -33,7 +33,7 @@ func (t *TermVectorsPostingsArray) BytesPerPosting() int {
 }
 
 func (t *TermVectorsPostingsArray) Grow() {
-	t.ParallelPostingsArrayDefault.Grow()
+	t.BaseParallelPostingsArray.Grow()
 	t.freqs = append(t.freqs, 0)
 	t.lastOffsets = append(t.lastOffsets, 0)
 	t.lastPositions = append(t.lastPositions, 0)

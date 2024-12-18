@@ -29,7 +29,7 @@ func (s *PostingsFormat) GetName() string {
 }
 
 func (s *PostingsFormat) FieldsConsumer(ctx context.Context, state *index.SegmentWriteState) (index.FieldsConsumer, error) {
-	return NewFieldsWriter(state)
+	return NewFieldsWriter(ctx, state)
 }
 
 func (s *PostingsFormat) FieldsProducer(ctx context.Context, state *index.SegmentReadState) (index.FieldsProducer, error) {

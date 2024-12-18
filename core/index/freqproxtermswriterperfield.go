@@ -2,11 +2,11 @@ package index
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 	"strings"
 
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
@@ -155,8 +155,7 @@ func (f *FreqProxTermsWriterPerField) AddTerm(termID, docID int) error {
 
 	if !f.hasFreq {
 		if f.termFreqAtt.GetTermFrequency() != 1 {
-			return fmt.Errorf(
-				"field %s: must index term freq while using custom TermFrequencyAttribute",
+			return fmt.Errorf("field %s: must index term freq while using custom TermFrequencyAttribute",
 				f.getFieldName())
 		}
 		if docID != postings.lastDocIDs[termID] {

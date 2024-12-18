@@ -597,6 +597,9 @@ func (s *DocValuesWriter) Close() error {
 		if err := utils.NewLine(s.data); err != nil {
 			return err
 		}
+		if err := utils.WriteChecksum(s.data); err != nil {
+			return err
+		}
 		if err := s.data.Close(); err != nil {
 			return err
 		}
