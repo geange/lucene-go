@@ -3,7 +3,7 @@ package index
 var _ ParallelPostingsArray = &FreqProxPostingsArray{}
 
 type FreqProxPostingsArray struct {
-	*ParallelPostingsArrayDefault
+	*BaseParallelPostingsArray
 
 	termFreqs     []int // # times this term occurs in the current doc
 	lastDocIDs    []int // Last docID where this term occurred
@@ -14,23 +14,23 @@ type FreqProxPostingsArray struct {
 
 func NewFreqProxPostingsArray(writeFreqs, writeProx, writeOffsets bool) *FreqProxPostingsArray {
 	return &FreqProxPostingsArray{
-		ParallelPostingsArrayDefault: NewParallelPostingsArrayDefault(),
-		termFreqs:                    []int{},
-		lastDocIDs:                   []int{},
-		lastDocCodes:                 []int{},
-		lastPositions:                []int{},
-		lastOffsets:                  []int{},
+		BaseParallelPostingsArray: NewBaseParallelPostingsArray(),
+		termFreqs:                 []int{},
+		lastDocIDs:                []int{},
+		lastDocCodes:              []int{},
+		lastPositions:             []int{},
+		lastOffsets:               []int{},
 	}
 }
 
 func (f *FreqProxPostingsArray) NewInstance() ParallelPostingsArray {
 	return &FreqProxPostingsArray{
-		ParallelPostingsArrayDefault: NewParallelPostingsArrayDefault(),
-		termFreqs:                    []int{},
-		lastDocIDs:                   []int{},
-		lastDocCodes:                 []int{},
-		lastPositions:                []int{},
-		lastOffsets:                  []int{},
+		BaseParallelPostingsArray: NewBaseParallelPostingsArray(),
+		termFreqs:                 []int{},
+		lastDocIDs:                []int{},
+		lastDocCodes:              []int{},
+		lastPositions:             []int{},
+		lastOffsets:               []int{},
 	}
 }
 

@@ -40,7 +40,7 @@ type BaseTermsHash struct {
 	termBytePool  *bytesref.BlockPool
 }
 
-func NewTermsHashDefault(intBlockAllocator ints.IntsAllocator, byteBlockAllocator bytesref.Allocator,
+func NewBaseTermsHash(intBlockAllocator ints.IntsAllocator, byteBlockAllocator bytesref.Allocator,
 	nextTermsHash TermsHash) *BaseTermsHash {
 	termHash := &BaseTermsHash{
 		nextTermsHash: nextTermsHash,
@@ -67,7 +67,7 @@ func (h *BaseTermsHash) GetTermBytePool() *bytesref.BlockPool {
 	return h.termBytePool
 }
 
-func (h *BaseTermsHash) Flush(fieldsToFlush map[string]TermsHashPerField,
+func (h *BaseTermsHash) Flush(ctx context.Context, fieldsToFlush map[string]TermsHashPerField,
 	state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
 
 	if h.nextTermsHash != nil {
@@ -77,7 +77,7 @@ func (h *BaseTermsHash) Flush(fieldsToFlush map[string]TermsHashPerField,
 			nextChildFields[k] = v.GetNextPerField()
 		}
 
-		return h.nextTermsHash.Flush(nil, nextChildFields, state, sortMap, norms)
+		return h.nextTermsHash.Flush(ctx, nextChildFields, state, sortMap, norms)
 	}
 	return nil
 }

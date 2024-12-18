@@ -28,7 +28,7 @@ func NewTermVectorsConsumer(intBlockAllocator ints.IntsAllocator,
 	byteBlockAllocator bytesref.Allocator, directory store.Directory,
 	info *SegmentInfo, codec index.Codec) *TermVectorsConsumer {
 
-	termsHashDefault := NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nil)
+	termsHashDefault := NewBaseTermsHash(intBlockAllocator, byteBlockAllocator, nil)
 	return &TermVectorsConsumer{
 		BaseTermsHash: termsHashDefault,
 		directory:     directory,

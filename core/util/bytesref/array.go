@@ -82,7 +82,7 @@ func (r *Array) setBytesRef(spare *Builder, result []byte, index int) {
 	} else {
 		length = r.offsets[index+1] - offset
 	}
-	r.pool.SetBytesRefV1(spare, result, offset, length)
+	r.pool.SetBytes(spare, result[:length], offset)
 }
 
 func (r *Array) Iterator() BytesIterator {
