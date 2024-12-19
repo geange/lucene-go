@@ -67,7 +67,7 @@ func (f *FieldInvertState) Reset() {
 func (f *FieldInvertState) SetAttributeSource(attributeSource *attribute.Source) {
 	if f.AttributeSource != attributeSource {
 		f.AttributeSource = attributeSource
-		f.TermAttribute = attributeSource.Term2Bytes()
+		f.TermAttribute = attributeSource.CharTerm()
 		f.TermFreqAttribute = attributeSource.TermFrequency()
 		f.PosIncrAttribute = attributeSource.PositionIncrement()
 		f.OffsetAttribute = attributeSource.Offset()
