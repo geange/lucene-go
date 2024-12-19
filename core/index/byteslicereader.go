@@ -109,3 +109,7 @@ func (b *ByteSliceReader) nextSlice() {
 		b.limit = b.upto + newSize - 4
 	}
 }
+
+func (b *ByteSliceReader) EOF() bool {
+	return b.upto+b.bufferOffset == b.endIndex
+}

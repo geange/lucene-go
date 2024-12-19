@@ -36,7 +36,7 @@ func (r *Tokenizer) IncrementToken() (bool, error) {
 	text, err := r.scanner.GetNextToken()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			r.AttributeSource().Type().SetType("ALPHANUM")
+			r.AttributeSource().Type().SetType(ALPHANUM.String())
 			if err := r.AttributeSource().CharTerm().AppendString(text); err != nil {
 				return false, err
 			}
@@ -49,7 +49,7 @@ func (r *Tokenizer) IncrementToken() (bool, error) {
 		return false, err
 	}
 
-	r.AttributeSource().Type().SetType("ALPHANUM")
+	r.AttributeSource().Type().SetType(ALPHANUM.String())
 	if err := r.AttributeSource().CharTerm().AppendString(text); err != nil {
 		return false, err
 	}
@@ -70,6 +70,29 @@ func (r *Tokenizer) setMaxTokenLength(length int) {
 }
 
 type TokenType int
+
+func (t TokenType) String() string {
+	switch t {
+	case ALPHANUM:
+		return "ALPHANUM"
+	case NUM:
+		return "NUM"
+	case SOUTHEAST_ASIAN:
+		return "SOUTHEAST_ASIAN"
+	case IDEOGRAPHIC:
+		return "IDEOGRAPHIC"
+	case HIRAGANA:
+		return "HIRAGANA"
+	case KATAKANA:
+		return "KATAKANA"
+	case HANGUL:
+		return "HANGUL"
+	case EMOJI:
+		return "EMOJI"
+	default:
+		return "UNKNOWN"
+	}
+}
 
 const (
 	ALPHANUM = TokenType(iota)

@@ -28,9 +28,11 @@ func (r *LowerCaseFilter) IncrementToken() (bool, error) {
 	}
 
 	if ok {
-		lower := strings.ToLower(string(r.termAtt.GetString()))
+		lower := strings.ToLower(r.termAtt.GetString())
 		_ = r.termAtt.Reset()
-		r.termAtt.AppendString(lower)
+		if err := r.termAtt.AppendString(lower); err != nil {
+			return false, err
+		}
 		return true, nil
 	}
 	return false, nil
