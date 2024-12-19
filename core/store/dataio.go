@@ -124,8 +124,7 @@ type BaseDataInput struct {
 }
 
 func (d *BaseDataInput) ReadByte() (byte, error) {
-	_, err := d.reader.Read(d.buff[:1])
-	if err != nil {
+	if _, err := d.reader.Read(d.buff[:1]); err != nil {
 		return 0, err
 	}
 	return d.buff[0], nil
