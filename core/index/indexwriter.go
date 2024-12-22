@@ -951,10 +951,6 @@ func (w *IndexWriter) writeReaderPool(writeDeletes bool) error {
 			if deleted {
 				toDrop = append(toDrop, info)
 			}
-			//if (isFullyDeleted(readersAndUpdates)) {
-			//	toDrop.add(info);
-			//}
-
 		}
 	}
 
@@ -1001,8 +997,15 @@ func (w *IndexWriter) IncRefDeleter(segmentInfos *SegmentInfos) error {
 // See addIndexes for details on transactional semantics, temporary free space required in the Directory,
 // and non-CFS segments on an Exception.
 // NOTE: empty segments are dropped by this method and not added to this index.
-// NOTE: this merges all given LeafReaders in one merge. If you intend to merge a large number of readers, it may be better to call this method multiple times, each time with a small set of readers. In principle, if you use a merge policy with a mergeFactor or maxMergeAtOnce parameter, you should pass that many readers in one call.
-// NOTE: this method does not call or make use of the MergeScheduler, so any custom bandwidth throttling is at the moment ignored.
+// NOTE: this merges all given LeafReaders in one merge. If you intend to merge a large number of readers,
+//
+//	it may be better to call this method multiple times, each time with a small set of readers. In principle,
+//	if you use a merge policy with a mergeFactor or maxMergeAtOnce parameter, you should pass that many readers
+//	in one call.
+//
+// NOTE: this method does not call or make use of the MergeScheduler, so any custom bandwidth throttling is at the
+//
+//	moment ignored.
 func (w *IndexWriter) AddIndexesFromReaders(readers ...index.CodecReader) (int64, error) {
 
 	if err := w.ensureOpen(); err != nil {
@@ -1081,8 +1084,9 @@ func (w *IndexWriter) testReserveDocs(addedNumDocs int64) error {
 }
 
 func (w *IndexWriter) tooManyDocs(addedNumDocs int64) error {
-	return fmt.Errorf("number of documents in the index cannot exceed %d (current document count is %d; added numDocs is %d)",
-		actualMaxDocs, w.pendingNumDocs.Load(), addedNumDocs)
+	format := "number of documents in the index cannot exceed %d (current document count is %d; added numDocs is %d)"
+
+	return fmt.Errorf(format, actualMaxDocs, w.pendingNumDocs.Load(), addedNumDocs)
 }
 
 // Flush all in-memory buffered updates (adds and deletes) to the Directory.
@@ -1111,21 +1115,6 @@ func (w *IndexWriter) doFlush(applyAllDeletes bool) (bool, error) {
 		return false, err
 	}
 
-	/*
-		long seqNo = docWriter.flushAllThreads() ;
-		          if (seqNo < 0) {
-		            seqNo = -seqNo;
-		            anyChanges = true;
-		          } else {
-		            anyChanges = false;
-		          }
-		          if (!anyChanges) {
-		            // flushCount is incremented in flushAllThreads
-		            flushCount.incrementAndGet();
-		          }
-		          publishFlushedSegments(true);
-		          flushSuccess = true;
-	*/
 	anyChanges := false
 	seqNo := w.docWriter.flushAllThreads()
 	if seqNo < 0 {
