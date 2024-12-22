@@ -238,14 +238,14 @@ func (f *FreqProxTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index
 
 		if posEnum, ok := reuse.(*FreqProxPostingsEnum); ok {
 			if posEnum.postingsArray != f.postingsArray {
-				posEnum = f.terms.newFreqProxPostingsEnum(f.terms, f.postingsArray)
+				posEnum = newFreqProxPostingsEnum(f.terms, f.postingsArray)
 			}
 			if err := posEnum.reset(f.sortedTermIDs[f.ord]); err != nil {
 				return nil, err
 			}
 			return posEnum, nil
 		}
-		posEnum := f.terms.newFreqProxPostingsEnum(f.terms, f.postingsArray)
+		posEnum := newFreqProxPostingsEnum(f.terms, f.postingsArray)
 		if err := posEnum.reset(f.sortedTermIDs[f.ord]); err != nil {
 			return nil, err
 		}
@@ -297,9 +297,9 @@ type FreqProxPostingsEnum struct {
 	payload       []byte
 }
 
-func (f *FreqProxTermsWriterPerField) newFreqProxPostingsEnum(terms *FreqProxTermsWriterPerField, postingsArray *FreqProxPostingsArray) *FreqProxPostingsEnum {
+func newFreqProxPostingsEnum(terms *FreqProxTermsWriterPerField, postingsArray *FreqProxPostingsArray) *FreqProxPostingsEnum {
 	return &FreqProxPostingsEnum{
-		pf:            f,
+		pf:            terms,
 		docID:         -1,
 		terms:         terms,
 		postingsArray: postingsArray,
