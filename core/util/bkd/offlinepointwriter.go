@@ -84,15 +84,15 @@ func (w *OfflinePointWriter) GetReader(startPoint, length int) (PointReader, err
 	}
 
 	buffer := make([]byte, w.config.BytesPerDoc())
-	return w.getReader(startPoint, length, buffer)
+	return w.getReader(nil, startPoint, length, buffer)
 }
 
-func (w *OfflinePointWriter) getReader(start, length int, reusableBuffer []byte) (*OfflinePointReader, error) {
+func (w *OfflinePointWriter) getReader(ctx context.Context, start, length int, reusableBuffer []byte) (*OfflinePointReader, error) {
 	// TODO: need impl it ?
 	//assert closed: "point writer is still open and trying to get a reader";
 	//assert start + length <= count: "start=" + start + " length=" + length + " count=" + count;
 	//assert expectedCount == 0 || count == expectedCount;
-	return NewOfflinePointReader(w.config, w.tempDir, w.name, start, length, reusableBuffer)
+	return NewOfflinePointReader(ctx, w.config, w.tempDir, w.name, start, length, reusableBuffer)
 }
 
 func (w *OfflinePointWriter) Count() int {

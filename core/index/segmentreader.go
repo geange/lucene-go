@@ -92,7 +92,7 @@ func NewSegmentReader(ctx context.Context, si index.SegmentCommitInfo,
 	}
 	reader.numDocs = maxDoc - si.GetDelCount()
 
-	fieldInfos, err := reader.initFieldInfos()
+	fieldInfos, err := reader.initFieldInfos(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (s *SegmentReader) New(si index.SegmentCommitInfo, liveDocs, hardLiveDocs u
 		return nil, err
 	}
 
-	fieldInfos, err := reader.initFieldInfos()
+	fieldInfos, err := reader.initFieldInfos(nil)
 	if err != nil {
 		if err := reader.DoClose(); err != nil {
 			return nil, err
@@ -252,14 +252,14 @@ func (s *SegmentReader) GetHardLiveDocs() util.Bits {
 	return s.hardLiveDocs
 }
 
-func (s *SegmentReader) initFieldInfos() (index.FieldInfos, error) {
+func (s *SegmentReader) initFieldInfos(ctx context.Context) (index.FieldInfos, error) {
 	if !s.si.HasFieldUpdates() {
 		return s.core.coreFieldInfos, nil
 	} else {
 		// updates always outside of CFS
 		fisFormat := s.si.Info().GetCodec().FieldInfosFormat()
 		segmentSuffix := strconv.FormatInt(s.si.GetFieldInfosGen(), 36)
-		return fisFormat.Read(nil, s.si.Info().Dir(), s.si.Info(), segmentSuffix, nil)
+		return fisFormat.Read(ctx, s.si.Info().Dir(), s.si.Info(), segmentSuffix, nil)
 	}
 }
 

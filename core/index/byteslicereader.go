@@ -55,7 +55,7 @@ func (b *ByteSliceReader) init(pool *bytesref.BlockPool, startIndex, endIndex in
 	b.level = 0
 	b.bufferUpto = startIndex / bytesref.BYTE_BLOCK_SIZE
 	b.bufferOffset = b.bufferUpto * bytesref.BYTE_BLOCK_SIZE
-	b.buffer = pool.GetBytes(uint32(b.bufferUpto))
+	b.buffer = pool.Get(b.bufferUpto)
 	b.upto = startIndex & bytesref.BYTE_BLOCK_MASK
 
 	firstSize := bytesref.LEVEL_SIZE_ARRAY[0]
@@ -66,6 +66,7 @@ func (b *ByteSliceReader) init(pool *bytesref.BlockPool, startIndex, endIndex in
 		b.limit = b.upto + firstSize - 4
 	}
 
+	b.BaseDataInput = store.NewBaseDataInput(b)
 	return nil
 }
 
@@ -108,4 +109,8 @@ func (b *ByteSliceReader) nextSlice() {
 		// forwarding address at the end of this new slice)
 		b.limit = b.upto + newSize - 4
 	}
+}
+
+func (b *ByteSliceReader) EOF() bool {
+	return b.upto+b.bufferOffset == b.endIndex
 }

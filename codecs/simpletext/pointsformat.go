@@ -20,7 +20,7 @@ func NewPointsFormat() *PointsFormat {
 }
 
 func (s *PointsFormat) FieldsWriter(ctx context.Context, state *index.SegmentWriteState) (index.PointsWriter, error) {
-	return NewSimpleTextPointsWriter(ctx, state)
+	return NewPointsWriter(ctx, state)
 }
 
 func (s *PointsFormat) FieldsReader(ctx context.Context, state *index.SegmentReadState) (index.PointsReader, error) {

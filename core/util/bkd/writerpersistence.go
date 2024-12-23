@@ -76,8 +76,8 @@ func (w *Writer) writeIndex(ctx context.Context, metaOut, indexOut store.IndexOu
 	return nil
 }
 
-func (w *Writer) writeLeafBlockDocs(out store.DataOutput, docIDs []int) error {
-	if err := out.WriteUvarint(nil, uint64(len(docIDs))); err != nil {
+func (w *Writer) writeLeafBlockDocs(ctx context.Context, out store.DataOutput, docIDs []int) error {
+	if err := out.WriteUvarint(ctx, uint64(len(docIDs))); err != nil {
 		return err
 	}
 	return WriteDocIds(nil, docIDs, out)

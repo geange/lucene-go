@@ -69,7 +69,7 @@ var _ index.NormsConsumer = &SimpleTextNormsConsumer{}
 type SimpleTextNormsConsumer struct {
 	*coreIndex.NormsConsumerDefault
 
-	impl *DocValuesWriter
+	dw *DocValuesWriter
 }
 
 func NewSimpleTextNormsConsumer(ctx context.Context, state *index.SegmentWriteState) (*SimpleTextNormsConsumer, error) {
@@ -79,7 +79,7 @@ func NewSimpleTextNormsConsumer(ctx context.Context, state *index.SegmentWriteSt
 	}
 
 	consumer := &SimpleTextNormsConsumer{
-		impl: writer,
+		dw: writer,
 	}
 	consumer.NormsConsumerDefault = &coreIndex.NormsConsumerDefault{
 		FnAddNormsField: consumer.AddNormsField,
@@ -88,16 +88,18 @@ func NewSimpleTextNormsConsumer(ctx context.Context, state *index.SegmentWriteSt
 }
 
 func (s *SimpleTextNormsConsumer) Close() error {
-	return s.impl.Close()
+	return s.dw.Close()
 }
 
 func (s *SimpleTextNormsConsumer) AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer index.NormsProducer) error {
 	producer := struct {
 		*coreIndex.EmptyDocValuesProducer
-	}{}
+	}{
+		&coreIndex.EmptyDocValuesProducer{},
+	}
 	producer.FnGetNumeric = func(ctx context.Context, field *document.FieldInfo) (index.NumericDocValues, error) {
 		return normsProducer.GetNorms(field)
 	}
 
-	return s.impl.AddNumericField(ctx, field, producer)
+	return s.dw.AddNumericField(ctx, field, producer)
 }

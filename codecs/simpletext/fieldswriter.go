@@ -37,14 +37,14 @@ type TextFieldsWriter struct {
 	lastDocFilePointer           int64
 }
 
-func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, error) {
+func NewFieldsWriter(ctx context.Context, writeState *index.SegmentWriteState) (*TextFieldsWriter, error) {
 	fileName := getPostingsFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix)
-	out, err := writeState.Directory.CreateOutput(nil, fileName)
+	out, err := writeState.Directory.CreateOutput(ctx, fileName)
 	if err != nil {
 		return nil, err
 	}
 
-	skipWriter, err := NewSkipWriter(writeState)
+	sw, err := NewSkipWriter(writeState)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func NewFieldsWriter(writeState *index.SegmentWriteState) (*TextFieldsWriter, er
 		writeState:                   writeState,
 		segment:                      writeState.SegmentInfo.Name(),
 		docCount:                     0,
-		skipWriter:                   skipWriter,
+		skipWriter:                   sw,
 		competitiveImpactAccumulator: coreIndex.NewCompetitiveImpactAccumulator(),
 		lastDocFilePointer:           0,
 	}, nil
@@ -73,10 +73,10 @@ func (s *TextFieldsWriter) Close() error {
 }
 
 func (s *TextFieldsWriter) Write(ctx context.Context, fields index.Fields, norms index.NormsProducer) error {
-	return s.WriteV1(s.writeState.FieldInfos, fields, norms)
+	return s.writeFields(ctx, s.writeState.FieldInfos, fields, norms)
 }
 
-func (s *TextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fields,
+func (s *TextFieldsWriter) writeFields(ctx context.Context, fieldInfos index.FieldInfos, fields index.Fields,
 	normsProducer index.NormsProducer) error {
 
 	names := fields.Names()
@@ -131,7 +131,7 @@ func (s *TextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fie
 
 		// for each term in field
 		for {
-			term, err := termsEnum.Next(nil)
+			term, err := termsEnum.Next(ctx)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
@@ -140,7 +140,11 @@ func (s *TextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fie
 			}
 
 			docCount := 0
-			s.skipWriter.ResetSkip()
+
+			err = s.skipWriter.ResetSkip()
+			if err != nil {
+				return err
+			}
 			s.competitiveImpactAccumulator.Clear()
 			s.lastDocFilePointer = -1
 
@@ -255,13 +259,16 @@ func (s *TextFieldsWriter) WriteV1(fieldInfos index.FieldInfos, fields index.Fie
 				}
 				docCount++
 				if docCount != 0 && docCount%BLOCK_SIZE == 0 {
-					s.skipWriter.bufferSkip(doc, s.lastDocFilePointer, docCount, s.competitiveImpactAccumulator)
+					err := s.skipWriter.BufferSkip(ctx, doc, s.lastDocFilePointer, docCount, s.competitiveImpactAccumulator)
+					if err != nil {
+						return err
+					}
 					s.competitiveImpactAccumulator.Clear()
 					s.lastDocFilePointer = -1
 				}
 			}
 			if docCount >= BLOCK_SIZE {
-				if _, err := s.skipWriter.WriteSkip(s.out); err != nil {
+				if _, err := s.skipWriter.WriteSkip(ctx, s.out); err != nil {
 					return err
 				}
 			}

@@ -122,7 +122,7 @@ func FromTermsEnumMatchesIterator(context index.LeafReaderContext, doc int, quer
 			if err != nil {
 				return nil, err
 			}
-			if v, _ := pe.Advance(doc); v == doc {
+			if v, _ := pe.Advance(nil, doc); v == doc {
 				iterator, err := NewTermMatchesIterator(query, pe)
 				if err != nil {
 					return nil, err
@@ -179,7 +179,7 @@ func (t *termsEnumDisjunctionMatchesIterator) init() error {
 			if err != nil {
 				return err
 			}
-			if v, err := pe.Advance(t.doc); err != nil {
+			if v, err := pe.Advance(nil, t.doc); err != nil {
 				return err
 			} else if v == t.doc {
 				iterator, err := NewTermMatchesIterator(t.query, pe)

@@ -179,7 +179,7 @@ func (r *Reader) EstimatePointCount(ctx context.Context, visitor types.Intersect
 		return -1, nil
 	}
 
-	return r.estimatePointCount(state, r.minPackedValue, r.maxPackedValue)
+	return r.estimatePointCount(ctx, state, r.minPackedValue, r.maxPackedValue)
 }
 
 func (r *Reader) GetIntersectState(ctx context.Context, visitor types.IntersectVisitor) (*IntersectState, error) {
@@ -301,7 +301,7 @@ func (r *Reader) visitDocValuesNoCardinality(ctx context.Context, commonPrefixLe
 
 func (r *Reader) visitDocValuesWithCardinality(ctx context.Context, commonPrefixLengths []int, scratchDataPackedValue, scratchMinIndexPackedValue, scratchMaxIndexPackedValue []byte, in store.IndexInput, scratchIterator *readerDocIDSetIterator, count int, visitor types.IntersectVisitor) error {
 
-	if err := r.readCommonPrefixes(nil, commonPrefixLengths, scratchDataPackedValue, in); err != nil {
+	if err := r.readCommonPrefixes(ctx, commonPrefixLengths, scratchDataPackedValue, in); err != nil {
 		return err
 	}
 
@@ -343,7 +343,7 @@ func (r *Reader) visitDocValuesWithCardinality(ctx context.Context, commonPrefix
 
 			if relation == types.CELL_INSIDE_QUERY {
 				for i := 0; i < count; i++ {
-					if err := visitor.Visit(nil, scratchIterator.docIDs[i]); err != nil {
+					if err := visitor.Visit(ctx, scratchIterator.docIDs[i]); err != nil {
 						return err
 					}
 				}
@@ -359,7 +359,7 @@ func (r *Reader) visitDocValuesWithCardinality(ctx context.Context, commonPrefix
 			}
 		} else {
 			// high cardinality
-			if err := r.visitCompressedDocValues(nil, commonPrefixLengths, scratchDataPackedValue, in, scratchIterator, count, visitor, compressedDim); err != nil {
+			if err := r.visitCompressedDocValues(ctx, commonPrefixLengths, scratchDataPackedValue, in, scratchIterator, count, visitor, compressedDim); err != nil {
 				return err
 			}
 		}
@@ -407,7 +407,7 @@ func (r *Reader) visitSparseRawDocValues(ctx context.Context, commonPrefixLength
 			}
 		}
 		scratchIterator.reset(i, int(length))
-		if err := types.Visit(nil, visitor, scratchIterator, scratchPackedValue); err != nil {
+		if err := types.Visit(ctx, visitor, scratchIterator, scratchPackedValue); err != nil {
 			return err
 		}
 		i += int(length)
@@ -576,7 +576,7 @@ func (r *Reader) intersect(ctx context.Context, state *IntersectState, cellMinPa
 	return nil
 }
 
-func (r *Reader) estimatePointCount(state *IntersectState, cellMinPacked, cellMaxPacked []byte) (int, error) {
+func (r *Reader) estimatePointCount(ctx context.Context, state *IntersectState, cellMinPacked, cellMaxPacked []byte) (int, error) {
 	relation := state.visitor.Compare(cellMinPacked, cellMaxPacked)
 
 	config := r.config
@@ -586,6 +586,7 @@ func (r *Reader) estimatePointCount(state *IntersectState, cellMinPacked, cellMa
 		return 0, nil
 	case types.CELL_INSIDE_QUERY:
 		return config.MaxPointsInLeafNode() * state.index.getNumLeaves(), nil
+	default:
 	}
 
 	if state.index.IsLeafNode() {
@@ -604,11 +605,11 @@ func (r *Reader) estimatePointCount(state *IntersectState, cellMinPacked, cellMa
 	arraycopy(cellMaxPacked, 0, splitPackedValue, 0, config.packedIndexBytesLength)
 	arraycopy(splitDimValue, 0, splitPackedValue, splitDim*config.bytesPerDim, config.bytesPerDim)
 
-	if err := state.index.PushLeft(nil); err != nil {
+	if err := state.index.PushLeft(ctx); err != nil {
 		return 0, err
 	}
 
-	leftCost, err := r.estimatePointCount(state, cellMinPacked, splitPackedValue)
+	leftCost, err := r.estimatePointCount(ctx, state, cellMinPacked, splitPackedValue)
 	if err != nil {
 		return 0, err
 	}
@@ -621,16 +622,16 @@ func (r *Reader) estimatePointCount(state *IntersectState, cellMinPacked, cellMa
 	arraycopy(cellMinPacked, 0, splitPackedValue, 0, config.packedIndexBytesLength)
 	arraycopy(splitDimValue, 0, splitPackedValue, splitDim*config.bytesPerDim, config.bytesPerDim)
 
-	if err = state.index.PushRight(nil); err != nil {
+	if err = state.index.PushRight(ctx); err != nil {
 		return 0, err
 	}
-	rightCost, err := r.estimatePointCount(state, splitPackedValue, cellMaxPacked)
+	rightCost, err := r.estimatePointCount(ctx, state, splitPackedValue, cellMaxPacked)
 	state.index.Pop()
 	return leftCost + rightCost, nil
 }
 
-func (r *Reader) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
-	return types.EstimateDocCount(r, visitor)
+func (r *Reader) EstimateDocCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(ctx, r, visitor)
 }
 
 func (r *Reader) GetMinPackedValue() ([]byte, error) {

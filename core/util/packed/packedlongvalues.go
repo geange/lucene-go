@@ -98,6 +98,7 @@ const (
 	MIN_PAGE_SIZE      = 64
 	MAX_PAGE_SIZE      = 1 << 20
 	INITIAL_PAGE_COUNT = 16
+	DEFAULT_PAGE_SIZE  = 256
 )
 
 func NewPackedLongValuesBuilder(pageSize int, acceptableOverheadRatio float64) *PackedLongValuesBuilder {

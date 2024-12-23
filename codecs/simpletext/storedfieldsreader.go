@@ -204,7 +204,7 @@ func (s *StoredFieldsReader) readField(
 		if err != nil {
 			return err
 		}
-		return visitor.Int64Field(fieldInfo, int64(num))
+		return visitor.Int64Field(fieldInfo, num)
 	case bytes.Equal(STORED_FIELD_TYPE_FLOAT, dataType):
 		num, err := strconv.ParseFloat(string(value), 32)
 		if err != nil {
@@ -216,7 +216,7 @@ func (s *StoredFieldsReader) readField(
 		if err != nil {
 			return err
 		}
-		return visitor.Float64Field(fieldInfo, float64(num))
+		return visitor.Float64Field(fieldInfo, num)
 	default:
 		return errors.New("unknown field type")
 	}

@@ -201,7 +201,7 @@ func (r *IndexSearcher) SetQueryCache(queryCache index.QueryCache) {
 	r.queryCache = queryCache
 }
 
-func (r *IndexSearcher) Search(query index.Query, results index.Collector) error {
+func (r *IndexSearcher) Search(ctx context.Context, query index.Query, results index.Collector) error {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
@@ -212,7 +212,7 @@ func (r *IndexSearcher) Search(query index.Query, results index.Collector) error
 		return err
 	}
 
-	return r.SearchLeaves(nil, r.leafContexts, weight, results)
+	return r.SearchLeaves(ctx, r.leafContexts, weight, results)
 }
 
 // SearchAfter
@@ -248,7 +248,7 @@ func (r *IndexSearcher) SearchAfter(ctx context.Context, after index.ScoreDoc, q
 		manager.hitsThresholdChecker = hitsThresholdChecker
 	}
 
-	v, err := r.SearchByCollectorManager(nil, query, manager)
+	v, err := r.SearchByCollectorManager(ctx, query, manager)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func (r *IndexSearcher) SearchByCollectorManager(ctx context.Context,
 		if err != nil {
 			return nil, err
 		}
-		if err := r.SearchCollector(nil, query, collector); err != nil {
+		if err := r.SearchCollector(ctx, query, collector); err != nil {
 			return nil, err
 		}
 		return collectorManager.Reduce([]index.Collector{collector.(TopScoreDocCollector)})
@@ -348,8 +348,7 @@ func (r *IndexSearcher) SearchByCollectorManager(ctx context.Context,
 		collector := collectors[i]
 
 		// TODO: try use WaitGroup
-		err := r.SearchLeaves(ctx, leaves, weight, collector)
-		if err != nil {
+		if err := r.SearchLeaves(ctx, leaves, weight, collector); err != nil {
 			return nil, err
 		}
 	}
@@ -361,23 +360,23 @@ func (r *IndexSearcher) SearchTopN(ctx context.Context, query index.Query, n int
 	return r.SearchAfter(ctx, nil, query, n)
 }
 
-func (r *IndexSearcher) SearchCollector(ctx context.Context, query index.Query, results index.Collector) error {
+func (r *IndexSearcher) SearchCollector(ctx context.Context, query index.Query, collector index.Collector) error {
 	query, err := r.Rewrite(query)
 	if err != nil {
 		return err
 	}
 
-	weight, err := r.CreateWeight(query, results.ScoreMode(), 1)
+	weight, err := r.CreateWeight(query, collector.ScoreMode(), 1)
 	if err != nil {
 		return err
 	}
-	return r.SearchLeaves(ctx, r.leafContexts, weight, results)
+	return r.SearchLeaves(ctx, r.leafContexts, weight, collector)
 }
 
 func (r *IndexSearcher) SearchLeaves(ctx context.Context, leaves []index.LeafReaderContext, weight index.Weight, collector index.Collector) error {
 
 	for _, leaf := range leaves {
-		leafCollector, err := collector.GetLeafCollector(context.TODO(), leaf)
+		leafCollector, err := collector.GetLeafCollector(ctx, leaf)
 		if err != nil {
 			continue
 		}

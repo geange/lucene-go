@@ -124,8 +124,7 @@ type BaseDataInput struct {
 }
 
 func (d *BaseDataInput) ReadByte() (byte, error) {
-	_, err := d.reader.Read(d.buff[:1])
-	if err != nil {
+	if _, err := d.reader.Read(d.buff[:1]); err != nil {
 		return 0, err
 	}
 	return d.buff[0], nil
@@ -192,7 +191,7 @@ func (d *BaseDataInput) ReadString(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(d.buff[:length]), nil
+	return string(buf[:length]), nil
 }
 
 func (d *BaseDataInput) ReadMapOfStrings(ctx context.Context) (map[string]string, error) {
@@ -401,7 +400,7 @@ func (d *BaseDataOutput) WriteZInt64(ctx context.Context, i int64) error {
 }
 
 func (d *BaseDataOutput) WriteString(ctx context.Context, s string) error {
-	if err := d.WriteUvarint(ctx, uint64(len([]rune(s)))); err != nil {
+	if err := d.WriteUvarint(ctx, uint64(len([]byte(s)))); err != nil {
 		return err
 	}
 	if _, err := d.writer.Write([]byte(s)); err != nil {

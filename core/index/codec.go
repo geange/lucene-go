@@ -72,7 +72,7 @@ func NewBaseCodecReader(reader index.CodecReader) *BaseCodecReader {
 }
 
 func (c *BaseCodecReader) DocumentWithVisitor(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error {
-	return c.GetFieldsReader().VisitDocument(nil, docID, visitor)
+	return c.GetFieldsReader().VisitDocument(ctx, docID, visitor)
 }
 
 func (c *BaseCodecReader) GetTermVectors(docID int) (index.Fields, error) {

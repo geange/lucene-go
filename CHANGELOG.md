@@ -1,3 +1,7 @@
-# 2023-04-05
+# CHANGELOG
 
-- 开发core/search，缺少PriorityQueue数据结构，在 [structure](core/util/structure) 中增加一些必要的数据结构的实现
+## [0.0.1] - 2024-12-23
+
+### Features
+
+* 🎉 Successfully wrote to the index and queried for the first time!

@@ -48,6 +48,8 @@ type DocumentsWriterFlushControl struct {
 	closed          bool
 	documentsWriter *DocumentsWriter
 	config          *LiveIndexWriterConfig
+
+	next *atomic.Bool
 }
 
 //
@@ -69,7 +71,11 @@ func (d *DocumentsWriterFlushControl) DoAfterFlush(dwpt *DocumentsWriterPerThrea
 }
 
 func (d *DocumentsWriterFlushControl) NextPendingFlush() *DocumentsWriterPerThread {
-	return nil
+	if d.next.Load() {
+		return nil
+	}
+	d.next.Store(true)
+	return d.perThread
 }
 
 func (d *DocumentsWriterFlushControl) MarkForFullFlush() int64 {

@@ -77,16 +77,16 @@ func (s *BKDReader) Intersect(ctx context.Context, visitor types.IntersectVisito
 }
 
 // Fast path: this is called when the query box fully encompasses all cells under this node.
-func (s *BKDReader) addAll(state *IntersectState, nodeID int) error {
+func (s *BKDReader) addAll(ctx context.Context, state *IntersectState, nodeID int) error {
 	if nodeID >= s.leafNodeOffset {
 		// TODO: we can assert that the first value here in fact matches what the index claimed?
-		return s.visitDocIDs(state.in, s.leafBlockFPs[nodeID-s.leafNodeOffset], state.visitor)
+		return s.visitDocIDs(ctx, state.in, s.leafBlockFPs[nodeID-s.leafNodeOffset], state.visitor)
 	}
 
-	if err := s.addAll(state, 2*nodeID); err != nil {
+	if err := s.addAll(ctx, state, 2*nodeID); err != nil {
 		return err
 	}
-	return s.addAll(state, 2*nodeID+1)
+	return s.addAll(ctx, state, 2*nodeID+1)
 }
 
 // Create a new SimpleTextBKDReader.IntersectState
@@ -104,7 +104,7 @@ func (s *BKDReader) intersect(ctx context.Context, state *IntersectState, nodeID
 		return nil
 	case types.CELL_INSIDE_QUERY:
 		// This cell is fully inside of the query shape: recursively add all points in this cell without filtering
-		return s.addAll(state, nodeID)
+		return s.addAll(nil, state, nodeID)
 	default:
 		// The cell crosses the shape boundary, or the cell fully contains the query,
 		// so we fall through and do full filtering
@@ -124,7 +124,7 @@ func (s *BKDReader) intersect(ctx context.Context, state *IntersectState, nodeID
 			}
 
 			// Again, this time reading values and checking with the visitor
-			if err := s.visitDocValues(nil, state.commonPrefixLengths, state.scratchPackedValue, state.in, state.scratchDocIDs, count, state.visitor); err != nil {
+			if err := s.visitDocValues(ctx, state.commonPrefixLengths, state.scratchPackedValue, state.in, state.scratchDocIDs, count, state.visitor); err != nil {
 				return err
 			}
 		}
@@ -154,7 +154,7 @@ func (s *BKDReader) intersect(ctx context.Context, state *IntersectState, nodeID
 	copy(splitPackedValue[splitDim*bytesPerDim:],
 		s.splitPackedValues[address:address+bytesPerDim])
 
-	if err := s.intersect(nil, state, 2*nodeID, cellMinPacked, splitPackedValue); err != nil {
+	if err := s.intersect(ctx, state, 2*nodeID, cellMinPacked, splitPackedValue); err != nil {
 		return err
 	}
 
@@ -168,7 +168,7 @@ func (s *BKDReader) intersect(ctx context.Context, state *IntersectState, nodeID
 	return nil
 }
 
-func (s *BKDReader) visitDocIDs(in store.IndexInput, blockFP int64, visitor types.IntersectVisitor) error {
+func (s *BKDReader) visitDocIDs(ctx context.Context, in store.IndexInput, blockFP int64, visitor types.IntersectVisitor) error {
 	scratch := new(bytes.Buffer)
 	if _, err := in.Seek(blockFP, io.SeekStart); err != nil {
 		return err
@@ -193,7 +193,7 @@ func (s *BKDReader) visitDocIDs(in store.IndexInput, blockFP int64, visitor type
 			return err
 		}
 
-		if err := visitor.Visit(nil, docID); err != nil {
+		if err := visitor.Visit(ctx, docID); err != nil {
 			return err
 		}
 	}
@@ -271,9 +271,8 @@ func (s *BKDReader) EstimatePointCount(ctx context.Context, visitor types.Inters
 	return s.estimatePointCount(s.getIntersectState(visitor), 1, s.minPackedValue, s.maxPackedValue), nil
 }
 
-func (s *BKDReader) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
-	//TODO implement me
-	panic("implement me")
+func (s *BKDReader) EstimateDocCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(ctx, s, visitor)
 }
 
 func (s *BKDReader) estimatePointCount(state *IntersectState, nodeID int,
@@ -348,8 +347,7 @@ func (s *BKDReader) GetDocCount() int {
 
 // IntersectState Used to track all state for a single call to intersect.
 type IntersectState struct {
-	reader *BKDReader
-
+	reader              *BKDReader
 	in                  store.IndexInput
 	scratchDocIDs       []int
 	scratchPackedValue  []byte

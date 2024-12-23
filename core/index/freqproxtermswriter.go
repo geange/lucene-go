@@ -1,6 +1,9 @@
 package index
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/bytesref"
@@ -17,13 +20,13 @@ func NewFreqProxTermsWriter(intBlockAllocator ints.IntsAllocator,
 	byteBlockAllocator bytesref.Allocator, nextTermsHash TermsHash) *FreqProxTermsWriter {
 
 	return &FreqProxTermsWriter{
-		NewTermsHashDefault(intBlockAllocator, byteBlockAllocator, nextTermsHash)}
+		NewBaseTermsHash(intBlockAllocator, byteBlockAllocator, nextTermsHash)}
 }
 
-func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
+func (f *FreqProxTermsWriter) Flush(ctx context.Context, fieldsToFlush map[string]TermsHashPerField,
 	state *index.SegmentWriteState, sortMap index.DocMap, norms index.NormsProducer) error {
 
-	err := f.BaseTermsHash.Flush(fieldsToFlush, state, sortMap, norms)
+	err := f.BaseTermsHash.Flush(ctx, fieldsToFlush, state, sortMap, norms)
 	if err != nil {
 		return err
 	}
@@ -32,7 +35,10 @@ func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
 	allFields := make([]*FreqProxTermsWriterPerField, 0)
 
 	for _, field := range fieldsToFlush {
-		perField := field.(*FreqProxTermsWriterPerField)
+		perField, ok := field.(*FreqProxTermsWriterPerField)
+		if !ok {
+			return fmt.Errorf("unexpected type %T", field)
+		}
 		if perField.getNumTerms() > 0 {
 			perField.sortTerms()
 			allFields = append(allFields, perField)
@@ -48,12 +54,12 @@ func (f *FreqProxTermsWriter) Flush(fieldsToFlush map[string]TermsHashPerField,
 		return err
 	}
 
-	consumer, err := state.SegmentInfo.GetCodec().PostingsFormat().FieldsConsumer(nil, state)
+	consumer, err := state.SegmentInfo.GetCodec().PostingsFormat().FieldsConsumer(ctx, state)
 	if err != nil {
 		return err
 	}
 	defer consumer.Close()
-	return consumer.Write(nil, fields, norms)
+	return consumer.Write(ctx, fields, norms)
 }
 
 func (f *FreqProxTermsWriter) AddField(invertState *index.FieldInvertState, fieldInfo *document.FieldInfo) (TermsHashPerField, error) {

@@ -128,8 +128,8 @@ func (r *innerMutablePointValues) EstimatePointCount(ctx context.Context, visito
 	panic("implement me")
 }
 
-func (r *innerMutablePointValues) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
-	return types.EstimateDocCount(r, visitor)
+func (r *innerMutablePointValues) EstimateDocCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(ctx, r, visitor)
 }
 
 func (r *innerMutablePointValues) GetMinPackedValue() ([]byte, error) {

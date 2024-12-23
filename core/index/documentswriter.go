@@ -73,11 +73,12 @@ func NewDocumentsWriter(flushNotifications index.FlushNotifications, indexCreate
 		config:                           config,
 		numDocsInRAM:                     new(atomic.Int64),
 		deleteQueue:                      deleteQueue,
-		ticketQueue:                      nil,
+		ticketQueue:                      NewDocumentsWriterFlushQueue(),
 		pendingChangesInCurrentFullFlush: false,
 		perThreadPool:                    nil,
 		flushControl: &DocumentsWriterFlushControl{
 			flushDeletes: new(atomic.Bool),
+			next:         new(atomic.Bool),
 			perThread: NewDocumentsWriterPerThread(indexCreatedVersionMajor,
 				segmentName, directoryOrig,
 				directory, config, deleteQueue, infos,
@@ -90,7 +91,7 @@ func (d *DocumentsWriter) purgeFlushTickets(forced bool, consumer func(*FlushTic
 	if forced {
 		return d.ticketQueue.forcePurge(consumer)
 	}
-	return nil
+	return d.ticketQueue.tryPurge(consumer)
 }
 
 func (d *DocumentsWriter) preUpdate() (bool, error) {
@@ -111,7 +112,10 @@ func (d *DocumentsWriter) updateDocuments(ctx context.Context, docs []*document.
 }
 
 func (d *DocumentsWriter) Flush(ctx context.Context) error {
-	dwpt := d.flushControl.ObtainAndLock()
+	dwpt := d.flushControl.NextPendingFlush()
+	if dwpt == nil {
+		return nil
+	}
 	_, err := d.doFlush(ctx, dwpt)
 	return err
 }
@@ -121,22 +125,25 @@ func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWr
 	hasEvents := false
 
 	for flushingDWPT != nil {
+		if flushingDWPT.hasFlushed.Load() {
+			return false, nil
+		}
+
 		hasEvents = true
 
 		dwptSuccess := true
 
-		//ticket, err := d.ticketQueue.AddFlushTicket(flushingDWPT)
-		//if err != nil {
-		//	return err
-		//}
-		//flushingDocsInRam := flushingDWPT.GetNumDocsInRAM()
+		ticket, err := d.ticketQueue.AddFlushTicket(flushingDWPT)
+		if err != nil {
+			return false, err
+		}
 
 		// flush concurrently without locking
-		//newSegment, err := flushingDWPT.flush(ctx, d.flushNotifications)
-		if _, err := flushingDWPT.flush(ctx, d.flushNotifications); err != nil {
-			dwptSuccess = false
+		newSegment, err := flushingDWPT.flush(ctx, d.flushNotifications)
+		if err != nil {
+			return false, err
 		}
-		//d.ticketQueue.AddSegment(ticket, newSegment)
+		d.ticketQueue.AddSegment(ticket, newSegment)
 		//
 		//d.subtractFlushedNumDocs(int64(flushingDocsInRam))
 		if (len(flushingDWPT.PendingFilesToDelete()) == 0) == false {
@@ -152,7 +159,7 @@ func (d *DocumentsWriter) doFlush(ctx context.Context, flushingDWPT *DocumentsWr
 		if err := d.flushControl.DoAfterFlush(flushingDWPT); err != nil {
 			return false, err
 		}
-		flushingDWPT = d.flushControl.NextPendingFlush()
+		//flushingDWPT = d.flushControl.NextPendingFlush()
 	}
 
 	if hasEvents {
@@ -233,6 +240,7 @@ func (d *DocumentsWriter) flushAllThreads() int64 {
 	} else {
 		return seqNo
 	}
+
 }
 
 func (d *DocumentsWriter) finishFullFlush(success bool) error {
@@ -273,4 +281,30 @@ func (d *DocumentsWriter) applyAllDeletes() (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (d *DocumentsWriter) Close() error {
+	d.closed = true
+	return nil
+}
+
+// TODO: fixme
+func (d *DocumentsWriter) Abort() error {
+	return nil
+}
+
+func (d *DocumentsWriter) doAfterFlush(dwpt *DocumentsWriterPerThread) error {
+	//d.flushingWriters.remove(dwpt);
+	//d.updateStallState();
+	return nil
+}
+
+func (d *DocumentsWriter) abortPendingFlushes(ctx context.Context) error {
+	dwpt := d.flushControl.ObtainAndLock()
+	//if _, err := d.doFlush(ctx, dwpt); err != nil {
+	//	return err
+	//}
+	dwpt.abort()
+	d.doAfterFlush(dwpt)
+	return nil
 }

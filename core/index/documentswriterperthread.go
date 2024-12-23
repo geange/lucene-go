@@ -54,13 +54,15 @@ func NewDocumentsWriterPerThread(indexVersionCreated int, segmentName string, di
 		false, codec, map[string]string{}, util.RandomId(),
 		map[string]string{}, indexWriterConfig.GetIndexSort())
 
+	trackingDir := store.NewTrackingDirectoryWrapper(dir)
+
 	consumer := indexWriterConfig.GetIndexingChain().
-		GetChain(indexVersionCreated, segmentInfo, dir, fieldInfos, indexWriterConfig)
+		GetChain(indexVersionCreated, segmentInfo, trackingDir, fieldInfos, indexWriterConfig)
 
 	return &DocumentsWriterPerThread{
 		lock:                   sync.RWMutex{},
 		codec:                  codec,
-		directory:              store.NewTrackingDirectoryWrapper(dir),
+		directory:              trackingDir,
 		consumer:               consumer,
 		pendingUpdates:         index.NewBufferedUpdates(index.WithSegmentName(segmentName)),
 		segmentInfo:            segmentInfo,
@@ -221,6 +223,10 @@ func newFlushedSegment(segmentInfo index.SegmentCommitInfo, fieldInfos index.Fie
 
 // Flush all pending docs to a new segment
 func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications index.FlushNotifications) (*FlushedSegment, error) {
+	defer func() {
+		d.hasFlushed.Store(true)
+	}()
+
 	if err := d.segmentInfo.SetMaxDoc(int(d.numDocsInRAM.Load())); err != nil {
 		return nil, err
 	}
@@ -276,7 +282,7 @@ func (d *DocumentsWriterPerThread) flush(ctx context.Context, flushNotifications
 	d.pendingUpdates.ClearDeleteTerms()
 	d.segmentInfo.SetFiles(d.directory.(*store.TrackingDirectoryWrapper).GetCreatedFiles())
 
-	segmentInfoPerCommit := index.NewSegmentCommitInfo(d.segmentInfo, 0, flushState.SoftDelCountOnFlush, -1, -1, -1, []byte(uuid.New().String()))
+	segmentInfoPerCommit := index.NewSegmentCommitInfo(d.segmentInfo, 0, flushState.SoftDelCountOnFlush, -1, -1, -1, []byte(uuid.New().String()[:ID_LENGTH]))
 
 	var segmentDeletes *index.BufferedUpdates
 	if d.pendingUpdates.GetDeleteQueries().Size() == 0 && d.pendingUpdates.GetNumFieldUpdates() == 0 {
@@ -422,17 +428,3 @@ func sortLiveDocs(liveDocs *bitset.BitSet, sortMap index.DocMap) *bitset.BitSet 
 	}
 	return sortedLiveDocs
 }
-
-/**
-  private FixedBitSet sortLiveDocs(Bits liveDocs, Sorter.DocMap sortMap) {
-    assert liveDocs != null && sortMap != null;
-    FixedBitSet sortedLiveDocs = new FixedBitSet(liveDocs.length());
-    sortedLiveDocs.set(0, liveDocs.length());
-    for (int i = 0; i < liveDocs.length(); i++) {
-      if (liveDocs.get(i) == false) {
-        sortedLiveDocs.clear(sortMap.oldToNew(i));
-      }
-    }
-    return sortedLiveDocs;
-  }
-*/

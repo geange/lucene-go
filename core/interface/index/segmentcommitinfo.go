@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"slices"
 
@@ -39,6 +40,7 @@ type SegmentCommitInfo interface {
 	GetBufferedDeletesGen() int64
 	GetFieldInfosFiles() map[string]struct{}
 	GetDocValuesUpdatesFiles() map[int]map[string]struct{}
+	SetBufferedDeletesGen(v int64) error
 }
 
 // segmentCommitInfo
@@ -337,4 +339,14 @@ func (s *segmentCommitInfo) GetFieldInfosFiles() map[string]struct{} {
 
 func (s *segmentCommitInfo) GetDocValuesUpdatesFiles() map[int]map[string]struct{} {
 	return s.dvUpdatesFiles
+}
+
+func (s *segmentCommitInfo) SetBufferedDeletesGen(v int64) error {
+	if s.bufferedDeletesGen == -1 {
+		s.bufferedDeletesGen = v
+		s.generationAdvanced()
+	} else {
+		return errors.New("buffered deletes gen should only be set once")
+	}
+	return nil
 }

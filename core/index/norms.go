@@ -3,11 +3,11 @@ package index
 import (
 	"context"
 	"errors"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/packed"
 	"io"
-
-	"github.com/geange/lucene-go/core/document"
 )
 
 // NormsConsumer
@@ -136,36 +136,145 @@ type NormValuesWriter struct {
 	lastDocID     int
 }
 
+func NewNormValuesWriter(fieldInfo *document.FieldInfo) *NormValuesWriter {
+	docsWithField := NewDocsWithFieldSet()
+	pending := packed.NewPackedLongValuesBuilder(packed.DEFAULT_PAGE_SIZE, 0)
+	return &NormValuesWriter{
+		docsWithField: docsWithField,
+		pending:       pending,
+		fieldInfo:     fieldInfo,
+		lastDocID:     -1,
+	}
+}
+
 func (n *NormValuesWriter) AddValue(docID int, value int64) error {
-	if n.lastDocID >= docID {
-		return errors.New("docID too small")
+	if docID <= n.lastDocID {
+		return errors.New("Norm for \"" + n.fieldInfo.Name() + "\" appears more than once in this document (only one value is allowed per field)")
 	}
 
 	if err := n.pending.Add(value); err != nil {
 		return err
 	}
+	if err := n.docsWithField.Add(docID); err != nil {
+		return err
+	}
 
 	n.lastDocID = docID
-	return n.docsWithField.Add(docID)
+	return nil
 }
 
 func (n *NormValuesWriter) Finish(maxDoc int) {
 
 }
 
-func (n *NormValuesWriter) Flush(state *index.SegmentWriteState, sortMap index.DocMap, normsConsumer index.NormsConsumer) error {
-	//values := n.pending.Build()
-	// TODO: impl it
-	panic("")
+func (n *NormValuesWriter) Flush(ctx context.Context, state *index.SegmentWriteState, sortMap index.DocMap, normsConsumer index.NormsConsumer) error {
+	values, err := n.pending.Build()
+	if err != nil {
+		return err
+	}
+	var sorted *NumericDVs
+	if sortMap != nil {
+		maxDoc, err := state.SegmentInfo.MaxDoc()
+		if err != nil {
+			return err
+		}
+		iterator, err := n.docsWithField.Iterator()
+		if err != nil {
+			return err
+		}
+		sorted = SortDocValues(maxDoc, sortMap,
+			newBufferedNorms(values, iterator))
+	} else {
+		sorted = nil
+	}
+
+	producer := &normsProducer{sorted: sorted, w: n, values: values}
+	return normsConsumer.AddNormsField(ctx, n.fieldInfo, producer)
 }
 
-func NewNormValuesWriter(fieldInfo *document.FieldInfo) *NormValuesWriter {
-	//return &NormValuesWriter{
-	//	docsWithField: NewDocsWithFieldSet(),
-	//	pending:       packed.NewLongValuesBuilder(make([]uint64, 0)...),
-	//	fieldInfo:     fieldInfo,
-	//	lastDocID:     -1,
-	//}
-	// TODO: impl it
-	panic("")
+var _ index.NumericDocValues = &BufferedNorms{}
+
+type BufferedNorms struct {
+	iter          packed.PackedLongValuesIterator
+	docsWithField types.DocIdSetIterator
+	value         int64
+}
+
+func newBufferedNorms(values *packed.PackedLongValues, docsWithFields types.DocIdSetIterator) *BufferedNorms {
+	return &BufferedNorms{
+		iter:          values.Iterator(),
+		docsWithField: docsWithFields,
+	}
+}
+
+func (b *BufferedNorms) DocID() int {
+	return b.docsWithField.DocID()
+}
+
+func (b *BufferedNorms) NextDoc() (int, error) {
+	docID, err := b.docsWithField.NextDoc()
+	if err != nil {
+		return docID, err
+	}
+	value, err := b.iter.Next()
+	if err != nil {
+		return 0, err
+	}
+	b.value = int64(value)
+	return docID, nil
+}
+
+func (b *BufferedNorms) Advance(ctx context.Context, target int) (int, error) {
+	return 0, errors.New("not implemented")
+}
+
+func (b *BufferedNorms) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return 0, errors.New("not implemented")
+}
+
+func (b *BufferedNorms) Cost() int64 {
+	return b.docsWithField.Cost()
+}
+
+func (b *BufferedNorms) AdvanceExact(target int) (bool, error) {
+	return false, errors.New("not implemented")
+}
+
+func (b *BufferedNorms) LongValue() (int64, error) {
+	return b.value, nil
+}
+
+var _ index.NormsProducer = &normsProducer{}
+
+type normsProducer struct {
+	w      *NormValuesWriter
+	sorted *NumericDVs
+	values *packed.PackedLongValues
+}
+
+func (n *normsProducer) Close() error {
+	return nil
+}
+
+func (n *normsProducer) GetNorms(fieldInfo *document.FieldInfo) (index.NumericDocValues, error) {
+	if fieldInfo != n.w.fieldInfo {
+		return nil, errors.New("wrong fieldInfo")
+	}
+	if n.sorted == nil {
+		iterator, err := n.w.docsWithField.Iterator()
+		if err != nil {
+			return nil, err
+		}
+		return newBufferedNorms(n.values, iterator), nil
+	} else {
+		return NewSortingNumericDocValues(n.sorted), nil
+	}
+}
+
+func (n *normsProducer) CheckIntegrity() error {
+	return nil
+}
+
+func (n *normsProducer) GetMergeInstance() index.NormsProducer {
+	return nil
 }

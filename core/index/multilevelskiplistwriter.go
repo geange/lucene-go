@@ -1,11 +1,13 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 )
 
-// MultiLevelSkipListWriter This abstract class writes skip lists with multiple levels.
+// MultiLevelSkipListWriter
+// This abstract class writes skip lists with multiple levels.
 //
 //	 Example for skipInterval = 3:
 //	                                                    c            (skip level 2)
@@ -27,7 +29,8 @@ import (
 //	While this class takes care of writing the different skip levels,
 //	subclasses must define the actual format of the skip data.
 type MultiLevelSkipListWriter interface {
-	// WriteSkipData Subclasses must implement the actual skip data encoding in this method.
+	// WriteSkipData
+	// Subclasses must implement the actual skip data encoding in this method.
 	// Params: 	level – the level skip data shall be writing for
 	//			skipBuffer – the skip buffer to write to
 	WriteSkipData(level int, skipBuffer store.IndexOutput) error
@@ -35,29 +38,140 @@ type MultiLevelSkipListWriter interface {
 	// Init Allocates internal skip buffers.
 	Init()
 
-	// ResetSkip Creates new buffers or empties the existing ones
+	// ResetSkip
+	// Creates new buffers or empties the existing ones
 	ResetSkip()
 
-	// BufferSkip Writes the current skip data to the buffers. The current document frequency
+	// BufferSkip
+	// Writes the current skip data to the buffers. The current document frequency
 	// determines the max level is skip data is to be written to.
 	// Params: 	df – the current document frequency
 	// Throws: 	IOException – If an I/O error occurs
 	BufferSkip(df int) error
 
-	// WriteSkip Writes the buffered skip lists to the given output.
+	// WriteSkip
+	// Writes the buffered skip lists to the given output.
 	// Params: 	output – the IndexOutput the skip lists shall be written to
 	// Returns: the pointer the skip list starts
 	WriteSkip(output store.IndexOutput) (int64, error)
 
-	// WriteLevelLength Writes the length of a level to the given output.
+	// WriteLevelLength
+	// Writes the length of a level to the given output.
 	// Params: 	levelLength – the length of a level
 	//			output – the IndexOutput the length shall be written to
 	WriteLevelLength(levelLength int64, output store.IndexOutput) error
 
-	// WriteChildPointer Writes the child pointer of a block to the given output.
+	// WriteChildPointer
+	// Writes the child pointer of a block to the given output.
 	// Params: 	childPointer – block of higher level point to the lower level
 	//			skipBuffer – the skip buffer to write to
 	WriteChildPointer(childPointer int64, skipBuffer store.DataOutput) error
+}
+
+type MultiLevelSkipListWriterContext struct {
+	NumberOfSkipLevels int
+	SkipInterval       int
+	SkipMultiplier     int
+	SkipBuffer         []*store.BufferOutput
+}
+
+func NewMultiLevelSkipListWriterContext(skipInterval, skipMultiplier, maxSkipLevels, df int) *MultiLevelSkipListWriterContext {
+	var numberOfSkipLevels int
+	if df <= skipInterval {
+		numberOfSkipLevels = 1
+	} else {
+		numberOfSkipLevels = 1 + util.Log(df/skipInterval, skipMultiplier)
+	}
+
+	if numberOfSkipLevels > maxSkipLevels {
+		numberOfSkipLevels = maxSkipLevels
+	}
+
+	return &MultiLevelSkipListWriterContext{
+		SkipInterval:       skipInterval,
+		NumberOfSkipLevels: numberOfSkipLevels,
+		SkipMultiplier:     skipMultiplier,
+	}
+}
+
+func (m *MultiLevelSkipListWriterContext) init() {
+	m.SkipBuffer = m.SkipBuffer[:0]
+	for i := 0; i < m.NumberOfSkipLevels; i++ {
+		m.SkipBuffer = append(m.SkipBuffer, store.NewBufferDataOutput())
+	}
+}
+
+func (m *MultiLevelSkipListWriterContext) ResetSkip() {
+	if len(m.SkipBuffer) == 0 {
+		m.init()
+		return
+	}
+
+	for _, output := range m.SkipBuffer {
+		output.Reset()
+	}
+}
+
+func (m *MultiLevelSkipListWriterContext) BufferSkip(ctx context.Context, df int,
+	spi MultiLevelSkipListWriterSPI) error {
+
+	numLevels := 1
+	df /= m.SkipInterval
+
+	// determine max level
+	for (df%m.SkipMultiplier) == 0 && numLevels < m.NumberOfSkipLevels {
+		numLevels++
+		df /= m.SkipMultiplier
+	}
+
+	childPointer := int64(0)
+
+	for level := 0; level < numLevels; level++ {
+		if err := spi.WriteSkipData(ctx, level, m.SkipBuffer[level], m); err != nil {
+			return err
+		}
+
+		newChildPointer := m.SkipBuffer[level].GetFilePointer()
+
+		if level != 0 {
+			// store child pointers for all levels except the lowest
+			if err := spi.WriteChildPointer(ctx, childPointer, m.SkipBuffer[level]); err != nil {
+				return err
+			}
+		}
+
+		//remember the childPointer for the next level
+		childPointer = newChildPointer
+	}
+
+	return nil
+}
+
+type MultiLevelSkipListWriterSPI interface {
+	ResetSkip(mwc *MultiLevelSkipListWriterContext) error
+	// WriteSkipData
+	// Subclasses must implement the actual skip data encoding in this method.
+	// level: the level skip data shall be writing for
+	// skipBuffer: the skip buffer to write to
+	WriteSkipData(ctx context.Context, level int, skipBuffer store.IndexOutput, mwc *MultiLevelSkipListWriterContext) error
+
+	// WriteSkip
+	// Writes the buffered skip lists to the given output.
+	// output: the IndexOutput the skip lists shall be written to
+	// Returns: the pointer the skip list starts
+	WriteSkip(ctx context.Context, output store.IndexOutput, mwc *MultiLevelSkipListWriterContext) (int64, error)
+
+	// WriteLevelLength
+	// Writes the length of a level to the given output.
+	// levelLength: the length of a level
+	// output: the IndexOutput the length shall be written to
+	WriteLevelLength(ctx context.Context, levelLength int64, output store.IndexOutput) error
+
+	// WriteChildPointer
+	// Writes the child pointer of a block to the given output.
+	// childPointer: block of higher level point to the lower level
+	// skipBuffer: the skip buffer to write to
+	WriteChildPointer(ctx context.Context, childPointer int64, skipBuffer store.DataOutput) error
 }
 
 //var _ MultiLevelSkipListWriterExt = &MultiLevelSkipListWriterImp{}

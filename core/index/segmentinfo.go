@@ -78,6 +78,7 @@ func NewSegmentInfo(dir store.Directory, version, minVersion *version.Version, n
 		indexSort:      indexSort,
 		version:        version,
 		minVersion:     minVersion,
+		setFiles:       make(map[string]struct{}),
 	}
 }
 

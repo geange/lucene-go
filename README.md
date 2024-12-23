@@ -53,7 +53,7 @@ following major modules have been gradually completed:
 
 ### Example
 
-[More Example](https://github.com/geange/lucene-go-example)
+#### IndexWriter
 
 Using `IndexWriter`
 
@@ -63,6 +63,7 @@ package main
 import (
   "context"
   "fmt"
+  "os"
 
   "github.com/geange/lucene-go/codecs/simpletext"
   "github.com/geange/lucene-go/core/document"
@@ -72,63 +73,131 @@ import (
 )
 
 func main() {
+  err := os.RemoveAll("data")
+  if err != nil {
+    panic(err)
+  }
+
   dir, err := store.NewNIOFSDirectory("data")
   if err != nil {
     panic(err)
   }
 
   codec := simpletext.NewCodec()
-  similarity, err := search.NewCastBM25Similarity()
-
-  config := index.NewIndexWriterConfig(codec, similarity)
-
-  writer, err := index.NewIndexWriter(context.Background(), dir, config)
+  similarity, err := search.NewBM25Similarity()
   if err != nil {
     panic(err)
   }
-  defer func() {
-    err := writer.Commit(context.Background())
-    if err != nil {
-      fmt.Println(err)
-    }
-  }()
+
+  config := index.NewIndexWriterConfig(codec, similarity)
+
+  ctx := context.Background()
+
+  writer, err := index.NewIndexWriter(ctx, dir, config)
+  if err != nil {
+    panic(err)
+  }
+  defer writer.Close()
 
   {
     doc := document.NewDocument()
-    doc.Add(document.NewStoredField[int32]("a", 74))
-    doc.Add(document.NewStoredField[int32]("a1", 86))
-    doc.Add(document.NewStoredField[int32]("a2", 1237))
-    docID, err := writer.AddDocument(context.Background(), doc)
+    doc.Add(document.NewTextField("a", "74", true))
+    doc.Add(document.NewTextField("b", "86", true))
+    doc.Add(document.NewTextField("c", "1237", true))
+    docID, err := writer.AddDocument(ctx, doc)
     if err != nil {
       panic(err)
     }
-    fmt.Println(docID)
+    fmt.Println("add new document:", docID)
   }
 
   {
     doc := document.NewDocument()
-    doc.Add(document.NewStoredField[int32]("a", 123))
-    doc.Add(document.NewStoredField[int32]("a1", 123))
-    doc.Add(document.NewStoredField[int32]("a2", 789))
+    doc.Add(document.NewTextField("a", "74", true))
+    doc.Add(document.NewTextField("b", "123", true))
+    doc.Add(document.NewTextField("c", "789", true))
 
     docID, err := writer.AddDocument(context.Background(), doc)
     if err != nil {
       panic(err)
     }
-    fmt.Println(docID)
+    fmt.Println("add new document:", docID)
   }
 
   {
     doc := document.NewDocument()
-    doc.Add(document.NewStoredField[int32]("a", 741))
-    doc.Add(document.NewStoredField[int32]("a1", 861))
-    doc.Add(document.NewStoredField[int32]("a2", 12137))
+    doc.Add(document.NewTextField("a", "741", true))
+    doc.Add(document.NewTextField("b", "861", true))
+    doc.Add(document.NewTextField("c", "12137", true))
     docID, err := writer.AddDocument(context.Background(), doc)
     if err != nil {
       panic(err)
     }
-    fmt.Println(docID)
+    fmt.Println("add new document:", docID)
   }
+}
+
+```
+
+#### IndexReader
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	_ "github.com/geange/lucene-go/codecs/simpletext"
+	"github.com/geange/lucene-go/core/index"
+	index2 "github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/search"
+	"github.com/geange/lucene-go/core/store"
+)
+
+func main() {
+	dir, err := store.NewNIOFSDirectory("data")
+	if err != nil {
+		panic(err)
+	}
+
+	reader, err := index.OpenDirectoryReader(context.Background(), dir, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	searcher, err := search.NewIndexSearcher(reader)
+	if err != nil {
+		panic(err)
+	}
+
+	query := search.NewTermQuery(index.NewTerm("a", []byte("74")))
+	builder := search.NewBooleanQueryBuilder()
+	builder.AddQuery(query, index2.OccurMust)
+	booleanQuery, err := builder.Build()
+	if err != nil {
+		panic(err)
+	}
+
+	topDocs, err := searcher.SearchTopN(context.Background(), booleanQuery, 2)
+	if err != nil {
+		panic(err)
+	}
+
+	result := topDocs.GetScoreDocs()
+	for _, scoreDoc := range result {
+		docID := scoreDoc.GetDoc()
+		document, err := reader.Document(context.Background(), docID)
+		if err != nil {
+			panic(err)
+		}
+
+		values := make([]any, 0)
+		for _, field := range document.Fields() {
+			values = append(values, fmt.Sprintf("name:%s, value:%v", field.Name(), field.Get()))
+		}
+		fmt.Println("docId: ", scoreDoc.GetDoc(), "values", values)
+	}
 }
 
 ```

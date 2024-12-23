@@ -16,8 +16,8 @@ import (
 type BaseBinaryDocValues struct {
 	FnDocID        func() int
 	FnNextDoc      func() (int, error)
-	FnAdvance      func(target int) (int, error)
-	FnSlowAdvance  func(target int) (int, error)
+	FnAdvance      func(ctx context.Context, target int) (int, error)
+	FnSlowAdvance  func(ctx context.Context, target int) (int, error)
 	FnCost         func() int64
 	FnAdvanceExact func(target int) (bool, error)
 	FnBinaryValue  func() ([]byte, error)
@@ -31,13 +31,13 @@ func (n *BaseBinaryDocValues) NextDoc() (int, error) {
 	return n.FnNextDoc()
 }
 
-func (n *BaseBinaryDocValues) Advance(target int) (int, error) {
-	return n.FnAdvance(target)
+func (n *BaseBinaryDocValues) Advance(ctx context.Context, target int) (int, error) {
+	return n.FnAdvance(ctx, target)
 }
 
-func (n *BaseBinaryDocValues) SlowAdvance(target int) (int, error) {
+func (n *BaseBinaryDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	if n.FnSlowAdvance != nil {
-		return n.FnSlowAdvance(target)
+		return n.FnSlowAdvance(ctx, target)
 	}
 	return types.SlowAdvance(n, target)
 }
@@ -231,11 +231,11 @@ func (b *BufferedBinaryDocValues) NextDoc() (int, error) {
 	return doc, nil
 }
 
-func (b *BufferedBinaryDocValues) Advance(target int) (int, error) {
+func (b *BufferedBinaryDocValues) Advance(ctx context.Context, target int) (int, error) {
 	return 0, errors.New("unsupported operation exception")
 }
 
-func (b *BufferedBinaryDocValues) SlowAdvance(target int) (int, error) {
+func (b *BufferedBinaryDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(b, target)
 }
 

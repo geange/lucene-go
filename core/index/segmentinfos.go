@@ -492,7 +492,7 @@ func ReadCommit(ctx context.Context, directory store.Directory, segmentFileName 
 		return nil, err
 	}
 
-	input, err := store.OpenChecksumInput(directory, segmentFileName)
+	input, err := store.OpenChecksumInput(ctx, directory, segmentFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -572,11 +572,11 @@ func ReadCommitFromChecksumIndexInput(ctx context.Context, directory store.Direc
 	infos.lastGeneration = generation
 	infos.luceneVersion = luceneVersion
 
-	ver, err := input.ReadUint64(ctx)
+	versionU64, err := input.ReadUint64(ctx)
 	if err != nil {
 		return nil, err
 	}
-	infos.version = int64(ver)
+	infos.version = int64(versionU64)
 
 	if format > VERSION_70 {
 		count, err := input.ReadUvarint(ctx)

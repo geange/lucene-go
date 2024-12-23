@@ -3,7 +3,7 @@ module github.com/geange/lucene-go
 go 1.23.3
 
 require (
-	github.com/bits-and-blooms/bitset v1.16.0
+	github.com/bits-and-blooms/bitset v1.17.0
 	github.com/geange/gods-generic v0.0.0-20231208144256-fc5f66e86023
 	github.com/google/uuid v1.6.0
 	github.com/matishsiao/goInfo v0.0.0-20240924010139-10388a85396f
@@ -11,7 +11,7 @@ require (
 	github.com/samber/lo v1.47.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
+	golang.org/x/exp v0.0.0-20241210194714-1829a127f884
 )
 
 require (

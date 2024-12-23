@@ -50,7 +50,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 	scratch := new(bytes.Buffer)
 	segFileName := store.SegmentFileName(segmentName, "", SI_EXTENSION)
 
-	input, err := store.OpenChecksumInput(dir, segFileName)
+	input, err := store.OpenChecksumInput(ctx, dir, segFileName)
 	if err != nil {
 		return nil, err
 	}

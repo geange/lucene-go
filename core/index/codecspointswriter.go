@@ -25,7 +25,7 @@ func (p *BasePointsWriter) MergeOneField(ctx context.Context, mergeState *MergeS
 		if pointsReader != nil {
 			readerFieldInfo := mergeState.FieldInfos[i].FieldInfo(fieldInfo.Name())
 			if readerFieldInfo != nil && readerFieldInfo.GetPointIndexDimensionCount() > 0 {
-				values, err := pointsReader.GetValues(nil, fieldInfo.Name())
+				values, err := pointsReader.GetValues(ctx, fieldInfo.Name())
 				if err != nil {
 					return err
 				}
@@ -91,8 +91,8 @@ func (i *innerPointValues) EstimatePointCount(ctx context.Context, visitor types
 	panic("implement me")
 }
 
-func (i *innerPointValues) EstimateDocCount(visitor types.IntersectVisitor) (int, error) {
-	return types.EstimateDocCount(i, visitor)
+func (i *innerPointValues) EstimateDocCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {
+	return types.EstimateDocCount(ctx, i, visitor)
 }
 
 func (i *innerPointValues) GetMinPackedValue() ([]byte, error) {

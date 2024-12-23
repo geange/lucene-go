@@ -48,7 +48,7 @@ type PointsWriter struct {
 	indexFPs   map[string]int64
 }
 
-func NewSimpleTextPointsWriter(ctx context.Context, writeState *index.SegmentWriteState) (*PointsWriter, error) {
+func NewPointsWriter(ctx context.Context, writeState *index.SegmentWriteState) (*PointsWriter, error) {
 	fileName := store.SegmentFileName(writeState.SegmentInfo.Name(), writeState.SegmentSuffix, POINT_EXTENSION)
 	out, err := writeState.Directory.CreateOutput(ctx, fileName)
 	if err != nil {
@@ -157,8 +157,8 @@ func (s *PointsWriter) WriteField(ctx context.Context, fieldInfo *document.Field
 		VisitFn: func(docID int) error {
 			return errors.New("illegal State")
 		},
-		VisitLeafFn: func(docID int, packedValue []byte) error {
-			return writer.Add(packedValue, docID)
+		VisitLeafFn: func(ctx context.Context, docID int, packedValue []byte) error {
+			return writer.Add(ctx, packedValue, docID)
 		},
 		CompareFn: func(minPackedValue, maxPackedValue []byte) types.Relation {
 			return types.CELL_CROSSES_QUERY

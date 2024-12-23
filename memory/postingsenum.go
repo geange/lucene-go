@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
@@ -63,11 +64,11 @@ func (m *memPostingsEnum) NextDoc() (int, error) {
 	}
 }
 
-func (m *memPostingsEnum) Advance(target int) (int, error) {
-	return m.SlowAdvance(target)
+func (m *memPostingsEnum) Advance(ctx context.Context, target int) (int, error) {
+	return m.SlowAdvance(nil, target)
 }
 
-func (m *memPostingsEnum) SlowAdvance(target int) (int, error) {
+func (m *memPostingsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {

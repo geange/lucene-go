@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"math"
@@ -24,12 +25,12 @@ func (s *SlowImpactsEnum) NextDoc() (int, error) {
 	return s.delegate.NextDoc()
 }
 
-func (s *SlowImpactsEnum) Advance(target int) (int, error) {
-	return s.delegate.Advance(target)
+func (s *SlowImpactsEnum) Advance(ctx context.Context, target int) (int, error) {
+	return s.delegate.Advance(ctx, target)
 }
 
-func (s *SlowImpactsEnum) SlowAdvance(target int) (int, error) {
-	return s.Advance(target)
+func (s *SlowImpactsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return s.Advance(nil, target)
 }
 
 func (s *SlowImpactsEnum) Cost() int64 {
@@ -56,7 +57,7 @@ func (s *SlowImpactsEnum) GetPayload() ([]byte, error) {
 	return s.delegate.GetPayload()
 }
 
-func (s *SlowImpactsEnum) AdvanceShallow(target int) error {
+func (s *SlowImpactsEnum) AdvanceShallow(ctx context.Context, target int) error {
 	return nil
 }
 

@@ -2,6 +2,7 @@ package simpletext
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"strconv"
 
@@ -50,7 +51,7 @@ func (s *DocsEnum) DocID() int {
 }
 
 func (s *DocsEnum) NextDoc() (int, error) {
-	return s.Advance(s.docID + 1)
+	return s.Advance(nil, s.docID+1)
 }
 
 func (s *DocsEnum) readDoc() (int, error) {
@@ -136,14 +137,14 @@ func (s *DocsEnum) advanceTarget(target int) (int, error) {
 	return doc, nil
 }
 
-func (s *DocsEnum) Advance(target int) (int, error) {
-	if err := s.AdvanceShallow(target); err != nil {
+func (s *DocsEnum) Advance(ctx context.Context, target int) (int, error) {
+	if err := s.AdvanceShallow(nil, target); err != nil {
 		return 0, err
 	}
 	return s.advanceTarget(target)
 }
 
-func (s *DocsEnum) SlowAdvance(target int) (int, error) {
+func (s *DocsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -172,22 +173,22 @@ func (s *DocsEnum) GetPayload() ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (s *DocsEnum) AdvanceShallow(target int) error {
+func (s *DocsEnum) AdvanceShallow(ctx context.Context, target int) error {
 	if target > s.nextSkipDoc {
-		if _, err := s.skipReader.SkipTo(target); err != nil {
+		if _, err := s.skipReader.SkipTo(ctx, target); err != nil {
 			return err
 		}
-		if s.skipReader.getNextSkipDoc() != types.NO_MORE_DOCS {
-			s.seekTo = s.skipReader.getNextSkipDocFP()
+		if s.skipReader.GetNextSkipDoc() != types.NO_MORE_DOCS {
+			s.seekTo = s.skipReader.GetNextSkipDocFP()
 		}
-		s.nextSkipDoc = s.skipReader.getNextSkipDoc()
+		s.nextSkipDoc = s.skipReader.GetNextSkipDoc()
 	}
 	return nil
 }
 
 func (s *DocsEnum) GetImpacts() (index.Impacts, error) {
-	if err := s.AdvanceShallow(s.docID); err != nil {
+	if err := s.AdvanceShallow(nil, s.docID); err != nil {
 		return nil, err
 	}
-	return s.skipReader.getImpacts(), nil
+	return s.skipReader.GetImpacts(), nil
 }

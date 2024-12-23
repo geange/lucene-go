@@ -143,7 +143,7 @@ func (t *twoPhaseIterator1) Matches() (bool, error) {
 	// check if the doc is not excluded
 	exclDoc := t.exclApproximation.DocID()
 	if exclDoc < doc {
-		exclDoc, err = t.exclApproximation.Advance(doc)
+		exclDoc, err = t.exclApproximation.Advance(nil, doc)
 		if err != nil {
 			return false, err
 		}
@@ -200,7 +200,7 @@ func (t *twoPhaseIterator2) Matches() (bool, error) {
 	// check if the doc is not excluded
 	exclDoc := t.exclApproximation.DocID()
 	if exclDoc < doc {
-		exclDoc, err = t.exclApproximation.Advance(doc)
+		exclDoc, err = t.exclApproximation.Advance(nil, doc)
 		if err != nil {
 			return false, err
 		}

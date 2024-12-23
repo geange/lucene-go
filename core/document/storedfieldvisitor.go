@@ -116,7 +116,7 @@ func (r *DocStoredFieldVisitor) Float64Field(fieldInfo *FieldInfo, value float64
 }
 
 func (r *DocStoredFieldVisitor) NeedsField(fieldInfo *FieldInfo) (STORED_FIELD_VISITOR_STATUS, error) {
-	if r.fieldsToAdd == nil {
+	if len(r.fieldsToAdd) == 0 {
 		return STORED_FIELD_VISITOR_YES, nil
 	}
 

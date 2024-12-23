@@ -182,7 +182,7 @@ func (w *Writer) build1Leaf(ctx context.Context, leavesOffset int, reader types.
 	for i := from; i < to; i++ {
 		docIDs[i-from] = reader.GetDocID(i)
 	}
-	if err := w.writeLeafBlockDocs(w.scratchOut, docIDs[:count]); err != nil {
+	if err := w.writeLeafBlockDocs(ctx, w.scratchOut, docIDs[:count]); err != nil {
 		return err
 	}
 
@@ -373,7 +373,7 @@ func (w *Writer) buildMerging1Leaf(ctx context.Context, leavesOffset int, points
 		docIDs[i] = heapSource.GetPackedValueSlice(from + i).DocID()
 	}
 	// 写入docID
-	if err := w.writeLeafBlockDocs(out, docIDs[:count]); err != nil {
+	if err := w.writeLeafBlockDocs(ctx, out, docIDs[:count]); err != nil {
 		return err
 	}
 

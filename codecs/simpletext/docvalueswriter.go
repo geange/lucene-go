@@ -62,21 +62,17 @@ func NewDocValuesWriter(ctx context.Context, state *index.SegmentWriteState, ext
 }
 
 func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
-	if err := s.fieldSeen(field.Name()); err != nil {
-		return err
-	}
-
-	if !(field.GetDocValuesType() == document.DOC_VALUES_TYPE_NUMERIC || field.HasNorms()) {
-		return errors.New("")
-	}
+	//if !(field.GetDocValuesType() == document.DOC_VALUES_TYPE_NUMERIC || field.HasNorms()) {
+	//	return errors.New("")
+	//}
 
 	if err := s.writeFieldEntry(field, document.DOC_VALUES_TYPE_NUMERIC); err != nil {
 		return err
 	}
 
 	// first pass to find min/max
-	minValue, maxValue := int64(math.MaxInt64), int64(math.MaxInt64)
-	values, err := valuesProducer.GetNumeric(nil, field)
+	minValue, maxValue := int64(math.MaxInt64), int64(math.MinInt64)
+	values, err := valuesProducer.GetNumeric(ctx, field)
 	if err != nil {
 		return err
 	}
@@ -90,7 +86,7 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 			}
 			return err
 		}
-		if doc != types.NO_MORE_DOCS {
+		if doc == types.NO_MORE_DOCS {
 			break
 		}
 
@@ -132,7 +128,7 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 	numDocsWritten := 0
 
 	// second pass to write the values
-	values, err = valuesProducer.GetNumeric(nil, field)
+	values, err = valuesProducer.GetNumeric(ctx, field)
 	if err != nil {
 		return err
 	}
@@ -141,9 +137,9 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 			if _, err := values.NextDoc(); err != nil {
 				return err
 			}
-			if values.DocID() >= i {
-				panic("")
-			}
+			//if values.DocID() >= i {
+			//	panic("")
+			//}
 		}
 		value := func() int64 {
 			if values.DocID() != i {
@@ -153,9 +149,9 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 			return n
 		}()
 
-		if value >= minValue {
-			panic("")
-		}
+		//if value >= minValue {
+		//	panic("")
+		//}
 
 		if err := utils.WriteString(s.data, fmt.Sprintf(fmtStr, value-minValue)); err != nil {
 			return err
@@ -177,9 +173,9 @@ func (s *DocValuesWriter) AddNumericField(ctx context.Context, field *document.F
 			return err
 		}
 		numDocsWritten++
-		if numDocsWritten <= s.numDocs {
-			panic("")
-		}
+		//if numDocsWritten <= s.numDocs {
+		//	panic("")
+		//}
 	}
 
 	if s.numDocs != numDocsWritten {
@@ -328,7 +324,7 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 
 	valueCount, maxLength := 0, -1
 
-	sorted, err := valuesProducer.GetSorted(nil, field)
+	sorted, err := valuesProducer.GetSorted(ctx, field)
 	if err != nil {
 		return err
 	}
@@ -338,7 +334,7 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 	}
 
 	for {
-		value, err := terms.Next(nil)
+		value, err := terms.Next(ctx)
 		if err != nil {
 			return err
 		}
@@ -376,7 +372,7 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 
 	// for asserts:
 	valuesSeen := 0
-	sorted, err = valuesProducer.GetSorted(nil, field)
+	sorted, err = valuesProducer.GetSorted(ctx, field)
 	if err != nil {
 		return err
 	}
@@ -431,11 +427,9 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 	}
 	for i := 0; i < s.numDocs; i++ {
 		if values.DocID() < i {
-			_, err := values.NextDoc()
-			if err != nil {
+			if _, err := values.NextDoc(); err != nil {
 				return err
 			}
-			// assert values.docID() >= i;
 		}
 		ord := -1
 		if values.DocID() == i {
@@ -455,17 +449,17 @@ func (s *DocValuesWriter) AddSortedField(ctx context.Context, field *document.Fi
 }
 
 func (s *DocValuesWriter) AddSortedNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
-	if err := s.fieldSeen(field.Name()); err != nil {
-		return err
-	}
-
-	if field.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED_NUMERIC {
-		return errors.New("")
-	}
+	//if err := s.fieldSeen(field.Name()); err != nil {
+	//	return err
+	//}
+	//
+	//if field.GetDocValuesType() == document.DOC_VALUES_TYPE_SORTED_NUMERIC {
+	//	return errors.New("")
+	//}
 
 	return s.doAddBinaryField(field, &coreIndex.EmptyDocValuesProducer{
 		FnGetBinary: func(ctx context.Context, field *document.FieldInfo) (index.BinaryDocValues, error) {
-			values, err := valuesProducer.GetSortedNumeric(nil, field)
+			values, err := valuesProducer.GetSortedNumeric(ctx, field)
 			if err != nil {
 				return nil, err
 			}
@@ -501,8 +495,8 @@ func (i *innerBinaryDocValues) NextDoc() (int, error) {
 	return doc, nil
 }
 
-func (i *innerBinaryDocValues) Advance(target int) (int, error) {
-	doc, err := i.values.Advance(target)
+func (i *innerBinaryDocValues) Advance(ctx context.Context, target int) (int, error) {
+	doc, err := i.values.Advance(nil, target)
 	if err != nil {
 		return 0, err
 	}
@@ -512,8 +506,8 @@ func (i *innerBinaryDocValues) Advance(target int) (int, error) {
 	return doc, nil
 }
 
-func (i *innerBinaryDocValues) SlowAdvance(target int) (int, error) {
-	return i.Advance(target)
+func (i *innerBinaryDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
+	return i.Advance(nil, target)
 }
 
 func (i *innerBinaryDocValues) Cost() int64 {
@@ -601,6 +595,9 @@ func (s *DocValuesWriter) Close() error {
 			return err
 		}
 		if err := utils.NewLine(s.data); err != nil {
+			return err
+		}
+		if err := utils.WriteChecksum(s.data); err != nil {
 			return err
 		}
 		if err := s.data.Close(); err != nil {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"slices"
-	"sort"
 	"strconv"
 
 	"github.com/geange/lucene-go/codecs/utils"
@@ -278,9 +277,10 @@ func (i *innerCompoundDirectory) CheckIntegrity() error {
 }
 
 func (i *innerCompoundDirectory) getIndex(name string) (int, error) {
-	idx := sort.SearchStrings(i.fileNames, name)
-	if idx < 0 {
-		return 0, fmt.Errorf("no sub-file found: %s", name)
+	for idx, fileName := range i.fileNames {
+		if name == fileName {
+			return idx, nil
+		}
 	}
-	return idx, nil
+	return 0, fmt.Errorf("no sub-file found: %s", name)
 }

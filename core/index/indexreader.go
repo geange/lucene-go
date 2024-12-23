@@ -151,7 +151,7 @@ func (r *baseIndexReader) NumDeletedDocs() int {
 
 func (r *baseIndexReader) Document(ctx context.Context, docID int) (*document.Document, error) {
 	visitor := document.NewDocumentStoredFieldVisitor()
-	if err := r.spi.DocumentWithVisitor(nil, docID, visitor); err != nil {
+	if err := r.spi.DocumentWithVisitor(ctx, docID, visitor); err != nil {
 		return nil, err
 	}
 	return visitor.GetDocument(), nil

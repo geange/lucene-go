@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"io"
 
 	"github.com/geange/lucene-go/core/interface/index"
@@ -33,15 +34,15 @@ func (t *twoPhaseIteratorAsDocIdSetIterator) NextDoc() (int, error) {
 	return t.doNext(doc)
 }
 
-func (t *twoPhaseIteratorAsDocIdSetIterator) Advance(target int) (int, error) {
-	doc, err := t.approximation.Advance(target)
+func (t *twoPhaseIteratorAsDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
+	doc, err := t.approximation.Advance(nil, target)
 	if err != nil {
 		return 0, err
 	}
 	return t.doNext(doc)
 }
 
-func (t *twoPhaseIteratorAsDocIdSetIterator) SlowAdvance(target int) (int, error) {
+func (t *twoPhaseIteratorAsDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
 	return types.SlowAdvance(t, target)
 }
 

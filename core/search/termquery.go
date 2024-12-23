@@ -14,7 +14,8 @@ import (
 
 var _ index.Query = &TermQuery{}
 
-// TermQuery A Query that matches documents containing a term.
+// TermQuery
+// A Query that matches documents containing a term.
 // This may be combined with other terms with a BooleanQuery.
 type TermQuery struct {
 	term               index.Term
@@ -36,6 +37,11 @@ func NewTermQuery(term index.Term) *TermQuery {
 		term:               term,
 		perReaderTermState: nil,
 	}
+}
+
+func (t *TermQuery) SetStates(states *coreIndex.TermStates) *TermQuery {
+	t.perReaderTermState = states
+	return t
 }
 
 // NewTermQueryV1
@@ -115,7 +121,7 @@ func (t *TermWeight) Explain(context index.LeafReaderContext, doc int) (types.Ex
 		return nil, errors.New("no matching term")
 	}
 
-	newDoc, err := tScorer.Iterator().Advance(doc)
+	newDoc, err := tScorer.Iterator().Advance(nil, doc)
 	if err != nil {
 		return nil, err
 	}
@@ -185,8 +191,8 @@ func (t *TermWeight) Scorer(ctx index.LeafReaderContext) (index.Scorer, error) {
 }
 
 // Returns a TermsEnum positioned at this weights Term or null if the term does not exist in the given context
-func (t *TermWeight) getTermsEnum(context index.LeafReaderContext) (index.TermsEnum, error) {
-	state, err := t.termStates.Get(context)
+func (t *TermWeight) getTermsEnum(readerContext index.LeafReaderContext) (index.TermsEnum, error) {
+	state, err := t.termStates.Get(readerContext)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +200,7 @@ func (t *TermWeight) getTermsEnum(context index.LeafReaderContext) (index.TermsE
 		return nil, nil
 	}
 
-	terms, err := context.LeafReader().Terms(t.term.Field())
+	terms, err := readerContext.LeafReader().Terms(t.term.Field())
 	if err != nil {
 		return nil, err
 	}

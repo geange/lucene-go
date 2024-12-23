@@ -155,8 +155,30 @@ func (d *DocumentsWriterDeleteQueue) anyChanges() bool {
 	return false
 }
 
-func (d *DocumentsWriterDeleteQueue) freezeGlobalBuffer(slice *DeleteSlice) *FrozenBufferedUpdates {
-	panic("")
+func (d *DocumentsWriterDeleteQueue) freezeGlobalBuffer(callerSlice *DeleteSlice) *FrozenBufferedUpdates {
+	d.globalBufferLock.Lock()
+	defer d.globalBufferLock.Unlock()
+
+	currentTail := d.tail
+	if callerSlice != nil {
+		// Update the callers slices so we are on the same page
+		callerSlice.sliceTail = currentTail
+	}
+	return d.freezeGlobalBufferInternal(currentTail)
+}
+
+func (d *DocumentsWriterDeleteQueue) freezeGlobalBufferInternal(currentTail *Node) *FrozenBufferedUpdates {
+	if d.globalSlice.sliceTail != currentTail {
+		d.globalSlice.sliceTail = currentTail
+		d.globalSlice.Apply(d.globalBufferedUpdates, math.MaxInt32)
+	}
+
+	if d.globalBufferedUpdates.Any() {
+		packet := NewFrozenBufferedUpdates(d.globalBufferedUpdates, nil)
+		d.globalBufferedUpdates.Clear()
+		return packet
+	}
+	return nil
 }
 
 func (d *DocumentsWriterDeleteQueue) Close() {
