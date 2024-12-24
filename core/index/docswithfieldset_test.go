@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestDocsWithFieldSet(t *testing.T) {
 	assert.Nil(t, err)
 
 	for i := 0; i < 100; i++ {
-		docId, err := iterator.NextDoc()
+		docId, err := iterator.NextDoc(context.Background())
 		assert.Nil(t, err)
 		assert.EqualValues(t, i, docId)
 

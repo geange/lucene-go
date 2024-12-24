@@ -1,8 +1,7 @@
 package bytesref
 
 import (
-	"context"
-	"io"
+	"iter"
 )
 
 // Array
@@ -14,7 +13,6 @@ type Array struct {
 	offsets       []int
 	lastElement   int
 	currentOffset int
-	//bytesUsed     *atomic.Int64
 }
 
 func NewArray(bytesUsed int64) *Array {
@@ -74,47 +72,37 @@ func (r *Array) Get(spare *Builder, index int) []byte {
 
 // Used only by sort below, to set a BytesRef with the specified slice, avoiding copying bytes in the common
 // case when the slice is contained in a single block in the byte block pool.
-func (r *Array) setBytesRef(spare *Builder, result []byte, index int) {
-	offset := r.offsets[index]
-	length := 0
-	if index == r.lastElement-1 {
-		length = r.currentOffset - offset
-	} else {
-		length = r.offsets[index+1] - offset
+//func (r *Array) setBytesRef(spare *Builder, result []byte, index int) {
+//	offset := r.offsets[index]
+//	length := 0
+//	if index == r.lastElement-1 {
+//		length = r.currentOffset - offset
+//	} else {
+//		length = r.offsets[index+1] - offset
+//	}
+//	r.pool.SetBytes(result[:length], offset)
+//}
+
+func (r *Array) Iterator() iter.Seq[[]byte] {
+	size := r.Size()
+
+	return func(yield func([]byte) bool) {
+		for i := 0; i < size; i++ {
+			offset := r.offsets[i]
+			length := 0
+			if i == r.lastElement-1 {
+				length = r.currentOffset - offset
+			} else {
+				length = r.offsets[i+1] - offset
+			}
+			value, err := r.pool.GetBytesWithLength(offset, length)
+			if err != nil {
+				return
+			}
+
+			if !yield(value) {
+				return
+			}
+		}
 	}
-	r.pool.SetBytes(spare, result[:length], offset)
-}
-
-func (r *Array) Iterator() BytesIterator {
-	return &bytesRefIterator{
-		size:  r.Size(),
-		pos:   -1,
-		ord:   0,
-		spare: NewBytesRefBuilder(),
-		ref:   []byte{},
-		array: r,
-	}
-}
-
-type bytesRefIterator struct {
-	size  int
-	pos   int
-	ord   int
-	spare *Builder
-	ref   []byte
-	array *Array
-}
-
-func (b *bytesRefIterator) Next(context.Context) ([]byte, error) {
-	b.pos++
-	if b.pos < b.size {
-		b.ord = b.pos
-		b.array.setBytesRef(b.spare, b.ref, b.ord)
-		return b.ref, nil
-	}
-	return nil, io.EOF
-}
-
-type SortState struct {
-	indices []int
 }

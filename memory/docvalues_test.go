@@ -9,7 +9,7 @@ import (
 
 func TestNewNumericDocValues(t *testing.T) {
 	numDocValues := newNumericDocValues(10)
-	_, err := numDocValues.NextDoc()
+	_, err := numDocValues.NextDoc(nil)
 	assert.Nil(t, err)
 	id := numDocValues.DocID()
 	assert.Equal(t, math.MaxInt32, id)
@@ -32,17 +32,17 @@ func TestNewSortedDocValues(t *testing.T) {
 	assert.Equal(t, 1, advance)
 	assert.Equal(t, 1, docValues.DocID())
 
-	docId, err := docValues.NextDoc()
+	docId, err := docValues.NextDoc(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, docId)
 	assert.Equal(t, 2, docValues.DocID())
 
-	docId, err = docValues.NextDoc()
+	docId, err = docValues.NextDoc(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, docId)
 	assert.Equal(t, 3, docValues.DocID())
 
-	docId, err = docValues.NextDoc()
+	docId, err = docValues.NextDoc(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, docId)
 	assert.Equal(t, 4, docValues.DocID())

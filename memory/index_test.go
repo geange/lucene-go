@@ -1,7 +1,10 @@
 package memory
 
 import (
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/analysis/standard"
@@ -10,7 +13,6 @@ import (
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/search"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMemoryIndex(t *testing.T) {
@@ -49,13 +51,15 @@ func TestMemoryIndex(t *testing.T) {
 		panic(err)
 	}
 
-	score := memIndex.Search(search.NewTermQuery(types.NewTerm("f1", []byte("text"))))
+	ctx := context.Background()
+
+	score := memIndex.Search(ctx, search.NewTermQuery(types.NewTerm("f1", []byte("text"))))
 	assert.InDelta(t, 0.13076457, score, 0.00000001)
 
-	score1 := memIndex.Search(search.NewTermQuery(coreindex.NewTerm("f1", []byte("some"))))
+	score1 := memIndex.Search(ctx, search.NewTermQuery(coreindex.NewTerm("f1", []byte("some"))))
 	assert.InDelta(t, 0.13076457, score1, 0.00000001)
 
-	score2 := memIndex.Search(search.NewTermQuery(types.NewTerm("f1", []byte("some text"))))
+	score2 := memIndex.Search(ctx, search.NewTermQuery(types.NewTerm("f1", []byte("some text"))))
 	assert.InDelta(t, 0, score2, 0.00000001)
 }
 

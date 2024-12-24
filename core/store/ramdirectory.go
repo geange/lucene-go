@@ -22,6 +22,14 @@ type RAMDirectory struct {
 	nextTempFileCounter *atomic.Int64
 }
 
+func NewRAMDirectory() *RAMDirectory {
+	return &RAMDirectory{
+		RWMutex:             sync.RWMutex{},
+		fileMap:             make(map[string]*RAMFile),
+		nextTempFileCounter: new(atomic.Int64),
+	}
+}
+
 func (d *RAMDirectory) Sync(files map[string]struct{}) error {
 	return nil
 }
@@ -99,7 +107,7 @@ func (d *RAMDirectory) OpenInput(ctx context.Context, name string) (IndexInput, 
 	if !ok {
 		return nil, fmt.Errorf("file:%s not found", name)
 	}
-	return NewRAMInputStream(name, file, int(file.length.Load()))
+	return NewRAMInputStream(name, file, int(file.size.Load()))
 }
 
 func (d *RAMDirectory) ObtainLock(name string) (Lock, error) {

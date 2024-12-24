@@ -1,9 +1,11 @@
 package search
 
 import (
+	"iter"
+	"math"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/structure"
-	"math"
 )
 
 // CreateFieldValueHitQueue
@@ -34,7 +36,7 @@ type FieldValueHitQueue[T index.ScoreDoc] interface {
 	Size() int
 	Clear()
 	Remove(element T) bool
-	Iterator() structure.Iterator[T]
+	Iterator() iter.Seq[T]
 	GetReverseMul() []int
 	GetComparators(ctx index.LeafReaderContext) ([]index.LeafFieldComparator, error)
 	GetComparatorsList() []index.FieldComparator

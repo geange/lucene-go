@@ -171,7 +171,7 @@ func (r *BlockPool) AllocSlice(slice []byte, upto int) int {
 // Fill the provided BytesRef with the bytes at the specified offset/length slice. This will
 // avoid copying the bytes, if the slice fits into a single block; otherwise, it uses the provided Builder
 // to copy bytes over.
-func (r *BlockPool) SetBytes(builder *Builder, result []byte, offset int) {
+func (r *BlockPool) SetBytes(result []byte, offset int) {
 
 	length := len(result)
 
@@ -185,6 +185,20 @@ func (r *BlockPool) SetBytes(builder *Builder, result []byte, offset int) {
 		// uncommon case: the slice spans at least 2 blocks, so we must copy the bytes:
 		r.ReadBytes(offset, result, 0, length)
 	}
+}
+
+func (r *BlockPool) GetBytesWithLength(offset, length int) ([]byte, error) {
+	bufferIndex := offset >> BYTE_BLOCK_SHIFT
+	buffer := r.buffers[bufferIndex]
+	pos := offset & BYTE_BLOCK_MASK
+
+	if pos+length <= BYTE_BLOCK_SIZE {
+		return buffer[pos : pos+length], nil
+	}
+
+	buf := make([]byte, length)
+	r.ReadBytes(offset, buf, 0, length)
+	return buf, nil
 }
 
 func (r *BlockPool) GetAddress(offset uint32) ([]byte, error) {

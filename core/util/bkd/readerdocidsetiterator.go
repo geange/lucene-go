@@ -28,7 +28,12 @@ func (r *readerDocIDSetIterator) DocID() int {
 	return r.docID
 }
 
-func (r *readerDocIDSetIterator) NextDoc() (int, error) {
+func (r *readerDocIDSetIterator) NextDoc(ctx context.Context) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+	}
 	if r.idx == r.length {
 		r.docID = types.NO_MORE_DOCS
 		return r.docID, io.EOF
@@ -44,7 +49,7 @@ func (r *readerDocIDSetIterator) Advance(ctx context.Context, target int) (int, 
 }
 
 func (r *readerDocIDSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(r, target)
+	return types.SlowAdvanceWithContext(ctx, r, target)
 }
 
 func (r *readerDocIDSetIterator) Cost() int64 {

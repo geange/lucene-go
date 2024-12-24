@@ -526,19 +526,13 @@ type TwoPhaseIterator interface {
 // 只有那些在一系列文档上有更优化的评分方法的查询才需要覆盖它。
 // 否则，会使用默认实现，该实现会封装在Weight.scorer返回的Scorer周围。
 type BulkScorer interface {
-	// Score Scores and collects all matching documents.
-	// Params: 	collector – The collector to which all matching documents are passed.
-	//			acceptDocs – Bits that represents the allowed documents to match, or null if they are all allowed to match.
-	Score(collector LeafCollector, acceptDocs util.Bits) error
-
-	// ScoreRange
-	// Params:
-	// 		collector – The collector to which all matching documents are passed.
-	// 		acceptDocs – Bits that represents the allowed documents to match, or null if they are all allowed to match.
-	// 		min – Score starting at, including, this document
-	// 		max – Score up to, but not including, this doc
+	// Score
+	// collector – The collector to which all matching documents are passed.
+	// acceptDocs – Bits that represents the allowed documents to match, or null if they are all allowed to match.
+	// min – Score starting at, including, this document
+	// max – Score up to, but not including, this doc
 	// Returns: an under-estimation of the next matching doc after max
-	ScoreRange(collector LeafCollector, acceptDocs util.Bits, min, max int) (int, error)
+	Score(collector LeafCollector, acceptDocs util.Bits, minDoc, maxDoc int) (int, error)
 
 	// Cost Same as DocIdSetIterator.cost() for bulk scorers.
 	Cost() int64

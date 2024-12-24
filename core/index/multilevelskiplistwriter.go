@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 )

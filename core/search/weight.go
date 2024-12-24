@@ -3,11 +3,12 @@ package search
 import (
 	"context"
 	"errors"
+	"io"
+	"math"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
-	"io"
-	"math"
 )
 
 type WeightScorer interface {
@@ -35,8 +36,8 @@ func (r *BaseWeight) GetQuery() index.Query {
 //	return false
 //}
 
-func (r *BaseWeight) Matches(ctx index.LeafReaderContext, doc int) (index.Matches, error) {
-	supplier, err := r.ScorerSupplier(ctx)
+func (r *BaseWeight) Matches(leafReaderContext index.LeafReaderContext, doc int) (index.Matches, error) {
+	supplier, err := r.ScorerSupplier(leafReaderContext)
 	if err != nil {
 		return nil, err
 	}
@@ -125,15 +126,13 @@ func NewDefaultBulkScorer(scorer index.Scorer) *DefaultBulkScorer {
 	}
 }
 
-func (d *DefaultBulkScorer) Score(collector index.LeafCollector, acceptDocs util.Bits) error {
-	NoMoreDocs := math.MaxInt32
-	_, err := d.ScoreRange(collector, acceptDocs, 0, NoMoreDocs)
-	return err
-}
+func (d *DefaultBulkScorer) Score(collector index.LeafCollector, acceptDocs util.Bits, minDoc, maxDoc int) (int, error) {
+	if minDoc < 0 && maxDoc < 0 {
+		minDoc = 0
+		maxDoc = math.MaxInt32
+	}
 
-func (d *DefaultBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
-	err := collector.SetScorer(d.scorer)
-	if err != nil {
+	if err := collector.SetScorer(d.scorer); err != nil {
 		return 0, err
 	}
 
@@ -170,27 +169,26 @@ func (d *DefaultBulkScorer) ScoreRange(collector index.LeafCollector, acceptDocs
 		})
 	}
 
-	if filteredIterator.DocID() == -1 && min == 0 && max == types.NO_MORE_DOCS {
-		if err := scoreAll(collector, filteredIterator, d.twoPhase, acceptDocs); err != nil {
+	if filteredIterator.DocID() == -1 && minDoc == 0 && maxDoc == types.NO_MORE_DOCS {
+		if err := scoreAll(context.Background(), collector, filteredIterator, d.twoPhase, acceptDocs); err != nil {
 			return 0, err
 		}
 		return types.NO_MORE_DOCS, nil
 	} else {
 		doc := filteredIterator.DocID()
-		if doc < min {
-			doc, err = filteredIterator.Advance(nil, min)
+		if doc < minDoc {
+			doc, err = filteredIterator.Advance(nil, minDoc)
 			if err != nil {
 				return 0, err
 			}
 		}
-		return scoreRange(collector, filteredIterator, d.twoPhase, acceptDocs, doc, max)
+		return scoreRange(collector, filteredIterator, d.twoPhase, acceptDocs, doc, maxDoc)
 	}
 }
 
-func scoreAll(collector index.LeafCollector, iterator types.DocIdSetIterator,
-	twoPhase index.TwoPhaseIterator, acceptDocs util.Bits) error {
+func scoreAll(ctx context.Context, collector index.LeafCollector, iterator types.DocIdSetIterator, twoPhase index.TwoPhaseIterator, acceptDocs util.Bits) error {
 
-	doc, err := iterator.NextDoc()
+	doc, err := iterator.NextDoc(ctx)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			return nil
@@ -201,13 +199,13 @@ func scoreAll(collector index.LeafCollector, iterator types.DocIdSetIterator,
 	if twoPhase == nil {
 		for {
 			if acceptDocs == nil || acceptDocs.Test(uint(doc)) {
-				err := collector.Collect(nil, doc)
+				err := collector.Collect(ctx, doc)
 				if err != nil {
 					return err
 				}
 			}
 
-			doc, err = iterator.NextDoc()
+			doc, err = iterator.NextDoc(ctx)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					return nil
@@ -224,7 +222,7 @@ func scoreAll(collector index.LeafCollector, iterator types.DocIdSetIterator,
 				}
 			}
 
-			doc, err = iterator.NextDoc()
+			doc, err = iterator.NextDoc(ctx)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					return nil
@@ -249,7 +247,7 @@ func scoreRange(collector index.LeafCollector, iterator types.DocIdSetIterator, 
 					return 0, err
 				}
 			}
-			currentDoc, err = iterator.NextDoc()
+			currentDoc, err = iterator.NextDoc(nil)
 			if err != nil {
 				return 0, err
 			}
@@ -264,7 +262,7 @@ func scoreRange(collector index.LeafCollector, iterator types.DocIdSetIterator, 
 				}
 			}
 
-			currentDoc, err = iterator.NextDoc()
+			currentDoc, err = iterator.NextDoc(nil)
 			if err != nil {
 				return 0, err
 			}
@@ -296,7 +294,7 @@ func (s *StartDISIWrapper) DocID() int {
 	return s.docID
 }
 
-func (s *StartDISIWrapper) NextDoc() (int, error) {
+func (s *StartDISIWrapper) NextDoc(context.Context) (int, error) {
 	return s.Advance(nil, s.docID+1)
 }
 
@@ -306,12 +304,12 @@ func (s *StartDISIWrapper) Advance(ctx context.Context, target int) (int, error)
 		return s.docID, nil
 	}
 	var err error
-	s.docID, err = s.in.Advance(nil, target)
+	s.docID, err = s.in.Advance(ctx, target)
 	return s.docID, err
 }
 
 func (s *StartDISIWrapper) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(s, target)
+	return types.SlowAdvanceWithContext(ctx, s, target)
 }
 
 func (s *StartDISIWrapper) Cost() int64 {

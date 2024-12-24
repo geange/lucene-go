@@ -2,8 +2,9 @@ package search
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
+
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 var _ index.ScorerSupplier = &Boolean2ScorerSupplier{}

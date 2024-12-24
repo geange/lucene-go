@@ -3,10 +3,11 @@ package index
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
-	"strconv"
 )
 
 var _ index.CodecReader = &SegmentReader{}

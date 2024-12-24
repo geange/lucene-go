@@ -10,6 +10,7 @@ import (
 	"math"
 
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/core/index"
 	coreIndex "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
@@ -180,7 +181,7 @@ func (p *prQueryVisitor) VisitLeaf(ctx context.Context, docID int, packedValue [
 func (p *prQueryVisitor) VisitIterator(iterator types.DocValuesIterator, packedValue []byte) error {
 	if p.weight.matches(packedValue) {
 		for {
-			doc, err := iterator.NextDoc()
+			doc, err := iterator.NextDoc(context.Background())
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					return nil
@@ -232,7 +233,7 @@ func (r *invPrQueryVisitor) VisitLeaf(ctx context.Context, docID int, packedValu
 func (r *invPrQueryVisitor) VisitIterator(iterator types.DocValuesIterator, packedValue []byte) error {
 	if r.weight.matches(packedValue) == false {
 		for {
-			doc, err := iterator.NextDoc()
+			doc, err := iterator.NextDoc(context.Background())
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					return nil

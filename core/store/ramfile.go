@@ -1,57 +1,71 @@
 package store
 
 import (
+	"iter"
 	"slices"
 	"sync/atomic"
-
-	"github.com/geange/gods-generic/lists/arraylist"
 )
 
 type RAMFile struct {
-	buffers    *arraylist.List[[]byte]
-	length     *atomic.Int64
-	directory  *RAMDirectory
-	bufferSize int
+	buffers   [][]byte
+	size      *atomic.Int64
+	directory *RAMDirectory
 }
 
 func NewRAMFile(dir *RAMDirectory) *RAMFile {
 	return &RAMFile{
-		buffers:   arraylist.New[[]byte](),
+		buffers:   make([][]byte, 0),
+		size:      new(atomic.Int64),
 		directory: dir,
 	}
 }
 
 func (f *RAMFile) GetLength() int64 {
-	return f.length.Load()
+	return f.size.Load()
 }
 
 func (f *RAMFile) Clone() *RAMFile {
-	file := &RAMFile{
-		buffers:   arraylist.New[[]byte](),
-		length:    &atomic.Int64{},
+	dst := &RAMFile{
+		buffers:   make([][]byte, 0),
+		size:      &atomic.Int64{},
 		directory: f.directory,
 	}
 
-	for _, v := range f.buffers.Values() {
-		file.buffers.Add(slices.Clone(v))
+	for _, buf := range f.buffers {
+		dst.buffers = append(dst.buffers, slices.Clone(buf))
 	}
-	return file
+	dst.size.Store(f.size.Load())
+	return dst
 }
 
-func (f *RAMFile) setLength(size int64) {
-	f.length.Store(size)
+func (f *RAMFile) Write(p []byte) {
+	if len(p) == 0 {
+		return
+	}
+	buf := slices.Clone(p)
+	f.buffers = append(f.buffers, buf)
+	f.size.Add(int64(len(p)))
 }
 
-func (f *RAMFile) addBuffer(size int) []byte {
-	buf := make([]byte, size)
-	f.buffers.Add(buf)
-	return buf
+func (f *RAMFile) GetBuffer(n int) ([]byte, bool) {
+	if n >= len(f.buffers) || n < 0 {
+		return nil, false
+	}
+	return f.buffers[n], true
 }
 
-func (f *RAMFile) getBuffer(index int) ([]byte, bool) {
-	return f.buffers.Get(index)
+func (f *RAMFile) NumBuffers() int {
+	return len(f.buffers)
 }
 
-func (f *RAMFile) numBuffers() int {
-	return f.buffers.Size()
+func (f *RAMFile) Iterator() iter.Seq[byte] {
+	return func(yield func(byte) bool) {
+		for _, buffer := range f.buffers {
+			for _, b := range buffer {
+				if !yield(b) {
+					return
+				}
+			}
+		}
+	}
 }

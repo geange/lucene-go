@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"iter"
+
 	"github.com/geange/gods-generic/lists/arraylist"
 	"github.com/geange/lucene-go/core/interface/index"
 )
@@ -479,7 +481,7 @@ func (b *BooleanQuery) isPureDisjunction() bool {
 		b.minimumNumberShouldMatch <= 1
 }
 
-func (b *BooleanQuery) Iterator() arraylist.Iterator[*BooleanClause] {
+func (b *BooleanQuery) Iterator() iter.Seq[*BooleanClause] {
 	return arraylist.New[*BooleanClause](b.clauses...).Iterator()
 }
 

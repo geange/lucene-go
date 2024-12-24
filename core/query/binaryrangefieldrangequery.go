@@ -17,21 +17,22 @@ type BinaryRangeFieldRangeQuery struct {
 	queryType            QueryType
 }
 
-func (b *BinaryRangeFieldRangeQuery) createWeight(query index.Query, scoreMode index.ScoreMode, boost float64) index.Weight {
+func (q *BinaryRangeFieldRangeQuery) createWeight(query index.Query,
+	scoreMode index.ScoreMode, boost float64) index.Weight {
 	weight := &binaryRangeFieldRangeWeight{
-		query:     b,
+		query:     q,
 		scoreMode: scoreMode,
 	}
 	weight.ConstantScoreWeight = search.NewConstantScoreWeight(boost, query, weight)
 	return weight
 }
 
-func (b *BinaryRangeFieldRangeQuery) getValues(reader index.LeafReader, field string) (*BinaryRangeDocValues, error) {
+func (q *BinaryRangeFieldRangeQuery) getValues(reader index.LeafReader, field string) (*BinaryRangeDocValues, error) {
 	binaryDocValues, err := reader.GetBinaryDocValues(field)
 	if err != nil {
 		return nil, err
 	}
-	return NewBinaryRangeDocValues(binaryDocValues, b.numDims, b.numBytesPerDimension), nil
+	return NewBinaryRangeDocValues(binaryDocValues, q.numDims, q.numBytesPerDimension), nil
 }
 
 var _ index.Weight = &binaryRangeFieldRangeWeight{}
@@ -43,9 +44,9 @@ type binaryRangeFieldRangeWeight struct {
 	scoreMode index.ScoreMode
 }
 
-func (b *binaryRangeFieldRangeWeight) Scorer(ctx index.LeafReaderContext) (index.Scorer, error) {
+func (w *binaryRangeFieldRangeWeight) Scorer(ctx index.LeafReaderContext) (index.Scorer, error) {
 
-	values, err := b.query.getValues(ctx.LeafReader(), b.query.field)
+	values, err := w.query.getValues(ctx.LeafReader(), w.query.field)
 	if err != nil {
 		return nil, err
 	}
@@ -55,11 +56,11 @@ func (b *binaryRangeFieldRangeWeight) Scorer(ctx index.LeafReaderContext) (index
 	}
 
 	iterator := &binaryRangeFieldRangeWeightTwoPhaseIterator{
-		weight: b,
+		weight: w,
 		values: values,
 	}
 
-	return search.NewConstantScoreScorer(b, b.Score(), b.scoreMode, search.AsDocIdSetIterator(iterator))
+	return search.NewConstantScoreScorer(w, w.Score(), w.scoreMode, search.AsDocIdSetIterator(iterator))
 }
 
 var _ index.TwoPhaseIterator = &binaryRangeFieldRangeWeightTwoPhaseIterator{}
@@ -90,8 +91,8 @@ func (b *binaryRangeFieldRangeWeightTwoPhaseIterator) MatchCost() float64 {
 
 }
 
-func (b *binaryRangeFieldRangeWeight) IsCacheable(ctx index.LeafReaderContext) bool {
-	return coreIndex.IsCacheable(ctx, b.query.field)
+func (w *binaryRangeFieldRangeWeight) IsCacheable(ctx index.LeafReaderContext) bool {
+	return coreIndex.IsCacheable(ctx, w.query.field)
 }
 
 func rangeQueryVisit(field string, query index.Query, visitor index.QueryVisitor) error {
@@ -101,7 +102,7 @@ func rangeQueryVisit(field string, query index.Query, visitor index.QueryVisitor
 	return nil
 }
 
-func (b *BinaryRangeFieldRangeQuery) String(field string) string {
+func (q *BinaryRangeFieldRangeQuery) String(field string) string {
 	//TODO implement me
 	panic("implement me")
 }

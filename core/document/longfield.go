@@ -3,12 +3,15 @@ package document
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/geange/lucene-go/core/util/numeric"
 )
 
 // LongPoint
-// An indexed long field for fast range filters. If you also need to store the value, you should add a separate StoredField instance.
-// Finding all documents within an N-dimensional shape or range at search time is efficient. Multiple values for the same field in one document is allowed.
+// An indexed long field for fast range filters. If you also need to store the value, you should add a separate
+// StoredField instance.
+// Finding all documents within an N-dimensional shape or range at search time is efficient. Multiple values for
+// the same field in one document is allowed.
 // This field defines static factory methods for creating common queries:
 // newExactQuery(String, long) for matching an exact 1D point.
 // newSetQuery(String, long...) for matching a set of 1D values.
@@ -42,8 +45,9 @@ func (r *LongPoint) String() string {
 			buf.WriteString(",")
 		}
 		offset := dim * LONG_BYTES
-		num := fmt.Sprintf("%d", numeric.SortableBytesToLong(packed[offset:]))
-		buf.WriteString(num)
+
+		point := int64(numeric.SortableBytesToUint64(packed[offset:]))
+		buf.WriteString(fmt.Sprintf("%d", point))
 	}
 	buf.WriteString(">")
 	return buf.String()
@@ -53,14 +57,14 @@ func (r *LongPoint) Number() (any, bool) {
 	if r.fieldType.PointDimensionCount() > 1 {
 		return int64(0), false
 	}
-	return numeric.SortableBytesToLong(r.fieldsData), true
+	return int64(numeric.SortableBytesToUint64(r.fieldsData)), true
 }
 
 func packLongPoint(points []int64) []byte {
 	packed := make([]byte, len(points)*LONG_BYTES)
 	for i, point := range points {
 		offset := i * LONG_BYTES
-		numeric.LongToSortableBytes(uint64(point), packed[offset:])
+		numeric.Uint64ToSortableBytes(uint64(point), packed[offset:])
 	}
 	return packed
 }

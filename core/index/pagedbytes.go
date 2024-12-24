@@ -3,6 +3,7 @@ package index
 import (
 	"bytes"
 	"errors"
+
 	"github.com/geange/lucene-go/core/store"
 )
 

@@ -191,7 +191,12 @@ func (d *DataPostingsEnum) DocID() int {
 	return d.termData.docs[d.docUpto]
 }
 
-func (d *DataPostingsEnum) NextDoc() (int, error) {
+func (d *DataPostingsEnum) NextDoc(ctx context.Context) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+	}
 	d.docUpto++
 	if d.docUpto == len(d.termData.docs) {
 		return 0, io.EOF
@@ -202,11 +207,11 @@ func (d *DataPostingsEnum) NextDoc() (int, error) {
 
 func (d *DataPostingsEnum) Advance(ctx context.Context, target int) (int, error) {
 	// Slow linear impl:
-	if _, err := d.NextDoc(); err != nil {
+	if _, err := d.NextDoc(ctx); err != nil {
 		return 0, err
 	}
 	for d.DocID() < target {
-		if _, err := d.NextDoc(); err != nil {
+		if _, err := d.NextDoc(ctx); err != nil {
 			return 0, err
 		}
 	}

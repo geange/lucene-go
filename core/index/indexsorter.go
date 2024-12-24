@@ -127,11 +127,8 @@ func (i *IntSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (index
 	}
 
 	for {
-		docID, err := dvs.NextDoc()
-		if err != nil {
-			return nil, err
-		}
-		if docID == types.NO_MORE_DOCS {
+		docID, err := dvs.NextDoc(nil)
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		value, err := dvs.LongValue()
@@ -240,13 +237,14 @@ func (i *LongSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (inde
 	}
 
 	for {
-		docID, err := dvs.NextDoc()
+		docID, err := dvs.NextDoc(nil)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return nil, err
 		}
-		if docID == types.NO_MORE_DOCS {
-			break
-		}
+
 		value, err := dvs.LongValue()
 		if err != nil {
 			return nil, err
@@ -357,7 +355,7 @@ func (f *FloatSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (ind
 	}
 
 	for {
-		docID, err := dvs.NextDoc()
+		docID, err := dvs.NextDoc(nil)
 		if err != nil {
 			return nil, err
 		}
@@ -473,16 +471,14 @@ func (d *DoubleSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (in
 	}
 
 	for {
-		docID, err := dvs.NextDoc()
+		docID, err := dvs.NextDoc(nil)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, err
 		}
-		if docID == types.NO_MORE_DOCS {
-			break
-		}
+
 		value, err := dvs.LongValue()
 		if err != nil {
 			return nil, err
@@ -569,7 +565,7 @@ func (s *StringSorter) GetDocComparator(reader index.LeafReader, maxDoc int) (in
 	}
 
 	for {
-		docID, err := sorted.NextDoc()
+		docID, err := sorted.NextDoc(nil)
 		if err != nil {
 			if err == io.EOF {
 				break

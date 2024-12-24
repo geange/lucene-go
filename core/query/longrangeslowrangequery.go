@@ -29,16 +29,16 @@ func NewLongRangeSlowRangeQuery(field string, mins, maxs []int64, queryType Quer
 	}, nil
 }
 
-func (i *LongRangeSlowRangeQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
-	return i.createWeight(i, scoreMode, boost), nil
+func (q *LongRangeSlowRangeQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
+	return q.createWeight(q, scoreMode, boost), nil
 }
 
-func (i *LongRangeSlowRangeQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
-	return i, nil
+func (q *LongRangeSlowRangeQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
+	return q, nil
 }
 
-func (i *LongRangeSlowRangeQuery) Visit(visitor index.QueryVisitor) error {
-	return rangeQueryVisit(i.field, i, visitor)
+func (q *LongRangeSlowRangeQuery) Visit(visitor index.QueryVisitor) error {
+	return rangeQueryVisit(q.field, q, visitor)
 }
 
 func encodeLongRanges(mins, maxs []int64) ([]byte, error) {

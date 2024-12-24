@@ -2,8 +2,9 @@ package memory
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
+
+	"github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/gods-generic/maps/treemap"
 	"github.com/geange/lucene-go/core/document"
@@ -182,19 +183,19 @@ func newDocValuesIterator() *docValuesIterator {
 	return &docValuesIterator{doc: -1}
 }
 
-func (r *docValuesIterator) advance(doc int) int {
+func (r *docValuesIterator) advance(doc int) (int, error) {
 	r.doc = doc
 	return r.docId()
 }
 
-func (r *docValuesIterator) nextDoc() int {
+func (r *docValuesIterator) nextDoc() (int, error) {
 	r.doc++
 	return r.docId()
 }
 
-func (r *docValuesIterator) docId() int {
+func (r *docValuesIterator) docId() (int, error) {
 	if r.doc > 0 {
-		return r.doc
+		return r.doc, nil
 	}
-	return math.MaxInt32
+	return math.MaxInt32, nil
 }

@@ -2,11 +2,11 @@ package index
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 	"strings"
 
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/attribute"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )

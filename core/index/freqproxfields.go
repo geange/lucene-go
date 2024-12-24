@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/util/bytesref"
-	"github.com/geange/lucene-go/core/util/ints"
-	"golang.org/x/exp/maps"
 	"io"
 	"slices"
 
+	"golang.org/x/exp/maps"
+
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/automaton"
+	"github.com/geange/lucene-go/core/util/bytesref"
+	"github.com/geange/lucene-go/core/util/ints"
 )
 
 var _ index.Fields = &FreqProxFields{}
@@ -336,7 +337,7 @@ func (f *FreqProxPostingsEnum) DocID() int {
 	return f.docID
 }
 
-func (f *FreqProxPostingsEnum) NextDoc() (int, error) {
+func (f *FreqProxPostingsEnum) NextDoc(context.Context) (int, error) {
 	if f.docID == -1 {
 		f.docID = 0
 	}

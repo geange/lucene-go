@@ -1,5 +1,11 @@
 package document
 
+import (
+	"iter"
+	"slices"
+	"strings"
+)
+
 // Document
 // Documents are the unit of indexing and search. A Document is a set of fields. Each field has a name
 // and a textual value. A field may be stored with the document, in which case it is returned with search
@@ -12,24 +18,11 @@ type Document struct {
 	fields []IndexableField
 }
 
-func NewDocument() *Document {
-	return &Document{fields: make([]IndexableField, 0)}
-}
-
-func (d *Document) Iterator() func() IndexableField {
-	idx := 0
-	return func() IndexableField {
-		if idx >= len(d.fields) {
-			return nil
-		}
-		field := d.fields[idx]
-		idx++
-		return field
+func NewDocument(fields ...IndexableField) *Document {
+	if len(fields) == 0 {
+		fields = make([]IndexableField, 0)
 	}
-}
-
-func (d *Document) Fields() []IndexableField {
-	return d.fields
+	return &Document{fields: fields}
 }
 
 // Add
@@ -65,119 +58,48 @@ func (d *Document) RemoveField(name string) {
 // index. These methods cannot be used to change the content of an existing index! In order to achieve this,
 // a document has to be deleted from an index and a new changed version of that document has to be added.
 func (d *Document) RemoveFields(name string) {
-	tmp := make([]IndexableField, 0, len(d.fields))
-	for i, field := range d.fields {
-		if field.Name() != name {
-			tmp = append(tmp, d.fields[i])
-		}
-	}
-	d.fields = tmp
+	slices.DeleteFunc(d.fields, func(field IndexableField) bool {
+		return field.Name() == name
+	})
 }
 
-// GetBinaryValues
-// Returns [][]byte for of the fields that have the name specified as the method parameter.
-// This method returns an empty array when there are no matching fields. It never returns null.
-// name: the name of the field
-func (d *Document) GetBinaryValues(name string) [][]byte {
-	ret := make([][]byte, 0, len(d.fields))
-	for _, field := range d.fields {
-		if field.Name() == name {
-			switch v := field.Get().(type) {
-			case string:
-				ret = append(ret, []byte(v))
-			case []byte:
-				ret = append(ret, v)
-			}
-		}
-	}
-	return ret
-}
-
-// GetBinaryValue
-// Returns an array of bytes for the first (or only) field that has the name specified as the method
-// parameter. This method will return null if no binary fields with the specified name are available.
-// There may be non-binary fields with the same name.
-// Params: name – the name of the field.
-// Returns: a BytesRef containing the binary field value or null
-func (d *Document) GetBinaryValue(name string) ([]byte, error) {
-	for _, field := range d.fields {
-		if field.Name() == name {
-			switch v := field.Get().(type) {
-			case string:
-				return []byte(v), nil
-			case []byte:
-				return v, nil
-			}
-		}
-	}
-	return nil, ErrFieldValueTypeNotFit
-}
-
-// GetField Returns a field with the given name if any exist in this document, or null. If multiple fields exists
+// GetField
+// Returns a field with the given name if any exist in this document, or null. If multiple fields exists
 // with this name, this method returns the first value added.
-func (d *Document) GetField(name string) (IndexableField, error) {
+func (d *Document) GetField(name string) (IndexableField, bool) {
 	for _, field := range d.fields {
 		if field.Name() == name {
-			return field, nil
+			return field, true
 		}
 	}
-	return nil, ErrFieldNotFound
+	return nil, false
 }
 
 // GetFields
 // Returns an array of IndexAbleFields with the given name. This method returns an empty array when
 // there are no matching fields. It never returns null.
 // name: the name of the field
-func (d *Document) GetFields(name string) []IndexableField {
-	ret := make([]IndexableField, 0)
-	for i, field := range d.fields {
-		if field.Name() == name {
-			ret = append(ret, d.fields[i])
-		}
-	}
-	return ret
-}
+func (d *Document) GetFields(names ...string) iter.Seq[IndexableField] {
+	return func(yield func(IndexableField) bool) {
+		for _, field := range d.fields {
+			if len(names) > 0 && !slices.Contains(names, field.Name()) {
+				continue
+			}
 
-// GetValues
-// Returns an array of values of the field specified as the method parameter. This method returns
-// an empty array when there are no matching fields. It never returns null. For a numeric StoredField
-// it returns the string value of the number. If you want the actual numeric field instances back, use getFields.
-// name: the name of the field
-func (d *Document) GetValues(name string) []string {
-	ret := make([]string, 0, len(d.fields))
-	for _, field := range d.fields {
-		if field.Name() == name {
-			switch v := field.Get().(type) {
-			case string:
-				ret = append(ret, v)
-			case []byte:
-				ret = append(ret, string(v))
+			if !yield(field) {
+				return
 			}
 		}
 	}
-	return ret
-}
-
-// Get
-// Returns the string value of the field with the given name if any exist in this document, or null.
-// If multiple fields exist with this name, this method returns the first value added. If only binary
-// fields with this name exist, returns null. For a numeric StoredField it returns the string value of
-// the number. If you want the actual numeric field instance back, use getField.
-func (d *Document) Get(name string) (string, error) {
-	for _, field := range d.fields {
-		if field.Name() == name {
-			switch v := field.Get().(type) {
-			case string:
-				return v, nil
-			case []byte:
-				return string(v), nil
-			}
-		}
-	}
-	return "", ErrFieldValueTypeNotFit
 }
 
 // Removes all the fields from document.
 func (d *Document) clear() {
 	d.fields = d.fields[:0]
+}
+
+func (d *Document) SortFieldsByName() {
+	slices.SortFunc(d.fields, func(a, b IndexableField) int {
+		return strings.Compare(a.Name(), b.Name())
+	})
 }

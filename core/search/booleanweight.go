@@ -104,7 +104,7 @@ func (b *BooleanWeight) Matches(context index.LeafReaderContext, doc int) (index
 }
 
 func disableScoring(scorer index.BulkScorer) index.BulkScorer {
-	return &BulkScorerAnon{
+	return &BaseBulkScorer{
 		FnScoreRange: func(collector index.LeafCollector, acceptDocs util.Bits, min, max int) (int, error) {
 			fake := NewScoreAndDoc()
 			noScoreCollector := &LeafCollectorAnon{
@@ -117,7 +117,7 @@ func disableScoring(scorer index.BulkScorer) index.BulkScorer {
 				},
 				FnCompetitiveIterator: nil,
 			}
-			return scorer.ScoreRange(noScoreCollector, acceptDocs, min, max)
+			return scorer.Score(noScoreCollector, acceptDocs, min, max)
 		},
 		FnCost: func() int64 {
 			return scorer.Cost()
@@ -296,7 +296,7 @@ func (b *BooleanWeight) IsCacheable(ctx index.LeafReaderContext) bool {
 	return true
 }
 
-func (b *BooleanWeight) ScorerSupplier(context index.LeafReaderContext) (index.ScorerSupplier, error) {
+func (b *BooleanWeight) ScorerSupplier(leafReaderContext index.LeafReaderContext) (index.ScorerSupplier, error) {
 	minShouldMatch := b.query.GetMinimumNumberShouldMatch()
 
 	scorers := map[index.Occur][]index.ScorerSupplier{}
@@ -307,7 +307,7 @@ func (b *BooleanWeight) ScorerSupplier(context index.LeafReaderContext) (index.S
 	for _, wc := range b.weightedClauses {
 		//w := wc.weight
 		c := wc.clause
-		subScorer, err := wc.weight.ScorerSupplier(context)
+		subScorer, err := wc.weight.ScorerSupplier(leafReaderContext)
 		if err != nil {
 			return nil, err
 		}

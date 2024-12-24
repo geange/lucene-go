@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"errors"
 	"reflect"
 
@@ -167,7 +168,7 @@ func NewFromDocument(doc *document.Document, analyzer analysis.Analyzer, options
 		return nil, err
 	}
 
-	for _, field := range doc.Fields() {
+	for field := range doc.GetFields() {
 		if err = newIdx.AddIndexAbleField(field, analyzer); err != nil {
 			return nil, err
 		}
@@ -299,7 +300,7 @@ func (r *Index) AddIndexAbleField(field document.IndexableField, analyzer analys
 // Returns: the relevance score of the matchmaking; A number in the range [0.0 .. 1.0], with 0.0 indicating
 //
 //	no match. The higher the number the better the match.
-func (r *Index) Search(query index.Query) float64 {
+func (r *Index) Search(ctx context.Context, query index.Query) float64 {
 	if query == nil {
 		return 0
 	}
@@ -308,7 +309,7 @@ func (r *Index) Search(query index.Query) float64 {
 
 	scores := make([]float64, 1)
 	collector := newSimpleCollector(scores)
-	err := searcher.Search(nil, query, collector)
+	err := searcher.Search(ctx, query, collector)
 	if err != nil {
 		return 0
 	}

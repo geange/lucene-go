@@ -1,9 +1,9 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/interface/index"
 	"sort"
 
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
 

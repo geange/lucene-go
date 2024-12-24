@@ -9,10 +9,8 @@ import (
 // []IndexableField as a document.
 // IndexableField 代表一个可以被索引的field，每一个Document都是由多个IndexAbleField组成
 type IndexableField interface {
-	// Name 获取Field name
 	Name() string
 
-	// FieldType 获取field的属性
 	FieldType() IndexableFieldType
 
 	// TokenStream
@@ -33,12 +31,7 @@ type IndexableField interface {
 	Number() (any, bool)
 }
 
-type IndexableFieldIterator interface {
-	Iterator() func() IndexableField
-}
-
 // IndexableFieldType Describes the properties of a field.
-// 描述一个field的属性
 type IndexableFieldType interface {
 	// Stored
 	// True if the field's value should be stored

@@ -25,7 +25,7 @@ type DocIdSetIterator interface {
 	// NO_MORE_DOCS if there are no more docs in the set. NOTE: after the iterator has exhausted
 	// you should not call this method, as it may result in unpredicted behavior.
 	// Since: 2.9
-	NextDoc() (int, error)
+	NextDoc(ctx context.Context) (int, error)
 
 	// Advance
 	// Advances to the first beyond the current whose document number is greater than or equal to
@@ -34,9 +34,9 @@ type DocIdSetIterator interface {
 	// The behavior of this method is undefined when called with target ≤ current, or after the iterator
 	// has exhausted. Both cases may result in unpredicted behavior.
 	// When target > current it behaves as if written:
-	//     int advance(int target) {
-	//       int doc;
-	//       while ((doc = nextDoc()) < target) {
+	//     func advance(target int) int {
+	//       var doc int
+	//       for ((doc = nextDoc()) < target) {
 	//       }
 	//       return doc;
 	//     }
@@ -63,13 +63,23 @@ const (
 	NO_MORE_DOCS = math.MaxInt32
 )
 
-func SlowAdvance(m interface{ NextDoc() (int, error) }, target int) (int, error) {
+type DocNext interface {
+	NextDoc(ctx context.Context) (int, error)
+}
+
+func SlowAdvanceWithContext(ctx context.Context, next DocNext, target int) (int, error) {
 	doc := 0
+
 	var err error
 	for doc < target {
-		doc, err = m.NextDoc()
-		if err != nil {
-			return 0, err
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		default:
+			doc, err = next.NextDoc(ctx)
+			if err != nil {
+				return 0, err
+			}
 		}
 	}
 	return doc, nil
@@ -90,18 +100,24 @@ type docIdSetIteratorAll struct {
 }
 
 func (d *docIdSetIteratorAll) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return SlowAdvance(d, target)
+	return SlowAdvanceWithContext(ctx, d, target)
 }
 
 func (d *docIdSetIteratorAll) DocID() int {
 	return d.doc
 }
 
-func (d *docIdSetIteratorAll) NextDoc() (int, error) {
-	return d.Advance(nil, d.doc+1)
+func (d *docIdSetIteratorAll) NextDoc(ctx context.Context) (int, error) {
+	return d.Advance(ctx, d.doc+1)
 }
 
 func (d *docIdSetIteratorAll) Advance(ctx context.Context, target int) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+	}
+
 	d.doc = target
 	if d.doc >= d.maxDoc {
 		d.doc = NO_MORE_DOCS
@@ -131,18 +147,23 @@ func (e *emptyDocIdSetIterator) DocID() int {
 	return -1
 }
 
-func (e *emptyDocIdSetIterator) NextDoc() (int, error) {
+func (e *emptyDocIdSetIterator) NextDoc(ctx context.Context) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+	}
 	e.exhausted = true
-	return NO_MORE_DOCS, io.EOF
+	return 0, io.EOF
 }
 
 func (e *emptyDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
 	e.exhausted = true
-	return NO_MORE_DOCS, io.EOF
+	return 0, io.EOF
 }
 
 func (e *emptyDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return SlowAdvance(e, target)
+	return SlowAdvanceWithContext(ctx, e, target)
 }
 
 func (e *emptyDocIdSetIterator) Cost() int64 {

@@ -15,7 +15,7 @@ import (
 
 type BaseBinaryDocValues struct {
 	FnDocID        func() int
-	FnNextDoc      func() (int, error)
+	FnNextDoc      func(ctx context.Context) (int, error)
 	FnAdvance      func(ctx context.Context, target int) (int, error)
 	FnSlowAdvance  func(ctx context.Context, target int) (int, error)
 	FnCost         func() int64
@@ -27,8 +27,8 @@ func (n *BaseBinaryDocValues) DocID() int {
 	return n.FnDocID()
 }
 
-func (n *BaseBinaryDocValues) NextDoc() (int, error) {
-	return n.FnNextDoc()
+func (n *BaseBinaryDocValues) NextDoc(ctx context.Context) (int, error) {
+	return n.FnNextDoc(ctx)
 }
 
 func (n *BaseBinaryDocValues) Advance(ctx context.Context, target int) (int, error) {
@@ -39,7 +39,7 @@ func (n *BaseBinaryDocValues) SlowAdvance(ctx context.Context, target int) (int,
 	if n.FnSlowAdvance != nil {
 		return n.FnSlowAdvance(ctx, target)
 	}
-	return types.SlowAdvance(n, target)
+	return types.SlowAdvanceWithContext(ctx, n, target)
 }
 
 func (n *BaseBinaryDocValues) Cost() int64 {
@@ -222,8 +222,8 @@ func (b *BufferedBinaryDocValues) DocID() int {
 	return b.docsWithField.DocID()
 }
 
-func (b *BufferedBinaryDocValues) NextDoc() (int, error) {
-	doc, err := b.docsWithField.NextDoc()
+func (b *BufferedBinaryDocValues) NextDoc(ctx context.Context) (int, error) {
+	doc, err := b.docsWithField.NextDoc(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -236,7 +236,7 @@ func (b *BufferedBinaryDocValues) Advance(ctx context.Context, target int) (int,
 }
 
 func (b *BufferedBinaryDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(b, target)
+	return types.SlowAdvanceWithContext(ctx, b, target)
 }
 
 func (b *BufferedBinaryDocValues) Cost() int64 {

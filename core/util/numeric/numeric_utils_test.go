@@ -1,7 +1,10 @@
 package numeric
 
 import (
+	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIllegalSubtract(t *testing.T) {
@@ -45,4 +48,22 @@ func TestSubtract(t *testing.T) {
 	//for i := 0; i < 1000; i++ {
 	//	big.Int
 	//}
+}
+
+func TestSortableDoubleBits(t *testing.T) {
+	nums := []float64{
+		-10,
+		-5,
+		-1,
+		0,
+		1,
+		10,
+	}
+
+	preNum := uint64(0)
+	for _, num := range nums {
+		sortNum := SortableFloat64Bits(math.Float64bits(num)) ^ (1 << 63)
+		assert.True(t, sortNum > preNum)
+		sortNum = preNum
+	}
 }

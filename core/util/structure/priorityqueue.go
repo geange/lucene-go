@@ -1,8 +1,8 @@
 package structure
 
 import (
-	"context"
 	"io"
+	"iter"
 	"reflect"
 )
 
@@ -158,13 +158,6 @@ func (p *PriorityQueue[T]) Remove(element T) bool {
 	return false
 }
 
-func (p *PriorityQueue[T]) Iterator() Iterator[T] {
-	return &PriorityQueueIterator[T]{
-		i:             1,
-		PriorityQueue: p,
-	}
-}
-
 func (p *PriorityQueue[T]) upHeap(origPos int) bool {
 	i := origPos
 	node := p.heap[i] // save bottom node
@@ -197,20 +190,12 @@ func (p *PriorityQueue[T]) downHeap(i int) {
 	p.heap[i] = node // install saved node
 }
 
-type PriorityQueueIterator[T any] struct {
-	i int
-	*PriorityQueue[T]
-}
-
-func (p *PriorityQueueIterator[T]) HasNext() bool {
-	return p.i <= p.size
-}
-
-func (p *PriorityQueueIterator[T]) Next(context.Context) (T, error) {
-	if !p.HasNext() {
-		return p.none, io.EOF
+func (p *PriorityQueue[T]) Iterator() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, v := range p.heap[1:] {
+			if !yield(v) {
+				return
+			}
+		}
 	}
-	idx := p.i
-	p.i++
-	return p.heap[idx], nil
 }

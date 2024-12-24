@@ -2,9 +2,10 @@ package index
 
 import (
 	"context"
+	"math"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
-	"math"
 )
 
 var _ index.ImpactsEnum = &SlowImpactsEnum{}
@@ -21,8 +22,8 @@ func (s *SlowImpactsEnum) DocID() int {
 	return s.delegate.DocID()
 }
 
-func (s *SlowImpactsEnum) NextDoc() (int, error) {
-	return s.delegate.NextDoc()
+func (s *SlowImpactsEnum) NextDoc(ctx context.Context) (int, error) {
+	return s.delegate.NextDoc(ctx)
 }
 
 func (s *SlowImpactsEnum) Advance(ctx context.Context, target int) (int, error) {

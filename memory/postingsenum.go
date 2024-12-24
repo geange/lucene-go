@@ -2,9 +2,9 @@ package memory
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
@@ -53,7 +53,12 @@ func (m *memPostingsEnum) DocID() int {
 	return m.doc
 }
 
-func (m *memPostingsEnum) NextDoc() (int, error) {
+func (m *memPostingsEnum) NextDoc(ctx context.Context) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+	}
 	m.pos = -1
 	if m.hasNext {
 		m.hasNext = false
@@ -72,7 +77,7 @@ func (m *memPostingsEnum) SlowAdvance(ctx context.Context, target int) (int, err
 	doc := 0
 	var err error
 	for doc < target {
-		doc, err = m.NextDoc()
+		doc, err = m.NextDoc(ctx)
 		if err != nil {
 			return 0, nil
 		}

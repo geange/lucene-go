@@ -3,11 +3,12 @@ package index
 import (
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/packed"
 )
@@ -16,7 +17,7 @@ var _ index.NumericDocValues = &NumericDocValuesDefault{}
 
 type NumericDocValuesDefault struct {
 	FnDocID        func() int
-	FnNextDoc      func() (int, error)
+	FnNextDoc      func(ctx context.Context) (int, error)
 	FnAdvance      func(ctx context.Context, target int) (int, error)
 	FnSlowAdvance  func(ctx context.Context, target int) (int, error)
 	FnCost         func() int64
@@ -28,8 +29,8 @@ func (n *NumericDocValuesDefault) DocID() int {
 	return n.FnDocID()
 }
 
-func (n *NumericDocValuesDefault) NextDoc() (int, error) {
-	return n.FnNextDoc()
+func (n *NumericDocValuesDefault) NextDoc(ctx context.Context) (int, error) {
+	return n.FnNextDoc(ctx)
 }
 
 func (n *NumericDocValuesDefault) Advance(ctx context.Context, target int) (int, error) {
@@ -127,8 +128,8 @@ func (b *BufferedNumericDocValues) DocID() int {
 	return b.docsWithField.DocID()
 }
 
-func (b *BufferedNumericDocValues) NextDoc() (int, error) {
-	docID, err := b.docsWithField.NextDoc()
+func (b *BufferedNumericDocValues) NextDoc(ctx context.Context) (int, error) {
+	docID, err := b.docsWithField.NextDoc(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -146,7 +147,7 @@ func (b *BufferedNumericDocValues) Advance(ctx context.Context, target int) (int
 }
 
 func (b *BufferedNumericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(b, target)
+	return types.SlowAdvanceWithContext(ctx, b, target)
 }
 
 func (b *BufferedNumericDocValues) Cost() int64 {
@@ -181,7 +182,12 @@ func (s *SortingNumericDocValues) DocID() int {
 	return s.docID
 }
 
-func (s *SortingNumericDocValues) NextDoc() (int, error) {
+func (s *SortingNumericDocValues) NextDoc(ctx context.Context) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+	}
 	value, ok := s.dvs.docsWithField.NextSet(uint(s.docID + 1))
 	if !ok {
 		return 0, io.EOF
@@ -195,7 +201,7 @@ func (s *SortingNumericDocValues) Advance(ctx context.Context, target int) (int,
 }
 
 func (s *SortingNumericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(s, target)
+	return types.SlowAdvanceWithContext(ctx, s, target)
 }
 
 func (s *SortingNumericDocValues) Cost() int64 {
@@ -226,7 +232,7 @@ func SortDocValues(maxDoc int, sortMap index.DocMap, oldDocValues index.NumericD
 	values := make([]int64, maxDoc)
 
 	for {
-		docID, err := oldDocValues.NextDoc()
+		docID, err := oldDocValues.NextDoc(context.Background())
 		if err != nil {
 			break
 		}

@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/packed"

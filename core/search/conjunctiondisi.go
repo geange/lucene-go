@@ -2,8 +2,9 @@ package search
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/types"
 	"sort"
+
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ types.DocIdSetIterator = &ConjunctionDISI{}
@@ -51,7 +52,7 @@ func (c *ConjunctionDISI) DocID() int {
 	panic("implement me")
 }
 
-func (c *ConjunctionDISI) NextDoc() (int, error) {
+func (c *ConjunctionDISI) NextDoc(context.Context) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -62,7 +63,7 @@ func (c *ConjunctionDISI) Advance(ctx context.Context, target int) (int, error) 
 }
 
 func (c *ConjunctionDISI) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(c, target)
+	return types.SlowAdvanceWithContext(ctx, c, target)
 }
 
 func (c *ConjunctionDISI) Cost() int64 {

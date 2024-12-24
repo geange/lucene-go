@@ -34,7 +34,6 @@ func (r *LeafSimScorer) Score(doc int, freq float64) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	return r.scorer.Score(freq, value), nil
 }
 

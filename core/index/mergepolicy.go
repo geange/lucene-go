@@ -1,10 +1,10 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 	"sync"
 
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/util"
 )
 

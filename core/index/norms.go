@@ -3,11 +3,12 @@ package index
 import (
 	"context"
 	"errors"
+	"io"
+
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/packed"
-	"io"
 )
 
 // NormsConsumer
@@ -211,8 +212,8 @@ func (b *BufferedNorms) DocID() int {
 	return b.docsWithField.DocID()
 }
 
-func (b *BufferedNorms) NextDoc() (int, error) {
-	docID, err := b.docsWithField.NextDoc()
+func (b *BufferedNorms) NextDoc(ctx context.Context) (int, error) {
+	docID, err := b.docsWithField.NextDoc(ctx)
 	if err != nil {
 		return docID, err
 	}

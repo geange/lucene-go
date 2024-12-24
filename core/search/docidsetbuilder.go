@@ -1,12 +1,14 @@
 package search
 
 import (
+	"context"
 	"errors"
 	"io"
 	"math"
 	"sort"
 
 	"github.com/bits-and-blooms/bitset"
+
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
@@ -88,14 +90,14 @@ func newDocIdSetBuilder(maxDoc, docCount int, valueCount int64) *DocIdSetBuilder
 // Add the content of the provided DocIdSetIterator to this builder.
 // NOTE: if you need to build a DocIdSet out of a single DocIdSetIterator,
 // you should rather use RoaringDocIdSet.Builder.
-func (d *DocIdSetBuilder) Add(iter types.DocIdSetIterator) error {
+func (d *DocIdSetBuilder) Add(ctx context.Context, iter types.DocIdSetIterator) error {
 	if d.bitSet != nil {
 		it, ok := iter.(*coreIndex.BitSetIterator)
 		if ok {
 			d.bitSet = d.bitSet.Union(it.GetBitSet())
 		} else {
 			for {
-				doc, err := iter.NextDoc()
+				doc, err := iter.NextDoc(ctx)
 				if err != nil {
 					if errors.Is(err, io.EOF) {
 						return nil
@@ -112,7 +114,7 @@ func (d *DocIdSetBuilder) Add(iter types.DocIdSetIterator) error {
 
 	adder := d.Grow(cost)
 	for i := 0; i < cost; i++ {
-		doc, err := iter.NextDoc()
+		doc, err := iter.NextDoc(ctx)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
@@ -123,7 +125,7 @@ func (d *DocIdSetBuilder) Add(iter types.DocIdSetIterator) error {
 	}
 
 	for {
-		doc, err := iter.NextDoc()
+		doc, err := iter.NextDoc(ctx)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil

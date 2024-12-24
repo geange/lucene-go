@@ -193,24 +193,12 @@ func (s *DocValuesReader) GetNumeric(ctx context.Context, fieldInfo *document.Fi
 	}
 
 	return &coreIndex.NumericDocValuesDefault{
-		FnDocID: func() int {
-			return docsWithField.DocID()
-		},
-		FnNextDoc: func() (int, error) {
-			return docsWithField.NextDoc()
-		},
-		FnAdvance: func(ctx context.Context, target int) (int, error) {
-			return docsWithField.Advance(ctx, target)
-		},
-		FnSlowAdvance: func(ctx context.Context, target int) (int, error) {
-			return docsWithField.Advance(ctx, target)
-		},
-		FnCost: func() int64 {
-			return docsWithField.Cost()
-		},
-		FnAdvanceExact: func(target int) (bool, error) {
-			return docsWithField.AdvanceExact(target)
-		},
+		FnDocID:        docsWithField.DocID,
+		FnNextDoc:      docsWithField.NextDoc,
+		FnAdvance:      docsWithField.Advance,
+		FnSlowAdvance:  docsWithField.Advance,
+		FnCost:         docsWithField.Cost,
+		FnAdvanceExact: docsWithField.AdvanceExact,
 		FnLongValue: func() (int64, error) {
 			return numFn(docsWithField.DocID())
 		},
@@ -278,7 +266,7 @@ func (i *innerDocValuesIterator1) DocID() int {
 	return i.doc
 }
 
-func (i *innerDocValuesIterator1) NextDoc() (int, error) {
+func (i *innerDocValuesIterator1) NextDoc(context.Context) (int, error) {
 	return i.Advance(nil, i.DocID()+1)
 }
 
@@ -417,7 +405,7 @@ func (i *innerDocValuesIterator2) DocID() int {
 	return i.doc
 }
 
-func (i *innerDocValuesIterator2) NextDoc() (int, error) {
+func (i *innerDocValuesIterator2) NextDoc(context.Context) (int, error) {
 	return i.Advance(nil, i.DocID()+1)
 }
 
@@ -583,7 +571,7 @@ func (i *innerSortedDocValues) DocID() int {
 	return i.doc
 }
 
-func (i *innerSortedDocValues) NextDoc() (int, error) {
+func (i *innerSortedDocValues) NextDoc(context.Context) (int, error) {
 	return i.Advance(nil, i.DocID()+1)
 }
 
@@ -672,8 +660,8 @@ func (i *innerSortedNumericDocValues) DocID() int {
 	return i.binary.DocID()
 }
 
-func (i *innerSortedNumericDocValues) NextDoc() (int, error) {
-	doc, err := i.binary.NextDoc()
+func (i *innerSortedNumericDocValues) NextDoc(context.Context) (int, error) {
+	doc, err := i.binary.NextDoc(nil)
 	if err != nil {
 		return 0, err
 	}
@@ -793,7 +781,7 @@ func (i *innerSortedSetDocValues) DocID() int {
 	return i.doc
 }
 
-func (i *innerSortedSetDocValues) NextDoc() (int, error) {
+func (i *innerSortedSetDocValues) NextDoc(context.Context) (int, error) {
 	return i.Advance(nil, i.doc+1)
 }
 

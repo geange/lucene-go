@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 
 	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/bytesref"
@@ -377,7 +377,7 @@ func (d *DefaultIndexingChain) ProcessDocument(ctx context.Context, docId int, d
 		return err
 	}
 
-	for _, field := range doc.Fields() {
+	for field := range doc.GetFields() {
 		count, err := d.processField(ctx, docId, field, fieldGen, fieldCount)
 		if err != nil {
 			return err

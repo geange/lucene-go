@@ -40,8 +40,8 @@ func (s *PostingsEnum) DocID() int {
 	return s.docID
 }
 
-func (s *PostingsEnum) NextDoc() (int, error) {
-	return s.Advance(nil, s.docID+1)
+func (s *PostingsEnum) NextDoc(ctx context.Context) (int, error) {
+	return s.Advance(ctx, s.docID+1)
 }
 
 func (s *PostingsEnum) readDoc() (int, error) {
@@ -134,7 +134,7 @@ func (s *PostingsEnum) SlowAdvance(ctx context.Context, target int) (int, error)
 	doc := 0
 	var err error
 	for doc < target {
-		doc, err = s.NextDoc()
+		doc, err = s.NextDoc(ctx)
 		if err != nil {
 			return 0, nil
 		}

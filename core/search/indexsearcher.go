@@ -387,7 +387,7 @@ func (r *IndexSearcher) SearchLeaves(ctx context.Context, leaves []index.LeafRea
 		}
 
 		if scorer != nil {
-			if err := scorer.Score(leafCollector, leaf.LeafReader().GetLiveDocs()); err != nil {
+			if _, err := scorer.Score(leafCollector, leaf.LeafReader().GetLiveDocs(), -1, -1); err != nil {
 				return err
 			}
 		}
