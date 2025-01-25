@@ -30,11 +30,8 @@ func costWithMinShouldMatch(costs []int64, numScorers, minShouldMatch int) int64
 		pq.InsertWithOverflow(cost)
 	}
 
-	it := pq.Iterator()
-
 	sum := int64(0)
-	for it.HasNext() {
-		v, _ := it.Next(nil)
+	for v := range pq.Iterator() {
 		sum += v
 	}
 	return sum

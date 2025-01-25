@@ -1,8 +1,9 @@
 package search
 
 import (
-	"github.com/geange/lucene-go/core/interface/index"
 	"reflect"
+
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 var MATCH_WITH_NO_TERMS index.Matches

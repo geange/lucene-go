@@ -85,9 +85,24 @@ type BinaryRangeDocValuesField struct {
 	numBytesPerDimension int
 }
 
-func NewBinaryRangeDocValuesField(field string,
-	packedValue []byte, numDims int, numBytesPerDimension int) *BinaryRangeDocValuesField {
+func NewBinaryRangeDocValuesField(field string, dims [][]byte) (*BinaryRangeDocValuesField, error) {
+	if len(dims) == 0 {
+		return nil, errors.New("`len(dims) ==  0` is not allow")
+	}
 
+	for i := 1; i < len(dims); i++ {
+		if len(dims[i]) != len(dims[i-1]) {
+			return nil, errors.New("the lengths of all dimensions should be the same")
+		}
+	}
+	numDims := len(dims)
+	numBytesPerDimension := len(dims[0])
+
+	packedValue := bytes.Join(dims, []byte{})
+	return newBinaryRangeDocValuesField(field, packedValue, numDims, numBytesPerDimension), nil
+}
+
+func newBinaryRangeDocValuesField(field string, packedValue []byte, numDims int, numBytesPerDimension int) *BinaryRangeDocValuesField {
 	valuesField := NewBinaryDocValuesField(field, packedValue)
 	return &BinaryRangeDocValuesField{
 		BinaryDocValuesField: valuesField,

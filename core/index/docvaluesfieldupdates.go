@@ -3,11 +3,11 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/types"
 	"math"
 
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/packed"
 )
 

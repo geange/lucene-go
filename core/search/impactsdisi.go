@@ -78,7 +78,7 @@ func (d *ImpactsDISI) DocID() int {
 	return d.in.DocID()
 }
 
-func (d *ImpactsDISI) NextDoc() (int, error) {
+func (d *ImpactsDISI) NextDoc(context.Context) (int, error) {
 	return d.Advance(nil, d.in.DocID()+1)
 }
 

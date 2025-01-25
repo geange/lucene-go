@@ -2,10 +2,11 @@ package search
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/types"
 	"io"
 	"sort"
+
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/types"
 )
 
 var _ index.Scorer = &BlockMaxConjunctionScorer{}
@@ -210,8 +211,8 @@ func (b *bmcDocIdSetIterator) DocID() int {
 	return b.lead.DocID()
 }
 
-func (b *bmcDocIdSetIterator) NextDoc() (int, error) {
-	return b.Advance(nil, b.DocID()+1)
+func (b *bmcDocIdSetIterator) NextDoc(ctx context.Context) (int, error) {
+	return b.Advance(ctx, b.DocID()+1)
 }
 
 func (b *bmcDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
@@ -225,14 +226,14 @@ func (b *bmcDocIdSetIterator) Advance(ctx context.Context, target int) (int, err
 		return 0, err
 	}
 
-	return b.doNext(advance)
+	return b.doNext(ctx, advance)
 }
 
-func (b *bmcDocIdSetIterator) doNext(doc int) (int, error) {
+func (b *bmcDocIdSetIterator) doNext(ctx context.Context, doc int) (int, error) {
 advanceHead:
 	for {
 		if doc == types.NO_MORE_DOCS {
-			return types.NO_MORE_DOCS, io.EOF
+			return 0, io.EOF
 		}
 
 		if doc > b.upTo {
@@ -245,7 +246,7 @@ advanceHead:
 				return 0, err
 			}
 			if nextTarget != doc {
-				doc, err = b.lead.Advance(nil, nextTarget)
+				doc, err = b.lead.Advance(ctx, nextTarget)
 				if err != nil {
 					return 0, err
 				}
@@ -260,7 +261,7 @@ advanceHead:
 			// other.doc may already be equal to doc if we "continued advanceHead"
 			// on the previous iteration and the advance on the lead scorer exactly matched.
 			if other.DocID() < doc {
-				next, err := other.Advance(nil, doc)
+				next, err := other.Advance(ctx, doc)
 				if err != nil {
 					return 0, err
 				}
@@ -271,7 +272,7 @@ advanceHead:
 					if err != nil {
 						return 0, err
 					}
-					doc, err = b.lead.Advance(nil, advanceTarget)
+					doc, err = b.lead.Advance(ctx, advanceTarget)
 					if err != nil {
 						return 0, err
 					}
@@ -284,7 +285,7 @@ advanceHead:
 }
 
 func (b *bmcDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(b, target)
+	return types.SlowAdvanceWithContext(ctx, b, target)
 }
 
 func (b *bmcDocIdSetIterator) Cost() int64 {

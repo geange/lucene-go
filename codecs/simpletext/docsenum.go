@@ -50,8 +50,8 @@ func (s *DocsEnum) DocID() int {
 	return s.docID
 }
 
-func (s *DocsEnum) NextDoc() (int, error) {
-	return s.Advance(nil, s.docID+1)
+func (s *DocsEnum) NextDoc(ctx context.Context) (int, error) {
+	return s.Advance(ctx, s.docID+1)
 }
 
 func (s *DocsEnum) readDoc() (int, error) {

@@ -2,9 +2,12 @@ package search
 
 import (
 	"context"
+	"errors"
+	"io"
+	"math"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
-	"math"
 )
 
 var _ index.Scorer = &ReqOptSumScorer{}
@@ -168,17 +171,17 @@ func (r *innerDocIdSetIterator) DocID() int {
 	return r.scorer.reqApproximation.DocID()
 }
 
-func (r *innerDocIdSetIterator) NextDoc() (int, error) {
-	return r.advanceInternal(r.scorer.reqApproximation.DocID() + 1)
+func (r *innerDocIdSetIterator) NextDoc(context.Context) (int, error) {
+	return r.advanceInternal(context.Background(), r.scorer.reqApproximation.DocID()+1)
 }
 
 func (r *innerDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
-	return r.advanceInternal(target)
+	return r.advanceInternal(ctx, target)
 }
 
-func (r *innerDocIdSetIterator) advanceInternal(target int) (int, error) {
+func (r *innerDocIdSetIterator) advanceInternal(ctx context.Context, target int) (int, error) {
 	if target == types.NO_MORE_DOCS {
-		if _, err := r.scorer.reqApproximation.Advance(nil, target); err != nil {
+		if _, err := r.scorer.reqApproximation.Advance(ctx, target); err != nil {
 			return 0, err
 		}
 		return types.NO_MORE_DOCS, nil
@@ -197,7 +200,7 @@ OUTER:
 			}
 		}
 		if r.scorer.reqApproximation.DocID() < reqDoc {
-			reqDoc, err = r.scorer.reqApproximation.Advance(nil, reqDoc)
+			reqDoc, err = r.scorer.reqApproximation.Advance(ctx, reqDoc)
 			if err != nil {
 				return 0, err
 			}
@@ -218,7 +221,7 @@ OUTER:
 		for {
 			optDoc := r.scorer.optApproximation.DocID()
 			if optDoc < reqDoc {
-				optDoc, err = r.scorer.optApproximation.Advance(nil, reqDoc)
+				optDoc, err = r.scorer.optApproximation.Advance(ctx, reqDoc)
 				if err != nil {
 					return 0, err
 				}
@@ -229,8 +232,11 @@ OUTER:
 			}
 
 			if optDoc != reqDoc {
-				reqDoc, err = r.scorer.reqApproximation.Advance(nil, optDoc)
+				reqDoc, err = r.scorer.reqApproximation.Advance(ctx, optDoc)
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						return reqDoc, nil
+					}
 					return 0, err
 				}
 				if reqDoc > upperBound {
@@ -247,7 +253,7 @@ OUTER:
 }
 
 func (r *innerDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(r, target)
+	return types.SlowAdvanceWithContext(ctx, r, target)
 }
 
 func (r *innerDocIdSetIterator) Cost() int64 {
@@ -282,7 +288,7 @@ func (i *innerTwoPhaseIterator) Matches() (bool, error) {
 			// after the opt approximation was advanced and before it was confirmed.
 			if i.scorer.reqScorer.DocID() != i.scorer.optApproximation.DocID() {
 				if i.scorer.optApproximation.DocID() < i.scorer.reqScorer.DocID() {
-					if _, err := i.scorer.optApproximation.Advance(nil, i.scorer.reqScorer.DocID()); err != nil {
+					if _, err := i.scorer.optApproximation.Advance(context.Background(), i.scorer.reqScorer.DocID()); err != nil {
 						return false, err
 					}
 				}
@@ -292,14 +298,14 @@ func (i *innerTwoPhaseIterator) Matches() (bool, error) {
 			}
 			if ok, _ := i.scorer.optTwoPhase.Matches(); !ok {
 				// Advance the iterator to make it clear it doesn't match the current doc id
-				if _, err := i.scorer.optApproximation.NextDoc(); err != nil {
+				if _, err := i.scorer.optApproximation.NextDoc(nil); err != nil {
 					return false, err
 				}
 				return false, nil
 			}
 		} else if match, _ := i.scorer.optTwoPhase.Matches(); i.scorer.optApproximation.DocID() == i.scorer.reqScorer.DocID() && match == false {
 			// Advance the iterator to make it clear it doesn't match the current doc id
-			if _, err := i.scorer.optApproximation.NextDoc(); err != nil {
+			if _, err := i.scorer.optApproximation.NextDoc(nil); err != nil {
 				return false, err
 			}
 		}
@@ -332,12 +338,12 @@ func (r *ReqOptSumScorer) Score() (float64, error) {
 
 	optScorerDoc := r.optApproximation.DocID()
 	if optScorerDoc < curDoc {
-		optScorerDoc, err = r.optApproximation.Advance(nil, curDoc)
+		optScorerDoc, err = r.optApproximation.Advance(context.Background(), curDoc)
 		if err != nil {
 			return 0, err
 		}
 		if match, _ := r.optTwoPhase.Matches(); r.optTwoPhase != nil && optScorerDoc == curDoc && match == false {
-			optScorerDoc, err = r.optApproximation.NextDoc()
+			optScorerDoc, err = r.optApproximation.NextDoc(context.Background())
 			if err != nil {
 				return 0, err
 			}

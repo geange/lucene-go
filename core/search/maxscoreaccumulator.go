@@ -1,9 +1,10 @@
 package search
 
 import (
-	"github.com/geange/gods-generic/utils"
 	"math"
 	"sync/atomic"
+
+	"github.com/geange/gods-generic/utils"
 )
 
 const (

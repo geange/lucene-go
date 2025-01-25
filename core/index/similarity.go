@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+
 	"github.com/geange/lucene-go/core/types"
 )
 

@@ -3,10 +3,11 @@ package search
 import (
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/geange/gods-generic/sets/treeset"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
-	"io"
 )
 
 //var _ Weight = &ConstantScoreWeight{}

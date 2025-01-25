@@ -2,9 +2,10 @@ package search
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
 	"sync/atomic"
+
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // HitsThresholdChecker

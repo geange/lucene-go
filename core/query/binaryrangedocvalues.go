@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )
@@ -29,8 +30,8 @@ func (b *BinaryRangeDocValues) DocID() int {
 	return b.in.DocID()
 }
 
-func (b *BinaryRangeDocValues) NextDoc() (int, error) {
-	docID, err := b.in.NextDoc()
+func (b *BinaryRangeDocValues) NextDoc(ctx context.Context) (int, error) {
+	docID, err := b.in.NextDoc(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -41,7 +42,7 @@ func (b *BinaryRangeDocValues) NextDoc() (int, error) {
 }
 
 func (b *BinaryRangeDocValues) Advance(ctx context.Context, target int) (int, error) {
-	res, err := b.in.Advance(nil, target)
+	res, err := b.in.Advance(ctx, target)
 	if err != nil {
 		return 0, err
 	}
@@ -54,7 +55,7 @@ func (b *BinaryRangeDocValues) Advance(ctx context.Context, target int) (int, er
 }
 
 func (b *BinaryRangeDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(b, target)
+	return types.SlowAdvanceWithContext(ctx, b, target)
 }
 
 func (b *BinaryRangeDocValues) Cost() int64 {

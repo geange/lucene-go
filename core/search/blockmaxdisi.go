@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -15,7 +16,7 @@ func (b *BlockMaxDISI) DocID() int {
 	panic("implement me")
 }
 
-func (b *BlockMaxDISI) NextDoc() (int, error) {
+func (b *BlockMaxDISI) NextDoc(context.Context) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -31,5 +32,5 @@ func (b *BlockMaxDISI) Cost() int64 {
 }
 
 func (b *BlockMaxDISI) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(b, target)
+	return types.SlowAdvanceWithContext(ctx, b, target)
 }

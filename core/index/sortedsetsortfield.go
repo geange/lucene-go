@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"fmt"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )

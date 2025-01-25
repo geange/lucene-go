@@ -2,8 +2,9 @@ package search
 
 import (
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"math"
+
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 var _ index.Query = &BoostQuery{}

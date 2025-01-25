@@ -2,14 +2,15 @@ package bkd
 
 import (
 	"context"
+	"encoding/binary"
 	"io"
 	"math/rand"
 	"testing"
 	"time"
 
-	"encoding/binary"
-	"github.com/geange/lucene-go/core/store"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 func TestWriterWriteField(t *testing.T) {
@@ -60,30 +61,30 @@ func TestWriterReader2Dim(t *testing.T) {
 	out, err := dir.CreateOutput(ctx, "1d.bkd")
 	assert.Nil(t, err)
 
-	finalizer, err := w.Finish(nil, out, out, out)
+	finalizer, err := w.Finish(ctx, out, out, out)
 	assert.Nil(t, err)
 
 	indexFP := out.GetFilePointer()
 
-	err = finalizer(context.Background())
+	err = finalizer(ctx)
 	assert.Nil(t, err)
 
 	err = out.Close()
 	assert.Nil(t, err)
 
-	in, err := dir.OpenInput(nil, "1d.bkd")
+	in, err := dir.OpenInput(ctx, "1d.bkd")
 	assert.Nil(t, err)
 
 	_, err = in.Seek(indexFP, io.SeekStart)
 	assert.Nil(t, err)
 
-	reader, err := NewReader(nil, in, in, in)
+	reader, err := NewReader(ctx, in, in, in)
 	assert.Nil(t, err)
 
 	visitor, err := NewVerifyPointsVisitor("1d", numDocs, reader)
 	assert.Nil(t, err)
 
-	err = reader.Intersect(nil, visitor)
+	err = reader.Intersect(ctx, visitor)
 	assert.Nil(t, err)
 
 	err = in.Close()

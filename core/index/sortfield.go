@@ -5,10 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/store"
 	"math"
 	"reflect"
+
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/store"
 )
 
 const (

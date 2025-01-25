@@ -55,7 +55,7 @@ func (s *RAMInputStream) Read(p []byte) (n int, err error) {
 }
 
 func (s *RAMInputStream) nextBuffer() error {
-	buff, ok := s.file.buffers.Get(s.currentBufferIndex)
+	buff, ok := s.file.GetBuffer(s.currentBufferIndex)
 	if !ok {
 		return io.EOF
 	}
@@ -112,8 +112,8 @@ func (s *RAMInputStream) Length() int64 {
 }
 
 func (s *RAMInputStream) setCurrentBuffer() error {
-	if s.currentBufferIndex < s.file.numBuffers() {
-		buffer, ok := s.file.getBuffer(s.currentBufferIndex)
+	if s.currentBufferIndex < s.file.NumBuffers() {
+		buffer, ok := s.file.GetBuffer(s.currentBufferIndex)
 		if !ok {
 			return io.ErrUnexpectedEOF
 		}

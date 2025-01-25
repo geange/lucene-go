@@ -170,7 +170,7 @@ func (r *Reader) Intersect(ctx context.Context, visitor types.IntersectVisitor) 
 		return err
 	}
 
-	return r.intersect(nil, state, r.minPackedValue, r.maxPackedValue)
+	return r.intersect(ctx, state, r.minPackedValue, r.maxPackedValue)
 }
 
 func (r *Reader) EstimatePointCount(ctx context.Context, visitor types.IntersectVisitor) (int, error) {

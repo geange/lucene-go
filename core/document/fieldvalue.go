@@ -71,7 +71,7 @@ func Str(obj any) (string, error) {
 		return v, nil
 	case []byte:
 		return string(v), nil
-	case int32, int64:
+	case uint, int, int32, int64, uint32, uint64:
 		return fmt.Sprintf("%d", v), nil
 	case float32, float64:
 		return fmt.Sprintf("%f", v), nil

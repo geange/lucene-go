@@ -1,8 +1,9 @@
 package index
 
 import (
-	"github.com/geange/lucene-go/core/store"
 	"io"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 // MergeScheduler

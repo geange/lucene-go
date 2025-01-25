@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/core/types"
 )
 
@@ -34,8 +35,8 @@ func (b *BitSetIterator) DocID() int {
 	return b.doc
 }
 
-func (b *BitSetIterator) NextDoc() (int, error) {
-	return b.Advance(nil, b.doc+1)
+func (b *BitSetIterator) NextDoc(ctx context.Context) (int, error) {
+	return b.Advance(ctx, b.doc+1)
 }
 
 func (b *BitSetIterator) Advance(ctx context.Context, target int) (int, error) {
@@ -49,7 +50,7 @@ func (b *BitSetIterator) Advance(ctx context.Context, target int) (int, error) {
 }
 
 func (b *BitSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(b, target)
+	return types.SlowAdvanceWithContext(ctx, b, target)
 }
 
 func (b *BitSetIterator) Cost() int64 {

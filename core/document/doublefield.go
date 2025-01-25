@@ -1,35 +1,47 @@
 package document
 
 import (
+	"errors"
 	"math"
 
 	"github.com/geange/lucene-go/core/util/numeric"
 )
 
-// DoublePoint
+type DoublePoint Float64Point
+
+var NewDoublePoint = NewFloat64Point
+
+// Float64Point
 // An indexed double field for fast range filters. If you also need to store the value,
 // you should add a separate StoredField instance.
 // Finding all documents within an N-dimensional shape or range at search time is efficient.
 // Multiple values for the same field in one document is allowed.
-// See Also: PointValues
-type DoublePoint struct {
+type Float64Point struct {
 	*Field[[]byte]
 }
 
-func NewDoublePoint(name string, points ...float64) *DoublePoint {
-	packed := packDoublePoint(points)
+func NewFloat64Point(name string, points ...float64) (*Float64Point, error) {
+	if len(points) == 0 {
+		return nil, errors.New("len(points) == 0")
+	}
+
+	packed := packFloat64Point(points)
 	fieldType := genDoublePointType(len(points))
-	return &DoublePoint{NewField(name, packed, fieldType)}
+	return &Float64Point{NewField(name, packed, fieldType)}, nil
 }
 
-func (r *DoublePoint) Number() (any, bool) {
+func (r *Float64Point) Number() (any, bool) {
 	if r.fieldType.PointDimensionCount() > 1 {
 		return float64(0), false
 	}
 	return decodeDimensionFloat64(r.fieldsData), true
 }
 
-func packDoublePoint(points []float64) []byte {
+func (r *Float64Point) Points() []float64 {
+	return unPackFloat64Point(r.fieldsData)
+}
+
+func packFloat64Point(points []float64) []byte {
 	packed := make([]byte, len(points)*DOUBLE_BYTES)
 	for dim, point := range points {
 		offset := dim * DOUBLE_BYTES
@@ -38,12 +50,21 @@ func packDoublePoint(points []float64) []byte {
 	return packed
 }
 
+func unPackFloat64Point(bs []byte) []float64 {
+	points := make([]float64, 0, len(bs)/DOUBLE_BYTES)
+	for i := 0; i < len(bs); i += DOUBLE_BYTES {
+		point := decodeDimensionFloat64(bs[i:])
+		points = append(points, point)
+	}
+	return points
+}
+
 func encodeDimensionFloat64(value float64, dest []byte) {
-	numeric.LongToSortableBytes(numeric.DoubleToSortableLong(value), dest)
+	numeric.Uint64ToSortableBytes(numeric.Float64ToSortableLong(value), dest)
 }
 
 func decodeDimensionFloat64(value []byte) float64 {
-	return numeric.SortableLongToDouble(numeric.SortableBytesToUint64(value))
+	return numeric.SortableUint64ToFloat64(numeric.SortableBytesToUint64(value))
 }
 
 func genDoublePointType(numDims int) *FieldType {

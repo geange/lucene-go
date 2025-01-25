@@ -2,9 +2,10 @@ package index
 
 import (
 	"context"
+	"slices"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
-	"slices"
 )
 
 // OrdinalMap

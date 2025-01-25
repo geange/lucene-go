@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/interface/index"
 	"io"
 
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/core/document"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
@@ -206,7 +207,7 @@ func countSoftDeletes(softDeletedDocs types.DocIdSetIterator, hardDeletes util.B
 	count := 0
 	if softDeletedDocs != nil {
 		for {
-			docId, err := softDeletedDocs.NextDoc()
+			docId, err := softDeletedDocs.NextDoc(context.Background())
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break

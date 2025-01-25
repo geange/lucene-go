@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 )

@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"errors"
+
 	"github.com/geange/lucene-go/core/interface/index"
 )
 

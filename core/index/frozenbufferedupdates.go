@@ -2,10 +2,11 @@ package index
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/interface/index"
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/geange/lucene-go/core/interface/index"
 )
 
 // FrozenBufferedUpdates

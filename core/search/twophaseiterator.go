@@ -26,8 +26,8 @@ func (t *twoPhaseIteratorAsDocIdSetIterator) DocID() int {
 	return t.approximation.DocID()
 }
 
-func (t *twoPhaseIteratorAsDocIdSetIterator) NextDoc() (int, error) {
-	doc, err := t.approximation.NextDoc()
+func (t *twoPhaseIteratorAsDocIdSetIterator) NextDoc(ctx context.Context) (int, error) {
+	doc, err := t.approximation.NextDoc(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -35,7 +35,7 @@ func (t *twoPhaseIteratorAsDocIdSetIterator) NextDoc() (int, error) {
 }
 
 func (t *twoPhaseIteratorAsDocIdSetIterator) Advance(ctx context.Context, target int) (int, error) {
-	doc, err := t.approximation.Advance(nil, target)
+	doc, err := t.approximation.Advance(ctx, target)
 	if err != nil {
 		return 0, err
 	}
@@ -43,7 +43,7 @@ func (t *twoPhaseIteratorAsDocIdSetIterator) Advance(ctx context.Context, target
 }
 
 func (t *twoPhaseIteratorAsDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(t, target)
+	return types.SlowAdvanceWithContext(ctx, t, target)
 }
 
 func (t *twoPhaseIteratorAsDocIdSetIterator) Cost() int64 {

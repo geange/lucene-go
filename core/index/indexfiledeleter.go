@@ -3,12 +3,13 @@ package index
 import (
 	"context"
 	"fmt"
-	"github.com/geange/lucene-go/core/store"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 const (

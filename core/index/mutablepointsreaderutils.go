@@ -2,12 +2,13 @@ package index
 
 import (
 	"bytes"
+	"sort"
+
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/bkd"
 	"github.com/geange/lucene-go/core/util/packed"
 	"github.com/geange/lucene-go/core/util/radixselector"
-	"sort"
 )
 
 // SortByDim

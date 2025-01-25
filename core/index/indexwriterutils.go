@@ -3,14 +3,16 @@ package index
 import (
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util/version"
-	"github.com/matishsiao/goInfo"
-	"golang.org/x/exp/maps"
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/matishsiao/goInfo"
+	"golang.org/x/exp/maps"
+
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/version"
 )
 
 var (

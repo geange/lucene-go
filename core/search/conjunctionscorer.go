@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/bits-and-blooms/bitset"
+
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
@@ -312,7 +313,7 @@ func (b *BitSetConjunctionDISI) DocID() int {
 	panic("implement me")
 }
 
-func (b *BitSetConjunctionDISI) NextDoc() (int, error) {
+func (b *BitSetConjunctionDISI) NextDoc(context.Context) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -24,24 +24,25 @@ func newNumericDocValues(value int64) *numericDocValues {
 }
 
 func (i *numericDocValues) DocID() int {
-	return i.iterator.docId()
+	doc, _ := i.iterator.docId()
+	return doc
 }
 
-func (i *numericDocValues) NextDoc() (int, error) {
-	return i.iterator.nextDoc(), nil
+func (i *numericDocValues) NextDoc(context.Context) (int, error) {
+	return i.iterator.nextDoc()
 }
 
 func (i *numericDocValues) Advance(ctx context.Context, target int) (int, error) {
-	return i.iterator.advance(target), nil
+	return i.iterator.advance(target)
 }
 
 func (i *numericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
-		doc, err = i.NextDoc()
+		doc, err = i.NextDoc(ctx)
 		if err != nil {
-			return 0, nil
+			return 0, err
 		}
 	}
 	return doc, nil
@@ -94,22 +95,23 @@ func newSortedDocValues(value []byte) *sortedDocValues {
 }
 
 func (i *sortedDocValues) DocID() int {
-	return i.it.docId()
+	doc, _ := i.it.docId()
+	return doc
 }
 
-func (i *sortedDocValues) NextDoc() (int, error) {
-	return i.it.nextDoc(), nil
+func (i *sortedDocValues) NextDoc(context.Context) (int, error) {
+	return i.it.nextDoc()
 }
 
 func (i *sortedDocValues) Advance(ctx context.Context, target int) (int, error) {
-	return i.it.advance(target), nil
+	return i.it.advance(target)
 }
 
 func (i *sortedDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
-		doc, err = i.NextDoc()
+		doc, err = i.NextDoc(nil)
 		if err != nil {
 			return 0, nil
 		}
@@ -163,22 +165,23 @@ func newSortedNumericDocValues(values []int, count int) *sortedNumericDocValues 
 }
 
 func (i *sortedNumericDocValues) DocID() int {
-	return i.it.docId()
+	doc, _ := i.it.docId()
+	return doc
 }
 
-func (i *sortedNumericDocValues) NextDoc() (int, error) {
-	return i.it.nextDoc(), nil
+func (i *sortedNumericDocValues) NextDoc(context.Context) (int, error) {
+	return i.it.nextDoc()
 }
 
 func (i *sortedNumericDocValues) Advance(ctx context.Context, target int) (int, error) {
-	return i.it.advance(target), nil
+	return i.it.advance(target)
 }
 
 func (i *sortedNumericDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
-		doc, err = i.NextDoc()
+		doc, err = i.NextDoc(nil)
 		if err != nil {
 			return 0, nil
 		}
@@ -225,22 +228,23 @@ func newSortedSetDocValues(values *bytesref.BytesHash, bytesIds []int, it *docVa
 }
 
 func (i *sortedSetDocValues) DocID() int {
-	return i.it.docId()
+	doc, _ := i.it.docId()
+	return doc
 }
 
-func (i *sortedSetDocValues) NextDoc() (int, error) {
-	return i.it.nextDoc(), nil
+func (i *sortedSetDocValues) NextDoc(context.Context) (int, error) {
+	return i.it.nextDoc()
 }
 
 func (i *sortedSetDocValues) Advance(ctx context.Context, target int) (int, error) {
-	return i.it.advance(target), nil
+	return i.it.advance(target)
 }
 
 func (i *sortedSetDocValues) SlowAdvance(ctx context.Context, target int) (int, error) {
 	doc := 0
 	var err error
 	for doc < target {
-		doc, err = i.NextDoc()
+		doc, err = i.NextDoc(nil)
 		if err != nil {
 			return 0, nil
 		}
@@ -255,7 +259,7 @@ func (i *sortedSetDocValues) Cost() int64 {
 func (i *sortedSetDocValues) AdvanceExact(target int) (bool, error) {
 	i.ord = 0
 
-	advance, err := i.Advance(nil, target)
+	advance, err := i.Advance(context.Background(), target)
 	if err != nil {
 		return false, err
 	}
@@ -264,7 +268,7 @@ func (i *sortedSetDocValues) AdvanceExact(target int) (bool, error) {
 
 func (i *sortedSetDocValues) NextOrd() (int64, error) {
 	if int(i.ord) >= i.values.Size() {
-		return -1, io.EOF
+		return 0, io.EOF
 	}
 	ord := i.ord
 	i.ord++

@@ -157,7 +157,7 @@ func (s *TextFieldsWriter) writeFields(ctx context.Context, fieldInfos index.Fie
 
 			// for each doc in field+term
 			for {
-				doc, err := postingsEnum.NextDoc()
+				doc, err := postingsEnum.NextDoc(ctx)
 				if err != nil {
 					if errors.Is(err, io.EOF) {
 						break

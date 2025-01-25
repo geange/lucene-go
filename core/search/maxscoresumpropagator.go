@@ -1,11 +1,12 @@
 package search
 
 import (
+	"math"
+	"sort"
+
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
-	"math"
-	"sort"
 )
 
 // MaxScoreSumPropagator

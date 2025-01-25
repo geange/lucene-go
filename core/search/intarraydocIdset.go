@@ -2,9 +2,10 @@ package search
 
 import (
 	"context"
+	"io"
+
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
-	"io"
 )
 
 var _ DocIdSet = &IntArrayDocIdSet{}
@@ -46,7 +47,7 @@ func (r *IntArrayDocIdSetIterator) DocID() int {
 	return r.doc
 }
 
-func (r *IntArrayDocIdSetIterator) NextDoc() (int, error) {
+func (r *IntArrayDocIdSetIterator) NextDoc(context.Context) (int, error) {
 	if r.i == len(r.docs) {
 		return -1, io.EOF
 	}
@@ -61,7 +62,7 @@ func (r *IntArrayDocIdSetIterator) Advance(ctx context.Context, target int) (int
 }
 
 func (r *IntArrayDocIdSetIterator) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(r, target)
+	return types.SlowAdvanceWithContext(ctx, r, target)
 }
 
 func (r *IntArrayDocIdSetIterator) Cost() int64 {

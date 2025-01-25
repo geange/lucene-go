@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+
 	"github.com/geange/lucene-go/core/interface/index"
 )
 

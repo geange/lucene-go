@@ -50,6 +50,10 @@ func (r *Builder) SetByteAt(offset int, b byte) {
 
 // Grow Ensure that this builder can hold at least capacity bytes without resizing.
 func (r *Builder) Grow(capacity int) {
+	if capacity <= 0 {
+		return
+	}
+
 	r.bytes = append(r.bytes, make([]byte, capacity)...)
 }
 

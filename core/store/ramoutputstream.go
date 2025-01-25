@@ -43,15 +43,11 @@ func NewRAMOutputStream(name string, file *RAMFile, checksum bool) *RAMOutputStr
 
 func (s *RAMOutputStream) Close() error {
 	s.flush()
-	s.file.setLength(int64(s.idx))
 	return nil
 }
 
 func (s *RAMOutputStream) flush() {
-	size := s.buffer.Len()
-
-	dst := s.file.addBuffer(size)
-	copy(dst, s.buffer.Bytes())
+	s.file.Write(s.buffer.Bytes())
 }
 
 func (s *RAMOutputStream) Write(p []byte) (n int, err error) {
@@ -59,26 +55,30 @@ func (s *RAMOutputStream) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	s.idx += len(p)
-
-	oldSize := s.buffer.Len()
-	newSize := oldSize + len(p)
-	if newSize < s.bufferSize {
+	pSize := len(p)
+	bSize := s.buffer.Len()
+	if bSize+pSize < s.bufferSize {
+		s.idx += pSize
 		return s.buffer.Write(p)
 	}
 
-	if newSize == s.bufferSize {
-		dst := s.file.addBuffer(s.bufferSize)
-		copy(dst, s.buffer.Bytes())
-		copy(dst[oldSize:], p)
-	} else {
-		dst := s.file.addBuffer(s.bufferSize)
-		copy(dst, s.buffer.Bytes())
-		copy(dst[oldSize:], p)
-		s.buffer.Write(p[s.bufferSize-oldSize:])
-	}
+	wSize := s.bufferSize - bSize
+	s.buffer.Write(p[:wSize])
+	s.file.Write(s.buffer.Bytes())
+	s.buffer.Reset()
 
-	return len(p), nil
+	for start := wSize; wSize < pSize; start += s.bufferSize {
+		end := start + s.bufferSize
+		if end <= pSize {
+			// 不用写缓存
+			s.file.Write(p[start:end])
+		} else {
+			s.buffer.Write(p[start:])
+			break
+		}
+	}
+	s.idx += pSize
+	return pSize, nil
 }
 
 func (s *RAMOutputStream) GetFilePointer() int64 {

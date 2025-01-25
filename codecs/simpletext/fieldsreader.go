@@ -470,7 +470,7 @@ func (s *simpleTextPostingsEnum) DocID() int {
 	panic("implement me")
 }
 
-func (s *simpleTextPostingsEnum) NextDoc() (int, error) {
+func (s *simpleTextPostingsEnum) NextDoc(context.Context) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -574,7 +574,7 @@ func (s *simpleTextDocsEnum) DocID() int {
 	return s.docID
 }
 
-func (s *simpleTextDocsEnum) NextDoc() (int, error) {
+func (s *simpleTextDocsEnum) NextDoc(context.Context) (int, error) {
 	return s.Advance(nil, s.docID+1)
 }
 

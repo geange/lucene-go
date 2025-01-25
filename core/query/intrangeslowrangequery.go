@@ -31,16 +31,16 @@ func NewIntRangeSlowRangeQuery(field string, mins, maxs []int32, queryType Query
 	}, nil
 }
 
-func (i *IntRangeSlowRangeQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
-	return i.createWeight(i, scoreMode, boost), nil
+func (q *IntRangeSlowRangeQuery) CreateWeight(searcher index.IndexSearcher, scoreMode index.ScoreMode, boost float64) (index.Weight, error) {
+	return q.createWeight(q, scoreMode, boost), nil
 }
 
-func (i *IntRangeSlowRangeQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
-	return i, nil
+func (q *IntRangeSlowRangeQuery) Rewrite(reader index.IndexReader) (index.Query, error) {
+	return q, nil
 }
 
-func (i *IntRangeSlowRangeQuery) Visit(visitor index.QueryVisitor) error {
-	return rangeQueryVisit(i.field, i, visitor)
+func (q *IntRangeSlowRangeQuery) Visit(visitor index.QueryVisitor) error {
+	return rangeQueryVisit(q.field, q, visitor)
 }
 
 func encodeIntRanges(mins, maxs []int32) ([]byte, error) {

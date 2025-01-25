@@ -27,24 +27,27 @@ func Subtract(bytesPerDim, dim int, a, b, result []byte) error {
 	return nil
 }
 
-// LongToSortableBytes
+// Uint64ToSortableBytes
 // Encodes an long value such that unsigned byte order comparison is consistent with Long.compare(long, long)
 // See Also: sortableBytesToLong(byte[], int)
-func LongToSortableBytes(num uint64, result []byte) {
+func Uint64ToSortableBytes(num uint64, result []byte) {
 	// Flip the sign bit so negative longs sort before positive longs:
 	value := num ^ 0x8000000000000000
 	binary.BigEndian.PutUint64(result, value)
 }
 
 // SortableBytesToLong
-// Decodes a long value previously written with longToSortableBytes
-// See Also: LongToSortableBytes(uint64, []byte)
+// Decodes a long value previously written with Uint64ToSortableBytes
 func SortableBytesToLong(encoded []byte) int64 {
 	return int64(SortableBytesToUint64(encoded))
 }
 
+// SortableBytesToUint64
+// Decodes a long value previously written with Uint64ToSortableBytes
 func SortableBytesToUint64(encoded []byte) uint64 {
-	return binary.BigEndian.Uint64(encoded)
+	num := binary.BigEndian.Uint64(encoded)
+	num = num ^ 0x8000000000000000
+	return num
 }
 
 // IntToSortableBytes
@@ -63,26 +66,26 @@ func SortableBytesToInt(encoded []byte) int32 {
 	return int32(binary.BigEndian.Uint32(encoded))
 }
 
-// DoubleToSortableLong
+// Float64ToSortableLong
 // Converts a double value to a sortable signed long.
 // The value is converted by getting their IEEE 754 floating-point "double format" bit layout and
 // then some bits are swapped, to be able to compare the result as long. By this the precision is
 // not reduced, but the value can easily used as a long. The sort order (including Double.NaN) is
 // defined by Double.compareTo; NaN is greater than positive infinity.
 // SortableLongToDouble
-func DoubleToSortableLong(value float64) uint64 {
-	return SortableDoubleBits(math.Float64bits(value))
+func Float64ToSortableLong(value float64) uint64 {
+	return SortableFloat64Bits(math.Float64bits(value))
 }
 
-// SortableLongToDouble
+// SortableUint64ToFloat64
 // Converts a sortable long back to a double.
-// 请参阅: DoubleToSortableLong
-func SortableLongToDouble(encoded uint64) float64 {
-	return math.Float64frombits(SortableDoubleBits(encoded))
+// 请参阅: Float64ToSortableLong
+func SortableUint64ToFloat64(encoded uint64) float64 {
+	return math.Float64frombits(SortableFloat64Bits(encoded))
 }
 
-// SortableDoubleBits
+// SortableFloat64Bits
 // Converts IEEE 754 representation of a double to sortable order (or back to the original)
-func SortableDoubleBits(bits uint64) uint64 {
-	return bits ^ (bits>>63)&0x7fffffffffffffff
+func SortableFloat64Bits(bits uint64) uint64 {
+	return bits ^ uint64(int64(bits)>>63)&0x7fffffffffffffff
 }

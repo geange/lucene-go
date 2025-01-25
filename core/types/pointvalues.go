@@ -181,7 +181,7 @@ func (r *BytesVisitor) Grow(count int) {
 
 func Visit(ctx context.Context, visitor IntersectVisitor, iterator DocIdSetIterator, packedValue []byte) error {
 	for {
-		docID, err := iterator.NextDoc()
+		docID, err := iterator.NextDoc(ctx)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
@@ -196,7 +196,7 @@ func Visit(ctx context.Context, visitor IntersectVisitor, iterator DocIdSetItera
 
 func (r *BytesVisitor) VisitIterator(ctx context.Context, iterator DocValuesIterator, packedValue []byte) error {
 	for {
-		docID, err := iterator.NextDoc()
+		docID, err := iterator.NextDoc(ctx)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil

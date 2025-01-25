@@ -265,7 +265,12 @@ func (s *SimpleTVPostingsEnum) DocID() int {
 	return s.doc
 }
 
-func (s *SimpleTVPostingsEnum) NextDoc() (int, error) {
+func (s *SimpleTVPostingsEnum) NextDoc(ctx context.Context) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+	}
 	if !s.didNext {
 		s.didNext = true
 		s.doc = 0
@@ -279,7 +284,7 @@ func (s *SimpleTVPostingsEnum) Advance(ctx context.Context, target int) (int, er
 }
 
 func (s *SimpleTVPostingsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(s, target)
+	return types.SlowAdvanceWithContext(ctx, s, target)
 }
 
 func (s *SimpleTVPostingsEnum) Cost() int64 {
@@ -350,7 +355,12 @@ func (s *SimpleTVDocsEnum) DocID() int {
 	return s.doc
 }
 
-func (s *SimpleTVDocsEnum) NextDoc() (int, error) {
+func (s *SimpleTVDocsEnum) NextDoc(ctx context.Context) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+	}
 	if !s.didNext {
 		s.didNext = true
 		s.doc = 0
@@ -360,11 +370,11 @@ func (s *SimpleTVDocsEnum) NextDoc() (int, error) {
 }
 
 func (s *SimpleTVDocsEnum) Advance(ctx context.Context, target int) (int, error) {
-	return s.SlowAdvance(nil, target)
+	return s.SlowAdvance(ctx, target)
 }
 
 func (s *SimpleTVDocsEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
-	return types.SlowAdvance(s, target)
+	return types.SlowAdvanceWithContext(ctx, s, target)
 }
 
 func (s *SimpleTVDocsEnum) Cost() int64 {
