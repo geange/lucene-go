@@ -272,7 +272,7 @@ func WriteChecksum(out store.IndexOutput) error {
 	return NewLine(out)
 }
 
-func CheckFooter(input store.ChecksumIndexInput) error {
+func CheckSimpleTextFooter(input store.ChecksumIndexInput) error {
 	scratch := new(bytes.Buffer)
 
 	checksum := input.GetChecksum()

@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
-
 	"slices"
 	"sort"
 	"sync/atomic"
 
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/structure"

@@ -2,9 +2,10 @@ package bkd
 
 import (
 	"bytes"
+	"sort"
+
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/packed"
-	"sort"
 )
 
 var _ sort.Interface = &MutablePointValuesSorter{}

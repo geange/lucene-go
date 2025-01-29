@@ -8,24 +8,26 @@ import (
 type FloatRangeSlowRangeQuery struct {
 	*BinaryRangeFieldRangeQuery
 
-	field string
-	mins  []float32
-	maxs  []float32
+	field   string
+	minNums []float32
+	maxNums []float32
 }
 
-func NewFloatRangeSlowRangeQuery(field string, mins, maxs []float32, queryType QueryType) (*FloatRangeSlowRangeQuery, error) {
-	packedValues, err := encodeFloatRanges(mins, maxs)
+func NewFloatRangeSlowRangeQuery(field string, minNums, maxNums []float32,
+	queryType QueryType) (*FloatRangeSlowRangeQuery, error) {
+
+	packedValues, err := encodeFloatRanges(minNums, maxNums)
 	if err != nil {
 		return nil, err
 	}
 
-	rangeQuery := NewBinaryRangeFieldRangeQuery(field, packedValues, document.FLOAT_BYTES, len(mins), queryType)
+	rangeQuery := NewBinaryRangeFieldRangeQuery(field, packedValues, document.FLOAT_BYTES, len(minNums), queryType)
 
 	return &FloatRangeSlowRangeQuery{
 		BinaryRangeFieldRangeQuery: rangeQuery,
-		mins:                       mins,
+		minNums:                    minNums,
 		field:                      field,
-		maxs:                       maxs,
+		maxNums:                    maxNums,
 	}, nil
 }
 
@@ -41,9 +43,9 @@ func (q *FloatRangeSlowRangeQuery) Visit(visitor index.QueryVisitor) error {
 	return rangeQueryVisit(q.field, q, visitor)
 }
 
-func encodeFloatRanges(mins, maxs []float32) ([]byte, error) {
-	dst := make([]byte, 2*document.FLOAT_BYTES*len(mins))
-	if err := verifyAndEncodeFloat32(mins, maxs, dst); err != nil {
+func encodeFloatRanges(minNums, maxNums []float32) ([]byte, error) {
+	dst := make([]byte, 2*document.FLOAT_BYTES*len(minNums))
+	if err := verifyAndEncodeFloat32(minNums, maxNums, dst); err != nil {
 		return nil, err
 	}
 	return dst, nil

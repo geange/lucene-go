@@ -1,7 +1,6 @@
 package index
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -165,10 +164,6 @@ func NewFieldInfosBuilder(globalFieldNumbers *FieldNumbers) *FieldInfosBuilder {
 }
 
 func (f *FieldInfosBuilder) Add(other *fieldInfos) error {
-	if f.assertNotFinished() != nil {
-		return nil
-	}
-
 	for _, fieldInfo := range other.fieldInfos {
 		if _, err := f.AddFieldInfo(fieldInfo); err != nil {
 			return err
@@ -181,9 +176,6 @@ func (f *FieldInfosBuilder) Add(other *fieldInfos) error {
 func (f *FieldInfosBuilder) GetOrAdd(name string) (*document.FieldInfo, error) {
 	fi, ok := f.byName[name]
 	if !ok {
-		if err := f.assertNotFinished(); err != nil {
-			return nil, err
-		}
 		// This field wasn't yet added to this in-RAM
 		// segment's FieldInfo, so now we get a global
 		// number for this field.  If the field was seen
@@ -231,10 +223,6 @@ func (f *FieldInfosBuilder) addOrUpdateInternal(name string, preferredFieldNumbe
 	dvGen int64, attributes map[string]string,
 	dataDimensionCount, indexDimensionCount, dimensionNumBytes int,
 	isSoftDeletesField bool) (*document.FieldInfo, error) {
-
-	if err := f.assertNotFinished(); err != nil {
-		return nil, err
-	}
 
 	fi, ok := f.byName[name]
 	if !ok {
@@ -290,13 +278,6 @@ func (f *FieldInfosBuilder) addOrUpdateInternal(name string, preferredFieldNumbe
 
 func (f *FieldInfosBuilder) fieldInfo(fieldName string) *document.FieldInfo {
 	return f.byName[fieldName]
-}
-
-func (f *FieldInfosBuilder) assertNotFinished() error {
-	if f.finished {
-		return errors.New("builder is finished")
-	}
-	return nil
 }
 
 func (f *FieldInfosBuilder) Finish() index.FieldInfos {

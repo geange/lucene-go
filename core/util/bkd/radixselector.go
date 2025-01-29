@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/store"
-	"github.com/geange/lucene-go/core/util/selector"
-	"github.com/geange/lucene-go/core/util/sorter"
 	"io"
 	"slices"
 	"strconv"
+
+	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/selector"
+	"github.com/geange/lucene-go/core/util/sorter"
 )
 
 const (

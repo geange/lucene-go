@@ -7,9 +7,10 @@ import (
 	"sort"
 
 	"github.com/bits-and-blooms/bitset"
+	"github.com/samber/lo"
+
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/samber/lo"
 )
 
 // Recursively reorders the provided reader and writes the bkd-tree on the fly; this method is used

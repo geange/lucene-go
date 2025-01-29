@@ -153,8 +153,7 @@ func (s *skipReader) ReadSkipData(ctx context.Context, level int, skipStream sto
 		content := s.scratch.Bytes()
 
 		if bytes.Equal(content, FIELDS_END) {
-			err := utils.CheckFooter(input)
-			if err != nil {
+			if err := utils.CheckSimpleTextFooter(input); err != nil {
 				return 0, err
 			}
 			break

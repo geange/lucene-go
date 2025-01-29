@@ -3,10 +3,11 @@ package bkd
 import (
 	"bytes"
 	"errors"
-	"github.com/geange/lucene-go/core/store"
 	"math/rand"
 	"sort"
 	"time"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 func sortN(from, to, k int, data sort.Interface) {

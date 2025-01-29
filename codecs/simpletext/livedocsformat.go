@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
@@ -77,7 +78,7 @@ func (s *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, 
 			return nil, err
 		}
 	}
-	if err := utils.CheckFooter(in); err != nil {
+	if err := utils.CheckSimpleTextFooter(in); err != nil {
 		return nil, err
 	}
 	return newSimpleTextBits(bits, size), nil

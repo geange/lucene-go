@@ -19,6 +19,7 @@ type BinaryRangeFieldRangeQuery struct {
 
 func (q *BinaryRangeFieldRangeQuery) createWeight(query index.Query,
 	scoreMode index.ScoreMode, boost float64) index.Weight {
+
 	weight := &binaryRangeFieldRangeWeight{
 		query:     q,
 		scoreMode: scoreMode,

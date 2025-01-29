@@ -70,85 +70,12 @@ func WriteIndexHeader(ctx context.Context, out store.DataOutput, codec string, v
 	return nil
 }
 
-// CheckHeader
-// Reads and validates a header previously written with writeHeader(DataOutput, String, int).
-// When reading a file, supply the expected codec and an expected version range (minVersion to maxVersion).
-// in: Input stream, positioned at the point where the header was previously written. Typically this is
-// located at the beginning of the file. codec – The expected codec name. minVersion – The minimum supported
-// expected version number. maxVersion – The maximum supported expected version number.
-// Returns: The actual version found, when a valid header is found that matches codec, with an actual version
-// where minVersion <= actual <= maxVersion. Otherwise an exception is thrown.
-// Throws:
-// CorruptIndexException – If the first four bytes are not CODEC_MAGIC, or if the actual codec found is not codec.
-// IndexFormatTooOldException – If the actual version is less than minVersion.
-// IndexFormatTooNewException – If the actual version is greater than maxVersion.
-// IOException – If there is an I/O error reading from the underlying medium.
-//
-// See Also: writeHeader(DataOutput, String, int)
-func CheckHeader(ctx context.Context, in store.DataInput, codec string, minVersion, maxVersion int) (int, error) {
-	// Safety to guard against reading a bogus string:
-	actualHeader, err := in.ReadUint32(ctx)
-	if err != nil {
-		return 0, err
-	}
-	if actualHeader != CODEC_MAGIC {
-		return 0, errors.New("codec header mismatch")
-	}
-	return CheckHeaderNoMagic(ctx, in, codec, minVersion, maxVersion)
-}
-
-// CheckHeaderNoMagic Like checkHeader(DataInput, String, int, int) except this version assumes
-// the first int has already been read and validated from the input.
-func CheckHeaderNoMagic(ctx context.Context, in store.DataInput, codec string, minVersion, maxVersion int) (int, error) {
-	actualCodec, err := in.ReadString(ctx)
-	if err != nil {
-		return 0, err
-	}
-	if actualCodec != codec {
-		return 0, errors.New("codec mismatch")
-	}
-
-	actualVersion, err := in.ReadUint32(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	if int(actualVersion) < minVersion || int(actualVersion) > maxVersion {
-		return 0, errors.New("IndexFormatTooOld")
-	}
-	return int(actualVersion), nil
-}
-
-func CheckIndexHeaderSuffix(in store.DataInput, expectedSuffix string) (string, error) {
-	b, err := in.ReadByte()
-	if err != nil {
-		return "", err
-	}
-	suffixLength := int(b)
-
-	suffixBytes := make([]byte, suffixLength)
-	_, err = in.Read(suffixBytes)
-	if err != nil {
-		return "", err
-	}
-	suffix := string(suffixBytes)
-	if suffix != expectedSuffix {
-		return "", fmt.Errorf("file mismatch, expected suffix=%s, got=%s", expectedSuffix, suffix)
-	}
-	return suffix, nil
-}
-
 // FooterLength Computes the length of a codec footer.
 // Returns: length of the entire codec footer.
 // See Also: writeFooter(IndexOutput)
 func FooterLength() int {
 	return 16
 }
-
-//const (
-//	CODEC_MAGIC = 0x3fd76c17
-//
-//)
 
 // WriteFooter Writes a codec footer, which records both a checksum algorithm ID and a checksum. This footer can be parsed and validated with checkFooter().
 // CodecFooter --> Magic,AlgorithmID,Checksum
@@ -157,12 +84,12 @@ func FooterLength() int {
 // Checksum --> Uint64. The actual checksum value for all previous bytes in the stream, including the bytes from Magic and AlgorithmID.
 // Params: out – Output stream
 // Throws: IOException – If there is an I/O error writing to the underlying medium.
-func WriteFooter(out store.IndexOutput) error {
-	if err := out.WriteUint32(nil, FOOTER_MAGIC); err != nil {
+func WriteFooter(ctx context.Context, out store.IndexOutput) error {
+	if err := out.WriteUint32(ctx, FOOTER_MAGIC); err != nil {
 		return err
 	}
 
-	if err := out.WriteUint32(nil, 0); err != nil {
+	if err := out.WriteUint32(ctx, 0); err != nil {
 		return err
 	}
 

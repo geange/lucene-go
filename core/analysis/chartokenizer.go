@@ -1,10 +1,9 @@
-package util
+package analysis
 
 import (
 	"bufio"
 	"io"
 
-	"github.com/geange/lucene-go/core/analysis"
 	"github.com/geange/lucene-go/core/util/attribute"
 )
 
@@ -16,7 +15,7 @@ import (
 type CharTokenizer interface {
 	CharTokenizerInner
 
-	analysis.Tokenizer
+	Tokenizer
 }
 
 type CharTokenizerInner interface {
@@ -24,7 +23,7 @@ type CharTokenizerInner interface {
 }
 
 func NewCharTokenizerImpl(ext CharTokenizerInner, input io.Reader) *CharTokenizerBase {
-	tokenizer := analysis.NewBaseTokenizer()
+	tokenizer := NewBaseTokenizer()
 	tokenizer.SetReader(input)
 	tokenizer.Reset()
 
@@ -45,7 +44,7 @@ func NewCharTokenizerImpl(ext CharTokenizerInner, input io.Reader) *CharTokenize
 type CharTokenizerBase struct {
 	inner CharTokenizerInner
 
-	*analysis.BaseTokenizer
+	*BaseTokenizer
 
 	offset      int //
 	finalOffset int

@@ -1,13 +1,11 @@
-package core
+package analysis
 
 import (
 	"unicode"
-
-	"github.com/geange/lucene-go/analysis/common/analysis/util"
 )
 
 type WhitespaceTokenizer struct {
-	util.CharTokenizerBase
+	CharTokenizerBase
 }
 
 func (w *WhitespaceTokenizer) IsTokenChar(r rune) bool {

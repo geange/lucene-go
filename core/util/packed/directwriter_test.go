@@ -2,11 +2,13 @@ package packed
 
 import (
 	"encoding/binary"
-	"github.com/geange/lucene-go/core/store"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 func TestNewDirectWriter(t *testing.T) {
@@ -55,7 +57,7 @@ func testDirectRW(t *testing.T, numValues, bitsPerValue int) {
 	assert.Nil(t, err)
 
 	for i := 0; i < numValues; i++ {
-		v, err := reader.Get(int64(i))
+		v, err := reader.Get(i)
 		assert.Nil(t, err)
 		assert.EqualValues(t, expectValues[i], v)
 	}

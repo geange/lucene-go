@@ -163,7 +163,7 @@ func (s *FieldInfosFormat) Read(ctx context.Context, directory store.Directory, 
 		infos = append(infos, info)
 	}
 
-	if err := utils.CheckFooter(input); err != nil {
+	if err := utils.CheckSimpleTextFooter(input); err != nil {
 		return nil, err
 	}
 

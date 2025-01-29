@@ -57,7 +57,7 @@ func (s *TermVectorsReader) readIndex(size int) error {
 		}
 
 	}
-	return utils.CheckFooter(input)
+	return utils.CheckSimpleTextFooter(input)
 }
 
 func (s *TermVectorsReader) readLine() error {

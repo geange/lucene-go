@@ -13,23 +13,23 @@ func encodeFloat32(val float32, dst []byte, offset int) {
 	binary.BigEndian.PutUint32(dst[offset:], value)
 }
 
-func verifyAndEncodeFloat32(mins, maxs []float32, dst []byte) error {
-	for d, i, j := 0, 0, len(mins)*document.INTEGER_BYTES; d < len(mins); {
+func verifyAndEncodeFloat32(minNums, maxNums []float32, dst []byte) error {
+	for d, i, j := 0, 0, len(minNums)*document.INTEGER_BYTES; d < len(minNums); {
 
-		if IsNaN(mins[d]) {
+		if IsNaN(minNums[d]) {
 			return errors.New("invalid min value")
 		}
 
-		if IsNaN(maxs[d]) {
+		if IsNaN(maxNums[d]) {
 			return errors.New("invalid max value")
 		}
 
-		if mins[d] > maxs[d] {
+		if minNums[d] > maxNums[d] {
 			return errors.New("min value is greater than max value")
 		}
 
-		encodeFloat32(mins[d], dst, i)
-		encodeFloat32(maxs[d], dst, j)
+		encodeFloat32(minNums[d], dst, i)
+		encodeFloat32(maxNums[d], dst, j)
 
 		d++
 		i += document.INTEGER_BYTES

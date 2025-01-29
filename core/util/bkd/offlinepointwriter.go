@@ -3,6 +3,7 @@ package bkd
 import (
 	"context"
 	"errors"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -44,7 +45,7 @@ func (w *OfflinePointWriter) Close() error {
 		return nil
 	}
 
-	if err := utils.WriteFooter(w.out); err != nil {
+	if err := utils.WriteFooter(nil, w.out); err != nil {
 		return err
 	}
 

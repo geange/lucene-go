@@ -192,7 +192,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		indexSort = coreIndex.NewSort(sortField)
 	}
 
-	if err := utils.CheckFooter(input); err != nil {
+	if err := utils.CheckSimpleTextFooter(input); err != nil {
 		return nil, err
 	}
 

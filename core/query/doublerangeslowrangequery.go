@@ -13,19 +13,19 @@ type DoubleRangeSlowRangeQuery struct {
 	maxs  []float64
 }
 
-func NewDoubleRangeSlowRangeQuery(field string, mins, maxs []float64, queryType QueryType) (*DoubleRangeSlowRangeQuery, error) {
-	packedValues, err := encodeDoubleRanges(mins, maxs)
+func NewDoubleRangeSlowRangeQuery(field string, minNums, maxNums []float64, queryType QueryType) (*DoubleRangeSlowRangeQuery, error) {
+	packedValues, err := encodeDoubleRanges(minNums, maxNums)
 	if err != nil {
 		return nil, err
 	}
 
-	rangeQuery := NewBinaryRangeFieldRangeQuery(field, packedValues, document.DOUBLE_BYTES, len(mins), queryType)
+	rangeQuery := NewBinaryRangeFieldRangeQuery(field, packedValues, document.DOUBLE_BYTES, len(minNums), queryType)
 
 	return &DoubleRangeSlowRangeQuery{
 		BinaryRangeFieldRangeQuery: rangeQuery,
-		mins:                       mins,
+		mins:                       minNums,
 		field:                      field,
-		maxs:                       maxs,
+		maxs:                       maxNums,
 	}, nil
 }
 

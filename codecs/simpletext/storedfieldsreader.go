@@ -86,7 +86,7 @@ func (s *StoredFieldsReader) readIndex(size int) error {
 		}
 
 	}
-	return utils.CheckFooter(input)
+	return utils.CheckSimpleTextFooter(input)
 }
 
 func (s *StoredFieldsReader) Close() error {

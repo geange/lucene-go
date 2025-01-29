@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/codecs"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util/array"
 )
@@ -62,7 +63,7 @@ func NewFstV2(ctx context.Context, manager OutputManager, fstStore Store, metaIn
 
 	// NOTE: only reads formats VERSION_START up to VERSION_CURRENT; we don't have
 	// back-compat promise for FSTs (they are experimental), but we are sometimes able to offer it
-	if _, err := utils.CheckHeader(ctx, metaIn, FILE_FORMAT_NAME, VERSION_START, VERSION_CURRENT); err != nil {
+	if _, err := codecs.CheckHeader(ctx, metaIn, FILE_FORMAT_NAME, VERSION_START, VERSION_CURRENT); err != nil {
 		return nil, err
 	}
 
