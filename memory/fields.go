@@ -2,6 +2,7 @@ package memory
 
 import (
 	"bytes"
+	"iter"
 	"slices"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -23,6 +24,16 @@ func (r *Index) newFields(kv *treemap.Map[string, *info]) *Fields {
 
 func (m *Fields) Names() []string {
 	return m.fields.Keys()
+}
+
+func (m *Fields) Iterator() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, name := range m.fields.Keys() {
+			if !yield(name) {
+				return
+			}
+		}
+	}
 }
 
 func (m *Fields) Terms(field string) (index.Terms, error) {

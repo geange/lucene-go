@@ -10,11 +10,6 @@ import (
 
 var _ FieldsIndex = &FieldsIndexReader{}
 
-const (
-	VERSION_START   = 0
-	VERSION_CURRENT = 0
-)
-
 type FieldsIndexReader struct {
 	maxDoc                    int
 	blockShift                int
@@ -125,46 +120,86 @@ func NewFieldsIndexReader(ctx context.Context, dir store.Directory, name, suffix
 	}
 
 	return reader, nil
+}
 
-	//     indexInput = dir.openInput(IndexFileNames.segmentFileName(name, suffix, extension), IOContext.READ);
-	//    boolean success = false;
-	//    try {
-	//      CodecUtil.checkIndexHeader(indexInput, codecName + "Idx", VERSION_START, VERSION_CURRENT, id, suffix);
-	//      CodecUtil.retrieveChecksum(indexInput);
-	//      success = true;
-	//    } finally {
-	//      if (success == false) {
-	//        indexInput.close();
-	//      }
-	//    }
-	//    final RandomAccessInput docsSlice = indexInput.randomAccessSlice(docsStartPointer, docsEndPointer - docsStartPointer);
-	//    final RandomAccessInput startPointersSlice = indexInput.randomAccessSlice(startPointersStartPointer, startPointersEndPointer - startPointersStartPointer);
-	//    docs = DirectMonotonicReader.getInstance(docsMeta, docsSlice);
-	//    startPointers = DirectMonotonicReader.getInstance(startPointersMeta, startPointersSlice);
+func newFieldsIndexReader(other *FieldsIndexReader) (*FieldsIndexReader, error) {
+	maxDoc := other.maxDoc
+	numChunks := other.numChunks
+	blockShift := other.blockShift
+	docsMeta := other.docsMeta
+	startPointersMeta := other.startPointersMeta
+	indexInput := other.indexInput.Clone().(store.IndexInput)
+	docsStartPointer := other.docsStartPointer
+	docsEndPointer := other.docsEndPointer
+	startPointersStartPointer := other.startPointersStartPointer
+	startPointersEndPointer := other.startPointersEndPointer
+	maxPointer := other.maxPointer
+	docsSlice, err := indexInput.RandomAccessSlice(docsStartPointer,
+		docsEndPointer-docsStartPointer)
+	if err != nil {
+		return nil, err
+	}
+	startPointersSlice, err := indexInput.RandomAccessSlice(startPointersStartPointer,
+		startPointersEndPointer-startPointersStartPointer)
+	if err != nil {
+		return nil, err
+	}
+	docs, err := packed.DirectMonotonicReaderGetInstance(docsMeta, docsSlice)
+	if err != nil {
+		return nil, err
+	}
+	startPointers, err := packed.DirectMonotonicReaderGetInstance(startPointersMeta, startPointersSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FieldsIndexReader{
+		maxDoc:                    maxDoc,
+		blockShift:                blockShift,
+		numChunks:                 numChunks,
+		docsMeta:                  docsMeta,
+		startPointersMeta:         startPointersMeta,
+		indexInput:                indexInput,
+		docsStartPointer:          docsStartPointer,
+		docsEndPointer:            docsEndPointer,
+		startPointersStartPointer: startPointersStartPointer,
+		startPointersEndPointer:   startPointersEndPointer,
+		docs:                      docs,
+		startPointers:             startPointers,
+		maxPointer:                maxPointer,
+	}, nil
 }
 
 func (f *FieldsIndexReader) Close() error {
 	return f.indexInput.Close()
 }
 
-func (f *FieldsIndexReader) GetStartPointer(docID int) int64 {
+func (f *FieldsIndexReader) GetStartPointer(docID int) (int64, error) {
 	blockIndex, err := f.docs.BinarySearch(0, int64(f.numChunks), int64(docID))
 	if err != nil {
-		return -1
+		return 0, err
 	}
 	if blockIndex < 0 {
 		blockIndex = -2 - blockIndex
 	}
-	pointer, _ := f.startPointers.Get(int(blockIndex))
-	return pointer
+	pointer, err := f.startPointers.Get(int(blockIndex))
+	if err != nil {
+		return 0, err
+	}
+	return pointer, nil
 }
 
 func (f *FieldsIndexReader) CheckIntegrity() error {
-	//TODO implement me
-	panic("implement me")
+	if _, err := codecs.ChecksumEntireFile(context.Background(), f.indexInput); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (f *FieldsIndexReader) Clone() FieldsIndex {
-	//TODO implement me
-	panic("implement me")
+func (f *FieldsIndexReader) Clone() (FieldsIndex, error) {
+	return newFieldsIndexReader(f)
+}
+
+func (f *FieldsIndexReader) GetMaxPointer() int {
+	return int(f.maxPointer)
 }

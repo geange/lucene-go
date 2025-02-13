@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"iter"
 	"strings"
 
 	"github.com/geange/lucene-go/core/document"
@@ -37,6 +38,7 @@ func TermCompare(a, b Term) int {
 // internal/experimental API (see FieldsProducer), although it is also used to expose the set of term
 // vectors per document.
 type Fields interface {
+	Iterator() iter.Seq[string]
 
 	// DVFUIterator
 	// Returns an iterator that will step through all fields names. This will not return null.

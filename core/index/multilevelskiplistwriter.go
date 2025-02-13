@@ -73,7 +73,7 @@ type MultiLevelSkipListWriterContext struct {
 	NumberOfSkipLevels int
 	SkipInterval       int
 	SkipMultiplier     int
-	SkipBuffer         []*store.BufferOutput
+	SkipBuffer         []*store.BufferDataOutput
 }
 
 func NewMultiLevelSkipListWriterContext(skipInterval, skipMultiplier, maxSkipLevels, df int) *MultiLevelSkipListWriterContext {

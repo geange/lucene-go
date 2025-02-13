@@ -6,56 +6,56 @@ import (
 )
 
 var (
-	_ IndexOutput = &BufferOutput{}
+	_ IndexOutput = &BufferDataOutput{}
 )
 
-type BufferOutput struct {
+type BufferDataOutput struct {
 	*BaseDataOutput
 
 	buf *bytes.Buffer
 }
 
-func (b *BufferOutput) Close() error {
+func (b *BufferDataOutput) Close() error {
 	b.buf.Reset()
 	return nil
 }
 
-func (b *BufferOutput) GetName() string {
+func (b *BufferDataOutput) GetName() string {
 	return ""
 }
 
-func (b *BufferOutput) GetFilePointer() int64 {
+func (b *BufferDataOutput) GetFilePointer() int64 {
 	return int64(b.buf.Len())
 }
 
-func (b *BufferOutput) GetChecksum() (uint32, error) {
+func (b *BufferDataOutput) GetChecksum() (uint32, error) {
 	return 0, errors.New("todo")
 }
 
-func NewBufferDataOutput() *BufferOutput {
+func NewBufferDataOutput() *BufferDataOutput {
 	buf := new(bytes.Buffer)
-	return &BufferOutput{
+	return &BufferDataOutput{
 		BaseDataOutput: NewBaseDataOutput(buf),
 		buf:            buf,
 	}
 }
 
-func (b *BufferOutput) Write(p []byte) (n int, err error) {
+func (b *BufferDataOutput) Write(p []byte) (n int, err error) {
 	return b.writer.Write(p)
 }
 
-func (b *BufferOutput) CopyTo(output DataOutput) error {
+func (b *BufferDataOutput) CopyTo(output DataOutput) error {
 	if _, err := output.Write(b.buf.Bytes()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (b *BufferOutput) Bytes() []byte {
+func (b *BufferDataOutput) Bytes() []byte {
 	return b.buf.Bytes()
 }
 
-func (b *BufferOutput) Reset() {
+func (b *BufferDataOutput) Reset() {
 	b.buf.Reset()
 }
 

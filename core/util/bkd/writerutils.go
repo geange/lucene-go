@@ -43,7 +43,7 @@ func (w *Writer) packIndex(ctx context.Context, leafNodes LeafNodes) ([]byte, er
 }
 
 // Appends the current contents of writeBuffer as another block on the growing in-memory file
-func (w *Writer) appendBlock(writeBuffer *store.BufferOutput, blocks *linked.List[[]byte]) int {
+func (w *Writer) appendBlock(writeBuffer *store.BufferDataOutput, blocks *linked.List[[]byte]) int {
 	block := slices.Clone(writeBuffer.Bytes())
 	blocks.Add(block)
 	writeBuffer.Reset()
@@ -52,7 +52,7 @@ func (w *Writer) appendBlock(writeBuffer *store.BufferOutput, blocks *linked.Lis
 
 // lastSplitValues is per-dimension split value previously seen;
 // we use this to prefix-code the split byte[] on each inner node
-func (w *Writer) recursePackIndex(ctx context.Context, writeBuffer *store.BufferOutput, leafNodes LeafNodes, minBlockFP int64, blocks *linked.List[[]byte], lastSplitValues []byte, negativeDeltas []bool, isLeft bool, leavesOffset, numLeaves int) (int, error) {
+func (w *Writer) recursePackIndex(ctx context.Context, writeBuffer *store.BufferDataOutput, leafNodes LeafNodes, minBlockFP int64, blocks *linked.List[[]byte], lastSplitValues []byte, negativeDeltas []bool, isLeft bool, leavesOffset, numLeaves int) (int, error) {
 
 	config := w.config
 	if numLeaves == 1 {

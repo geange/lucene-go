@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"iter"
 	"slices"
 
 	"golang.org/x/exp/maps"
@@ -35,6 +36,16 @@ func NewFreqProxFields(fieldList []*FreqProxTermsWriterPerField) *FreqProxFields
 
 func (f *FreqProxFields) Names() []string {
 	return maps.Keys(f.fields)
+}
+
+func (f *FreqProxFields) Iterator() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, field := range f.fields {
+			if !yield(field.getFieldName()) {
+				return
+			}
+		}
+	}
 }
 
 func (f *FreqProxFields) Terms(field string) (index.Terms, error) {

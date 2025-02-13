@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"iter"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
@@ -25,6 +26,17 @@ func (d *DataFields) Names() []string {
 		values = append(values, field.fieldInfo.Name())
 	}
 	return values
+}
+
+func (d *DataFields) Iterator() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, field := range d.fields {
+			if !yield(field.fieldInfo.Name()) {
+				return
+			}
+		}
+	}
+
 }
 
 func (d *DataFields) Terms(field string) (index.Terms, error) {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"iter"
 	"strconv"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -34,21 +35,32 @@ func (s *FieldsReader) Names() []string {
 	return s.fields.Keys()
 }
 
+func (s *FieldsReader) Iterator() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range s.fields.Keys() {
+			if !yield(key) {
+				return
+			}
+		}
+	}
+}
+
 func (s *FieldsReader) Terms(field string) (index.Terms, error) {
 	v, ok := s.termsCache[field]
-	if !ok {
-		fp, ok := s.fields.Get(field)
-		if !ok {
-			return nil, nil
-		}
-		terms, err := s.newFieldsReaderTerm(context.Background(), field, fp, s.maxDoc)
-		if err != nil {
-			return nil, err
-		}
-		s.termsCache[field] = terms
-		return terms, nil
+	if ok {
+		return v, nil
 	}
-	return v, nil
+
+	fp, ok := s.fields.Get(field)
+	if !ok {
+		return nil, nil
+	}
+	terms, err := s.newFieldsReaderTerm(context.Background(), field, fp, s.maxDoc)
+	if err != nil {
+		return nil, err
+	}
+	s.termsCache[field] = terms
+	return terms, nil
 }
 
 func (s *FieldsReader) Size() int {

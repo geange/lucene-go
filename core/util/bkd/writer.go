@@ -75,7 +75,7 @@ type Writer struct {
 	maxDoc              int
 
 	// Reused when writing leaf blocks
-	scratchOut *store.BufferOutput
+	scratchOut *store.BufferDataOutput
 }
 
 func NewWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string,

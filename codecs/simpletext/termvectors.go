@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"iter"
 
 	"github.com/geange/gods-generic/maps/treemap"
 	coreIndex "github.com/geange/lucene-go/core/index"
@@ -212,6 +213,16 @@ type SimpleTVFields struct {
 
 func (s *SimpleTVFields) Names() []string {
 	return s.fields.Keys()
+}
+
+func (s *SimpleTVFields) Iterator() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range s.fields.Keys() {
+			if !yield(key) {
+				return
+			}
+		}
+	}
 }
 
 func (s *SimpleTVFields) Terms(field string) (index.Terms, error) {
