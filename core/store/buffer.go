@@ -59,6 +59,10 @@ func (b *BufferDataOutput) Reset() {
 	b.buf.Reset()
 }
 
+func (b *BufferDataOutput) Size() int {
+	return b.buf.Len()
+}
+
 var _ IndexInput = &BufferInput{}
 
 type BufferInput struct {

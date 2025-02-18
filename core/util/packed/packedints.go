@@ -266,7 +266,7 @@ func getMutable(valueCount, bitsPerValue int, format Format) Mutable {
 	}
 }
 
-func getWriterNoHeader(out store.DataOutput, format Format, valueCount, bitsPerValue, mem int) Writer {
+func GetWriterNoHeader(out store.DataOutput, format Format, valueCount, bitsPerValue, mem int) Writer {
 	return NewPackedWriter(format, out, valueCount, bitsPerValue, mem)
 }
 

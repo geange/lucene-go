@@ -31,6 +31,41 @@ type FieldsIndexWriter struct {
 	previousFP      int64
 }
 
+func NewFieldsIndexWriter(ctx context.Context, dir store.Directory, name, suffix, extension,
+	codecName string, id []byte, blockShift int, ioContext *store.IOContext) *FieldsIndexWriter {
+	docsOut, err := dir.CreateTempOutput(ctx, name, codecName+"-doc_ids")
+	if err != nil {
+		return nil
+	}
+
+	err = codecs.WriteHeader(ctx, docsOut, codecName+"Docs", VERSION_CURRENT)
+	if err != nil {
+		return nil
+	}
+
+	filePointersOut, err := dir.CreateTempOutput(ctx, name, codecName+"file_pointers")
+	if err != nil {
+		return nil
+	}
+	err = codecs.WriteHeader(ctx, filePointersOut, codecName+"FilePointers", VERSION_CURRENT)
+	if err != nil {
+		return nil
+	}
+
+	return &FieldsIndexWriter{
+		dir:             dir,
+		name:            name,
+		suffix:          suffix,
+		extension:       extension,
+		codecName:       codecName,
+		id:              id,
+		blockShift:      blockShift,
+		ioContext:       ioContext,
+		docsOut:         docsOut,
+		filePointersOut: filePointersOut,
+	}
+}
+
 func (f *FieldsIndexWriter) writeIndex(ctx context.Context, numDocs int, startPointer int64) error {
 	if err := f.docsOut.WriteUvarint(ctx, uint64(numDocs)); err != nil {
 		return err
