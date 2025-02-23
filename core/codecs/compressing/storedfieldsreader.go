@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"iter"
+	"slices"
 
 	"github.com/geange/lucene-go/core/codecs"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/packed"
 )
 
 var _ index.StoredFieldsReader = &StoredFieldsReader{}
@@ -249,7 +254,7 @@ func (s *StoredFieldsReader) Close() error {
 }
 
 func (s *StoredFieldsReader) VisitDocument(ctx context.Context, docID int, visitor document.StoredFieldVisitor) error {
-	doc, err := s.document(docID)
+	doc, err := s.document(ctx, docID)
 	if err != nil {
 		return err
 	}
@@ -310,7 +315,7 @@ func (s *StoredFieldsReader) GetMergeInstance() index.StoredFieldsReader {
 	return reader
 }
 
-func (s *StoredFieldsReader) document(docID int) (*SerializedDocument, error) {
+func (s *StoredFieldsReader) document(ctx context.Context, docID int) (*SerializedDocument, error) {
 	if s.state.contains(docID) == false {
 		startPointer, err := s.indexReader.GetStartPointer(docID)
 		if err != nil {
@@ -319,16 +324,18 @@ func (s *StoredFieldsReader) document(docID int) (*SerializedDocument, error) {
 		if _, err := s.fieldsStream.Seek(startPointer, 0); err != nil {
 			return nil, err
 		}
-		if err := s.state.reset(docID); err != nil {
+		if err := s.state.reset(ctx, docID); err != nil {
 			return nil, err
 		}
 	}
-	return s.state.document(docID)
+	return s.state.document(ctx, docID)
 }
 
 // BlockState
 // Keeps state about the current block of documents.
 type BlockState struct {
+	r *StoredFieldsReader
+
 	docBase         int
 	chunkDocs       int
 	sliced          bool
@@ -340,8 +347,88 @@ type BlockState struct {
 }
 
 // Get the serialized representation of the given docID. This docID has to be contained in the current block.
-func (s *BlockState) document(docID int) (*SerializedDocument, error) {
-	panic("")
+func (s *BlockState) document(ctx context.Context, docID int) (*SerializedDocument, error) {
+	if !s.contains(docID) {
+		return nil, errors.New("illegal argument exception")
+	}
+
+	idx := docID - s.docBase
+	offset := s.offsets[idx]
+	length := s.offsets[idx+1] - offset
+	//totalLength := s.offsets[s.chunkDocs]
+	numStoredFields := s.numStoredFields[idx]
+
+	var buf *bytes.Buffer
+	if s.r.merging {
+		buf = s.bytes
+	} else {
+		buf = new(bytes.Buffer)
+	}
+
+	var documentInput store.DataInput
+	if length == 0 {
+		documentInput = store.NewBytesDataInput(nil)
+	} else if s.r.merging {
+		documentInput = store.NewBytesDataInput(buf.Bytes())
+	} else if s.sliced {
+		if _, err := s.r.fieldsStream.Seek(int64(s.startPointer), 0); err != nil {
+			return nil, err
+		}
+		if err := s.r.decompressor.Decompress(ctx, s.r.fieldsStream, buf); err != nil {
+			return nil, err
+		}
+		documentInput = newSliceDataInput(buf, s.r.fieldsStream, s.r.decompressor)
+	} else {
+		if _, err := s.r.fieldsStream.Seek(int64(s.startPointer), 0); err != nil {
+			return nil, err
+		}
+		if err := s.r.decompressor.Decompress(ctx, s.r.fieldsStream, buf); err != nil {
+			return nil, err
+		}
+		documentInput = store.NewBytesDataInput(buf.Bytes())
+	}
+	return NewSerializedDocument(documentInput, length, numStoredFields), nil
+}
+
+var _ store.DataInput = &sliceDataInput{}
+
+type sliceDataInput struct {
+	*store.BaseDataInput
+
+	buf *bytes.Buffer
+
+	fieldsStream store.IndexInput
+	decompressor Decompressor
+}
+
+func newSliceDataInput(buf *bytes.Buffer, fieldsStream store.IndexInput, decompressor Decompressor) *sliceDataInput {
+	return &sliceDataInput{buf: buf, fieldsStream: fieldsStream, decompressor: decompressor}
+}
+
+func (s *sliceDataInput) fillBuffer() error {
+	return s.decompressor.Decompress(context.Background(), s.fieldsStream, s.buf)
+}
+
+func (s *sliceDataInput) ReadByte() (byte, error) {
+	if s.buf.Len() == 0 {
+		if err := s.fillBuffer(); err != nil {
+			return 0, err
+		}
+	}
+	return s.buf.ReadByte()
+}
+
+func (s *sliceDataInput) Read(p []byte) (n int, err error) {
+	if s.buf.Len() < len(p) {
+		if err := s.fillBuffer(); err != nil {
+			return 0, err
+		}
+	}
+	return s.buf.Read(p)
+}
+
+func (s *sliceDataInput) Clone() store.CloneReader {
+	return nil
 }
 
 func (s *BlockState) contains(docID int) bool {
@@ -349,12 +436,157 @@ func (s *BlockState) contains(docID int) bool {
 }
 
 // Reset this block so that it stores state for the block that contains the given doc id.
-func (s *BlockState) reset(docID int) error {
-	return s.doReset(docID)
+func (s *BlockState) reset(ctx context.Context, docID int) error {
+	return s.doReset(ctx, docID)
 }
 
-func (s *BlockState) doReset(docID int) error {
-	panic("")
+func (s *BlockState) doReset(ctx context.Context, docID int) error {
+	docBase, err := s.r.fieldsStream.ReadUvarint(ctx)
+	if err != nil {
+		return err
+	}
+	s.docBase = int(docBase)
+
+	token, err := s.r.fieldsStream.ReadUvarint(ctx)
+	if err != nil {
+		return err
+	}
+
+	chunkDocs := token >> 1
+	if s.r.version >= VERSION_NUM_CHUNKS {
+		chunkDocs = token >> 2
+	}
+	s.chunkDocs = int(chunkDocs)
+	if s.contains(docID) == false || s.docBase+s.chunkDocs > s.r.numDocs {
+		return fmt.Errorf("corrupted: docID=%d, docBase=%d, chunkDocs=%d, numDocs=%d",
+			docID, s.docBase, s.chunkDocs, s.r.numDocs)
+	}
+
+	s.sliced = (token & 1) != 0
+
+	s.offsets = slices.Grow(s.offsets, s.chunkDocs+1)
+	s.numStoredFields = slices.Grow(s.numStoredFields, s.chunkDocs)
+
+	decompressor := s.r.decompressor
+	fieldsStream := s.r.fieldsStream
+
+	if s.chunkDocs == 1 {
+		numStoredField, err := fieldsStream.ReadUvarint(ctx)
+		if err != nil {
+			return err
+		}
+		s.numStoredFields[0] = int(numStoredField)
+
+		offset, err := fieldsStream.ReadUvarint(ctx)
+		if err != nil {
+			return err
+		}
+		s.offsets[1] = int(offset)
+	} else {
+		// Number of stored fields per document
+		bitsPerStoredFields, err := fieldsStream.ReadUvarint(ctx)
+		if err != nil {
+			return err
+		}
+		if bitsPerStoredFields == 0 {
+			num, err := fieldsStream.ReadUvarint(ctx)
+			if err != nil {
+				return err
+			}
+			for i := 0; i < s.chunkDocs; i++ {
+				s.numStoredFields[i] = int(num)
+			}
+		} else if bitsPerStoredFields > 31 {
+			return fmt.Errorf("bitsPerStoredFields=%d", bitsPerStoredFields)
+		} else {
+			iterator, err := packed.NewPackedReaderIterator(fieldsStream, packed.FormatPacked,
+				s.chunkDocs, int(bitsPerStoredFields), 1024).Iterator()
+			if err != nil {
+				return err
+			}
+
+			next, stop := iter.Pull(iterator)
+			defer stop()
+
+			for i := 0; i < s.chunkDocs; i++ {
+				num, _ := next()
+				s.numStoredFields[i] = int(num)
+			}
+		}
+
+		// The stream encodes the length of each document and we decode
+		// it into a list of monotonically increasing offsets
+		bitsPerLength, err := fieldsStream.ReadUvarint(ctx)
+		if err != nil {
+			return err
+		}
+		if bitsPerLength == 0 {
+			length, err := fieldsStream.ReadUvarint(ctx)
+			if err != nil {
+				return err
+			}
+			for i := 0; i < s.chunkDocs; i++ {
+				s.offsets[i+1] = (1 + i) * int(length)
+			}
+		} else if bitsPerLength > 31 {
+			return fmt.Errorf("bitsPerLength=%d", bitsPerLength)
+		} else {
+			iterator, err := packed.NewPackedReaderIterator(fieldsStream, packed.FormatPacked,
+				s.chunkDocs, int(bitsPerStoredFields), 1024).Iterator()
+			if err != nil {
+				return err
+			}
+
+			next, stop := iter.Pull(iterator)
+			defer stop()
+
+			// TODO: 1 loop
+			for i := 0; i < s.chunkDocs; i++ {
+				num, _ := next()
+				s.offsets[i] = int(num)
+			}
+			for i := 0; i < s.chunkDocs; i++ {
+				s.offsets[i+1] += s.offsets[i]
+			}
+		}
+
+		// Additional validation: only the empty document has a serialized length of 0
+		for i := 0; i < s.chunkDocs; i++ {
+			size := s.offsets[i+1] - s.offsets[i]
+			storedFields := s.numStoredFields[i]
+			if (size == 0) != (storedFields == 0) {
+				return fmt.Errorf("length=%d, numStoredFields=%d", size, storedFields)
+			}
+		}
+	}
+
+	s.startPointer = int(s.r.fieldsStream.GetFilePointer())
+
+	if s.r.merging {
+		totalLength := s.offsets[s.chunkDocs]
+		// decompress eagerly
+		if s.sliced {
+			s.bytes.Reset()
+			for decompressed := 0; decompressed < totalLength; {
+				s.spare.Reset()
+				if err := decompressor.Decompress(ctx, fieldsStream, s.spare); err != nil {
+					return err
+				}
+				if _, err := io.Copy(s.bytes, s.spare); err != nil {
+					return err
+				}
+				decompressed += s.spare.Len()
+			}
+		} else {
+			if err := decompressor.Decompress(ctx, fieldsStream, s.bytes); err != nil {
+				return err
+			}
+		}
+		if s.bytes.Len() != totalLength {
+			return fmt.Errorf("corrupted: expected chunk size = %d, got %d", totalLength, s.bytes.Len())
+		}
+	}
+	return nil
 }
 
 func (s *StoredFieldsReader) newBlockState() *BlockState {

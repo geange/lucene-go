@@ -2,6 +2,7 @@ package packed
 
 import (
 	"errors"
+
 	"github.com/geange/lucene-go/core/util/packed/bulkoperation"
 	"github.com/geange/lucene-go/core/util/packed/common"
 )

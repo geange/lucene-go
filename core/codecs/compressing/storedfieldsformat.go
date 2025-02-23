@@ -27,6 +27,6 @@ func (s *StoredFieldsFormat) FieldsReader(ctx context.Context, directory store.D
 func (s *StoredFieldsFormat) FieldsWriter(ctx context.Context, directory store.Directory, si index.SegmentInfo,
 	ioContext *store.IOContext) (index.StoredFieldsWriter, error) {
 
-	return NewStoredFieldsWriter(directory, si, s.segmentSuffix, ioContext,
+	return NewStoredFieldsWriter(ctx, directory, si, s.segmentSuffix, ioContext,
 		s.formatName, s.compressionMode, s.chunkSize, s.maxDocsPerChunk, s.blockShift)
 }

@@ -23,13 +23,13 @@ type FieldsIndex interface {
 }
 
 type Compressor interface {
-	Compress(bytes []byte, out store.DataOutput) error
+	Compress(ctx context.Context, bytes []byte, out store.DataOutput) error
 }
 
 type Decompressor interface {
 	io.Closer
 
-	Decompress(ctx context.Context, in store.DataInput, originalLength int, buf *bytes.Buffer) error
+	Decompress(ctx context.Context, in store.DataInput, buf *bytes.Buffer) error
 
 	Clone() Decompressor
 }

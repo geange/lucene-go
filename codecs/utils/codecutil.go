@@ -45,7 +45,7 @@ const (
 
 func WriteIndexHeader(ctx context.Context, out store.DataOutput, codec string, version int, id []byte, suffix string) error {
 	if len(id) != ID_LENGTH {
-		return fmt.Errorf("Invalid id: " + base64.StdEncoding.EncodeToString(id))
+		return fmt.Errorf("invalid id: %s", base64.StdEncoding.EncodeToString(id))
 	}
 	if err := WriteHeader(ctx, out, codec, version); err != nil {
 		return err

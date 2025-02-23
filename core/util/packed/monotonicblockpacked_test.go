@@ -38,7 +38,7 @@ func TestMonotonicBlockPacked(t *testing.T) {
 
 		bs := output.Bytes()
 
-		input := store.NewBytesInput(bs)
+		input := store.NewBytesDataInput(bs)
 		reader, err := NewMonotonicBlockPackedReader(ctx, input, VERSION_CURRENT, 4096, valueCount, false)
 		assert.Nil(t, err)
 
@@ -79,7 +79,7 @@ func TestMonotonicBlockPacked(t *testing.T) {
 
 		bs := output.Bytes()
 
-		input := store.NewBytesInput(bs)
+		input := store.NewBytesDataInput(bs)
 		reader, err := NewMonotonicBlockPackedReader(ctx, input, VERSION_CURRENT, 4096, valueCount, true)
 		assert.Nil(t, err)
 

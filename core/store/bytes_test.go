@@ -7,7 +7,7 @@ import (
 )
 
 func TestBytesInput(t *testing.T) {
-	input := NewBytesInput([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	input := NewBytesDataInput([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 
 	v, err := input.ReadByte()
 	assert.Nil(t, err)

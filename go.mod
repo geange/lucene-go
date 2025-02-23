@@ -1,6 +1,6 @@
 module github.com/geange/lucene-go
 
-go 1.23.4
+go 1.24.0
 
 require (
 	github.com/bits-and-blooms/bitset v1.20.0

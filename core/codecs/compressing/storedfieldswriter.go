@@ -192,12 +192,12 @@ func (s *StoredFieldsWriter) flush(ctx context.Context, force bool) error {
 		// big chunk, slice it
 		for compressed := 0; compressed < len(content); compressed += s.chunkSize {
 			data := content[compressed:min(s.chunkSize, len(content)-compressed)]
-			if err := s.compressor.Compress(data, s.fieldsStream); err != nil {
+			if err := s.compressor.Compress(nil, data, s.fieldsStream); err != nil {
 				return err
 			}
 		}
 	} else {
-		if err := s.compressor.Compress(content, s.fieldsStream); err != nil {
+		if err := s.compressor.Compress(nil, content, s.fieldsStream); err != nil {
 			return err
 		}
 	}

@@ -5,17 +5,17 @@ import (
 	"io"
 )
 
-var _ IndexInput = &BytesInput{}
+var _ IndexInput = &BytesDataInput{}
 
-// BytesInput DataInput backed by a byte array. WARNING: This class omits all low-level checks.
-type BytesInput struct {
+// BytesDataInput DataInput backed by a byte array. WARNING: This class omits all low-level checks.
+type BytesDataInput struct {
 	*BaseDataInput
 
 	bs  []byte
 	pos int
 }
 
-func (b *BytesInput) Seek(offset int64, whence int) (int64, error) {
+func (b *BytesDataInput) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 		b.pos = int(offset)
@@ -27,26 +27,26 @@ func (b *BytesInput) Seek(offset int64, whence int) (int64, error) {
 	return int64(b.pos), nil
 }
 
-func (b *BytesInput) GetFilePointer() int64 {
+func (b *BytesDataInput) GetFilePointer() int64 {
 	return int64(b.pos)
 }
 
-func (b *BytesInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
+func (b *BytesDataInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
 	bs := b.bs[offset : offset+length]
-	return NewBytesInput(bs), nil
+	return NewBytesDataInput(bs), nil
 }
 
-func (b *BytesInput) Length() int64 {
+func (b *BytesDataInput) Length() int64 {
 	return int64(len(b.bs))
 }
 
-func (b *BytesInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
+func (b *BytesDataInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
 	bs := b.bs[offset : offset+length]
-	return &randomAccessIndexInput{in: NewBytesInput(bs)}, nil
+	return &randomAccessIndexInput{in: NewBytesDataInput(bs)}, nil
 }
 
-func NewBytesInput(bs []byte) *BytesInput {
-	input := &BytesInput{
+func NewBytesDataInput(bs []byte) *BytesDataInput {
+	input := &BytesDataInput{
 		bs:  bs,
 		pos: 0,
 	}
@@ -55,7 +55,7 @@ func NewBytesInput(bs []byte) *BytesInput {
 	return input
 }
 
-func (b *BytesInput) Read(p []byte) (n int, err error) {
+func (b *BytesDataInput) Read(p []byte) (n int, err error) {
 	less := len(b.bs) - b.pos
 
 	copySize := len(p)
@@ -69,8 +69,8 @@ func (b *BytesInput) Read(p []byte) (n int, err error) {
 	return copySize, nil
 }
 
-func (b *BytesInput) Clone() CloneReader {
-	input := &BytesInput{
+func (b *BytesDataInput) Clone() CloneReader {
+	input := &BytesDataInput{
 		bs:  b.bs,
 		pos: b.pos,
 	}
