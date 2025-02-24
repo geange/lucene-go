@@ -73,7 +73,7 @@ func NewFieldsIndexReader(ctx context.Context, dir store.Directory, name, suffix
 		return nil, err
 	}
 	if _, err := codecs.CheckIndexHeader(ctx, indexInput, codecName+"Idx",
-		VERSION_START, VERSION_CURRENT, id, suffix); err != nil {
+		FIELDS_VERSION_START, FIELDS_VERSION_CURRENT, id, suffix); err != nil {
 
 		return nil, err
 	}

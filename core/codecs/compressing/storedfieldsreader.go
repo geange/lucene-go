@@ -60,24 +60,24 @@ func NewStoredFieldsReader(ctx context.Context, d store.Directory, si index.Segm
 	if err != nil {
 		return nil, err
 	}
-	version, err := codecs.CheckIndexHeader(ctx, fieldsStream, formatName, VERSION_START, VERSION_CURRENT, si.GetID(), segmentSuffix)
+	version, err := codecs.CheckIndexHeader(ctx, fieldsStream, formatName, FIELDS_VERSION_START, FIELDS_VERSION_CURRENT, si.GetID(), segmentSuffix)
 	if err != nil {
 		return nil, err
 	}
 
 	var metaIn store.ChecksumIndexInput
-	if version >= VERSION_OFFHEAP_INDEX {
+	if version >= FIELDS_VERSION_OFFHEAP_INDEX {
 		metaStreamFN := store.SegmentFileName(segment, segmentSuffix, META_EXTENSION)
 		metaIn, err = store.OpenChecksumInput(ctx, d, metaStreamFN)
 		if err != nil {
 			return nil, err
 		}
-		_, err = codecs.CheckIndexHeader(ctx, metaIn, INDEX_CODEC_NAME+"Meta", META_VERSION_START, version, si.GetID(), segmentSuffix)
+		_, err = codecs.CheckIndexHeader(ctx, metaIn, INDEX_CODEC_NAME+"Meta", FIELDS_META_VERSION_START, version, si.GetID(), segmentSuffix)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if version >= VERSION_META {
+	if version >= FIELDS_VERSION_META {
 		chunkSize, err := metaIn.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
@@ -118,7 +118,7 @@ func NewStoredFieldsReader(ctx context.Context, d store.Directory, si index.Segm
 	maxPointer := int64(-1)
 	var indexReader FieldsIndex
 
-	if version < VERSION_OFFHEAP_INDEX {
+	if version < FIELDS_VERSION_OFFHEAP_INDEX {
 		// Load the index into memory
 		indexName := store.SegmentFileName(segment, segmentSuffix, "fdx")
 		indexStream, err := store.OpenChecksumInput(ctx, d, indexName)
@@ -127,7 +127,7 @@ func NewStoredFieldsReader(ctx context.Context, d store.Directory, si index.Segm
 		}
 
 		codecNameIdx := formatName[0:len(formatName)-len("Data")] + "Index"
-		version2, err := codecs.CheckIndexHeader(ctx, indexStream, codecNameIdx, VERSION_START, VERSION_CURRENT, si.GetID(), segmentSuffix)
+		version2, err := codecs.CheckIndexHeader(ctx, indexStream, codecNameIdx, FIELDS_VERSION_START, FIELDS_VERSION_CURRENT, si.GetID(), segmentSuffix)
 		if version != version2 {
 			return nil, errors.New("version mismatch between stored fields index and data")
 		}
@@ -156,7 +156,7 @@ func NewStoredFieldsReader(ctx context.Context, d store.Directory, si index.Segm
 	reader.maxPointer = maxPointer
 	reader.indexReader = indexReader
 
-	if version >= VERSION_NUM_CHUNKS {
+	if version >= FIELDS_VERSION_NUM_CHUNKS {
 		numChunks, err := metaIn.ReadUvarint(ctx)
 		if err != nil {
 			return nil, err
@@ -176,7 +176,7 @@ func NewStoredFieldsReader(ctx context.Context, d store.Directory, si index.Segm
 		reader.numDirtyDocs = int64(numDirtyDocs)
 
 	} else {
-		if version >= VERSION_META {
+		if version >= FIELDS_VERSION_META {
 			// consume dirty chunks/docs stats we wrote
 			if _, err := metaIn.ReadUvarint(ctx); err != nil {
 				return nil, err
@@ -453,7 +453,7 @@ func (s *BlockState) doReset(ctx context.Context, docID int) error {
 	}
 
 	chunkDocs := token >> 1
-	if s.r.version >= VERSION_NUM_CHUNKS {
+	if s.r.version >= FIELDS_VERSION_NUM_CHUNKS {
 		chunkDocs = token >> 2
 	}
 	s.chunkDocs = int(chunkDocs)

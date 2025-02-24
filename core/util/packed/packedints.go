@@ -401,6 +401,7 @@ func checkVersion(version int) error {
 	return nil
 }
 
+// GetReaderNoHeader
 // Expert: Restore a PackedInts.Reader from a stream without reading metadata at the beginning of the stream.
 // This method is useful to restore data from streams which have been created using
 // getWriterNoHeader(store.DataOutput, Format, int, int, int).
@@ -412,7 +413,7 @@ func checkVersion(version int) error {
 // bitsPerValue: the number of bits per value
 //
 // lucene.internal
-func getReaderNoHeader(ctx context.Context, in store.IndexInput, format Format, version, valueCount, bitsPerValue int) (Reader, error) {
+func GetReaderNoHeader(ctx context.Context, in store.IndexInput, format Format, version, valueCount, bitsPerValue int) (Reader, error) {
 	if err := checkVersion(version); err != nil {
 		return nil, err
 	}

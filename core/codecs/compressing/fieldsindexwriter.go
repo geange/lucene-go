@@ -38,7 +38,7 @@ func NewFieldsIndexWriter(ctx context.Context, dir store.Directory, name, suffix
 		return nil
 	}
 
-	err = codecs.WriteHeader(ctx, docsOut, codecName+"Docs", VERSION_CURRENT)
+	err = codecs.WriteHeader(ctx, docsOut, codecName+"Docs", FIELDS_VERSION_CURRENT)
 	if err != nil {
 		return nil
 	}
@@ -47,7 +47,7 @@ func NewFieldsIndexWriter(ctx context.Context, dir store.Directory, name, suffix
 	if err != nil {
 		return nil
 	}
-	err = codecs.WriteHeader(ctx, filePointersOut, codecName+"FilePointers", VERSION_CURRENT)
+	err = codecs.WriteHeader(ctx, filePointersOut, codecName+"FilePointers", FIELDS_VERSION_CURRENT)
 	if err != nil {
 		return nil
 	}
@@ -101,7 +101,7 @@ func (f *FieldsIndexWriter) finish(ctx context.Context, numDocs int, maxPointer 
 		return err
 	}
 
-	if err := codecs.WriteIndexHeader(ctx, dataOut, f.codecName+"Idx", VERSION_CURRENT, f.id, f.suffix); err != nil {
+	if err := codecs.WriteIndexHeader(ctx, dataOut, f.codecName+"Idx", FIELDS_VERSION_CURRENT, f.id, f.suffix); err != nil {
 		return err
 	}
 	if err := metaOut.WriteUint32(ctx, uint32(numDocs)); err != nil {
@@ -121,7 +121,7 @@ func (f *FieldsIndexWriter) finish(ctx context.Context, numDocs int, maxPointer 
 	if err != nil {
 		return err
 	}
-	if _, err := codecs.CheckHeader(ctx, docsIn, f.codecName+"Docs", VERSION_CURRENT, VERSION_CURRENT); err != nil {
+	if _, err := codecs.CheckHeader(ctx, docsIn, f.codecName+"Docs", FIELDS_VERSION_CURRENT, FIELDS_VERSION_CURRENT); err != nil {
 		return err
 	}
 
@@ -167,7 +167,7 @@ func (f *FieldsIndexWriter) finish(ctx context.Context, numDocs int, maxPointer 
 		return err
 	}
 	if _, err := codecs.CheckHeader(ctx, filePointersIn,
-		f.codecName+"FilePointers", VERSION_CURRENT, VERSION_CURRENT); err != nil {
+		f.codecName+"FilePointers", FIELDS_VERSION_CURRENT, FIELDS_VERSION_CURRENT); err != nil {
 		return err
 	}
 	filePointers, err := packed.DirectMonotonicWriterGetInstance(metaOut, dataOut, int64(f.totalChunks+1), f.blockShift)
