@@ -29,14 +29,14 @@ func newAbstractBlockPackedWriter(out store.DataOutput, blockSize int) *abstract
 	writer := &abstractBlockPackedWriter{
 		finished: new(atomic.Bool),
 	}
-	writer.reset(out)
+	writer.Reset(out)
 	writer.values = make([]uint64, blockSize)
 
 	return writer
 }
 
 // Reset this writer to wrap out. The block size remains unchanged.
-func (a *abstractBlockPackedWriter) reset(out store.DataOutput) {
+func (a *abstractBlockPackedWriter) Reset(out store.DataOutput) {
 	a.out = out
 	a.off = 0
 	a.ord = 0

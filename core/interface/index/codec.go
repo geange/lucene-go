@@ -393,6 +393,14 @@ type TermVectorsWriter interface {
 	// Note that this is intentionally redundant (equivalent to the number of calls to startDocument(int),
 	// but a Codec should check that this is the case to detect the JRE bug described in LUCENE-1282.
 	Finish(ctx context.Context, fieldInfos FieldInfos, numDocs int) error
+
+	// AddProx
+	// Called by IndexWriter when writing new segments.
+	// This is an expert API that allows the codec to consume positions and offsets directly from the indexer.
+	// The default implementation calls addPosition(int, int, int, BytesRef), but subclasses can override this
+	// if they want to efficiently write all the positions, then all the offsets, for example.
+	// NOTE: This API is extremely expert and subject to change or removal!!!
+	AddProx(numProx int, positions, offsets store.DataInput) error
 }
 
 type FieldsConsumer interface {
