@@ -72,6 +72,65 @@ type TermVectorsWriter struct {
 	maxDocsPerChunk   int // hard limit on number of docs per chunk
 }
 
+func NewTermVectorsWriter(ctx context.Context, directory store.Directory, si index.SegmentInfo,
+	segmentSuffix string, ioContext *store.IOContext, formatName string, compressionMode CompressionMode,
+	chunkSize, maxDocsPerChunk, blockShift int) (*TermVectorsWriter, error) {
+
+	writer := &TermVectorsWriter{
+		segment:         si.Name(),
+		compressionMode: compressionMode,
+		compressor:      compressionMode.NewCompressor(),
+		chunkSize:       chunkSize,
+		maxDocsPerChunk: maxDocsPerChunk,
+		numDocs:         0,
+		pendingDocs:     NewDeque[*DocData](),
+		termSuffixes:    new(bytes.Buffer),
+		payloadBytes:    new(bytes.Buffer),
+		lastTerm:        new(bytes.Buffer),
+
+		positionsBuf:      make([]int, 1024),
+		startOffsetsBuf:   make([]int, 1024),
+		lengthsBuf:        make([]int, 1024),
+		payloadLengthsBuf: make([]int, 1024),
+	}
+
+	metaStream, err := directory.CreateOutput(ctx,
+		store.SegmentFileName(writer.segment, segmentSuffix, VECTORS_META_EXTENSION))
+	if err != nil {
+		return nil, err
+	}
+	if err := codecs.WriteIndexHeader(ctx, metaStream, VECTORS_INDEX_CODEC_NAME+"Meta",
+		VECTORS_VERSION_CURRENT, si.GetID(), segmentSuffix); err != nil {
+		return nil, err
+	}
+	writer.metaStream = metaStream
+
+	vectorsStream, err := directory.CreateOutput(ctx,
+		store.SegmentFileName(writer.segment, segmentSuffix, VECTORS_EXTENSION))
+	if err != nil {
+		return nil, err
+	}
+	if err := codecs.WriteIndexHeader(ctx, vectorsStream, formatName,
+		VECTORS_VERSION_CURRENT, si.GetID(), segmentSuffix); err != nil {
+		return nil, err
+	}
+	writer.vectorsStream = vectorsStream
+
+	indexWriter := NewFieldsIndexWriter(ctx, directory, writer.segment, segmentSuffix,
+		VECTORS_INDEX_EXTENSION, VECTORS_INDEX_CODEC_NAME, si.GetID(), blockShift, ioContext)
+	writer.indexWriter = indexWriter
+
+	if err := writer.metaStream.WriteUvarint(ctx, packed.VERSION_CURRENT); err != nil {
+		return nil, err
+	}
+	if err := writer.metaStream.WriteUvarint(ctx, uint64(chunkSize)); err != nil {
+		return nil, err
+	}
+	writer.writer = packed.NewBlockPackedWriter(vectorsStream, VECTORS_PACKED_BLOCK_SIZE)
+
+	return writer, nil
+}
+
 func (t *TermVectorsWriter) Close() error {
 	if err := t.metaStream.Close(); err != nil {
 		return err
