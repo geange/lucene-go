@@ -165,12 +165,24 @@ func (t *TermVectorsWriter) Finish(ctx context.Context, fieldInfos index.FieldIn
 		return fmt.Errorf("wrote %d docs, finish called with numDocs=%d", t.numDocs, numDocs)
 	}
 
-	t.indexWriter.finish(ctx, numDocs, t.vectorsStream.GetFilePointer(), t.metaStream)
-	t.metaStream.WriteUvarint(ctx, uint64(t.numChunks))
-	t.metaStream.WriteUvarint(ctx, uint64(t.numDirtyChunks))
-	t.metaStream.WriteUvarint(ctx, uint64(t.numDirtyDocs))
-	codecs.WriteFooter(ctx, t.metaStream)
-	codecs.WriteFooter(ctx, t.vectorsStream)
+	if err := t.indexWriter.finish(ctx, numDocs, t.vectorsStream.GetFilePointer(), t.metaStream); err != nil {
+		return err
+	}
+	if err := t.metaStream.WriteUvarint(ctx, uint64(t.numChunks)); err != nil {
+		return err
+	}
+	if err := t.metaStream.WriteUvarint(ctx, uint64(t.numDirtyChunks)); err != nil {
+		return err
+	}
+	if err := t.metaStream.WriteUvarint(ctx, uint64(t.numDirtyDocs)); err != nil {
+		return err
+	}
+	if err := codecs.WriteFooter(ctx, t.metaStream); err != nil {
+		return err
+	}
+	if err := codecs.WriteFooter(ctx, t.vectorsStream); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -193,8 +205,12 @@ func (t *TermVectorsWriter) flush(ctx context.Context) error {
 	}
 
 	docBase := t.numDocs - chunkDocs
-	t.vectorsStream.WriteUvarint(ctx, uint64(docBase))
-	t.vectorsStream.WriteUvarint(ctx, uint64(chunkDocs))
+	if err := t.vectorsStream.WriteUvarint(ctx, uint64(docBase)); err != nil {
+		return err
+	}
+	if err := t.vectorsStream.WriteUvarint(ctx, uint64(chunkDocs)); err != nil {
+		return err
+	}
 
 	// total number of fields of the chunk
 	totalFields, err := t.flushNumFieldsWithChunkDocs(ctx, chunkDocs)
@@ -209,24 +225,42 @@ func (t *TermVectorsWriter) flush(ctx context.Context) error {
 			return err
 		}
 		// offsets in the array of unique field numbers
-		t.flushFields(totalFields, fieldNums)
+		if err := t.flushFields(totalFields, fieldNums); err != nil {
+			return err
+		}
 		// flags (does the field have positions, offsets, payloads?)
-		t.flushFlags(ctx, totalFields, fieldNums)
+		if err := t.flushFlags(ctx, totalFields, fieldNums); err != nil {
+			return err
+		}
 		// number of terms of each field
-		t.flushNumTerms(ctx, totalFields)
+		if err := t.flushNumTerms(ctx, totalFields); err != nil {
+			return err
+		}
 		// prefix and suffix lengths for each field
-		t.flushTermLengths(ctx)
+		if err := t.flushTermLengths(ctx); err != nil {
+			return err
+		}
 		// term freqs - 1 (because termFreq is always >=1) for each term
-		t.flushTermFreqs(ctx)
+		if err := t.flushTermFreqs(ctx); err != nil {
+			return err
+		}
 		// positions for all terms, when enabled
-		t.flushPositions(ctx)
+		if err := t.flushPositions(ctx); err != nil {
+			return err
+		}
 		// offsets for all terms, when enabled
-		t.flushOffsets(ctx, fieldNums)
+		if err := t.flushOffsets(ctx, fieldNums); err != nil {
+			return err
+		}
 		// payload lengths for all terms, when enabled
-		t.flushPayloadLengths(ctx)
+		if err := t.flushPayloadLengths(ctx); err != nil {
+			return err
+		}
 
 		// compress terms and payloads and write them to the output
-		t.compressor.Compress(ctx, t.termSuffixes.Bytes(), t.vectorsStream)
+		if err := t.compressor.Compress(ctx, t.termSuffixes.Bytes(), t.vectorsStream); err != nil {
+			return err
+		}
 	}
 
 	// reset
@@ -345,20 +379,28 @@ OUTER:
 
 	if nonChangingFlags {
 		// write one flag per field num
-		t.vectorsStream.WriteUvarint(ctx, 0)
+		if err := t.vectorsStream.WriteUvarint(ctx, 0); err != nil {
+			return err
+		}
 		writer := packed.GetWriterNoHeader(t.vectorsStream, packed.FormatPacked, len(fieldFlags), VECTORS_FLAGS_BITS, 1)
 		for _, flags := range fieldFlags {
-			writer.Add(uint64(flags))
+			if err := writer.Add(uint64(flags)); err != nil {
+				return err
+			}
 		}
 		return writer.Finish()
 	}
 
 	// write one flag for every field instance
-	t.vectorsStream.WriteUvarint(ctx, 1)
+	if err := t.vectorsStream.WriteUvarint(ctx, 1); err != nil {
+		return err
+	}
 	writer := packed.GetWriterNoHeader(t.vectorsStream, packed.FormatPacked, totalFields, VECTORS_FLAGS_BITS, 1)
 	for dd := range t.pendingDocs.Iterator() {
 		for fd := range dd.fields.Iterator() {
-			writer.Add(uint64(fd.flags))
+			if err := writer.Add(uint64(fd.flags)); err != nil {
+				return err
+			}
 		}
 	}
 	return writer.Finish()
