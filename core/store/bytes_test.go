@@ -7,7 +7,7 @@ import (
 )
 
 func TestBytesInput(t *testing.T) {
-	input := NewBytesDataInput([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	input := NewByteArrayDataInput([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 
 	v, err := input.ReadByte()
 	assert.Nil(t, err)
@@ -21,7 +21,7 @@ func TestBytesInput(t *testing.T) {
 
 func TestBytesOutput(t *testing.T) {
 	bs := make([]byte, 10)
-	output := NewBytesDataOutput(bs)
+	output := NewByteArrayDataOutput(bs)
 	n, err := output.Write([]byte("ab"))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, n)
@@ -41,7 +41,7 @@ func TestBytesOutput(t *testing.T) {
 
 func TestBytesOutputReset(t *testing.T) {
 	bs := make([]byte, 10)
-	output := NewBytesDataOutput(bs)
+	output := NewByteArrayDataOutput(bs)
 	n, err := output.Write([]byte("ab"))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, n)

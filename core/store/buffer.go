@@ -63,47 +63,47 @@ func (b *BufferDataOutput) Size() int {
 	return b.buf.Len()
 }
 
-var _ IndexInput = &BufferInput{}
+var _ IndexInput = &BufferDataInput{}
 
-type BufferInput struct {
+type BufferDataInput struct {
 	*BaseDataInput
 
 	buf *bytes.Buffer
 }
 
-func (b *BufferInput) Seek(offset int64, whence int) (int64, error) {
+func (b *BufferDataInput) Seek(offset int64, whence int) (int64, error) {
 	return -1, errors.New("unsupported func")
 }
 
-func (b *BufferInput) GetFilePointer() int64 {
+func (b *BufferDataInput) GetFilePointer() int64 {
 	return int64(b.buf.Len())
 }
 
-func (b *BufferInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
+func (b *BufferDataInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
 	return nil, errors.New("unsupported func")
 }
 
-func (b *BufferInput) Length() int64 {
+func (b *BufferDataInput) Length() int64 {
 	return int64(b.buf.Len())
 }
 
-func (b *BufferInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
+func (b *BufferDataInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
 	return nil, errors.New("unsupported RandomAccessSlice")
 }
 
-func NewBufferDataInput(buf *bytes.Buffer) *BufferInput {
-	input := &BufferInput{
+func NewBufferDataInput(buf *bytes.Buffer) *BufferDataInput {
+	input := &BufferDataInput{
 		buf: buf,
 	}
 	input.BaseDataInput = NewBaseDataInput(input)
 	return input
 }
 
-func (b *BufferInput) Read(p []byte) (n int, err error) {
+func (b *BufferDataInput) Read(p []byte) (n int, err error) {
 	return b.buf.Read(p)
 }
 
-func (b *BufferInput) Clone() CloneReader {
+func (b *BufferDataInput) Clone() CloneReader {
 	newBuf := new(bytes.Buffer)
 	newBuf.Write(b.buf.Bytes())
 	return NewBufferDataInput(newBuf)
