@@ -15,7 +15,8 @@ type PackedReaderIterator struct {
 	mem          int
 }
 
-func NewPackedReaderIterator(in store.DataInput, format Format, valueCount int, bitsPerValue int, mem int) *PackedReaderIterator {
+func NewPackedReaderIterator(in store.DataInput, format Format,
+	valueCount int, bitsPerValue int, mem int) *PackedReaderIterator {
 	return &PackedReaderIterator{in: in, format: format, valueCount: valueCount, bitsPerValue: bitsPerValue, mem: mem}
 }
 

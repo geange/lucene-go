@@ -24,7 +24,7 @@ func TestRWZFloat(t *testing.T) {
 	}
 	bs := out.Bytes()
 
-	in := store.NewBytesDataInput(bs)
+	in := store.NewByteArrayDataInput(bs)
 
 	for _, num := range nums {
 		actNum, err := ReadZFloat(context.Background(), in)
@@ -52,7 +52,7 @@ func TestRWZDouble(t *testing.T) {
 	}
 	bs := out.Bytes()
 
-	in := store.NewBytesDataInput(bs)
+	in := store.NewByteArrayDataInput(bs)
 
 	for _, num := range nums {
 		actNum, err := ReadZDouble(context.Background(), in)
@@ -78,7 +78,7 @@ func TestRWTLong(t *testing.T) {
 	}
 	bs := out.Bytes()
 
-	in := store.NewBytesDataInput(bs)
+	in := store.NewByteArrayDataInput(bs)
 
 	for _, num := range nums {
 		actNum, err := ReadTLong(context.Background(), in)

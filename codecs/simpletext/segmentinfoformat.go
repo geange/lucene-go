@@ -179,7 +179,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		if err != nil {
 			return nil, err
 		}
-		output := store.NewBytesDataInput(toBytes)
+		output := store.NewByteArrayDataInput(toBytes)
 		field, err := coreIndex.GetSortFieldProviderByName(provider).ReadSortField(nil, output)
 		if err != nil {
 			return nil, err

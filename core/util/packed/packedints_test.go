@@ -80,7 +80,7 @@ func TestEndPointer(t *testing.T) {
 
 	formats := []Format{FormatPacked, FormatPackedSingleBlock}
 
-	in := store.NewBytesDataInput(out.Bytes())
+	in := store.NewByteArrayDataInput(out.Bytes())
 
 	for version := VERSION_START; version <= VERSION_CURRENT; version++ {
 		for bpv := 11; bpv <= 64; bpv++ {

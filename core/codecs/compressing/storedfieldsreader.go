@@ -367,9 +367,9 @@ func (s *BlockState) document(ctx context.Context, docID int) (*SerializedDocume
 
 	var documentInput store.DataInput
 	if length == 0 {
-		documentInput = store.NewBytesDataInput(nil)
+		documentInput = store.NewByteArrayDataInput(nil)
 	} else if s.r.merging {
-		documentInput = store.NewBytesDataInput(buf.Bytes())
+		documentInput = store.NewByteArrayDataInput(buf.Bytes())
 	} else if s.sliced {
 		if _, err := s.r.fieldsStream.Seek(int64(s.startPointer), 0); err != nil {
 			return nil, err
@@ -385,7 +385,7 @@ func (s *BlockState) document(ctx context.Context, docID int) (*SerializedDocume
 		if err := s.r.decompressor.Decompress(ctx, s.r.fieldsStream, buf); err != nil {
 			return nil, err
 		}
-		documentInput = store.NewBytesDataInput(buf.Bytes())
+		documentInput = store.NewByteArrayDataInput(buf.Bytes())
 	}
 	return NewSerializedDocument(documentInput, length, numStoredFields), nil
 }

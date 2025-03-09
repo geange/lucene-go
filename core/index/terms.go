@@ -14,9 +14,7 @@ type TermsSPI interface {
 }
 
 type BaseTerms struct {
-	spi      TermsSPI
-	Iterator func() (index.TermsEnum, error)
-	Size     func() (int, error)
+	spi TermsSPI
 }
 
 func NewTerms(spi TermsSPI) *BaseTerms {
@@ -51,7 +49,7 @@ func (t *BaseTerms) Intersect(compiled *automaton.CompiledAutomaton, startTerm [
 }
 
 func (t *BaseTerms) GetMin() ([]byte, error) {
-	iterator, err := t.Iterator()
+	iterator, err := t.spi.Iterator()
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +57,7 @@ func (t *BaseTerms) GetMin() ([]byte, error) {
 }
 
 func (t *BaseTerms) GetMax() ([]byte, error) {
-	size, err := t.Size()
+	size, err := t.spi.Size()
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +65,7 @@ func (t *BaseTerms) GetMax() ([]byte, error) {
 	if size == 0 {
 		return nil, nil
 	} else if size >= 0 {
-		iterator, err := t.Iterator()
+		iterator, err := t.spi.Iterator()
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +76,7 @@ func (t *BaseTerms) GetMax() ([]byte, error) {
 	}
 
 	// otherwise: binary search
-	iterator, err := t.Iterator()
+	iterator, err := t.spi.Iterator()
 	if err != nil {
 		return nil, err
 	}

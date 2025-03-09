@@ -232,6 +232,10 @@ func getMutableV1(valueCount, bitsPerValue int, acceptableOverheadRatio float64)
 	return getMutable(valueCount, bitsPerValue, formatAndBits.format)
 }
 
+func GetMutable(valueCount, bitsPerValue int, acceptableOverheadRatio float64) Mutable {
+	return getMutableV1(valueCount, bitsPerValue, acceptableOverheadRatio)
+}
+
 // Same as getMutable(int, int, float) with a pre-computed number of bits per value and intsFormat.
 // lucene.internal
 func getMutable(valueCount, bitsPerValue int, format Format) Mutable {
