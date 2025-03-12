@@ -13,4 +13,6 @@ type Bits interface {
 	// Len
 	// Returns the number of bits in this set
 	Len() uint
+
+	Words() []uint64
 }

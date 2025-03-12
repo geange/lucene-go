@@ -70,6 +70,190 @@ func _newTermVectorsReader(reader *TermVectorsReader) (*TermVectorsReader, error
 	}, nil
 }
 
+func NewTermVectorsReader(ctx context.Context, d store.Directory, si index.SegmentInfo, segmentSuffix string, fn index.FieldInfos,
+	context *store.IOContext, formatName string, compressionMode CompressionMode) (*TermVectorsReader, error) {
+
+	maxDoc, err := si.MaxDoc()
+	if err != nil {
+		return nil, err
+	}
+	reader := &TermVectorsReader{
+		compressionMode: compressionMode,
+		fieldInfos:      fn,
+		numDocs:         maxDoc,
+	}
+
+	segment := si.Name()
+
+	// Open the data file
+	vectorsStreamFN := store.SegmentFileName(segment, segmentSuffix, VECTORS_EXTENSION)
+	vectorsStream, err := d.OpenInput(ctx, vectorsStreamFN)
+	if err != nil {
+		return nil, err
+	}
+	reader.vectorsStream = vectorsStream
+
+	version, err := codecs.CheckIndexHeader(ctx, vectorsStream, formatName, VECTORS_VERSION_START, VECTORS_VERSION_CURRENT, si.GetID(), segmentSuffix)
+	if err != nil {
+		return nil, err
+	}
+	reader.version = version
+
+	var metaIn store.ChecksumIndexInput
+	if version >= VECTORS_VERSION_OFFHEAP_INDEX {
+		metaStreamFN := store.SegmentFileName(segment, segmentSuffix, VECTORS_META_EXTENSION)
+		metaIn, err = store.OpenChecksumInput(ctx, d, metaStreamFN)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := codecs.CheckIndexHeader(ctx, metaIn, VECTORS_INDEX_CODEC_NAME+"Meta", VECTORS_META_VERSION_START,
+			version, si.GetID(), segmentSuffix); err != nil {
+			return nil, err
+		}
+	}
+
+	if version >= VECTORS_VERSION_META {
+		packedIntsVersion, err := metaIn.ReadUvarint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		reader.packedIntsVersion = int(packedIntsVersion)
+
+		chunkSize, err := metaIn.ReadUvarint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		reader.chunkSize = int(chunkSize)
+	} else {
+		packedIntsVersion, err := vectorsStream.ReadUvarint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		reader.packedIntsVersion = int(packedIntsVersion)
+
+		chunkSize, err := vectorsStream.ReadUvarint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		reader.chunkSize = int(chunkSize)
+	}
+
+	// NOTE: data file is too costly to verify checksum against all the bytes on open,
+	// but for now we at least verify proper structure of the checksum footer: which looks
+	// for FOOTER_MAGIC + algorithmID. This is cheap and can detect some forms of corruption
+	// such as file truncation.
+	if _, err := codecs.RetrieveChecksum(ctx, vectorsStream); err != nil {
+		return nil, err
+	}
+
+	var indexReader FieldsIndex
+	maxPointer := -1
+	if version < VECTORS_VERSION_OFFHEAP_INDEX {
+		// Load the index into memory
+		indexName := store.SegmentFileName(segment, segmentSuffix, "tvx")
+		indexStream, err := store.OpenChecksumInput(ctx, d, indexName)
+		if err != nil {
+			return nil, err
+		}
+		codecNameIdx := formatName[:len(formatName)-len("Data")] + "Index"
+		version2, err := codecs.CheckIndexHeader(ctx, indexStream, codecNameIdx,
+			VECTORS_VERSION_START, VECTORS_VERSION_CURRENT, si.GetID(), segmentSuffix)
+		if err != nil {
+			return nil, err
+		}
+		if version != version2 {
+			return nil, errors.New("version mismatch between stored fields index and data")
+		}
+
+		indexReader, err = NewLegacyFieldsIndexReader(ctx, indexStream, si)
+		if err != nil {
+			return nil, err
+		}
+
+		maxPointerUint, err := indexStream.ReadUvarint(ctx) // the end of the data section
+		if err != nil {
+			return nil, err
+		}
+		maxPointer = int(maxPointerUint)
+
+		if _, err := codecs.CheckFooter(ctx, indexStream); err != nil {
+			return nil, err
+		}
+	} else {
+		fieldsIndexReader, err := NewFieldsIndexReader(ctx, d, si.Name(), segmentSuffix,
+			VECTORS_INDEX_EXTENSION, VECTORS_INDEX_CODEC_NAME, si.GetID(), metaIn)
+		if err != nil {
+			return nil, err
+		}
+		indexReader = fieldsIndexReader
+		maxPointer = fieldsIndexReader.GetMaxPointer()
+	}
+
+	reader.indexReader = indexReader
+	reader.maxPointer = maxPointer
+
+	if version >= VECTORS_VERSION_NUMCHUNKS {
+		numChunks, err := metaIn.ReadUvarint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		reader.numChunks = int(numChunks)
+
+		numDirtyChunks, err := metaIn.ReadUvarint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		reader.numDirtyChunks = int(numDirtyChunks)
+
+		numDirtyDocs, err := metaIn.ReadUvarint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		reader.numDirtyDocs = int(numDirtyDocs)
+	} else {
+		if version >= VECTORS_VERSION_META {
+			// consume dirty chunks/docs stats we wrote
+			if _, err := metaIn.ReadUvarint(ctx); err != nil {
+				return nil, err
+			}
+			if _, err := metaIn.ReadUvarint(ctx); err != nil {
+				return nil, err
+			}
+		}
+		// Old versions of this format did not record these. Since bulk
+		// merges are disabled on version increments anyway, we make no effort
+		// to get valid values for these stats.
+		reader.numChunks = -1
+		reader.numDirtyChunks = -1
+		reader.numDirtyDocs = -1
+	}
+
+	if reader.numChunks < reader.numDirtyChunks {
+		return nil, errors.New("cannot have more dirty chunks than chunks")
+	}
+	if (reader.numDirtyChunks == 0) != (reader.numDirtyDocs == 0) {
+		return nil, errors.New("cannot have dirty chunks without dirty docs or vice-versa")
+	}
+	if reader.numDirtyDocs < reader.numDirtyChunks {
+		return nil, errors.New("cannot have more dirty chunks than documents within dirty chunks")
+	}
+
+	reader.decompressor = compressionMode.NewDecompressor()
+	reader.reader = packed.NewBlockPackedReaderIterator(vectorsStream,
+		reader.packedIntsVersion, VECTORS_PACKED_BLOCK_SIZE, 0)
+
+	if metaIn != nil {
+		if _, err := codecs.CheckFooter(ctx, metaIn); err != nil {
+			return nil, err
+		}
+		if err := metaIn.Close(); err != nil {
+			return nil, err
+		}
+	}
+
+	return reader, nil
+}
+
 func (t *TermVectorsReader) Close() error {
 	t.closed = true
 	return nil

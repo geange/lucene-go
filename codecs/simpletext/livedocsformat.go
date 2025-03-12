@@ -128,16 +128,13 @@ func (s *LiveDocsFormat) Files(ctx context.Context, info index.SegmentCommitInfo
 var _ util.Bits = &simpleTextBits{}
 
 type simpleTextBits struct {
-	bits *bitset.BitSet
+	*bitset.BitSet
+
 	size int
 }
 
 func newSimpleTextBits(bits *bitset.BitSet, size int) *simpleTextBits {
-	return &simpleTextBits{bits: bits, size: size}
-}
-
-func (s *simpleTextBits) Test(index uint) bool {
-	return s.bits.Test(uint(index))
+	return &simpleTextBits{BitSet: bits, size: size}
 }
 
 func (s *simpleTextBits) Len() uint {

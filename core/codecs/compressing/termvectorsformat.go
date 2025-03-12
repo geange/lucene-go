@@ -23,12 +23,15 @@ func NewTermVectorsFormat(formatName, segmentSuffix string, compressionMode Comp
 	return &TermVectorsFormat{formatName: formatName, segmentSuffix: segmentSuffix, compressionMode: compressionMode, chunkSize: chunkSize, blockSize: blockSize, maxDocsPerChunk: maxDocsPerChunk}
 }
 
-func (f *TermVectorsFormat) VectorsReader(ctx context.Context, directory store.Directory, segmentInfo index.SegmentInfo, fieldInfos index.FieldInfos, ioContext *store.IOContext) (index.TermVectorsReader, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *TermVectorsFormat) VectorsReader(ctx context.Context, directory store.Directory,
+	segmentInfo index.SegmentInfo, fieldInfos index.FieldInfos,
+	ioContext *store.IOContext) (index.TermVectorsReader, error) {
+	return NewTermVectorsReader(ctx, directory, segmentInfo, f.segmentSuffix,
+		fieldInfos, nil, f.formatName, f.compressionMode)
 }
 
-func (f *TermVectorsFormat) VectorsWriter(ctx context.Context, directory store.Directory, segmentInfo index.SegmentInfo, ioContext *store.IOContext) (index.TermVectorsWriter, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *TermVectorsFormat) VectorsWriter(ctx context.Context, directory store.Directory,
+	segmentInfo index.SegmentInfo, ioContext *store.IOContext) (index.TermVectorsWriter, error) {
+	return NewTermVectorsWriter(ctx, directory, segmentInfo, f.segmentSuffix, nil,
+		f.formatName, f.compressionMode, f.chunkSize, f.maxDocsPerChunk, f.blockSize)
 }
