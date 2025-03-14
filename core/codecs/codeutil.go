@@ -290,3 +290,80 @@ func WriteHeader(ctx context.Context, out store.DataOutput, codec string, versio
 	}
 	return nil
 }
+
+func IndexHeaderLength(codec string, suffix string) int {
+	return HeaderLength(codec) + ID_LENGTH + 1 + len(suffix)
+}
+
+func HeaderLength(codec string) int {
+	return 9 + len(codec)
+}
+
+func FooterLength() int {
+	return 16
+}
+
+// VerifyAndCopyIndexHeader Expert: verifies the incoming IndexInput has an index header and that
+// its segment ID matches the expected one, and then copies that index header into the provided
+// DataOutput. This is useful when building compound files.
+func VerifyAndCopyIndexHeader(ctx context.Context, in store.IndexInput, out store.DataOutput, expectedID []byte) error {
+	// make sure it's large enough to have a header and footer
+	if int(in.Length()) < FooterLength()+HeaderLength("") {
+		return errors.New("compound sub-files must have a valid codec header and footer: file is too small")
+	}
+
+	actualHeader, err := in.ReadUint32(ctx)
+	if err != nil {
+		return err
+	}
+	if actualHeader != CODEC_MAGIC {
+		return errors.New("compound sub-files must have a valid codec header and footer: codec header mismatch")
+	}
+
+	// we can't verify these, so we pass-through:
+	codec, err := in.ReadString(ctx)
+	if err != nil {
+		return err
+	}
+	version, err := in.ReadUint32(ctx)
+	if err != nil {
+		return err
+	}
+
+	// verify id:
+	_, err = CheckIndexHeaderID(in, expectedID)
+	if err != nil {
+		return err
+	}
+
+	// we can't verify extension either, so we pass-through:
+	suffixLength, err := in.ReadByte()
+	if err != nil {
+		return err
+	}
+	suffixBytes := make([]byte, suffixLength)
+	if _, err := in.Read(suffixBytes); err != nil {
+		return err
+	}
+
+	// now write the header we just verified
+	if err := out.WriteUint32(ctx, CODEC_MAGIC); err != nil {
+		return err
+	}
+	if err := out.WriteString(ctx, codec); err != nil {
+		return err
+	}
+	if err := out.WriteUint32(ctx, version); err != nil {
+		return err
+	}
+	if _, err := out.Write(expectedID); err != nil {
+		return err
+	}
+	if err := out.WriteByte(suffixLength); err != nil {
+		return err
+	}
+	if _, err := out.Write(suffixBytes); err != nil {
+		return err
+	}
+	return nil
+}
