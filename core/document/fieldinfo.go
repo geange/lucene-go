@@ -61,8 +61,10 @@ func NewFieldInfo(name string, number int, storeTermVector, omitNorms, storePayl
 	return info
 }
 
+// CheckConsistency
 // Performs internal consistency checks. Always returns nil (or throws IllegalStateException)
-func (f *FieldInfo) checkConsistency() error {
+func (f *FieldInfo) CheckConsistency() error {
+	// TODO: fix it
 	return nil
 }
 
@@ -83,7 +85,7 @@ func (f *FieldInfo) SetPointDimensions(dimensionCount, indexDimensionCount, numB
 	f.pointIndexDimensionCount = indexDimensionCount
 	f.pointNumBytes = numBytes
 
-	return f.checkConsistency()
+	return f.CheckConsistency()
 }
 
 // GetPointDimensionCount Return point data dimension count
@@ -104,7 +106,7 @@ func (f *FieldInfo) GetPointNumBytes() int {
 // SetDocValuesType Record that this field is indexed with docvalues, with the specified types
 func (f *FieldInfo) SetDocValuesType(_type DocValuesType) error {
 	f.docValuesType = _type
-	return f.checkConsistency()
+	return f.CheckConsistency()
 }
 
 // GetIndexOptions Returns IndexOptions for the field, or IndexOptions.NONE if the field is not indexed
@@ -121,7 +123,7 @@ func (f *FieldInfo) SetIndexOptions(newIndexOptions IndexOptions) error {
 		f.storePayloads = false
 	}
 
-	return f.checkConsistency()
+	return f.CheckConsistency()
 }
 
 // GetDocValuesType Returns DocValuesType of the docValues; this is DocValuesType.NONE if the field has no docvalues.
@@ -132,7 +134,7 @@ func (f *FieldInfo) GetDocValuesType() DocValuesType {
 // SetDocValuesGen Sets the docValues generation of this field.
 func (f *FieldInfo) SetDocValuesGen(dvGen int64) error {
 	f.dvGen = dvGen
-	return f.checkConsistency()
+	return f.CheckConsistency()
 }
 
 // GetDocValuesGen Returns the docValues generation of this field, or -1 if no docValues updates exist for it.
@@ -142,14 +144,14 @@ func (f *FieldInfo) GetDocValuesGen() int64 {
 
 func (f *FieldInfo) SetStoreTermVectors() error {
 	f.storeTermVector = true
-	return f.checkConsistency()
+	return f.CheckConsistency()
 }
 
 func (f *FieldInfo) SetStorePayloads() error {
 	if f.indexOptions != INDEX_OPTIONS_NONE && f.indexOptions >= INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS {
 		f.storePayloads = true
 	}
-	return f.checkConsistency()
+	return f.CheckConsistency()
 }
 
 // OmitsNorms Returns true if norms are explicitly omitted for this field
@@ -163,7 +165,7 @@ func (f *FieldInfo) SetOmitsNorms() error {
 		return errors.New("cannot omit norms: this field is not indexed")
 	}
 	f.omitNorms = true
-	return f.checkConsistency()
+	return f.CheckConsistency()
 }
 
 // HasNorms Returns true if this field actually has any norms.
@@ -255,5 +257,5 @@ func (f *FieldInfo) Update(storeTermVector, omitNorms, storePayloads bool, index
 		f.attributes[k] = v
 	}
 
-	return f.checkConsistency()
+	return f.CheckConsistency()
 }
