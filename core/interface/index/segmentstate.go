@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/core/store"
 )
 

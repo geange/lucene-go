@@ -17,7 +17,7 @@ type BasePointsWriter struct {
 // Default naive merge implementation for one field: it just re-indexes all
 // the values from the incoming segment. The default codec overrides this for 1D fields and
 // uses a faster but more complex implementation.
-func (p *BasePointsWriter) MergeOneField(ctx context.Context, mergeState *MergeState, fieldInfo *document.FieldInfo) error {
+func (p *BasePointsWriter) MergeOneField(ctx context.Context, mergeState *index.MergeState, fieldInfo *document.FieldInfo) error {
 	maxPointCount := 0
 	docCount := 0
 
@@ -129,7 +129,7 @@ func (i *innerPointValues) GetDocCount() int {
 }
 
 // Merge Default merge implementation to merge incoming points readers by visiting all their points and adding to this writer
-func (p *BasePointsWriter) Merge(mergeState *MergeState) error {
+func (p *BasePointsWriter) Merge(mergeState *index.MergeState) error {
 	// check each incoming reader
 	for _, reader := range mergeState.PointsReaders {
 		if reader == nil {
@@ -144,7 +144,7 @@ func (p *BasePointsWriter) Merge(mergeState *MergeState) error {
 		if fieldInfo.GetPointDimensionCount() == 0 {
 			continue
 		}
-		if err := p.MergeOneField(nil, mergeState, fieldInfo); err != nil {
+		if err := p.MergeOneField(context.Background(), mergeState, fieldInfo); err != nil {
 			return err
 		}
 	}

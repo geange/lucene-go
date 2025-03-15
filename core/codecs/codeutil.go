@@ -60,6 +60,20 @@ func RetrieveChecksum(ctx context.Context, in store.IndexInput) (int64, error) {
 	return ReadCRC(ctx, in)
 }
 
+func RetrieveChecksumWithLength(ctx context.Context, in store.IndexInput, expectedLength int) (int64, error) {
+	if expectedLength < FooterLength() {
+		return 0, errors.New("expectedLength cannot be less than the footer length")
+	}
+	if int(in.Length()) < expectedLength {
+		return 0, fmt.Errorf("truncated file: length=%d but expectedLength==%d", in.Length(), expectedLength)
+	}
+	if int(in.Length()) > expectedLength {
+		return 0, fmt.Errorf("file too long: length=%d but expectedLength==%d", in.Length(), expectedLength)
+	}
+
+	return RetrieveChecksum(ctx, in)
+}
+
 func footerLength() int64 {
 	return 16
 }
