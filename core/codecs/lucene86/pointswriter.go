@@ -57,6 +57,10 @@ func NewPointsWriter(ctx context.Context, conf *PointsWriterConfig) (*PointsWrit
 		maxPointsInLeafNode: conf.maxPointsInLeafNode,
 		maxMBSortInHeap:     conf.maxMBSortInHeap,
 	}
+	writer.BasePointsWriter = &coreIndex.BasePointsWriter{
+		WriteField: writer.WriteField,
+		Finish:     writer.Finish,
+	}
 	writeState := conf.writeState
 	dataFileName := store.SegmentFileName(conf.writeState.SegmentInfo.Name(),
 		conf.writeState.SegmentSuffix, POINT_DATA_EXTENSION)
@@ -171,32 +175,113 @@ func (p *PointsWriter) Finish() error {
 	return nil
 }
 
-func (p *PointsWriter) Merge(mergeState *index.MergeState) error {
-	// If indexSort is activated and some of the leaves are not sorted the next test will catch that and the non-optimized merge will run.
-	// If the readers are all sorted then it's safe to perform a bulk merge of the points.
-	for _, reader := range mergeState.PointsReaders {
-		_, ok := reader.(*PointsReader)
-		if !ok {
-			return p.BasePointsWriter.Merge(mergeState)
-		}
-	}
-
-	for _, reader := range mergeState.PointsReaders {
-		if reader != nil {
-			if err := reader.CheckIntegrity(); err != nil {
-				return err
-			}
-		}
-	}
-
-	for _, fieldInfo := range mergeState.MergeFieldInfos.List() {
-		if fieldInfo.GetPointDimensionCount() != 0 {
-			if fieldInfo.GetPointDimensionCount() == 1 {
-				// TODO: need fix
-			}
-		}
-
-	}
-
-	return p.Finish()
-}
+//func (p *PointsWriter) Merge(mergeState *index.MergeState) error {
+//	// If indexSort is activated and some of the leaves are not sorted the next test will catch that and the non-optimized merge will run.
+//	// If the readers are all sorted then it's safe to perform a bulk merge of the points.
+//	for _, reader := range mergeState.PointsReaders {
+//		_, ok := reader.(*PointsReader)
+//		if !ok {
+//			return p.BasePointsWriter.Merge(mergeState)
+//		}
+//	}
+//
+//	for _, reader := range mergeState.PointsReaders {
+//		if reader != nil {
+//			if err := reader.CheckIntegrity(); err != nil {
+//				return err
+//			}
+//		}
+//	}
+//
+//	ctx := context.Background()
+//
+//	for _, fieldInfo := range mergeState.MergeFieldInfos.List() {
+//		if fieldInfo.GetPointDimensionCount() == 0 {
+//			continue
+//		}
+//
+//		if fieldInfo.GetPointDimensionCount() == 1 {
+//
+//			// Worst case total maximum size (if none of the points are deleted):
+//			totMaxSize := 0
+//			for i, reader := range mergeState.PointsReaders {
+//				if reader == nil {
+//					continue
+//				}
+//				readerFieldInfos := mergeState.FieldInfos[i]
+//				readerFieldInfo := readerFieldInfos.FieldInfo(fieldInfo.Name())
+//
+//				if readerFieldInfo != nil && readerFieldInfo.GetPointDimensionCount() > 0 {
+//					values, err := reader.GetValues(ctx, fieldInfo.Name())
+//					if err != nil {
+//						return err
+//					}
+//					totMaxSize += values.Size()
+//				}
+//			}
+//
+//			config, err := bkd.NewConfig(fieldInfo.GetPointDimensionCount(),
+//				fieldInfo.GetPointIndexDimensionCount(), fieldInfo.GetPointNumBytes(),
+//				p.maxPointsInLeafNode)
+//			if err != nil {
+//				return err
+//			}
+//
+//			// Optimize the 1D case to use BKDWriter.merge, which does a single merge sort of the
+//			// already sorted incoming segments, instead of trying to sort all points again as if
+//			// we were simply reindexing them:
+//			maxDoc, err := p.writeState.SegmentInfo.MaxDoc()
+//			if err != nil {
+//				return err
+//			}
+//			writer, err := bkd.NewWriter(maxDoc, p.writeState.Directory, p.writeState.SegmentInfo.Name(),
+//				config, p.maxMBSortInHeap, totMaxSize)
+//			if err != nil {
+//				return err
+//			}
+//
+//			bkdReaders := make([]*bkd.Reader, 0)
+//			docMaps := make([]index.MergeStateDocMap, 0)
+//
+//			for i, reader := range mergeState.PointsReaders {
+//				if reader == nil {
+//					continue
+//				}
+//				pointReader, ok := reader.(*PointsReader)
+//				if !ok {
+//					// TODO:
+//				}
+//
+//				// NOTE: we cannot just use the merged fieldInfo.number (instead of resolving to this
+//				// reader's FieldInfo as we do below) because field numbers can easily be different
+//				// when addIndexes(Directory...) copies over segments from another index:
+//
+//				readerFieldInfos := mergeState.FieldInfos[i]
+//				readerFieldInfo := readerFieldInfos.FieldInfo(fieldInfo.Name())
+//
+//				if readerFieldInfo != nil && readerFieldInfo.GetPointDimensionCount() > 0 {
+//					bkdReader, exist := pointReader.readers[readerFieldInfo.Number()]
+//					if exist {
+//						bkdReaders = append(bkdReaders, bkdReader)
+//						docMaps = append(docMaps, mergeState.DocMaps[i])
+//					}
+//				}
+//
+//			}
+//
+//			finalizer, err := writer.Merge(ctx, p.metaOut, p.indexOut, p.dataOut, docMaps, bkdReaders)
+//			if err != nil {
+//				return err
+//			}
+//			if err := finalizer(ctx); err != nil {
+//				return err
+//			}
+//		} else {
+//			if err := p.MergeOneField(ctx, mergeState, fieldInfo); err != nil {
+//				return err
+//			}
+//		}
+//	}
+//
+//	return p.Finish()
+//}
