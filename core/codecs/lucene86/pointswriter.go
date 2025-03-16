@@ -156,7 +156,8 @@ func (p *PointsWriter) Finish() error {
 	}
 	ctx := context.Background()
 	p.finished = true
-	if err := p.metaOut.WriteUint32(ctx, uint32(int32(-1))); err != nil {
+	n := int32(-1)
+	if err := p.metaOut.WriteUint32(ctx, uint32(n)); err != nil {
 		return err
 	}
 	if err := codecs.WriteFooter(ctx, p.indexOut); err != nil {
