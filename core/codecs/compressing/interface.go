@@ -29,7 +29,7 @@ type Compressor interface {
 type Decompressor interface {
 	io.Closer
 
-	Decompress(ctx context.Context, in store.DataInput, buf *bytes.Buffer) error
+	Decompress(ctx context.Context, in store.DataInput, offset int64, length int64, buf *bytes.Buffer) error
 
 	Clone() Decompressor
 }

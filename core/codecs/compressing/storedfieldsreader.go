@@ -374,7 +374,7 @@ func (s *BlockState) document(ctx context.Context, docID int) (*SerializedDocume
 		if _, err := s.r.fieldsStream.Seek(int64(s.startPointer), 0); err != nil {
 			return nil, err
 		}
-		if err := s.r.decompressor.Decompress(ctx, s.r.fieldsStream, buf); err != nil {
+		if err := s.r.decompressor.Decompress(ctx, s.r.fieldsStream, 0, 0, buf); err != nil {
 			return nil, err
 		}
 		documentInput = newSliceDataInput(buf, s.r.fieldsStream, s.r.decompressor)
@@ -382,7 +382,7 @@ func (s *BlockState) document(ctx context.Context, docID int) (*SerializedDocume
 		if _, err := s.r.fieldsStream.Seek(int64(s.startPointer), 0); err != nil {
 			return nil, err
 		}
-		if err := s.r.decompressor.Decompress(ctx, s.r.fieldsStream, buf); err != nil {
+		if err := s.r.decompressor.Decompress(ctx, s.r.fieldsStream, 0, 0, buf); err != nil {
 			return nil, err
 		}
 		documentInput = store.NewByteArrayDataInput(buf.Bytes())
@@ -406,7 +406,7 @@ func newSliceDataInput(buf *bytes.Buffer, fieldsStream store.IndexInput, decompr
 }
 
 func (s *sliceDataInput) fillBuffer() error {
-	return s.decompressor.Decompress(context.Background(), s.fieldsStream, s.buf)
+	return s.decompressor.Decompress(context.Background(), s.fieldsStream, 0, 0, s.buf)
 }
 
 func (s *sliceDataInput) ReadByte() (byte, error) {
@@ -569,7 +569,7 @@ func (s *BlockState) doReset(ctx context.Context, docID int) error {
 			s.bytes.Reset()
 			for decompressed := 0; decompressed < totalLength; {
 				s.spare.Reset()
-				if err := decompressor.Decompress(ctx, fieldsStream, s.spare); err != nil {
+				if err := decompressor.Decompress(ctx, fieldsStream, 0, 0, s.spare); err != nil {
 					return err
 				}
 				if _, err := io.Copy(s.bytes, s.spare); err != nil {
@@ -578,7 +578,7 @@ func (s *BlockState) doReset(ctx context.Context, docID int) error {
 				decompressed += s.spare.Len()
 			}
 		} else {
-			if err := decompressor.Decompress(ctx, fieldsStream, s.bytes); err != nil {
+			if err := decompressor.Decompress(ctx, fieldsStream, 0, 0, s.bytes); err != nil {
 				return err
 			}
 		}

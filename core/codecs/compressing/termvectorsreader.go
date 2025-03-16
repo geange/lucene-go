@@ -757,7 +757,7 @@ func (t *TermVectorsReader) Get(ctx context.Context, doc int) (index.Fields, err
 
 	// decompress data
 	buf := new(bytes.Buffer)
-	if err := t.decompressor.Decompress(ctx, t.vectorsStream, buf); err != nil {
+	if err := t.decompressor.Decompress(ctx, t.vectorsStream, 0, 0, buf); err != nil {
 		return nil, err
 	}
 	offset := docOff + int(payloadOff)

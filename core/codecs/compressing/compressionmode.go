@@ -1,9 +1,8 @@
 package compressing
 
 import (
-	"archive/zip"
 	"bytes"
-	"compress/gzip"
+	"compress/flate"
 	"context"
 	"io"
 
@@ -19,16 +18,27 @@ type LZ4FastCompressor struct {
 var _ Compressor = &DeflateCompressor{}
 
 type DeflateCompressor struct {
+	level int
 }
 
-func NewDeflateCompressor() *DeflateCompressor {
-	return &DeflateCompressor{}
+func NewDeflateCompressor(level int) *DeflateCompressor {
+	return &DeflateCompressor{level: level}
 }
 
 func (d *DeflateCompressor) Compress(ctx context.Context, bs []byte, out store.DataOutput) error {
-	buf := bytes.NewBuffer(bs)
-	zw := zip.NewWriter(buf)
-	defer zw.Close()
+	buf := new(bytes.Buffer)
+	writer, err := flate.NewWriter(buf, d.level)
+	if err != nil {
+		return err
+	}
+
+	if _, err := writer.Write(bs); err != nil {
+		_ = writer.Close()
+		return err
+	}
+	if err := writer.Close(); err != nil {
+		return err
+	}
 
 	size := buf.Len()
 	if err := out.WriteUvarint(ctx, uint64(size)); err != nil {
@@ -54,7 +64,7 @@ func (d *DeflateDecompressor) Close() error {
 	return nil
 }
 
-func (d *DeflateDecompressor) Decompress(ctx context.Context, in store.DataInput, buf *bytes.Buffer) error {
+func (d *DeflateDecompressor) Decompress(ctx context.Context, in store.DataInput, offset int64, length int64, buf *bytes.Buffer) error {
 	size, err := in.ReadUvarint(ctx)
 	if err != nil {
 		return err
@@ -64,13 +74,8 @@ func (d *DeflateDecompressor) Decompress(ctx context.Context, in store.DataInput
 		return err
 	}
 
-	zr, err := gzip.NewReader(bytes.NewBuffer(bs))
-	if err != nil {
-		return err
-	}
-	defer zr.Close()
-
-	if _, err := io.Copy(buf, zr); err != nil {
+	reader := flate.NewReader(bytes.NewBuffer(bs))
+	if _, err := io.Copy(buf, reader); err != nil {
 		return err
 	}
 	return nil
