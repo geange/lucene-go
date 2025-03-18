@@ -23,6 +23,10 @@ const (
 type CompoundFormat struct {
 }
 
+func NewCompoundFormat() *CompoundFormat {
+	return &CompoundFormat{}
+}
+
 func (f *CompoundFormat) GetCompoundReader(ctx context.Context, dir store.Directory, si index.SegmentInfo, context *store.IOContext) (index.CompoundDirectory, error) {
 	return NewCompoundReader(ctx, dir, si)
 }

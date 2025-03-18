@@ -10,3 +10,9 @@ var _ index.TermVectorsFormat = &TermVectorsFormat{}
 type TermVectorsFormat struct {
 	*compressing.TermVectorsFormat
 }
+
+func NewTermVectorsFormat() *TermVectorsFormat {
+	return &TermVectorsFormat{
+		compressing.NewTermVectorsFormat("Lucene50TermVectorsData", "", compressing.FAST, 1<<12, 128, 10),
+	}
+}

@@ -27,6 +27,10 @@ const (
 type LiveDocsFormat struct {
 }
 
+func NewLiveDocsFormat() *LiveDocsFormat {
+	return &LiveDocsFormat{}
+}
+
 func (f *LiveDocsFormat) ReadLiveDocs(ctx context.Context, dir store.Directory, info index.SegmentCommitInfo, context *store.IOContext) (util.Bits, error) {
 	gen := info.GetDelGen()
 	name := coreIndex.FileNameFromGeneration(info.Info().Name(), LIVE_DOCS_EXTENSION, gen)

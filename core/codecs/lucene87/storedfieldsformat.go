@@ -50,6 +50,10 @@ type StoredFieldsFormat struct {
 	mode Mode
 }
 
+func NewStoredFieldsFormat(mode Mode) *StoredFieldsFormat {
+	return &StoredFieldsFormat{mode: mode}
+}
+
 func (s *StoredFieldsFormat) FieldsReader(ctx context.Context, directory store.Directory, si index.SegmentInfo, fn index.FieldInfos, ioContext *store.IOContext) (index.StoredFieldsReader, error) {
 	value, ok := si.GetAttributes()[MODE_KEY]
 	if !ok {

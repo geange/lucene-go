@@ -17,6 +17,10 @@ var _ index.SegmentInfoFormat = &SegmentInfoFormat{}
 type SegmentInfoFormat struct {
 }
 
+func NewSegmentInfoFormat() *SegmentInfoFormat {
+	return &SegmentInfoFormat{}
+}
+
 func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory, segment string, segmentID []byte, ioContext *store.IOContext) (index.SegmentInfo, error) {
 	fileName := store.SegmentFileName(segment, "", SI_EXTENSION)
 	input, err := store.OpenChecksumInput(ctx, dir, fileName)

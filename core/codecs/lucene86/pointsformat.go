@@ -23,6 +23,10 @@ var _ index.PointsFormat = &PointsFormat{}
 type PointsFormat struct {
 }
 
+func NewPointsFormat() *PointsFormat {
+	return &PointsFormat{}
+}
+
 func (p *PointsFormat) FieldsWriter(ctx context.Context, state *index.SegmentWriteState) (index.PointsWriter, error) {
 	return NewPointsWriter(ctx, NewPointsWriterConfig(state))
 }
