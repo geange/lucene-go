@@ -6,6 +6,7 @@ import (
 	"github.com/geange/lucene-go/core/codecs/lucene80"
 	"github.com/geange/lucene-go/core/codecs/lucene84"
 	"github.com/geange/lucene-go/core/codecs/lucene86"
+	"github.com/geange/lucene-go/core/codecs/perfield"
 	"github.com/geange/lucene-go/core/interface/index"
 )
 
@@ -23,10 +24,11 @@ type Codec struct {
 	docValuesFormat    index.DocValuesFormat
 	storedFieldsFormat index.StoredFieldsFormat
 	defaultDVFormat    index.DocValuesFormat
+	normsFormat        index.NormsFormat
 }
 
 func NewCodec(mode Mode) *Codec {
-	return &Codec{
+	codec := &Codec{
 		vectorsFormat:      lucene50.NewTermVectorsFormat(),
 		fieldInfosFormat:   lucene60.NewFieldInfosFormat(),
 		segmentInfosFormat: lucene86.NewSegmentInfoFormat(),
@@ -35,13 +37,17 @@ func NewCodec(mode Mode) *Codec {
 		pointsFormat:       lucene86.NewPointsFormat(),
 		defaultFormat:      lucene84.NewPostingsFormat(),
 		defaultDVFormat:    lucene80.NewDocValuesFormat(),
-		postingsFormat:     lucene84.NewPostingsFormat(),
+		postingsFormat:     nil,
 		docValuesFormat:    lucene80.NewDocValuesFormat(),
 		storedFieldsFormat: NewStoredFieldsFormat(mode),
+		normsFormat:        lucene80.NewNormsFormat(),
 	}
 
-	//res.postingsFormat = res.defaultFormat
-	//res.docValuesFormat = res.defaultDVFormat
+	codec.postingsFormat = perfield.NewPostingsFormat(func(field string) index.PostingsFormat {
+		return codec.defaultFormat
+	})
+
+	return codec
 }
 
 func (c *Codec) GetName() string {
@@ -49,51 +55,41 @@ func (c *Codec) GetName() string {
 }
 
 func (c *Codec) PostingsFormat() index.PostingsFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.postingsFormat
 }
 
 func (c *Codec) DocValuesFormat() index.DocValuesFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.docValuesFormat
 }
 
 func (c *Codec) StoredFieldsFormat() index.StoredFieldsFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.storedFieldsFormat
 }
 
 func (c *Codec) TermVectorsFormat() index.TermVectorsFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.vectorsFormat
 }
 
 func (c *Codec) FieldInfosFormat() index.FieldInfosFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.fieldInfosFormat
 }
 
 func (c *Codec) SegmentInfoFormat() index.SegmentInfoFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.segmentInfosFormat
 }
 
 func (c *Codec) NormsFormat() index.NormsFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.normsFormat
 }
 
 func (c *Codec) LiveDocsFormat() index.LiveDocsFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.liveDocsFormat
 }
 
 func (c *Codec) CompoundFormat() index.CompoundFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.compoundFormat
 }
 
 func (c *Codec) PointsFormat() index.PointsFormat {
-	//TODO implement me
-	panic("implement me")
+	return c.pointsFormat
 }

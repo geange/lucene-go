@@ -184,8 +184,9 @@ func (f *FieldInfo) HasVectors() bool {
 }
 
 // GetAttribute Get a codec attribute value, or null if it does not exist
-func (f *FieldInfo) GetAttribute(key string) string {
-	return f.attributes[key]
+func (f *FieldInfo) GetAttribute(key string) (string, bool) {
+	attr, ok := f.attributes[key]
+	return attr, ok
 }
 
 // PutAttribute Puts a codec attribute value.

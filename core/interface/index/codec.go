@@ -430,6 +430,19 @@ type Named interface {
 	GetName() string
 }
 
+var (
+	postingsFormats = map[string]PostingsFormat{}
+)
+
+func RegisterPostingsFormat(format PostingsFormat) {
+	postingsFormats[format.GetName()] = format
+}
+
+func ForNamePostingsFormat(name string) (PostingsFormat, bool) {
+	format, ok := postingsFormats[name]
+	return format, ok
+}
+
 // PostingsFormat
 // Encodes/decodes terms, postings, and proximity data.
 // Note, when extending this class, the name (getName) may written into the index in certain
