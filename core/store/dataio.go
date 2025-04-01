@@ -79,6 +79,8 @@ type DataInput interface {
 	ReadSetOfStrings(ctx context.Context) (map[string]struct{}, error)
 
 	SkipBytes(ctx context.Context, numBytes int) error
+
+	ReadLELongs(ctx context.Context, dst []uint64) error
 }
 
 type CloneReader interface {
@@ -262,6 +264,17 @@ func (d *BaseDataInput) SkipBytes(ctx context.Context, numBytes int) error {
 			return err
 		}
 		skipped += step
+	}
+	return nil
+}
+
+func (d *BaseDataInput) ReadLELongs(ctx context.Context, dst []uint64) error {
+	bs := make([]byte, 8)
+	for i := range dst {
+		if _, err := d.reader.Read(bs); err != nil {
+			return nil
+		}
+		dst[i] = binary.LittleEndian.Uint64(bs)
 	}
 	return nil
 }
