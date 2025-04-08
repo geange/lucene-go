@@ -7,8 +7,13 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
+func init() {
+	maskInit()
+}
+
 const (
 	FOR_UTIL_BLOCK_SIZE = 128
+	BLOCK_SIZE_LOG2     = 7
 )
 
 // ForUtil
@@ -236,8 +241,101 @@ func collapse32(arr []uint64) {
 	}
 }
 
+func prefixSum8(arr []uint64, base uint64) {
+	expand8To32(arr)
+	prefixSum32(arr, base)
+}
+
+func prefixSum16(arr []uint64, base uint64) {
+	// We need to move to the next primitive size to avoid overflows
+	expand16To32(arr)
+	prefixSum32(arr, base)
+}
+
+func prefixSum32(arr []uint64, base uint64) {
+	arr[0] += base << 32
+	innerPrefixSum32(arr)
+	expand32(arr)
+	l := arr[BLOCK_SIZE/2-1]
+	for i := BLOCK_SIZE / 2; i < BLOCK_SIZE; i++ {
+		arr[i] += l
+	}
+}
+
+func innerPrefixSum32(arr []uint64) {
+	arr[1] += arr[0]
+	arr[2] += arr[1]
+	arr[3] += arr[2]
+	arr[4] += arr[3]
+	arr[5] += arr[4]
+	arr[6] += arr[5]
+	arr[7] += arr[6]
+	arr[8] += arr[7]
+	arr[9] += arr[8]
+	arr[10] += arr[9]
+	arr[11] += arr[10]
+	arr[12] += arr[11]
+	arr[13] += arr[12]
+	arr[14] += arr[13]
+	arr[15] += arr[14]
+	arr[16] += arr[15]
+	arr[17] += arr[16]
+	arr[18] += arr[17]
+	arr[19] += arr[18]
+	arr[20] += arr[19]
+	arr[21] += arr[20]
+	arr[22] += arr[21]
+	arr[23] += arr[22]
+	arr[24] += arr[23]
+	arr[25] += arr[24]
+	arr[26] += arr[25]
+	arr[27] += arr[26]
+	arr[28] += arr[27]
+	arr[29] += arr[28]
+	arr[30] += arr[29]
+	arr[31] += arr[30]
+	arr[32] += arr[31]
+	arr[33] += arr[32]
+	arr[34] += arr[33]
+	arr[35] += arr[34]
+	arr[36] += arr[35]
+	arr[37] += arr[36]
+	arr[38] += arr[37]
+	arr[39] += arr[38]
+	arr[40] += arr[39]
+	arr[41] += arr[40]
+	arr[42] += arr[41]
+	arr[43] += arr[42]
+	arr[44] += arr[43]
+	arr[45] += arr[44]
+	arr[46] += arr[45]
+	arr[47] += arr[46]
+	arr[48] += arr[47]
+	arr[49] += arr[48]
+	arr[50] += arr[49]
+	arr[51] += arr[50]
+	arr[52] += arr[51]
+	arr[53] += arr[52]
+	arr[54] += arr[53]
+	arr[55] += arr[54]
+	arr[56] += arr[55]
+	arr[57] += arr[56]
+	arr[58] += arr[57]
+	arr[59] += arr[58]
+	arr[60] += arr[59]
+	arr[61] += arr[60]
+	arr[62] += arr[61]
+	arr[63] += arr[62]
+}
+
 type IntCodec struct {
 	tmp []uint64
+}
+
+func NewIntCodec() *IntCodec {
+	return &IntCodec{
+		tmp: make([]uint64, BLOCK_SIZE/2),
+	}
 }
 
 // Encode 128 integers from longs into out.
@@ -323,6 +421,255 @@ func (e *IntCodec) Encode(longs []uint64, bitsPerValue int, out store.DataOutput
 		if _, err := out.Write(bs); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (e *IntCodec) Decode(ctx context.Context, bitsPerValue int, in store.DataInput, longs []uint64) error {
+	switch bitsPerValue {
+	case 1:
+		if err := e.decode1(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand8(longs)
+	case 2:
+		if err := e.decode2(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand8(longs)
+	case 3:
+		if err := e.decode3(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand8(longs)
+	case 4:
+		if err := e.decode4(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand8(longs)
+	case 5:
+		if err := e.decode5(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand8(longs)
+	case 6:
+		if err := e.decode6(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand8(longs)
+	case 7:
+		if err := e.decode7(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand8(longs)
+	case 8:
+		if err := e.decode8(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand8(longs)
+	case 9:
+		if err := e.decode9(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand16(longs)
+	case 10:
+		if err := e.decode10(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand16(longs)
+	case 11:
+		if err := e.decode11(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand16(longs)
+	case 12:
+		if err := e.decode12(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand16(longs)
+	case 13:
+		if err := e.decode13(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand16(longs)
+	case 14:
+		if err := e.decode14(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand16(longs)
+	case 15:
+		if err := e.decode15(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand16(longs)
+	case 16:
+		if err := e.decode16(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand16(longs)
+	case 17:
+		if err := e.decode17(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	case 18:
+		if err := e.decode18(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	case 19:
+		if err := e.decode19(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	case 20:
+		if err := e.decode20(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	case 21:
+		if err := e.decode21(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	case 22:
+		if err := e.decode22(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	case 23:
+		if err := e.decode23(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	case 24:
+		if err := e.decode24(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	default:
+		if err := e.decodeSlow(ctx, bitsPerValue, in, e.tmp, longs); err != nil {
+			return err
+		}
+		expand32(longs)
+	}
+	return nil
+}
+
+func (e *IntCodec) DecodeAndPrefixSum(ctx context.Context, bitsPerValue int, in store.DataInput, base uint64, longs []uint64) error {
+	switch bitsPerValue {
+	case 1:
+		e.decode1(ctx, in, e.tmp, longs)
+		prefixSum8(longs, base)
+	case 2:
+		e.decode2(ctx, in, e.tmp, longs)
+		prefixSum8(longs, base)
+	case 3:
+		e.decode3(ctx, in, e.tmp, longs)
+		prefixSum8(longs, base)
+	case 4:
+		e.decode4(ctx, in, e.tmp, longs)
+		prefixSum8(longs, base)
+	case 5:
+		e.decode5(ctx, in, e.tmp, longs)
+		prefixSum8(longs, base)
+	case 6:
+		e.decode6(ctx, in, e.tmp, longs)
+		prefixSum8(longs, base)
+	case 7:
+		e.decode7(ctx, in, e.tmp, longs)
+		prefixSum8(longs, base)
+	case 8:
+		e.decode8(ctx, in, e.tmp, longs)
+		prefixSum8(longs, base)
+	case 9:
+		e.decode9(ctx, in, e.tmp, longs)
+		prefixSum16(longs, base)
+	case 10:
+		e.decode10(ctx, in, e.tmp, longs)
+		prefixSum16(longs, base)
+	case 11:
+		e.decode11(ctx, in, e.tmp, longs)
+		prefixSum16(longs, base)
+	case 12:
+		e.decode12(ctx, in, e.tmp, longs)
+		prefixSum16(longs, base)
+	case 13:
+		e.decode13(ctx, in, e.tmp, longs)
+		prefixSum16(longs, base)
+	case 14:
+		e.decode14(ctx, in, e.tmp, longs)
+		prefixSum16(longs, base)
+	case 15:
+		e.decode15(ctx, in, e.tmp, longs)
+		prefixSum16(longs, base)
+	case 16:
+		e.decode16(ctx, in, e.tmp, longs)
+		prefixSum16(longs, base)
+	case 17:
+		e.decode17(ctx, in, e.tmp, longs)
+		prefixSum32(longs, base)
+	case 18:
+		e.decode18(ctx, in, e.tmp, longs)
+		prefixSum32(longs, base)
+	case 19:
+		e.decode19(ctx, in, e.tmp, longs)
+		prefixSum32(longs, base)
+	case 20:
+		e.decode20(ctx, in, e.tmp, longs)
+		prefixSum32(longs, base)
+	case 21:
+		e.decode21(ctx, in, e.tmp, longs)
+		prefixSum32(longs, base)
+	case 22:
+		e.decode22(ctx, in, e.tmp, longs)
+		prefixSum32(longs, base)
+	case 23:
+		e.decode23(ctx, in, e.tmp, longs)
+		prefixSum32(longs, base)
+	case 24:
+		e.decode24(ctx, in, e.tmp, longs)
+		prefixSum32(longs, base)
+
+	default:
+		e.decodeSlow(ctx, bitsPerValue, in, e.tmp, longs)
+		prefixSum32(longs, base)
+	}
+	return nil
+}
+
+func (e *IntCodec) decodeSlow(ctx context.Context, bitsPerValue int, in store.DataInput, tmp, longs []uint64) error {
+	numLongs := bitsPerValue << 1
+	if err := in.ReadLELongs(ctx, tmp[:numLongs]); err != nil {
+		return err
+	}
+	mask := MASKS32[bitsPerValue]
+	longsIdx := 0
+	shift := 32 - bitsPerValue
+	for ; shift >= 0; shift -= bitsPerValue {
+		shiftLongs(tmp, numLongs, longs, longsIdx, shift, mask)
+		longsIdx += numLongs
+	}
+	remainingBitsPerLong := shift + bitsPerValue
+	mask32RemainingBitsPerLong := MASKS32[remainingBitsPerLong]
+	tmpIdx := 0
+	remainingBits := remainingBitsPerLong
+	for ; longsIdx < BLOCK_SIZE/2; longsIdx++ {
+		b := bitsPerValue - remainingBits
+		l := (tmp[tmpIdx] & MASKS32[remainingBits]) << b
+		tmpIdx++
+		for b >= remainingBitsPerLong {
+			b -= remainingBitsPerLong
+			l |= (tmp[tmpIdx] & mask32RemainingBitsPerLong) << b
+			tmpIdx++
+		}
+		if b > 0 {
+			l |= (tmp[tmpIdx] >> (remainingBitsPerLong - b)) & MASKS32[b]
+			remainingBits = remainingBitsPerLong - b
+		} else {
+			remainingBits = remainingBitsPerLong
+		}
+		longs[longsIdx] = l
 	}
 	return nil
 }
@@ -1052,4 +1399,9 @@ func (e *IntCodec) decode24(ctx context.Context, in store.DataInput, tmp, longs 
 		longsIdx += 1
 	}
 	return nil
+}
+
+// Number of bytes required to encode 128 integers of bitsPerValue bits per value.
+func numBytes(bitsPerValue int) int {
+	return bitsPerValue << (BLOCK_SIZE_LOG2 - 3)
 }

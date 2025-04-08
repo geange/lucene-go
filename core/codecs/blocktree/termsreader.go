@@ -25,5 +25,5 @@ type TermsReader struct {
 	termsIn store.IndexInput // Open input to the main terms dict file (_X.tib)
 	indexIn store.IndexInput // Open input to the terms index file (_X.tip)
 
-	postingsReader
+	// postingsReader
 }
