@@ -20,12 +20,12 @@ func init() {
 // ForDeltaUtil
 // Utility class to encode sequences of 128 small positive integers.
 type ForDeltaUtil struct {
-	codec *IntCodec
+	codec *ForUtil
 }
 
 func NewForDeltaUtil() *ForDeltaUtil {
 	return &ForDeltaUtil{
-		codec: NewIntCodec(),
+		codec: NewForUtil(),
 	}
 }
 
@@ -49,7 +49,8 @@ func (f *ForDeltaUtil) EncodeDeltas(ctx context.Context, longs []uint64, out sto
 	return f.codec.Encode(longs, bitsPerValue, out)
 }
 
-func (f *ForDeltaUtil) DecodeAndPrefixSum(ctx context.Context, in store.DataInput, base uint64, longs []uint64) error {
+func (f *ForDeltaUtil) DecodeAndPrefixSum(ctx context.Context, in store.DataInput,
+	base uint64, longs []uint64) error {
 	bitsPerValue, err := in.ReadByte()
 	if err != nil {
 		return err
@@ -57,7 +58,9 @@ func (f *ForDeltaUtil) DecodeAndPrefixSum(ctx context.Context, in store.DataInpu
 	if bitsPerValue == 0 {
 		prefixSumOfOnes(longs, base)
 	} else {
-		f.codec.DecodeAndPrefixSum(ctx, int(bitsPerValue), in, base, longs)
+		if err := f.codec.DecodeAndPrefixSum(ctx, int(bitsPerValue), in, base, longs); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -22,8 +22,6 @@ const (
 // If bitsPerValue <= 8 then we pack 8 ints per long
 // else if bitsPerValue <= 16 we pack 4 ints per long
 // else we pack 2 ints per long
-type ForUtil struct {
-}
 
 var (
 	MASKS8  = make([]uint64, 8)
@@ -328,18 +326,18 @@ func innerPrefixSum32(arr []uint64) {
 	arr[63] += arr[62]
 }
 
-type IntCodec struct {
+type ForUtil struct {
 	tmp []uint64
 }
 
-func NewIntCodec() *IntCodec {
-	return &IntCodec{
+func NewForUtil() *ForUtil {
+	return &ForUtil{
 		tmp: make([]uint64, BLOCK_SIZE/2),
 	}
 }
 
 // Encode 128 integers from longs into out.
-func (e *IntCodec) Encode(longs []uint64, bitsPerValue int, out store.DataOutput) error {
+func (e *ForUtil) Encode(longs []uint64, bitsPerValue int, out store.DataOutput) error {
 	var nextPrimitive int
 	var numLongs int
 	if bitsPerValue <= 8 {
@@ -425,7 +423,7 @@ func (e *IntCodec) Encode(longs []uint64, bitsPerValue int, out store.DataOutput
 	return nil
 }
 
-func (e *IntCodec) Decode(ctx context.Context, bitsPerValue int, in store.DataInput, longs []uint64) error {
+func (e *ForUtil) Decode(ctx context.Context, bitsPerValue int, in store.DataInput, longs []uint64) error {
 	switch bitsPerValue {
 	case 1:
 		if err := e.decode1(ctx, in, e.tmp, longs); err != nil {
@@ -556,89 +554,139 @@ func (e *IntCodec) Decode(ctx context.Context, bitsPerValue int, in store.DataIn
 	return nil
 }
 
-func (e *IntCodec) DecodeAndPrefixSum(ctx context.Context, bitsPerValue int, in store.DataInput, base uint64, longs []uint64) error {
+func (e *ForUtil) DecodeAndPrefixSum(ctx context.Context, bitsPerValue int, in store.DataInput, base uint64, longs []uint64) error {
 	switch bitsPerValue {
 	case 1:
-		e.decode1(ctx, in, e.tmp, longs)
+		if err := e.decode1(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum8(longs, base)
 	case 2:
-		e.decode2(ctx, in, e.tmp, longs)
+		if err := e.decode2(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum8(longs, base)
 	case 3:
-		e.decode3(ctx, in, e.tmp, longs)
+		if err := e.decode3(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum8(longs, base)
 	case 4:
-		e.decode4(ctx, in, e.tmp, longs)
+		if err := e.decode4(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum8(longs, base)
 	case 5:
-		e.decode5(ctx, in, e.tmp, longs)
+		if err := e.decode5(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum8(longs, base)
 	case 6:
-		e.decode6(ctx, in, e.tmp, longs)
+		if err := e.decode6(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum8(longs, base)
 	case 7:
-		e.decode7(ctx, in, e.tmp, longs)
+		if err := e.decode7(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum8(longs, base)
 	case 8:
-		e.decode8(ctx, in, e.tmp, longs)
+		if err := e.decode8(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum8(longs, base)
 	case 9:
-		e.decode9(ctx, in, e.tmp, longs)
+		if err := e.decode9(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum16(longs, base)
 	case 10:
-		e.decode10(ctx, in, e.tmp, longs)
+		if err := e.decode10(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum16(longs, base)
 	case 11:
-		e.decode11(ctx, in, e.tmp, longs)
+		if err := e.decode11(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum16(longs, base)
 	case 12:
-		e.decode12(ctx, in, e.tmp, longs)
+		if err := e.decode12(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum16(longs, base)
 	case 13:
-		e.decode13(ctx, in, e.tmp, longs)
+		if err := e.decode13(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum16(longs, base)
 	case 14:
-		e.decode14(ctx, in, e.tmp, longs)
+		if err := e.decode14(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum16(longs, base)
 	case 15:
-		e.decode15(ctx, in, e.tmp, longs)
+		if err := e.decode15(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum16(longs, base)
 	case 16:
-		e.decode16(ctx, in, e.tmp, longs)
+		if err := e.decode16(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum16(longs, base)
 	case 17:
-		e.decode17(ctx, in, e.tmp, longs)
+		if err := e.decode17(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 	case 18:
-		e.decode18(ctx, in, e.tmp, longs)
+		if err := e.decode18(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 	case 19:
-		e.decode19(ctx, in, e.tmp, longs)
+		if err := e.decode19(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 	case 20:
-		e.decode20(ctx, in, e.tmp, longs)
+		if err := e.decode20(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 	case 21:
-		e.decode21(ctx, in, e.tmp, longs)
+		if err := e.decode21(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 	case 22:
-		e.decode22(ctx, in, e.tmp, longs)
+		if err := e.decode22(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 	case 23:
-		e.decode23(ctx, in, e.tmp, longs)
+		if err := e.decode23(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 	case 24:
-		e.decode24(ctx, in, e.tmp, longs)
+		if err := e.decode24(ctx, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 
 	default:
-		e.decodeSlow(ctx, bitsPerValue, in, e.tmp, longs)
+		if err := e.decodeSlow(ctx, bitsPerValue, in, e.tmp, longs); err != nil {
+			return err
+		}
 		prefixSum32(longs, base)
 	}
 	return nil
 }
 
-func (e *IntCodec) decodeSlow(ctx context.Context, bitsPerValue int, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decodeSlow(ctx context.Context, bitsPerValue int, in store.DataInput, tmp, longs []uint64) error {
 	numLongs := bitsPerValue << 1
 	if err := in.ReadLELongs(ctx, tmp[:numLongs]); err != nil {
 		return err
@@ -674,7 +722,7 @@ func (e *IntCodec) decodeSlow(ctx context.Context, bitsPerValue int, in store.Da
 	return nil
 }
 
-func (e *IntCodec) decode1(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode1(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[:2]); err != nil {
 		return err
 	}
@@ -689,7 +737,7 @@ func (e *IntCodec) decode1(ctx context.Context, in store.DataInput, tmp, longs [
 	return nil
 }
 
-func (e *IntCodec) decode2(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode2(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[:4]); err != nil {
 		return err
 	}
@@ -700,7 +748,7 @@ func (e *IntCodec) decode2(ctx context.Context, in store.DataInput, tmp, longs [
 	return nil
 }
 
-func (e *IntCodec) decode3(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode3(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:6]); err != nil {
 		return err
 	}
@@ -724,7 +772,7 @@ func (e *IntCodec) decode3(ctx context.Context, in store.DataInput, tmp, longs [
 	return nil
 }
 
-func (e *IntCodec) decode4(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode4(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:8]); err != nil {
 		return err
 	}
@@ -733,7 +781,7 @@ func (e *IntCodec) decode4(ctx context.Context, in store.DataInput, tmp, longs [
 	return nil
 }
 
-func (e *IntCodec) decode5(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode5(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:10]); err != nil {
 		return err
 	}
@@ -760,7 +808,7 @@ func (e *IntCodec) decode5(ctx context.Context, in store.DataInput, tmp, longs [
 	return nil
 }
 
-func (e *IntCodec) decode6(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode6(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:12]); err != nil {
 		return err
 	}
@@ -782,7 +830,7 @@ func (e *IntCodec) decode6(ctx context.Context, in store.DataInput, tmp, longs [
 	return nil
 }
 
-func (e *IntCodec) decode7(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode7(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:14]); err != nil {
 		return err
 	}
@@ -808,11 +856,11 @@ func (e *IntCodec) decode7(ctx context.Context, in store.DataInput, tmp, longs [
 	return nil
 }
 
-func (e *IntCodec) decode8(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode8(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	return in.ReadLELongs(ctx, longs[0:16])
 }
 
-func (e *IntCodec) decode9(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode9(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[:18]); err != nil {
 		return err
 	}
@@ -851,7 +899,7 @@ func (e *IntCodec) decode9(ctx context.Context, in store.DataInput, tmp, longs [
 	return nil
 }
 
-func (e *IntCodec) decode10(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode10(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[:20]); err != nil {
 		return err
 	}
@@ -878,7 +926,7 @@ func (e *IntCodec) decode10(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode11(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode11(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[:22]); err != nil {
 		return err
 	}
@@ -915,7 +963,7 @@ func (e *IntCodec) decode11(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode12(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode12(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:24]); err != nil {
 		return err
 	}
@@ -937,7 +985,7 @@ func (e *IntCodec) decode12(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode13(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode13(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:26]); err != nil {
 		return err
 	}
@@ -972,7 +1020,7 @@ func (e *IntCodec) decode13(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode14(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode14(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:28]); err != nil {
 		return err
 	}
@@ -998,7 +1046,7 @@ func (e *IntCodec) decode14(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode15(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode15(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:30]); err != nil {
 		return err
 	}
@@ -1032,11 +1080,11 @@ func (e *IntCodec) decode15(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode16(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode16(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	return in.ReadLELongs(ctx, longs[0:32])
 }
 
-func (e *IntCodec) decode17(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode17(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:34]); err != nil {
 		return err
 	}
@@ -1099,7 +1147,7 @@ func (e *IntCodec) decode17(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode18(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode18(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:36]); err != nil {
 		return err
 	}
@@ -1138,7 +1186,7 @@ func (e *IntCodec) decode18(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode19(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode19(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:38]); err != nil {
 		return err
 	}
@@ -1199,7 +1247,7 @@ func (e *IntCodec) decode19(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode20(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode20(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:40]); err != nil {
 		return err
 	}
@@ -1226,7 +1274,7 @@ func (e *IntCodec) decode20(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode21(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode21(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:42]); err != nil {
 		return err
 	}
@@ -1285,7 +1333,7 @@ func (e *IntCodec) decode21(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode22(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode22(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:44]); err != nil {
 		return err
 	}
@@ -1322,7 +1370,7 @@ func (e *IntCodec) decode22(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode23(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode23(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:46]); err != nil {
 		return err
 	}
@@ -1379,7 +1427,7 @@ func (e *IntCodec) decode23(ctx context.Context, in store.DataInput, tmp, longs 
 	return nil
 }
 
-func (e *IntCodec) decode24(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
+func (e *ForUtil) decode24(ctx context.Context, in store.DataInput, tmp, longs []uint64) error {
 	if err := in.ReadLELongs(ctx, tmp[0:48]); err != nil {
 		return err
 	}
