@@ -45,9 +45,9 @@ func (p *PForUtil) Encode(ctx context.Context, longs []uint64, out store.DataOut
 	}
 	patchedBitsRequired := max(n, maxBitsRequired-8)
 	numExceptions := 0
-	maxUnpatchedValue := (1 << patchedBitsRequired) - 1
+	maxUnpatchedValue := uint64((1 << patchedBitsRequired) - 1)
 	for i := 1; i < 8; i++ {
-		if top8[i] > maxUnpatchedValue {
+		if top8[i] > int64(maxUnpatchedValue) {
 			numExceptions++
 		}
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/geange/lucene-go/core/codecs/types"
 	"github.com/geange/lucene-go/core/document"
 	coreIndex "github.com/geange/lucene-go/core/index"
-	index "github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util/zigzag"
 )
