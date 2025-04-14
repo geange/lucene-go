@@ -14,7 +14,7 @@ import (
 	"github.com/geange/lucene-go/core/util/zigzag"
 )
 
-var _ types.PostingsReaderBase = &PostingsReader{}
+var _ types.PostingsReader = &PostingsReader{}
 
 type PostingsReader struct {
 	docIn   store.IndexInput

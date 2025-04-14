@@ -9,7 +9,7 @@ import (
 	"github.com/geange/lucene-go/core/store"
 )
 
-type PostingsReaderBase interface {
+type PostingsReader interface {
 	io.Closer
 
 	// Init

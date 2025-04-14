@@ -1,6 +1,12 @@
 package blocktree
 
-import "github.com/geange/lucene-go/core/store"
+import (
+	"iter"
+
+	"github.com/geange/lucene-go/core/codecs/types"
+	"github.com/geange/lucene-go/core/interface/index"
+	"github.com/geange/lucene-go/core/store"
+)
 
 const (
 	OUTPUT_FLAGS_NUM_BITS = 2
@@ -21,9 +27,49 @@ const (
 	TERMS_META_CODEC_NAME       = "BlockTreeTermsMeta"
 )
 
-type TermsReader struct {
-	termsIn store.IndexInput // Open input to the main terms dict file (_X.tib)
-	indexIn store.IndexInput // Open input to the terms index file (_X.tip)
+var _ index.FieldsProducer = &TermsReader{}
 
-	// postingsReader
+type TermsReader struct {
+	termsIn        store.IndexInput // Open input to the main terms dict file (_X.tib)
+	indexIn        store.IndexInput // Open input to the terms index file (_X.tip)
+	postingsReader types.PostingsReader
+	fieldMap       map[string]*FieldReader
+	fieldList      []string
+	segment        string
+	version        int
+}
+
+func (t *TermsReader) Close() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermsReader) Iterator() iter.Seq[string] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermsReader) Names() []string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermsReader) Terms(field string) (index.Terms, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermsReader) Size() int {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermsReader) CheckIntegrity() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *TermsReader) GetMergeInstance() index.FieldsProducer {
+	//TODO implement me
+	panic("implement me")
 }
