@@ -48,6 +48,14 @@ func (s *SkipWriter) initSkip() error {
 	return nil
 }
 
+func (s *SkipWriter) WriteSkip(ctx context.Context, output store.IndexOutput) (int64, error) {
+	return s.sw.WriteSkip(ctx, output, s.mwc)
+}
+
+func (s *SkipWriter) ResetSkip() error {
+	return s.sw.ResetSkip(s.mwc)
+}
+
 func (s *SkipWriter) BufferSkip(ctx context.Context, doc int, competitiveFreqNorms *coreIndex.CompetitiveImpactAccumulator,
 	numDocs int, posFP, payFP uint64, posBufferUpto, payloadByteUpto int) error {
 	if err := s.initSkip(); err != nil {

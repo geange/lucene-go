@@ -12,7 +12,7 @@ import (
 )
 
 type IntBlockTermState struct {
-	types.BlockTermState
+	types.BlockTermStateBase
 
 	DocStartFP         int64
 	PosStartFP         int64
@@ -32,7 +32,7 @@ func NewIntBlockTermState() *IntBlockTermState {
 
 func (s *IntBlockTermState) Clone() *IntBlockTermState {
 	state := &IntBlockTermState{
-		BlockTermState:     types.BlockTermState{},
+		BlockTermStateBase: types.BlockTermStateBase{},
 		DocStartFP:         0,
 		PosStartFP:         0,
 		PayStartFP:         0,
@@ -47,7 +47,7 @@ func (s *IntBlockTermState) Clone() *IntBlockTermState {
 func (s *IntBlockTermState) CopyFrom(other index.TermState) {
 	state, ok := other.(*IntBlockTermState)
 	if ok {
-		state.BlockTermState.CopyFrom(&state.BlockTermState)
+		state.BlockTermStateBase.CopyFrom(&state.BlockTermStateBase)
 
 		s.DocStartFP = state.DocStartFP
 		s.PosStartFP = state.PosStartFP

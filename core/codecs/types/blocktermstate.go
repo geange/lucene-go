@@ -5,9 +5,22 @@ import (
 	"github.com/geange/lucene-go/core/interface/index"
 )
 
-var _ index.TermState = &BlockTermState{}
+//var _ index.TermState = &BlockTermState{}
 
-type BlockTermState struct {
+type BlockTermState interface {
+	SetDocFreq(DocFreq int)
+	GetDocFreq() int
+	SetTotalTermFreq(TotalTermFreq int)
+	GetTotalTermFreq() int
+	SetTermBlockOrd(TermBlockOrd int)
+	GetTermBlockOrd() int
+	SetBlockFilePointer(BlockFilePointer int64)
+	GetBlockFilePointer() int64
+}
+
+var _ BlockTermState = &BlockTermStateBase{}
+
+type BlockTermStateBase struct {
 	coreindex.OrdTermState
 
 	DocFreq          int   // how many docs have this term
@@ -16,8 +29,40 @@ type BlockTermState struct {
 	BlockFilePointer int64 // fp into the terms dict primary file (_X. tim) that holds this term
 }
 
-func (b *BlockTermState) CopyFrom(other index.TermState) {
-	state, ok := other.(*BlockTermState)
+func (b *BlockTermStateBase) SetDocFreq(DocFreq int) {
+	b.DocFreq = DocFreq
+}
+
+func (b *BlockTermStateBase) GetDocFreq() int {
+	return b.DocFreq
+}
+
+func (b *BlockTermStateBase) SetTotalTermFreq(TotalTermFreq int) {
+	b.TotalTermFreq = TotalTermFreq
+}
+
+func (b *BlockTermStateBase) GetTotalTermFreq() int {
+	return b.TotalTermFreq
+}
+
+func (b *BlockTermStateBase) SetTermBlockOrd(TermBlockOrd int) {
+	b.TermBlockOrd = TermBlockOrd
+}
+
+func (b *BlockTermStateBase) GetTermBlockOrd() int {
+	return b.TermBlockOrd
+}
+
+func (b *BlockTermStateBase) SetBlockFilePointer(BlockFilePointer int64) {
+	b.BlockFilePointer = BlockFilePointer
+}
+
+func (b *BlockTermStateBase) GetBlockFilePointer() int64 {
+	return b.BlockFilePointer
+}
+
+func (b *BlockTermStateBase) CopyFrom(other index.TermState) {
+	state, ok := other.(*BlockTermStateBase)
 	if ok {
 		b.OrdTermState.CopyFrom(&state.OrdTermState)
 		b.DocFreq = state.DocFreq
