@@ -11,6 +11,7 @@ import (
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
+	types2 "github.com/geange/lucene-go/core/types"
 )
 
 type IntBlockTermState struct {
@@ -668,8 +669,7 @@ func (e *EverythingEnum) Advance(ctx context.Context, target int) (int, error) {
 }
 
 func (e *EverythingEnum) SlowAdvance(ctx context.Context, target int) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return types2.SlowAdvanceWithContext(ctx, e, target)
 }
 
 func (e *EverythingEnum) Cost() int64 {
