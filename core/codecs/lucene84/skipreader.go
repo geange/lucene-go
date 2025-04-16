@@ -12,6 +12,11 @@ type SkipReader struct {
 	mrx *index.MultiLevelSkipListReaderContext
 }
 
+func NewSkipReader(skipStream store.IndexInput, maxSkipLevels int,
+	hasPos, hasOffsets, hasPayloads bool) (*SkipReader, error) {
+	panic("")
+}
+
 var _ index.MultiLevelSkipListReaderSPI = &skipReader{}
 
 type skipReader struct {
@@ -49,6 +54,46 @@ func (s *SkipReader) GetPayloadByteUpto() int {
 
 func (s *SkipReader) GetNextSkipDoc() int {
 	return s.mrx.GetSkipDoc(0)
+}
+
+func trim(df int) int {
+	if df%BLOCK_SIZE == 0 {
+		return df - 1
+	}
+	return df
+}
+
+func (s *SkipReader) Init(ctx context.Context, skipPointer, docBasePointer, posBasePointer, payBasePointer int, df int) error {
+	if err := s.mrx.Init(ctx, int64(skipPointer), trim(df), s.sr); err != nil {
+		return err
+	}
+
+	s.sr.lastDocPointer = int64(docBasePointer)
+	s.sr.lastPosPointer = int64(posBasePointer)
+	s.sr.lastPayPointer = int64(payBasePointer)
+
+	arrayFill(s.sr.docPointer, uint64(docBasePointer))
+
+	if len(s.sr.posPointer) > 0 {
+		arrayFill(s.sr.payPointer, uint64(posBasePointer))
+
+		if len(s.sr.payPointer) > 0 {
+			arrayFill(s.sr.payPointer, uint64(payBasePointer))
+		}
+	}
+	return nil
+}
+
+func (s *SkipReader) SkipTo(ctx context.Context, target int) (int, error) {
+	return s.sr.SkipTo(ctx, target, s.mrx)
+}
+
+func (s *skipReader) SkipTo(ctx context.Context, target int, mtx *index.MultiLevelSkipListReaderContext) (int, error) {
+	return mtx.SkipToWithSPI(ctx, target, s)
+}
+
+func (s *SkipReader) GetDoc() int {
+	return s.mrx.GetDoc()
 }
 
 func (s *skipReader) ReadSkipData(ctx context.Context, level int, skipStream store.IndexInput, mrx *index.MultiLevelSkipListReaderContext) (int64, error) {
