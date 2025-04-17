@@ -332,6 +332,55 @@ func (p *PostingsReader) NewEverythingEnum(fieldInfo *document.FieldInfo) (*Ever
 	return this, nil
 }
 
+func (e *EverythingEnum) reset( termState *IntBlockTermState,  flags int) (*EverythingEnum, error) {
+	e.docFreq = termState.DocFreq;
+	e.docTermStartFP = int(termState.DocStartFP)
+	e.posTermStartFP = int(termState.PosStartFP)
+	e.payTermStartFP = int(termState.PayStartFP)
+	e.skipOffset = int(termState.SkipOffset)
+	e.totalTermFreq = uint64(termState.TotalTermFreq)
+	e.singletonDocID = uint64(termState.SingletonDocID)
+	if e.docFreq > 1 {
+        if e.docIn == nil {
+          // lazy init
+          e.docIn = e.startDocIn.Clone().(store.IndexInput)
+        }
+        if _, err := e.docIn.Seek(int64(e.docTermStartFP), io.SeekStart); err != nil {
+			return nil, err
+		}
+      }
+      e.posPendingFP = int64(e.posTermStartFP)
+	e.payPendingFP = int64(e.payTermStartFP)
+	e.posPendingCount = 0;
+      if termState.TotalTermFreq < BLOCK_SIZE {
+		  e.lastPosBlockFP = int64(e.posTermStartFP)
+	  } else if termState.TotalTermFreq == BLOCK_SIZE {
+		  e.lastPosBlockFP = -1;
+      } else {
+		  e.lastPosBlockFP =  int64(e.posTermStartFP) + termState.LastPosBlockOffset;
+      }
+
+      e.needsOffsets = featureRequested(flags,  coreIndex.POSTINGS_ENUM_OFFSETS);
+      e.needsPayloads = featureRequested(flags, coreIndex.POSTINGS_ENUM_PAYLOADS);
+
+	  e.doc = -1;
+	  e.accum = 0;
+	  e. blockUpto = 0;
+      if e.docFreq > BLOCK_SIZE {
+		  e.nextSkipDoc = BLOCK_SIZE - 1; // we won't skip if target is found in first block
+      } else {
+		  // TODO:
+//		  e. nextSkipDoc = NO_MORE_DOCS; // not enough docs for skipping
+      }
+	  e.docBufferUpto = BLOCK_SIZE;
+	  e.skipped = false;
+      return e, nil
+}
+
+func featureRequested( flags int,  feature int) bool {
+    return (flags & feature) == feature;
+  }
+
 func (e *EverythingEnum) canReuse(docIn store.IndexInput, fieldInfo *document.FieldInfo) bool {
 	return docIn == e.startDocIn &&
 		e.indexHasOffsets == (fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) &&

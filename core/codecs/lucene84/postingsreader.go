@@ -158,7 +158,24 @@ func (p *PostingsReader) Postings(ctx context.Context, fieldInfo *document.Field
 		return docsEnum.Reset(termState.(*IntBlockTermState), flags)
 	}
 
-	panic("every enum")
+	var everythingEnum *EverythingEnum
+	if reuseEnum, ok := reuse.(*EverythingEnum); ok {
+		everythingEnum = reuseEnum
+		if !everythingEnum.canReuse(p.docIn, fieldInfo) {
+			enum, err  := p.NewEverythingEnum(fieldInfo)
+			if err != nil {
+				return nil, err
+			}
+			everythingEnum = enum
+		}
+	}else {
+		enum, err  := p.NewEverythingEnum(fieldInfo)
+		if err != nil {
+			return nil, err
+		}
+		everythingEnum = enum
+	}
+	return everythingEnum.reset(termState.(*IntBlockTermState), flags)
 }
 
 func (p *PostingsReader) Impacts(ctx context.Context, fieldInfo *document.FieldInfo, state index.TermState,
