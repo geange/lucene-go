@@ -18,19 +18,19 @@ type PostingsReader interface {
 
 	// NewTermState
 	// Return a newly created empty TermState
-	NewTermState() (index.TermState, error)
+	NewTermState() (BlockTermState, error)
 
 	// DecodeTerm
 	// Actually decode metadata for next term
-	DecodeTerm(ctx context.Context, in store.DataInput, fieldInfo *document.FieldInfo, state index.TermState, absolute bool) error
+	DecodeTerm(ctx context.Context, in store.DataInput, fieldInfo *document.FieldInfo, state BlockTermState, absolute bool) error
 
 	// Postings
 	// Must fully consume state, since after this call that TermState may be reused.
-	Postings(ctx context.Context, fieldInfo *document.FieldInfo, state index.TermState, reuse index.PostingsEnum, flags int) (index.PostingsEnum, error)
+	Postings(ctx context.Context, fieldInfo *document.FieldInfo, state BlockTermState, reuse index.PostingsEnum, flags int) (index.PostingsEnum, error)
 
 	// Impacts
 	// Return a ImpactsEnum that computes impacts with scorer.
-	Impacts(ctx context.Context, fieldInfo *document.FieldInfo, state index.TermState, flags int) (index.ImpactsEnum, error)
+	Impacts(ctx context.Context, fieldInfo *document.FieldInfo, state BlockTermState, flags int) (index.ImpactsEnum, error)
 
 	CheckIntegrity() error
 }

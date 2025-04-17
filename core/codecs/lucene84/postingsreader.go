@@ -39,12 +39,12 @@ func (p *PostingsReader) Init(ctx context.Context, termsIn store.IndexInput, sta
 	return nil
 }
 
-func (p *PostingsReader) NewTermState() (index.TermState, error) {
+func (p *PostingsReader) NewTermState() (types.BlockTermState, error) {
 	return NewIntBlockTermState(), nil
 }
 
 func (p *PostingsReader) DecodeTerm(ctx context.Context, in store.DataInput, fieldInfo *document.FieldInfo,
-	state index.TermState, absolute bool) error {
+	state types.BlockTermState, absolute bool) error {
 	termState, ok := state.(*IntBlockTermState)
 	if !ok {
 		return errors.New("state is not *IntBlockTermState")
@@ -139,7 +139,7 @@ func (p *PostingsReader) DecodeTerm(ctx context.Context, in store.DataInput, fie
 	return nil
 }
 
-func (p *PostingsReader) Postings(ctx context.Context, fieldInfo *document.FieldInfo, termState index.TermState,
+func (p *PostingsReader) Postings(ctx context.Context, fieldInfo *document.FieldInfo, termState types.BlockTermState,
 	reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
 
 	indexHasPositions := fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
@@ -162,14 +162,14 @@ func (p *PostingsReader) Postings(ctx context.Context, fieldInfo *document.Field
 	if reuseEnum, ok := reuse.(*EverythingEnum); ok {
 		everythingEnum = reuseEnum
 		if !everythingEnum.canReuse(p.docIn, fieldInfo) {
-			enum, err  := p.NewEverythingEnum(fieldInfo)
+			enum, err := p.NewEverythingEnum(fieldInfo)
 			if err != nil {
 				return nil, err
 			}
 			everythingEnum = enum
 		}
-	}else {
-		enum, err  := p.NewEverythingEnum(fieldInfo)
+	} else {
+		enum, err := p.NewEverythingEnum(fieldInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -178,8 +178,16 @@ func (p *PostingsReader) Postings(ctx context.Context, fieldInfo *document.Field
 	return everythingEnum.reset(termState.(*IntBlockTermState), flags)
 }
 
-func (p *PostingsReader) Impacts(ctx context.Context, fieldInfo *document.FieldInfo, state index.TermState,
-	flags int) (index.ImpactsEnum, error) {
+func (p *PostingsReader) Impacts(ctx context.Context, fieldInfo *document.FieldInfo,
+	state types.BlockTermState, flags int) (index.ImpactsEnum, error) {
+	if state.GetDocFreq() <= BLOCK_SIZE {
+		enum, err := p.Postings(ctx, fieldInfo, state, nil, flags)
+		if err != nil {
+			return nil, err
+		}
+
+		return coreIndex.NewSlowImpactsEnum(enum), nil
+	}
 	//TODO implement me
 	panic("implement me")
 }

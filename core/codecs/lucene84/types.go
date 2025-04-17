@@ -222,9 +222,9 @@ type EverythingEnum struct {
 	payloadByteUpto uint64
 	payloadLength   uint64
 
-	lastStartOffset uint64
-	startOffset     uint64
-	endOffset       uint64
+	lastStartOffset int64
+	startOffset     int64
+	endOffset       int64
 
 	docBufferUpto int
 	posBufferUpto uint64
@@ -245,7 +245,7 @@ type EverythingEnum struct {
 	docFreq       int    // number of docs in this posting list
 	totalTermFreq uint64 // number of positions in this posting list
 	blockUpto     int    // number of docs in or before the current block
-	doc           uint64 // doc we last read
+	doc           int64  // doc we last read
 	accum         uint64 // accumulator for doc deltas
 	freq          uint64 // freq we last read
 	position      uint64 // current position
@@ -332,8 +332,8 @@ func (p *PostingsReader) NewEverythingEnum(fieldInfo *document.FieldInfo) (*Ever
 	return this, nil
 }
 
-func (e *EverythingEnum) reset( termState *IntBlockTermState,  flags int) (*EverythingEnum, error) {
-	e.docFreq = termState.DocFreq;
+func (e *EverythingEnum) reset(termState *IntBlockTermState, flags int) (*EverythingEnum, error) {
+	e.docFreq = termState.DocFreq
 	e.docTermStartFP = int(termState.DocStartFP)
 	e.posTermStartFP = int(termState.PosStartFP)
 	e.payTermStartFP = int(termState.PayStartFP)
@@ -341,45 +341,45 @@ func (e *EverythingEnum) reset( termState *IntBlockTermState,  flags int) (*Ever
 	e.totalTermFreq = uint64(termState.TotalTermFreq)
 	e.singletonDocID = uint64(termState.SingletonDocID)
 	if e.docFreq > 1 {
-        if e.docIn == nil {
-          // lazy init
-          e.docIn = e.startDocIn.Clone().(store.IndexInput)
-        }
-        if _, err := e.docIn.Seek(int64(e.docTermStartFP), io.SeekStart); err != nil {
+		if e.docIn == nil {
+			// lazy init
+			e.docIn = e.startDocIn.Clone().(store.IndexInput)
+		}
+		if _, err := e.docIn.Seek(int64(e.docTermStartFP), io.SeekStart); err != nil {
 			return nil, err
 		}
-      }
-      e.posPendingFP = int64(e.posTermStartFP)
+	}
+	e.posPendingFP = int64(e.posTermStartFP)
 	e.payPendingFP = int64(e.payTermStartFP)
-	e.posPendingCount = 0;
-      if termState.TotalTermFreq < BLOCK_SIZE {
-		  e.lastPosBlockFP = int64(e.posTermStartFP)
-	  } else if termState.TotalTermFreq == BLOCK_SIZE {
-		  e.lastPosBlockFP = -1;
-      } else {
-		  e.lastPosBlockFP =  int64(e.posTermStartFP) + termState.LastPosBlockOffset;
-      }
+	e.posPendingCount = 0
+	if termState.TotalTermFreq < BLOCK_SIZE {
+		e.lastPosBlockFP = int64(e.posTermStartFP)
+	} else if termState.TotalTermFreq == BLOCK_SIZE {
+		e.lastPosBlockFP = -1
+	} else {
+		e.lastPosBlockFP = int64(e.posTermStartFP) + termState.LastPosBlockOffset
+	}
 
-      e.needsOffsets = featureRequested(flags,  coreIndex.POSTINGS_ENUM_OFFSETS);
-      e.needsPayloads = featureRequested(flags, coreIndex.POSTINGS_ENUM_PAYLOADS);
+	e.needsOffsets = featureRequested(flags, coreIndex.POSTINGS_ENUM_OFFSETS)
+	e.needsPayloads = featureRequested(flags, coreIndex.POSTINGS_ENUM_PAYLOADS)
 
-	  e.doc = -1;
-	  e.accum = 0;
-	  e. blockUpto = 0;
-      if e.docFreq > BLOCK_SIZE {
-		  e.nextSkipDoc = BLOCK_SIZE - 1; // we won't skip if target is found in first block
-      } else {
-		  // TODO:
-//		  e. nextSkipDoc = NO_MORE_DOCS; // not enough docs for skipping
-      }
-	  e.docBufferUpto = BLOCK_SIZE;
-	  e.skipped = false;
-      return e, nil
+	e.doc = -1
+	e.accum = 0
+	e.blockUpto = 0
+	if e.docFreq > BLOCK_SIZE {
+		e.nextSkipDoc = BLOCK_SIZE - 1 // we won't skip if target is found in first block
+	} else {
+		// TODO:
+		//		  e. nextSkipDoc = NO_MORE_DOCS; // not enough docs for skipping
+	}
+	e.docBufferUpto = BLOCK_SIZE
+	e.skipped = false
+	return e, nil
 }
 
-func featureRequested( flags int,  feature int) bool {
-    return (flags & feature) == feature;
-  }
+func featureRequested(flags int, feature int) bool {
+	return (flags & feature) == feature
+}
 
 func (e *EverythingEnum) canReuse(docIn store.IndexInput, fieldInfo *document.FieldInfo) bool {
 	return docIn == e.startDocIn &&
@@ -643,7 +643,7 @@ func (e *EverythingEnum) NextDoc(ctx context.Context) (int, error) {
 		}
 	}
 
-	e.doc = e.docBuffer[e.docBufferUpto]
+	e.doc = int64(e.docBuffer[e.docBufferUpto])
 	e.freq = e.freqBuffer[e.docBufferUpto]
 	e.posPendingCount += e.freq
 	e.docBufferUpto++
@@ -713,7 +713,7 @@ func (e *EverythingEnum) Advance(ctx context.Context, target int) (int, error) {
 
 	e.position = 0
 	e.lastStartOffset = 0
-	e.doc = doc
+	e.doc = int64(doc)
 	return int(doc), nil
 }
 
@@ -772,8 +772,8 @@ func (e *EverythingEnum) NextPosition() (int, error) {
 	}
 
 	if e.indexHasOffsets {
-		e.startOffset = e.lastStartOffset + e.offsetStartDeltaBuffer[e.posBufferUpto]
-		e.endOffset = e.startOffset + e.offsetLengthBuffer[e.posBufferUpto]
+		e.startOffset = e.lastStartOffset + int64(e.offsetStartDeltaBuffer[e.posBufferUpto])
+		e.endOffset = e.startOffset + int64(e.offsetLengthBuffer[e.posBufferUpto])
 		e.lastStartOffset = e.startOffset
 	}
 
