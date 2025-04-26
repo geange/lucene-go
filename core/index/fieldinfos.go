@@ -9,6 +9,8 @@ import (
 	"github.com/geange/lucene-go/core/interface/index"
 )
 
+var _ index.FieldInfos = &fieldInfos{}
+
 // FieldInfos
 // Collection of FieldInfos (accessible by number or by name).
 type fieldInfos struct {
@@ -147,6 +149,18 @@ func (f *fieldInfos) HasVectors() bool {
 
 func (f *fieldInfos) HasPointValues() bool {
 	return f.hasPointValues
+}
+
+func (f *fieldInfos) HasProx() bool {
+	return f.hasProx
+}
+
+func (f *fieldInfos) HasPayloads() bool {
+	return f.hasPayloads
+}
+
+func (f *fieldInfos) HasOffsets() bool {
+	return f.hasOffsets
 }
 
 type FieldInfosBuilder struct {

@@ -597,6 +597,9 @@ type FieldInfos interface {
 	HasDocValues() bool
 	HasVectors() bool
 	HasPointValues() bool
+	HasProx() bool
+	HasPayloads() bool
+	HasOffsets() bool
 }
 
 // SortedSetDocValues A multi-valued version of SortedDocValues.

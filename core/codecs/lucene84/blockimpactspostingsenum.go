@@ -72,7 +72,7 @@ type BlockImpactsPostingsEnum struct {
 }
 
 func NewBlockImpactsDocsEnum( fieldInfo *document.FieldInfo,  termState *IntBlockTermState) *BlockImpactsDocsEnum {
-	
+	panic("")
 }
 
 func (b *BlockImpactsPostingsEnum) DocID() int {

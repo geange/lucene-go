@@ -23,6 +23,63 @@ type PostingsReader struct {
 	version int
 }
 
+func NewPostingsReader(ctx context.Context, state *index.SegmentReadState) (*PostingsReader, error) {
+	var docIn, posIn, payIn store.IndexInput
+
+	// NOTE: these data files are too costly to verify checksum against all the bytes on open,
+	// but for now we at least verify proper structure of the checksum footer: which looks
+	// for FOOTER_MAGIC + algorithmID. This is cheap and can detect some forms of corruption
+	// such as file truncation.
+
+	docName := store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, DOC_EXTENSION)
+
+	var err error
+	docIn, err = state.Directory.OpenInput(ctx, docName)
+	if err != nil {
+		return nil, err
+	}
+	version, err := codecs.CheckIndexHeader(ctx, docIn, DOC_CODEC, VERSION_START, VERSION_CURRENT, state.SegmentInfo.GetID(), state.SegmentSuffix)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := codecs.RetrieveChecksum(ctx, docIn); err != nil {
+		return nil, err
+	}
+
+	if state.FieldInfos.HasProx() {
+		proxName := store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, POS_EXTENSION)
+
+		posIn, err = state.Directory.OpenInput(ctx, proxName)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := codecs.CheckIndexHeader(ctx, posIn, POS_CODEC, version, version, state.SegmentInfo.GetID(), state.SegmentSuffix); err != nil {
+			return nil, err
+		}
+		if _, err := codecs.RetrieveChecksum(ctx, posIn); err != nil {
+			return nil, err
+		}
+
+		if state.FieldInfos.HasPayloads() || state.FieldInfos.HasOffsets() {
+			payName := store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, PAY_EXTENSION)
+			payIn, err = state.Directory.OpenInput(ctx, payName)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := codecs.CheckIndexHeader(ctx, payIn, PAY_CODEC, version, version, state.SegmentInfo.GetID(), state.SegmentSuffix); err != nil {
+				return nil, err
+			}
+			if _, err := codecs.RetrieveChecksum(ctx, payIn); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return &PostingsReader{
+		docIn: docIn, posIn: posIn, payIn: payIn, version: version,
+	}, nil
+}
+
 func (p *PostingsReader) Init(ctx context.Context, termsIn store.IndexInput, state *index.SegmentReadState) error {
 	if _, err := codecs.CheckIndexHeader(ctx, termsIn, TERMS_CODEC, VERSION_START, VERSION_CURRENT,
 		state.SegmentInfo.GetID(), state.SegmentSuffix); err != nil {

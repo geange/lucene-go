@@ -14,7 +14,27 @@ type SkipReader struct {
 
 func NewSkipReader(skipStream store.IndexInput, maxSkipLevels int,
 	hasPos, hasOffsets, hasPayloads bool) (*SkipReader, error) {
-	panic("")
+	mrx := index.NewMultiLevelSkipListReaderContext(skipStream, maxSkipLevels, BLOCK_SIZE, 8)
+
+	sr := &skipReader{}
+	sr.docPointer = make([]uint64, maxSkipLevels)
+	if hasPos {
+		sr.posPointer = make([]uint64, maxSkipLevels)
+		sr.posBufferUpto = make([]uint64, maxSkipLevels)
+		if hasPayloads {
+			sr.payloadByteUpto = make([]uint64, maxSkipLevels)
+		} else {
+			sr.payloadByteUpto = nil
+		}
+		if hasOffsets || hasPayloads {
+			sr.payPointer = make([]uint64, maxSkipLevels)
+		} else {
+			sr.payPointer = nil
+		}
+	} else {
+		sr.posPointer = nil
+	}
+	return &SkipReader{sr: sr, mrx: mrx}, nil
 }
 
 var _ index.MultiLevelSkipListReaderSPI = &skipReader{}
