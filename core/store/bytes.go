@@ -25,6 +25,15 @@ func NewByteArrayDataInput(bs []byte) *ByteArrayDataInput {
 	return input
 }
 
+func (b *ByteArrayDataInput) Reset(bs []byte) {
+	b.buff = bs
+	b.pos = 0
+}
+
+func (b *ByteArrayDataInput) GetPosition() int {
+	return b.pos
+}
+
 func (b *ByteArrayDataInput) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:

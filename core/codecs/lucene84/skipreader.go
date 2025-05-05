@@ -15,7 +15,27 @@ type SkipReader struct {
 func NewSkipReader(skipStream store.IndexInput, maxSkipLevels int,
 	hasPos, hasOffsets, hasPayloads bool) (*SkipReader, error) {
 	mrx := index.NewMultiLevelSkipListReaderContext(skipStream, maxSkipLevels, BLOCK_SIZE, 8)
+	sr := newSkipReader(skipStream, maxSkipLevels, hasPos,hasOffsets, hasPayloads)
+	return &SkipReader{sr: sr, mrx: mrx}, nil
+}
 
+var _ index.MultiLevelSkipListReaderSPI = &skipReader{}
+
+type skipReader struct {
+	docPointer          []uint64
+	posPointer          []uint64
+	payPointer          []uint64
+	posBufferUpto       []uint64
+	payloadByteUpto     []uint64
+	lastPosPointer      int64
+	lastPayPointer      int64
+	lastPayloadByteUpto int
+	lastDocPointer      int64
+	lastPosBufferUpto   int
+}
+
+func newSkipReader(skipStream store.IndexInput, maxSkipLevels int,
+	hasPos, hasOffsets, hasPayloads bool) *skipReader {
 	sr := &skipReader{}
 	sr.docPointer = make([]uint64, maxSkipLevels)
 	if hasPos {
@@ -34,22 +54,7 @@ func NewSkipReader(skipStream store.IndexInput, maxSkipLevels int,
 	} else {
 		sr.posPointer = nil
 	}
-	return &SkipReader{sr: sr, mrx: mrx}, nil
-}
-
-var _ index.MultiLevelSkipListReaderSPI = &skipReader{}
-
-type skipReader struct {
-	docPointer          []uint64
-	posPointer          []uint64
-	payPointer          []uint64
-	posBufferUpto       []uint64
-	payloadByteUpto     []uint64
-	lastPosPointer      int64
-	lastPayPointer      int64
-	lastPayloadByteUpto int
-	lastDocPointer      int64
-	lastPosBufferUpto   int
+	return sr
 }
 
 func (s *SkipReader) GetDocPointer() int64 {

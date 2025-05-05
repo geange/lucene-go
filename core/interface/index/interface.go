@@ -537,6 +537,8 @@ type TermsEnum interface {
 type Impact interface {
 	GetFreq() int
 	GetNorm() int64
+	SetFreq(freq int)
+	SetNorm(norm int64)
 }
 
 // Impacts

@@ -152,7 +152,7 @@ func (b *BlockImpactsPostingsEnum) AdvanceShallow(ctx context.Context, target in
 
 			// Force to read next block
 			b.docBufferUpto = BLOCK_SIZE
-			b.accum = uint64(b.skipper.GetDoc())
+			b.accum = b.skipper.GetDoc()
 			b.posPendingFP = uint64(b.skipper.GetPosPointer())
 			b.posPendingCount = b.skipper.GetPosBufferUpto()
 			b.seekTo = b.skipper.GetDocPointer() // delay the seek

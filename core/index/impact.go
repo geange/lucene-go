@@ -26,6 +26,14 @@ func (i *impact) GetNorm() int64 {
 	return i.Norm
 }
 
+func (i *impact) SetFreq(freq int) {
+	i.Freq = freq
+}
+
+func ( i *impact) SetNorm(norm int64) {
+	i.Norm = norm
+}
+
 func NewImpact(freq int, norm int64) index.Impact {
 	return &impact{Freq: freq, Norm: norm}
 }

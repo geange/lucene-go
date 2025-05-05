@@ -240,6 +240,10 @@ func (m *MultiLevelSkipListReaderContext) MaxNumberOfSkipLevels() int {
 	return m.maxNumberOfSkipLevels
 }
 
+func (m *MultiLevelSkipListReaderContext) NumberOfSkipLevels() int {
+	return m.numberOfSkipLevels
+}
+
 func (m *MultiLevelSkipListReaderContext) GetSkipDoc(idx int) int {
 	return m.skipDoc[idx]
 }
