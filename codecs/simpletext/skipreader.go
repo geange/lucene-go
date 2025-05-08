@@ -112,7 +112,7 @@ func (s *skipReader) init(mtx *coreIndex.MultiLevelSkipListReaderContext) {
 }
 
 func (s *skipReader) SkipTo(ctx context.Context, target int, mtx *coreIndex.MultiLevelSkipListReaderContext) (int, error) {
-	return mtx.SkipToWithSPI(ctx, target, s)
+	return mtx.SkipTo(ctx, target, s)
 }
 
 var _ index.Impacts = &innerImpacts{}

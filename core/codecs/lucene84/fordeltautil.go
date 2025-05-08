@@ -23,9 +23,9 @@ type ForDeltaUtil struct {
 	codec *ForUtil
 }
 
-func NewForDeltaUtil() *ForDeltaUtil {
+func NewForDeltaUtil(forUtil *ForUtil) *ForDeltaUtil {
 	return &ForDeltaUtil{
-		codec: NewForUtil(),
+		codec: forUtil,
 	}
 }
 

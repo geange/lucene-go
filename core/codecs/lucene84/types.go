@@ -427,7 +427,7 @@ func (e *EverythingEnum) skipPositions(ctx context.Context) error {
 	//   System.out.println("      FPR.skipPositions: toSkip=" + toSkip);
 	// }
 
-	leftInBlock := uint64(BLOCK_SIZE - e.posBufferUpto)
+	leftInBlock := BLOCK_SIZE - e.posBufferUpto
 	if toSkip < leftInBlock {
 		end := e.posBufferUpto + toSkip
 		for e.posBufferUpto < end {
@@ -668,7 +668,10 @@ func (e *EverythingEnum) Advance(ctx context.Context, target int) (int, error) {
 		if !e.skipped {
 			// This is the first time this enum has skipped
 			// since reset() was called; load the skip data:
-			e.skipper.Init(ctx, e.docTermStartFP+e.skipOffset, e.docTermStartFP, e.posTermStartFP, e.payTermStartFP, e.docFreq)
+			if err := e.skipper.Init(ctx, e.docTermStartFP+e.skipOffset,
+				e.docTermStartFP, e.posTermStartFP, e.payTermStartFP, e.docFreq); err != nil {
+				return 0, err
+			}
 			e.skipped = true
 		}
 
@@ -685,7 +688,9 @@ func (e *EverythingEnum) Advance(ctx context.Context, target int) (int, error) {
 			// Force to read next block
 			e.docBufferUpto = BLOCK_SIZE
 			e.accum = uint64(e.skipper.GetDoc())
-			e.docIn.Seek(e.skipper.GetDocPointer(), io.SeekStart)
+			if _, err := e.docIn.Seek(e.skipper.GetDocPointer(), io.SeekStart); err != nil {
+				return 0, err
+			}
 			e.posPendingFP = e.skipper.GetPosPointer()
 			e.payPendingFP = e.skipper.GetPayPointer()
 			e.posPendingCount = uint64(e.skipper.GetPosBufferUpto())
@@ -695,7 +700,9 @@ func (e *EverythingEnum) Advance(ctx context.Context, target int) (int, error) {
 		e.nextSkipDoc = e.skipper.GetNextSkipDoc()
 	}
 	if e.docBufferUpto == BLOCK_SIZE {
-		e.refillDocs(ctx)
+		if err := e.refillDocs(ctx); err != nil {
+			return 0, err
+		}
 	}
 
 	// Now scan:

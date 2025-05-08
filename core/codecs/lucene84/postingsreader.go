@@ -245,8 +245,24 @@ func (p *PostingsReader) Impacts(ctx context.Context, fieldInfo *document.FieldI
 
 		return coreIndex.NewSlowImpactsEnum(enum), nil
 	}
-	//TODO implement me
-	panic("implement me")
+
+	indexHasPositions := fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+	indexHasOffsets := fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+	indexHasPayloads := fieldInfo.HasPayloads()
+
+	if indexHasPositions == false || coreIndex.FeatureRequested(flags, coreIndex.POSTINGS_ENUM_POSITIONS) == false {
+		return p.NewBlockImpactsDocsEnum(ctx, fieldInfo, state.(*IntBlockTermState))
+	}
+
+	//if indexHasPositions &&
+	if coreIndex.FeatureRequested(flags, coreIndex.POSTINGS_ENUM_POSITIONS) &&
+		(indexHasOffsets == false || coreIndex.FeatureRequested(flags, coreIndex.POSTINGS_ENUM_OFFSETS) == false) &&
+		(indexHasPayloads == false || coreIndex.FeatureRequested(flags, coreIndex.POSTINGS_ENUM_PAYLOADS) == false) {
+		return p.NewBlockImpactsPostingsEnum(ctx, fieldInfo, state.(*IntBlockTermState))
+	}
+
+	//return NewBlockImpactsEverythingEnum(ctx, fieldInfo, state.(*IntBlockTermState), flags)
+	panic("")
 }
 
 func (p *PostingsReader) Close() error {

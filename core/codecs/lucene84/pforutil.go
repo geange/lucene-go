@@ -12,6 +12,10 @@ type PForUtil struct {
 	forUtil *ForUtil
 }
 
+func NewFromForUtil(forUtil *ForUtil) *PForUtil {
+	return &PForUtil{forUtil: forUtil}
+}
+
 func allEqual(l []uint64) bool {
 	for i := 1; i < len(l); i++ {
 		if l[i] != l[0] {

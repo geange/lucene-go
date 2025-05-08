@@ -2,11 +2,12 @@ package lucene84
 
 import (
 	"context"
+	"math"
+	"slices"
+
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
-	"math"
-	"slices"
 )
 
 type ScoreSkipReader struct {
@@ -53,7 +54,7 @@ func (r *ScoreSkipReader) GetPosBufferUpto() int {
 }
 
 func (r *ScoreSkipReader) GetDoc() uint64 {
-	 return uint64(r.mrx.GetDoc())
+	return uint64(r.mrx.GetDoc())
 }
 
 func (r *ScoreSkipReader) GetDocPointer() int64 {
@@ -62,6 +63,27 @@ func (r *ScoreSkipReader) GetDocPointer() int64 {
 
 func (r *ScoreSkipReader) GetNextSkipDoc() int {
 	return r.mrx.GetSkipDoc(0)
+}
+
+func (r *ScoreSkipReader) Init(ctx context.Context, skipPointer, docBasePointer, posBasePointer, payBasePointer int, df int) error {
+	if err := r.mrx.Init(ctx, int64(skipPointer), trim(df), r.sr); err != nil {
+		return err
+	}
+
+	r.sr.lastDocPointer = int64(docBasePointer)
+	r.sr.lastPosPointer = int64(posBasePointer)
+	r.sr.lastPayPointer = int64(payBasePointer)
+
+	arrayFill(r.sr.docPointer, uint64(docBasePointer))
+
+	if len(r.sr.posPointer) > 0 {
+		arrayFill(r.sr.payPointer, uint64(posBasePointer))
+
+		if len(r.sr.payPointer) > 0 {
+			arrayFill(r.sr.payPointer, uint64(payBasePointer))
+		}
+	}
+	return nil
 }
 
 var _ index.Impacts = &impact{}

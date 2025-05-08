@@ -2,10 +2,13 @@ package lucene84
 
 import (
 	"context"
+	"io"
+	"math"
+
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"io"
 )
 
 var _ index.ImpactsEnum = &BlockImpactsDocsEnum{}
@@ -38,6 +41,52 @@ type BlockImpactsDocsEnum struct {
 	// as we read freqBuffer lazily, isFreqsRead shows if freqBuffer are read for the current block
 	// always true when we don't have freqBuffer (indexHasFreq=false) or don't need freqBuffer (needsFreq=false)
 	isFreqsRead bool
+}
+
+func (p *PostingsReader) NewBlockImpactsDocsEnum(ctx context.Context, fieldInfo *document.FieldInfo, termState *IntBlockTermState) (*BlockImpactsDocsEnum, error) {
+	forUtil := NewForUtil()
+	enum := &BlockImpactsDocsEnum{
+		forUtil:      forUtil,
+		forDeltaUtil: NewForDeltaUtil(forUtil),
+		pforUtil:     NewFromForUtil(forUtil),
+	}
+
+	indexHasFreqs := fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS
+	indexHasPositions := fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS
+	indexHasOffsets := fieldInfo.GetIndexOptions() >= document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS
+	indexHasPayloads := fieldInfo.HasPayloads()
+
+	enum.docIn = p.docIn.Clone().(store.IndexInput)
+
+	enum.docFreq = termState.DocFreq
+	if _, err := enum.docIn.Seek(termState.DocStartFP, io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	enum.doc = -1
+	enum.accum = 0
+	enum.blockUpto = 0
+	enum.docBufferUpto = BLOCK_SIZE
+
+	enum.skipper = NewScoreSkipReader(enum.docIn.Clone().(store.IndexInput),
+		MAX_SKIP_LEVELS,
+		indexHasPositions,
+		indexHasOffsets,
+		indexHasPayloads)
+	if err := enum.skipper.Init(ctx, int(termState.DocStartFP+termState.SkipOffset),
+		int(termState.DocStartFP), int(termState.PosStartFP), int(termState.PayStartFP), enum.docFreq); err != nil {
+		return nil, err
+	}
+
+	// We set the last element of docBuffer to NO_MORE_DOCS, it helps save conditionals in advance()
+	enum.docBuffer[BLOCK_SIZE] = math.MaxInt32
+	enum.isFreqsRead = true
+	if indexHasFreqs == false {
+		for i := range enum.freqBuffer {
+			enum.freqBuffer[i] = 1
+		}
+	}
+	return enum, nil
 }
 
 func (b *BlockImpactsDocsEnum) DocID() int {

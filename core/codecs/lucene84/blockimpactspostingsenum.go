@@ -2,11 +2,12 @@ package lucene84
 
 import (
 	"context"
+	"io"
+
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
-	"io"
 )
 
 var _ index.ImpactsEnum = &BlockImpactsPostingsEnum{}
@@ -53,14 +54,13 @@ type BlockImpactsPostingsEnum struct {
 	// Where this term's postings start in the .pos file:
 	posTermStartFP uint64
 
-	// Where this term's payloads/offsets start in the .pay
-	// file:
+	// Where this term's payloads/offsets start in the .pay file:
 	payTermStartFP uint64
 
 	// File pointer where the last (vInt encoded) pos delta
 	// block is.  We need this to know whether to bulk
 	// decode vs vInt decode the block:
-	lastPosBlockFP uint64
+	lastPosBlockFP int64
 
 	nextSkipDoc int
 
@@ -69,10 +69,64 @@ type BlockImpactsPostingsEnum struct {
 	// as we read freqBuffer lazily, isFreqsRead shows if freqBuffer are read for the current block
 	// always true when we don't have freqBuffer (indexHasFreq=false) or don't need freqBuffer (needsFreq=false)
 	isFreqsRead bool
+
+	encoded []byte
 }
 
-func NewBlockImpactsDocsEnum( fieldInfo *document.FieldInfo,  termState *IntBlockTermState) *BlockImpactsDocsEnum {
-	panic("")
+var (
+	MAX_ENCODED_SIZE = BLOCK_SIZE * 4
+)
+
+func (p *PostingsReader) NewBlockImpactsPostingsEnum(ctx context.Context,
+	fieldInfo *document.FieldInfo, termState *IntBlockTermState) (*BlockImpactsPostingsEnum, error) {
+
+	indexHasOffsets := fieldInfo.GetIndexOptions() >= (document.INDEX_OPTIONS_DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
+	indexHasPayloads := fieldInfo.HasPayloads()
+
+	enum := &BlockImpactsPostingsEnum{
+		indexHasOffsets:  indexHasOffsets,
+		indexHasPayloads: indexHasPayloads,
+	}
+
+	enum.docIn = p.docIn.Clone().(store.IndexInput)
+	enum.encoded = make([]byte, MAX_ENCODED_SIZE)
+
+	enum.posIn = p.posIn.Clone().(store.IndexInput)
+
+	enum.docFreq = termState.DocFreq
+	enum.docTermStartFP = uint64(termState.DocStartFP)
+	enum.posTermStartFP = uint64(termState.PosStartFP)
+	enum.payTermStartFP = uint64(termState.PayStartFP)
+	enum.totalTermFreq = uint64(termState.TotalTermFreq)
+	if _, err := enum.docIn.Seek(int64(enum.docTermStartFP), io.SeekStart); err != nil {
+		return nil, err
+	}
+	enum.posPendingFP = enum.posTermStartFP
+	enum.posPendingCount = 0
+	if termState.TotalTermFreq < BLOCK_SIZE {
+		enum.lastPosBlockFP = int64(enum.posTermStartFP)
+	} else if termState.TotalTermFreq == BLOCK_SIZE {
+		enum.lastPosBlockFP = -1
+	} else {
+		enum.lastPosBlockFP = int64(enum.posTermStartFP) + termState.LastPosBlockOffset
+	}
+
+	enum.doc = -1
+	enum.accum = 0
+	enum.docUpto = 0
+	enum.docBufferUpto = BLOCK_SIZE
+
+	enum.skipper = NewScoreSkipReader(enum.docIn.Clone().(store.IndexInput),
+		MAX_SKIP_LEVELS,
+		true,
+		indexHasOffsets,
+		indexHasPayloads)
+	if err := enum.skipper.Init(ctx, int(enum.docTermStartFP)+int(termState.SkipOffset),
+		int(enum.docTermStartFP), int(enum.posTermStartFP), int(enum.payTermStartFP), enum.docFreq); err != nil {
+		return nil, err
+	}
+
+	return enum, nil
 }
 
 func (b *BlockImpactsPostingsEnum) DocID() int {

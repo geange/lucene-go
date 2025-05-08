@@ -15,12 +15,6 @@ import (
 // MultiLevelSkipListWriter for the information about the encoding of the multi level skip lists.
 // Subclasses must implement the abstract method readSkipData(int, IndexInput) which defines
 // the actual format of the skip data.
-type MultiLevelSkipListReader interface {
-	// ReadSkipData Subclasses must implement the actual skip data encoding in this method.
-	// level: the level skip data shall be read from
-	// skipStream: the skip stream to read from
-	ReadSkipData(level int, skipStream store.IndexInput) (int64, error)
-}
 
 type MultiLevelSkipListReaderContext struct {
 	//the maximum number of skip levels possible for this index
@@ -83,7 +77,8 @@ type MultiLevelSkipListReaderSPI interface {
 	ReadChildPointer(ctx context.Context, skipStream store.IndexInput, mtx *MultiLevelSkipListReaderContext) (int64, error)
 }
 
-func (m *MultiLevelSkipListReaderContext) Init(ctx context.Context, skipPointer int64, df int, spi MultiLevelSkipListReaderSPI) error {
+func (m *MultiLevelSkipListReaderContext) Init(ctx context.Context, skipPointer int64,
+	df int, spi MultiLevelSkipListReaderSPI) error {
 	m.skipPointer[0] = skipPointer
 	m.docCount = df
 
@@ -107,7 +102,8 @@ func (m *MultiLevelSkipListReaderContext) Init(ctx context.Context, skipPointer 
 }
 
 // Loads the skip levels
-func (m *MultiLevelSkipListReaderContext) loadSkipLevels(ctx context.Context, spi MultiLevelSkipListReaderSPI) error {
+func (m *MultiLevelSkipListReaderContext) loadSkipLevels(ctx context.Context,
+	spi MultiLevelSkipListReaderSPI) error {
 	if m.docCount <= m.skipInterval[0] {
 		m.numberOfSkipLevels = 1
 	} else {
@@ -212,7 +208,8 @@ type BaseMultiLevelSkipListReader struct {
 	skipMultiplier  int
 }
 
-func NewMultiLevelSkipListReaderContext(skipStream store.IndexInput, maxSkipLevels, skipInterval, skipMultiplier int) *MultiLevelSkipListReaderContext {
+func NewMultiLevelSkipListReaderContext(skipStream store.IndexInput,
+	maxSkipLevels, skipInterval, skipMultiplier int) *MultiLevelSkipListReaderContext {
 	reader := &MultiLevelSkipListReaderContext{
 		skipStream:            make([]store.IndexInput, maxSkipLevels),
 		skipPointer:           make([]int64, maxSkipLevels),
@@ -252,12 +249,38 @@ func (m *MultiLevelSkipListReaderContext) GetDoc() int {
 	return m.lastDoc
 }
 
-func (m *MultiLevelSkipListReaderContext) SkipToWithSPI(ctx context.Context, target int, spi MultiLevelSkipListReaderSPI) (int, error) {
+type skipToOptions struct {
+	seekChild SeekChildFunc
+}
+
+type SeekChildFunc func(ctx context.Context, mrx *MultiLevelSkipListReaderContext, level int, spi MultiLevelSkipListReaderSPI) error
+
+type SkipToOptions func(*skipToOptions)
+
+func newSkipToOptions() *skipToOptions {
+	return &skipToOptions{
+		seekChild: DefaultSeekChild,
+	}
+}
+
+func WithSeekChild(seekChild SeekChildFunc) SkipToOptions {
+	return func(options *skipToOptions) {
+		options.seekChild = seekChild
+	}
+}
+
+func (m *MultiLevelSkipListReaderContext) SkipTo(ctx context.Context, target int,
+	spi MultiLevelSkipListReaderSPI, options ...SkipToOptions) (int, error) {
 	// walk up the levels until highest level is found that has a skip
 	// for this target
 	level := 0
 	for level < m.numberOfSkipLevels-1 && target > m.skipDoc[level+1] {
 		level++
+	}
+
+	opts := newSkipToOptions()
+	for _, fn := range options {
+		fn(opts)
 	}
 
 	for level >= 0 {
@@ -268,7 +291,7 @@ func (m *MultiLevelSkipListReaderContext) SkipToWithSPI(ctx context.Context, tar
 		} else {
 			// no more skips on this level, go down one level
 			if level > 0 && m.lastChildPointer > m.skipStream[level-1].GetFilePointer() {
-				if err := m.seekChild(ctx, level-1, spi); err != nil {
+				if err := opts.seekChild(ctx, m, level-1, spi); err != nil {
 					return 0, err
 				}
 			}
@@ -279,7 +302,8 @@ func (m *MultiLevelSkipListReaderContext) SkipToWithSPI(ctx context.Context, tar
 	return m.numSkipped[0] - m.skipInterval[0] - 1, nil
 }
 
-func (m *MultiLevelSkipListReaderContext) loadNextSkip(ctx context.Context, level int, spi MultiLevelSkipListReaderSPI) (bool, error) {
+func (m *MultiLevelSkipListReaderContext) loadNextSkip(ctx context.Context,
+	level int, spi MultiLevelSkipListReaderSPI) (bool, error) {
 	// we have to skip, the target document is greater than the current
 	// skip list entry
 	m.setLastSkipData(level)
@@ -315,7 +339,46 @@ func (m *MultiLevelSkipListReaderContext) loadNextSkip(ctx context.Context, leve
 	return true, nil
 }
 
-func (m *MultiLevelSkipListReaderContext) seekChild(ctx context.Context, level int, spi MultiLevelSkipListReaderSPI) error {
+type SeekChild interface {
+	SeekChild(ctx context.Context, level int, spi MultiLevelSkipListReaderSPI) error
+}
+
+func DefaultSeekChild(ctx context.Context,
+	mrx *MultiLevelSkipListReaderContext, level int, spi MultiLevelSkipListReaderSPI) error {
+	if _, err := mrx.skipStream[level].Seek(mrx.lastChildPointer, io.SeekStart); err != nil {
+		return err
+	}
+	mrx.numSkipped[level] = mrx.numSkipped[level+1] - mrx.skipInterval[level+1]
+	mrx.skipDoc[level] = mrx.lastDoc
+	if level > 0 {
+		pointer, err := spi.ReadChildPointer(ctx, mrx.skipStream[level], mrx)
+		if err != nil {
+			return err
+		}
+		mrx.childPointer[level] = pointer + mrx.skipPointer[level-1]
+	}
+	return nil
+}
+
+func (m *MultiLevelSkipListReaderContext) seekChild(ctx context.Context,
+	level int, spi MultiLevelSkipListReaderSPI) error {
+	if _, err := m.skipStream[level].Seek(m.lastChildPointer, io.SeekStart); err != nil {
+		return err
+	}
+	m.numSkipped[level] = m.numSkipped[level+1] - m.skipInterval[level+1]
+	m.skipDoc[level] = m.lastDoc
+	if level > 0 {
+		pointer, err := spi.ReadChildPointer(ctx, m.skipStream[level], m)
+		if err != nil {
+			return err
+		}
+		m.childPointer[level] = pointer + m.skipPointer[level-1]
+	}
+	return nil
+}
+
+func (m *MultiLevelSkipListReaderContext) SeekChild(ctx context.Context,
+	level int, spi MultiLevelSkipListReaderSPI) error {
 	if _, err := m.skipStream[level].Seek(m.lastChildPointer, io.SeekStart); err != nil {
 		return err
 	}
