@@ -3,6 +3,7 @@ package lucene84
 import (
 	"context"
 
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 )
@@ -89,6 +90,11 @@ type BlockImpactsEverythingEnum struct {
 	isFreqsRead bool // shows if freqBuffer for the current doc block are read into freqBuffer
 
 	seekTo int64
+}
+
+func (p *PostingsReader) NewBlockImpactsEverythingEnum(ctx context.Context, fieldInfo *document.FieldInfo,
+	termState *IntBlockTermState, flags int) (*BlockImpactsEverythingEnum, error) {
+	panic("")
 }
 
 func (b *BlockImpactsEverythingEnum) DocID() int {

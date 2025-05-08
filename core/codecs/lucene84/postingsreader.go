@@ -261,8 +261,7 @@ func (p *PostingsReader) Impacts(ctx context.Context, fieldInfo *document.FieldI
 		return p.NewBlockImpactsPostingsEnum(ctx, fieldInfo, state.(*IntBlockTermState))
 	}
 
-	//return NewBlockImpactsEverythingEnum(ctx, fieldInfo, state.(*IntBlockTermState), flags)
-	panic("")
+	return p.NewBlockImpactsEverythingEnum(ctx, fieldInfo, state.(*IntBlockTermState), flags)
 }
 
 func (p *PostingsReader) Close() error {
