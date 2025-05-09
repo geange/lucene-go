@@ -23,7 +23,7 @@ type TermsWriter struct {
 	fields          []*store.BufferDataOutput
 }
 
-func NewTermsWriter(state *index.SegmentWriteState, postingsWriter types.PostingsWriter,
+func NewTermsWriter(ctx context.Context, state *index.SegmentWriteState, postingsWriter types.PostingsWriter,
 	minItemsInBlock, maxItemsInBlock int) (*TermsWriter, error) {
 
 	panic("")

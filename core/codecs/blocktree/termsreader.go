@@ -1,6 +1,7 @@
 package blocktree
 
 import (
+	"context"
 	"iter"
 
 	"github.com/geange/lucene-go/core/codecs/types"
@@ -37,6 +38,11 @@ type TermsReader struct {
 	fieldList      []string
 	segment        string
 	version        int
+}
+
+func NewTermsReader(ctx context.Context, postingsReader types.PostingsReader,
+	state index.SegmentReadState) (*TermsReader, error) {
+	panic("")
 }
 
 func (t *TermsReader) Close() error {
