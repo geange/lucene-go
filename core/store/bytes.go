@@ -88,6 +88,10 @@ func (b *ByteArrayDataInput) Clone() CloneReader {
 	return input
 }
 
+func (b *ByteArrayDataInput) Rewind() {
+	b.pos = 0
+}
+
 var _ DataOutput = &ByteArrayDataOutput{}
 
 // ByteArrayDataOutput DataOutput backed by a byte array.
