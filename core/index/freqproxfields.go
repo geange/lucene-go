@@ -12,7 +12,6 @@ import (
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
@@ -74,11 +73,6 @@ func (f *FreqProxTerms) Iterator() (index.TermsEnum, error) {
 	termsEnum := NewFreqProxTermsEnum(f.terms)
 	termsEnum.reset()
 	return termsEnum, nil
-}
-
-func (f *FreqProxTerms) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (f *FreqProxTerms) Size() (int, error) {

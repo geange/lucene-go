@@ -12,7 +12,6 @@ import (
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/attribute"
-	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 type LeafMetaData interface {
@@ -71,7 +70,7 @@ type Terms interface {
 	// This is an expert low-level API and will only work for NORMAL compiled automata. To handle any compiled
 	// automata you should instead use CompiledAutomaton.getTermsEnum instead.
 	// NOTE: the returned TermsEnum cannot seek
-	Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error)
+	//Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error)
 
 	// Size
 	// Returns the number of terms for this field, or -1 if this measure isn't stored by the codec.
@@ -435,7 +434,7 @@ type SortedDocValues interface {
 
 	// Intersect
 	// Returns a TermsEnum over the values, filtered by a CompiledAutomaton The enum supports TermsEnum.ord().
-	Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error)
+	//Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error)
 }
 
 // SortedNumericDocValues A list of per-document numeric values, sorted according to Long.CompareFn(long, long).

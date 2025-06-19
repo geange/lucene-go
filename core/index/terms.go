@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/bytesref"
 )
 
@@ -19,33 +18,6 @@ type BaseTerms struct {
 
 func NewTerms(spi TermsSPI) *BaseTerms {
 	return &BaseTerms{spi: spi}
-}
-
-func (t *BaseTerms) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
-	// TODO: could we factor out a common interface b/w
-	// CompiledAutomaton and FST?  Then we could pass FST there too,
-	// and likely speed up resolving terms to deleted docs ... but
-	// AutomatonTermsEnum makes this tricky because of its on-the-fly
-	// cycle detection
-
-	// TODO: eventually we could support seekCeil/Exact on
-	// the returned enum, instead of only being able to seek
-	// at the start
-
-	//termsEnum, err := t.DVFUIterator()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//if compiled.Type() != automaton.AUTOMATON_TYPE_NORMAL {
-	//	return nil, errors.New("please use CompiledAutomaton.getTermsEnum instead")
-	//}
-	//
-	//if len(startTerm) > 0 {
-	//	//
-	//	//return nAutomatonTermsEnum(termsEnum, compiled);
-	//}
-	panic("")
 }
 
 func (t *BaseTerms) GetMin() ([]byte, error) {

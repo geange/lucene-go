@@ -4,7 +4,6 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/fst"
 )
 
@@ -28,11 +27,6 @@ type FieldReader struct {
 
 func (f *FieldReader) Iterator() (index.TermsEnum, error) {
 	return NewSegmentTermsEnum(f)
-}
-
-func (f *FieldReader) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (f *FieldReader) Size() (int, error) {
