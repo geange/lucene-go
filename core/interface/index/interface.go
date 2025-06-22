@@ -517,10 +517,12 @@ type TermsEnum interface {
 	// NOTE: the returned iterator may return deleted documents, so deleted documents have to be checked on top of the PostingsEnum.
 	// Params: 	reuse – pass a prior PostingsEnum for possible reuse
 	// 			flags – specifies which optional per-document values you require; see PostingsEnum.FREQS
+	// TODO: add context
 	Postings(reuse PostingsEnum, flags int) (PostingsEnum, error)
 
 	// Impacts Return a ImpactsEnum.
 	// See Also: postings(PostingsEnum, int)
+	// TODO: add context
 	Impacts(flags int) (ImpactsEnum, error)
 
 	// TermState Expert: Returns the TermsEnums internal state to position the TermsEnum without re-seeking the
