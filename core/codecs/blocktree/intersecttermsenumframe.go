@@ -2,13 +2,13 @@ package blocktree
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/document"
-	"github.com/geange/lucene-go/core/util/array"
 	"io"
 	"regexp"
 
 	"github.com/geange/lucene-go/core/codecs/types"
+	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/array"
 	"github.com/geange/lucene-go/core/util/fst"
 )
 
@@ -110,7 +110,7 @@ func (i *IntersectTermsEnumFrame) load(ctx context.Context, frameIndexData []byt
 			return err
 		}
 
-		err = compressionAlg.Read(i.ite.in, i.suffixBytes[:numSuffixBytes])
+		err = compressionAlg.Read(ctx, i.ite.in, i.suffixBytes[:numSuffixBytes])
 		if err != nil {
 			return err
 		}

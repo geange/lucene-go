@@ -54,21 +54,21 @@ func (i *IntersectTermsEnum) Ord() (int64, error) {
 }
 
 func (i *IntersectTermsEnum) DocFreq() (int, error) {
-	if err := i.currentFrame.DecodeMetaData(); err != nil {
+	if err := i.currentFrame.DecodeMetaData(context.Background()); err != nil {
 		return 0, err
 	}
 	return i.currentFrame.termState.GetDocFreq(), nil
 }
 
 func (i *IntersectTermsEnum) TotalTermFreq() (int64, error) {
-	if err := i.currentFrame.DecodeMetaData(); err != nil {
+	if err := i.currentFrame.DecodeMetaData(context.Background()); err != nil {
 		return 0, err
 	}
 	return int64(i.currentFrame.termState.GetTotalTermFreq()), nil
 }
 
 func (i *IntersectTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
-	if err := i.currentFrame.DecodeMetaData(); err != nil {
+	if err := i.currentFrame.DecodeMetaData(context.Background()); err != nil {
 		return nil, err
 	}
 	return i.fr.parent.postingsReader.Postings(
@@ -76,7 +76,7 @@ func (i *IntersectTermsEnum) Postings(reuse index.PostingsEnum, flags int) (inde
 }
 
 func (i *IntersectTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
-	if err := i.currentFrame.DecodeMetaData(); err != nil {
+	if err := i.currentFrame.DecodeMetaData(context.Background()); err != nil {
 		return nil, err
 	}
 	return i.fr.parent.postingsReader.Impacts(context.Background(),
