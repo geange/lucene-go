@@ -92,6 +92,10 @@ func (b *ByteArrayDataInput) Rewind() {
 	b.pos = 0
 }
 
+func (b *ByteArrayDataInput) SetPosition(pos int) {
+	b.pos = pos
+}
+
 var _ DataOutput = &ByteArrayDataOutput{}
 
 // ByteArrayDataOutput DataOutput backed by a byte array.

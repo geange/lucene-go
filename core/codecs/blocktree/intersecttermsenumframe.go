@@ -59,6 +59,58 @@ type IntersectTermsEnumFrame struct {
 	regexp               *regexp.Regexp
 }
 
+func NewIntersectTermsEnumFrame(ite *IntersectTermsEnum, ord int) (*IntersectTermsEnumFrame, error) {
+	frame := &IntersectTermsEnumFrame{
+		suffixBytes:     make([]byte, 128),
+		statBytes:       make([]byte, 64),
+		bytesReader:     store.NewByteArrayDataInput(nil),
+		floorData:       make([]byte, 32),
+		floorDataReader: store.NewByteArrayDataInput(nil),
+		bytes:           make([]byte, 32),
+	}
+	frame.ite = ite
+	frame.ord = ord
+	termState, err := ite.fr.parent.postingsReader.NewTermState()
+	if err != nil {
+		return nil, err
+	}
+	frame.termState = termState
+	frame.termState.SetTotalTermFreq(-1)
+	frame.version = ite.fr.parent.version
+	if frame.version >= VERSION_COMPRESSED_SUFFIXES {
+		frame.suffixLengthBytes = make([]byte, 32)
+		frame.suffixLengthsReader = store.NewByteArrayDataInput(nil)
+	} else {
+		frame.suffixLengthBytes = nil
+		frame.suffixLengthsReader = frame.suffixesReader
+	}
+	return frame, nil
+}
+
+func (i *IntersectTermsEnumFrame) loadNextFloorBlock(ctx context.Context) error {
+	for {
+		fp, err := i.floorDataReader.ReadUvarint(ctx)
+		if err != nil {
+			return err
+		}
+		i.fp = i.fpOrig + (int64(fp) >> 1)
+		i.numFollowFloorBlocks--
+		if i.numFollowFloorBlocks != 0 {
+			label, err := i.floorDataReader.ReadByte()
+			if err != nil {
+				return err
+			}
+			i.nextFloorLabel = int(label)
+		} else {
+			i.nextFloorLabel = 256
+		}
+		if i.numFollowFloorBlocks == 0 {
+			break
+		}
+	}
+	return i.load(ctx, nil)
+}
+
 func (i *IntersectTermsEnumFrame) load(ctx context.Context, frameIndexData []byte) error {
 	if len(frameIndexData) > 0 {
 		i.floorDataReader.Reset(frameIndexData)
