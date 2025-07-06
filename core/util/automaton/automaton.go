@@ -271,7 +271,7 @@ func (a *Automaton) finishCurrentState() {
 	a.transitions = a.transitions[:newTransitionsSize]
 	//
 	//a.nextTransition -= (numTransitions - upto) * 3
-	//a.states[2*a.curState+1] = upto
+	a.states[2*a.curState+1] = upto
 
 	// Sort transitions by minValue/maxValue/dest:
 	sort.Sort(&minMaxDestSorter{
@@ -472,11 +472,9 @@ func (a *Automaton) InitTransition(state int, t *Transition) int {
 // GetNextTransition Iterate to the next transition after the provided one
 func (a *Automaton) GetNextTransition(t *Transition) {
 	t.Dest = a.transitions[t.TransitionUpto]
-	t.TransitionUpto++
-	t.Min = a.transitions[t.TransitionUpto]
-	t.TransitionUpto++
-	t.Max = a.transitions[t.TransitionUpto]
-	t.TransitionUpto++
+	t.Min = a.transitions[t.TransitionUpto+1]
+	t.Max = a.transitions[t.TransitionUpto+2]
+	t.TransitionUpto += 3
 }
 
 func (a *Automaton) transitionSorted(t *Transition) bool {

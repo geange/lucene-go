@@ -426,8 +426,7 @@ func removeDeadStates(a *Automaton) (*Automaton, error) {
 
 func getLiveStates(a *Automaton) *bitset.BitSet {
 	live := getLiveStatesFromInitial(a)
-	live.Union(getLiveStatesToAccept(a))
-	return live
+	return live.Intersection(getLiveStatesToAccept(a))
 }
 
 func getLiveStatesFromInitial(a *Automaton) *bitset.BitSet {
@@ -1177,4 +1176,19 @@ func optional(a *Automaton) (*Automaton, error) {
 	}
 	result.FinishState()
 	return result, nil
+}
+
+func Minus(a1, a2 *Automaton, determinizeWorkLimit int) (*Automaton, error) {
+	if isEmpty(a1) || a1 == a2 {
+		return (&Automata{}).MakeEmpty(), nil
+	}
+	if isEmpty(a2) {
+		return a1, nil
+	}
+
+	ca, err := complement(a2, determinizeWorkLimit)
+	if err != nil {
+		return nil, err
+	}
+	return intersection(a1, ca)
 }
