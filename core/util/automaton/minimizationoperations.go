@@ -162,7 +162,6 @@ func Minimize(a *Automaton, determinizeWorkLimit int) (*Automaton, error) {
 		}
 
 		j := 0
-
 		// refine blocks
 		for ; ; j++ {
 			nextJ, ok := refine.NextSet(uint(j))
@@ -206,7 +205,8 @@ func Minimize(a *Automaton, determinizeWorkLimit int) (*Automaton, error) {
 			for _, s := range sb {
 				split.Clear(uint(s))
 			}
-			sb = sb[:0]
+			// sb.clear();
+			splitblock[j] = splitblock[j][:0]
 		}
 		refine.ClearAll()
 	}

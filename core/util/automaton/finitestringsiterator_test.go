@@ -2,8 +2,9 @@ package automaton
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFiniteStringsIterator_Next(t *testing.T) {
@@ -13,10 +14,10 @@ func TestFiniteStringsIterator_Next(t *testing.T) {
 	assert.Nil(t, err)
 	a, err := union(a1, a2)
 	assert.Nil(t, err)
-	//ma, err := Minimize(a, DEFAULT_DETERMINIZE_WORK_LIMIT)
-	//assert.Nil(t, err)
+	ma, err := Minimize(a, DEFAULT_DETERMINIZE_WORK_LIMIT)
+	assert.Nil(t, err)
 
-	iterator := NewFiniteStringsIterator(a, 0, -1)
+	iterator := NewFiniteStringsIterator(ma, 0, -1)
 
 	values := make([][]int, 0)
 	for {
