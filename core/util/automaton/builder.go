@@ -97,12 +97,11 @@ func (r *Builder) Finish() *Automaton {
 	// Create all transitions
 	r.sort(0, numTransitions)
 	for upto := 0; upto < len(r.transitions); upto += 4 {
-		a.AddTransition(r.transitions[upto],
+		_ = a.AddTransition(r.transitions[upto],
 			r.transitions[upto+1],
 			r.transitions[upto+2],
 			r.transitions[upto+3])
 	}
-
 	a.FinishState()
 
 	return a

@@ -7,16 +7,12 @@ import (
 )
 
 func Test_concatenate(t *testing.T) {
-	automata := &Automata{}
+	automata := NewAutomata()
 
-	a1, err := automata.MakeString("m")
-	assert.Nil(t, err)
-	a2, err := automata.MakeAnyString()
-	assert.Nil(t, err)
-	a3, err := automata.MakeString("n")
-	assert.Nil(t, err)
-	a4, err := automata.MakeAnyString()
-	assert.Nil(t, err)
+	a1 := automata.MakeString("m")
+	a2 := automata.MakeAnyString()
+	a3 := automata.MakeString("n")
+	a4 := automata.MakeAnyString()
 
 	a, err := concatenate(a1, a2, a3, a4)
 	assert.Nil(t, err)

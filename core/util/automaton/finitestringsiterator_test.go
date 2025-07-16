@@ -8,16 +8,12 @@ import (
 )
 
 func TestFiniteStringsIterator_Next(t *testing.T) {
-	a1, err := defaultAutomata.MakeString("dog")
+	a, err := Union(NewAutomata().MakeString("dog"), NewAutomata().MakeString("duck"))
 	assert.Nil(t, err)
-	a2, err := defaultAutomata.MakeString("duck")
-	assert.Nil(t, err)
-	a, err := union(a1, a2)
-	assert.Nil(t, err)
-	ma, err := Minimize(a, DEFAULT_DETERMINIZE_WORK_LIMIT)
+	a, err = Minimize(a, DEFAULT_DETERMINIZE_WORK_LIMIT)
 	assert.Nil(t, err)
 
-	iterator := NewFiniteStringsIterator(ma, 0, -1)
+	iterator := NewFiniteStringsIteratorBuilder(a).New()
 
 	values := make([][]int, 0)
 	for {

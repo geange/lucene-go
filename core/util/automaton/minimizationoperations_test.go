@@ -45,53 +45,83 @@ func TestMinimize(t *testing.T) {
 	})
 
 	t.Run("testMinus", func(t *testing.T) {
-		automata := &Automata{}
-
-		a1, err := automata.MakeString("foobar")
-		assert.Nil(t, err)
-		a2, err := automata.MakeString("boobar")
-		assert.Nil(t, err)
-		a3, err := automata.MakeString("beebar")
-		assert.Nil(t, err)
-		a, err := union(a1, a2, a3)
-		assert.Nil(t, err)
-
 		t.Run("determinize", func(t *testing.T) {
-			a, err = determinize(a, DEFAULT_DETERMINIZE_WORK_LIMIT)
-			assert.Nil(t, err)
 
-			assertMatches(t, a, "foobar", "beebar", "boobar")
-			minus, err := Minus(a, a2, DEFAULT_DETERMINIZE_WORK_LIMIT)
-			assert.Nil(t, err)
-			a4, err := determinize(minus, DEFAULT_DETERMINIZE_WORK_LIMIT)
-			assert.Nil(t, err)
-			assert.True(t, Run(a4, "foobar"))
-			assert.False(t, Run(a4, "boobar"))
-			assert.True(t, Run(a4, "beebar"))
-			assertMatches(t, a4, "foobar", "beebar")
+			automata := NewAutomata()
 
-			minus, err = Minus(a4, a1, DEFAULT_DETERMINIZE_WORK_LIMIT)
-			assert.Nil(t, err)
-			a4, err = determinize(minus, DEFAULT_DETERMINIZE_WORK_LIMIT)
-			assert.Nil(t, err)
-			assert.True(t, Run(a4, "foobar"))
-			assert.False(t, Run(a4, "boobar"))
-			assert.True(t, Run(a4, "beebar"))
-			assertMatches(t, a4, "beebar")
+			a1 := automata.MakeString("foobar")
+			a2 := automata.MakeString("boobar")
+			a3 := automata.MakeString("beebar")
 
-			minus, err = Minus(a4, a3, DEFAULT_DETERMINIZE_WORK_LIMIT)
-			assert.Nil(t, err)
-			a4, err = determinize(minus, DEFAULT_DETERMINIZE_WORK_LIMIT)
-			assert.Nil(t, err)
-			assert.True(t, Run(a4, "foobar"))
-			assert.False(t, Run(a4, "boobar"))
-			assert.True(t, Run(a4, "beebar"))
-			assertMatches(t, a4)
-		})
+			t.Run("test1", func(t *testing.T) {
+				a, err := Union(a1, a2, a3)
+				assert.Nil(t, err)
 
-		t.Run("minimize", func(t *testing.T) {
-			a, err = Minimize(a, DEFAULT_DETERMINIZE_WORK_LIMIT)
-			assert.Nil(t, err)
+				a, err = determinize(a, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+
+				assertMatches(t, a, "foobar", "beebar", "boobar")
+			})
+
+			t.Run("test2", func(t *testing.T) {
+				a, err := Union(a1, a2, a3)
+				assert.Nil(t, err)
+
+				minus, err := Minus(a, a2, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+				a4, err := determinize(minus, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+				assert.True(t, Run(a4, "foobar"))
+				assert.False(t, Run(a4, "boobar"))
+				assert.True(t, Run(a4, "beebar"))
+				assertMatches(t, a4, "foobar", "beebar")
+			})
+
+			t.Run("test3", func(t *testing.T) {
+				a, err := Union(a1, a2, a3)
+				assert.Nil(t, err)
+
+				minus, err := Minus(a, a2, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+				a4, err := determinize(minus, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+
+				minus, err = Minus(a4, a1, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+				a4, err = determinize(minus, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+				assert.False(t, Run(a4, "foobar"))
+				assert.False(t, Run(a4, "boobar"))
+				assert.True(t, Run(a4, "beebar"))
+				assertMatches(t, a4, "beebar")
+			})
+
+			t.Run("test4", func(t *testing.T) {
+				a, err := Union(a1, a2, a3)
+				assert.Nil(t, err)
+
+				minus, err := Minus(a, a2, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+
+				a4, err := determinize(minus, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+
+				minus, err = Minus(a4, a3, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+
+				a4, err = determinize(minus, DEFAULT_DETERMINIZE_WORK_LIMIT)
+				assert.Nil(t, err)
+
+				assert.True(t, Run(a4, "foobar"))
+				assert.False(t, Run(a4, "boobar"))
+				assert.False(t, Run(a4, "beebar"))
+				assertMatches(t, a4, "foobar")
+			})
+
+			//
+
+			//
+
 		})
 	})
 }
@@ -102,4 +132,19 @@ func assertMatches(t *testing.T, automaton *Automaton, strings ...string) {
 		expected[v] = true
 	}
 
+	actual := make(map[string]bool)
+	for _, v := range getFiniteStrings(automaton) {
+		actual[v] = true
+	}
+	assert.EqualValues(t, expected, actual)
+}
+
+func getFiniteStrings(a *Automaton) []string {
+	var result []string
+	iter := NewFiniteStringsIterator(a, 0, a.GetNumStates()-1)
+
+	for v := range iter.IteratorString() {
+		result = append(result, v)
+	}
+	return result
 }

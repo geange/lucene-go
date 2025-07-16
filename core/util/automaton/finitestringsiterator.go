@@ -2,6 +2,8 @@ package automaton
 
 import (
 	"errors"
+	"iter"
+
 	"github.com/bits-and-blooms/bitset"
 )
 
@@ -21,13 +23,35 @@ type FiniteStringsIterator struct {
 	pathStates *bitset.BitSet
 
 	// Builder for current finite string.
-	builder *IntsRefBuilder
+	builder *IntsRefBuilder[int]
 
 	// Stack to hold our current state in the recursion/iteration.
 	nodes []*PathNode
 
 	// Emit empty string?.
 	emitEmptyString bool
+}
+
+type FiniteStringsIteratorBuilder struct {
+	a          *Automaton
+	startState int
+	endState   int
+}
+
+func NewFiniteStringsIteratorBuilder(a *Automaton) *FiniteStringsIteratorBuilder {
+	return &FiniteStringsIteratorBuilder{
+		a: a,
+	}
+}
+
+func (b *FiniteStringsIteratorBuilder) SetRange(startState, endState int) *FiniteStringsIteratorBuilder {
+	b.startState = startState
+	b.endState = endState
+	return b
+}
+
+func (b *FiniteStringsIteratorBuilder) New() *FiniteStringsIterator {
+	return NewFiniteStringsIterator(b.a, b.startState, b.endState)
 }
 
 func NewFiniteStringsIterator(a *Automaton, startState, endState int) *FiniteStringsIterator {
@@ -39,7 +63,7 @@ func NewFiniteStringsIterator(a *Automaton, startState, endState int) *FiniteStr
 	for i := range this.nodes {
 		this.nodes[i] = NewPathNode()
 	}
-	this.builder = NewIntsRefBuilder()
+	this.builder = NewIntsRefBuilder[int]()
 	this.pathStates = bitset.New(uint(a.GetNumStates()))
 	this.emitEmptyString = a.IsAccept(0)
 
@@ -55,6 +79,48 @@ func NewFiniteStringsIterator(a *Automaton, startState, endState int) *FiniteStr
 var (
 	EMPTYINTS = make([]int, 0)
 )
+
+func (f *FiniteStringsIterator) Iterator() iter.Seq[[]int] {
+	return func(yield func([]int) bool) {
+		for {
+			ints, err := f.Next()
+			if err != nil {
+				return
+			}
+			if ints == nil {
+				return
+			}
+			if !yield(ints) {
+				return
+			}
+		}
+	}
+}
+
+func (f *FiniteStringsIterator) IteratorString() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for {
+			ints, err := f.Next()
+			if err != nil {
+				return
+			}
+			if ints == nil {
+				return
+			}
+			if !yield(intsToString(ints)) {
+				return
+			}
+		}
+	}
+}
+
+func intsToString(values []int) string {
+	res := make([]rune, len(values))
+	for i, v := range values {
+		res[i] = rune(v)
+	}
+	return string(res)
+}
 
 func (f *FiniteStringsIterator) Next() ([]int, error) {
 	if f.emitEmptyString {

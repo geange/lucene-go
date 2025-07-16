@@ -308,7 +308,7 @@ func (r *RegExp) toAutomatonInternal(automata map[string]*Automaton,
 			determinizeWorkLimit); err != nil {
 			return nil, err
 		}
-		a, err = union(list...)
+		a, err = Union(list...)
 		if err != nil {
 			return nil, err
 		}
@@ -440,7 +440,7 @@ func (r *RegExp) toAutomatonInternal(automata map[string]*Automaton,
 				return nil, err
 			}
 		} else {
-			a, err = defaultAutomata.MakeChar(int32(r.c))
+			a = defaultAutomata.MakeChar(int32(r.c))
 		}
 		break
 	case REGEXP_CHAR_RANGE:
@@ -450,10 +450,7 @@ func (r *RegExp) toAutomatonInternal(automata map[string]*Automaton,
 		}
 		break
 	case REGEXP_ANYCHAR:
-		a, err = defaultAutomata.MakeAnyChar()
-		if err != nil {
-			return nil, err
-		}
+		a = defaultAutomata.MakeAnyChar()
 		break
 	case REGEXP_EMPTY:
 		a = defaultAutomata.MakeEmpty()
@@ -465,14 +462,11 @@ func (r *RegExp) toAutomatonInternal(automata map[string]*Automaton,
 				return nil, err
 			}
 		} else {
-			a, err = defaultAutomata.MakeString(*r.s)
-			if err != nil {
-				return nil, err
-			}
+			a = defaultAutomata.MakeString(*r.s)
 		}
 		break
 	case REGEXP_ANYSTRING:
-		a, err = defaultAutomata.MakeAnyString()
+		a = defaultAutomata.MakeAnyString()
 		break
 	case REGEXP_AUTOMATON:
 		var aa *Automaton
@@ -498,10 +492,8 @@ func (r *RegExp) toAutomatonInternal(automata map[string]*Automaton,
 }
 
 func (r *RegExp) toCaseInsensitiveChar(codepoint rune, determinizeWorkLimit int) (*Automaton, error) {
-	case1, err := defaultAutomata.MakeChar(codepoint)
-	if err != nil {
-		return nil, err
-	}
+	case1 := defaultAutomata.MakeChar(codepoint)
+
 	// For now we only work with ASCII characters
 	if codepoint > 128 {
 		return case1, nil
@@ -512,12 +504,11 @@ func (r *RegExp) toCaseInsensitiveChar(codepoint rune, determinizeWorkLimit int)
 	}
 
 	var result *Automaton
+
 	if altCase != codepoint {
-		case2, err := defaultAutomata.MakeChar(altCase)
-		if err != nil {
-			return nil, err
-		}
-		result, err = union(case1, case2)
+		case2 := NewAutomata().MakeChar(altCase)
+		var err error
+		result, err = Union(case1, case2)
 		if err != nil {
 			return nil, err
 		}

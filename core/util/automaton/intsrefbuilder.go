@@ -2,57 +2,57 @@ package automaton
 
 import "github.com/geange/lucene-go/core/util/array"
 
-type IntsRefBuilder struct {
-	ref *IntsRef
+type IntsRefBuilder[T any] struct {
+	ref *IntsRef[T]
 }
 
-func NewIntsRefBuilder() *IntsRefBuilder {
-	return &IntsRefBuilder{ref: NewIntsRef()}
+func NewIntsRefBuilder[T any]() *IntsRefBuilder[T] {
+	return &IntsRefBuilder[T]{ref: NewIntsRef[T]()}
 }
 
-type IntsRef struct {
-	ints   []int
+type IntsRef[T any] struct {
+	ints   []T
 	offset int
 	length int
 }
 
-func NewIntsRef() *IntsRef {
-	return &IntsRef{
-		ints: make([]int, 0),
+func NewIntsRef[T any]() *IntsRef[T] {
+	return &IntsRef[T]{
+		ints: make([]T, 0),
 	}
 }
 
-func (i *IntsRefBuilder) SetLength(length int) {
+func (i *IntsRefBuilder[T]) SetLength(length int) {
 	i.ref.length = length
 }
 
-func (i *IntsRefBuilder) Length() int {
+func (i *IntsRefBuilder[T]) Length() int {
 	return i.ref.length
 }
 
-func (i *IntsRefBuilder) Clear() {
+func (i *IntsRefBuilder[T]) Clear() {
 	i.SetLength(0)
 }
 
-func (i *IntsRefBuilder) At(offset int) int {
+func (i *IntsRefBuilder[T]) At(offset int) T {
 	return i.ref.ints[offset]
 }
 
-func (i *IntsRefBuilder) Set(offset, value int) {
+func (i *IntsRefBuilder[T]) Set(offset int, value T) {
 	i.ref.ints[offset] = value
 }
 
-func (i *IntsRefBuilder) Append(value int) {
+func (i *IntsRefBuilder[T]) Append(value T) {
 	if i.ref.offset+i.ref.length >= len(i.ref.ints) {
 		i.ref.ints = append(i.ref.ints, value)
 	}
 	i.ref.length++
 }
 
-func (i *IntsRefBuilder) Grow(depth int) {
+func (i *IntsRefBuilder[T]) Grow(depth int) {
 	i.ref.ints = array.Grow(i.ref.ints, depth)
 }
 
-func (i *IntsRefBuilder) Get() []int {
+func (i *IntsRefBuilder[T]) Get() []T {
 	return i.ref.ints
 }

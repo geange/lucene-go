@@ -557,7 +557,7 @@ func reverseAutomatonIntSet(a *Automaton, initialStates map[int]struct{}) *Autom
 	return result
 }
 
-func union(automatons ...*Automaton) (*Automaton, error) {
+func Union(automatons ...*Automaton) (*Automaton, error) {
 	result := NewAutomaton()
 
 	// Create initial state:
@@ -1129,34 +1129,33 @@ func intersection(a1, a2 *Automaton) (*Automaton, error) {
 
 			n2 := b2
 			for ; n2 < len(t2) && t1[n1].Max >= t2[n2].Min; n2++ {
+				if t2[n2].Max >= t1[n1].Min {
+					q := newStatePair(-1, t1[n1].Dest, t2[n2].Dest)
+					r, ok := estates.Get(q)
+					if !ok {
+						q.s = c.CreateState()
+						worklist = append(worklist, q)
+						estates.Set(q, q)
+						r = q
+					}
+					var minI, maxI int
 
-			}
-			if t2[n2].Max >= t1[n1].Min {
-				q := newStatePair(-1, t1[n1].Dest, t2[n2].Dest)
-				r, ok := estates.Get(q)
-				if !ok {
-					q.s = c.CreateState()
-					worklist = append(worklist, q)
-					estates.Set(q, q)
-					r = q
-				}
-				var minI, maxI int
+					if t1[n1].Min > t2[n2].Min {
+						minI = t1[n1].Min
+					} else {
+						minI = t2[n2].Min
+					}
 
-				if t1[n1].Min > t2[n2].Min {
-					minI = t1[n1].Min
-				} else {
-					minI = t2[n2].Min
-				}
+					if t1[n1].Max < t2[n2].Max {
+						maxI = t1[n1].Max
+					} else {
+						maxI = t2[n2].Max
+					}
 
-				if t1[n1].Max < t2[n2].Max {
-					maxI = t1[n1].Max
-				} else {
-					maxI = t2[n2].Max
-				}
-
-				err := c.AddTransition(p.s, r.s, minI, maxI)
-				if err != nil {
-					return nil, err
+					err := c.AddTransition(p.s, r.s, minI, maxI)
+					if err != nil {
+						return nil, err
+					}
 				}
 			}
 		}

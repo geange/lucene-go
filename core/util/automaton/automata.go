@@ -13,6 +13,10 @@ var defaultAutomata = &Automata{}
 type Automata struct {
 }
 
+func NewAutomata() *Automata {
+	return defaultAutomata
+}
+
 // MakeEmpty
 // Returns a new (deterministic) automaton with the empty language.
 func (*Automata) MakeEmpty() *Automaton {
@@ -32,49 +36,43 @@ func (*Automata) MakeEmptyString() *Automaton {
 
 // MakeAnyString
 // Returns a new (deterministic) automaton that accepts all strings.
-func (*Automata) MakeAnyString() (*Automaton, error) {
+func (*Automata) MakeAnyString() *Automaton {
 	a := NewAutomaton()
 	s := a.CreateState()
 	a.SetAccept(s, true)
-	if err := a.AddTransition(s, s, 0, unicode.MaxRune); err != nil {
-		return nil, err
-	}
+	_ = a.AddTransition(s, s, 0, unicode.MaxRune)
 	a.FinishState()
-	return a, nil
+	return a
 }
 
-func (*Automata) MakeAnyBinary() (*Automaton, error) {
+func (*Automata) MakeAnyBinary() *Automaton {
 	a := NewAutomaton()
 	s := a.CreateState()
 	a.SetAccept(s, true)
-	if err := a.AddTransition(s, s, 0, math.MaxUint8); err != nil {
-		return nil, err
-	}
+	_ = a.AddTransition(s, s, 0, math.MaxUint8)
 	a.FinishState()
-	return a, nil
+	return a
 }
 
-func (*Automata) MakeNonEmptyBinary() (*Automaton, error) {
+func (*Automata) MakeNonEmptyBinary() *Automaton {
 	a := NewAutomaton()
 	s1 := a.CreateState()
 	s2 := a.CreateState()
 	a.SetAccept(s2, true)
-	if err := a.AddTransition(s1, s2, 0, 255); err != nil {
-		return nil, err
-	}
-	if err := a.AddTransition(s2, s2, 0, 255); err != nil {
-		return nil, err
-	}
+	_ = a.AddTransition(s1, s2, 0, 255)
+	_ = a.AddTransition(s2, s2, 0, 255)
 	a.FinishState()
-	return a, nil
+	return a
 }
 
-func (r *Automata) MakeAnyChar() (*Automaton, error) {
-	return r.MakeCharRange(0, unicode.MaxRune)
+func (r *Automata) MakeAnyChar() *Automaton {
+	a, _ := r.MakeCharRange(0, unicode.MaxRune)
+	return a
 }
 
-func (r *Automata) MakeChar(c int32) (*Automaton, error) {
-	return r.MakeCharRange(c, c)
+func (r *Automata) MakeChar(c int32) *Automaton {
+	a, _ := r.MakeCharRange(c, c)
+	return a
 }
 
 func (r *Automata) MakeCharRange(min, max int32) (*Automaton, error) {
@@ -115,9 +113,9 @@ func (r *Automata) MakeBinaryInterval(min []byte, minInclusive bool,
 		cmp = -1
 		if len(min) == 0 {
 			if minInclusive {
-				return r.MakeAnyBinary()
+				return r.MakeAnyBinary(), nil
 			} else {
-				return r.MakeNonEmptyBinary()
+				return r.MakeNonEmptyBinary(), nil
 			}
 		}
 	}
@@ -126,7 +124,7 @@ func (r *Automata) MakeBinaryInterval(min []byte, minInclusive bool,
 		if minInclusive == false || maxInclusive == false {
 			return r.MakeEmpty(), nil
 		} else {
-			return r.MakeBinary(min)
+			return r.MakeBinary(min), nil
 		}
 	} else if cmp > 0 {
 		// max < min
@@ -153,7 +151,7 @@ func (r *Automata) MakeBinaryInterval(min []byte, minInclusive bool,
 			if minInclusive == false {
 				return r.MakeEmpty(), nil
 			} else {
-				return r.MakeBinary(min)
+				return r.MakeBinary(min), nil
 			}
 		}
 
@@ -459,38 +457,34 @@ func anyOfRightLength(builder *Builder, x string, n int) int {
 	return s
 }
 
-func (r *Automata) MakeString(s string) (*Automaton, error) {
+func (r *Automata) MakeString(s string) *Automaton {
 	a := NewAutomaton()
 	lastState := a.CreateState()
 
 	for _, v := range s {
 		state := a.CreateState()
-		if err := a.AddTransitionLabel(lastState, state, int(v)); err != nil {
-			return nil, err
-		}
+		_ = a.AddTransitionLabel(lastState, state, int(v))
 		lastState = state
 	}
 
 	a.SetAccept(lastState, true)
 	a.FinishState()
 
-	return a, nil
+	return a
 }
 
-func (r *Automata) MakeBinary(term []byte) (*Automaton, error) {
+func (r *Automata) MakeBinary(term []byte) *Automaton {
 	a := NewAutomaton()
 	lastState := a.CreateState()
 	for i := 0; i < len(term); i++ {
 		state := a.CreateState()
 		label := int(term[i])
-		if err := a.AddTransition(lastState, state, label, label); err != nil {
-			return nil, err
-		}
+		_ = a.AddTransition(lastState, state, label, label)
 		lastState = state
 	}
 
 	a.SetAccept(lastState, true)
 	a.FinishState()
 
-	return a, nil
+	return a
 }
