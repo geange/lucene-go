@@ -16,6 +16,7 @@ type BlockTermState interface {
 	GetTermBlockOrd() int
 	SetBlockFilePointer(BlockFilePointer int64)
 	GetBlockFilePointer() int64
+	Clone() BlockTermState
 }
 
 var _ BlockTermState = &BlockTermStateBase{}
@@ -27,6 +28,16 @@ type BlockTermStateBase struct {
 	TotalTermFreq    int   // total number of occurrences of this term
 	TermBlockOrd     int   // the term's ord in the current block
 	BlockFilePointer int64 // fp into the terms dict primary file (_X. tim) that holds this term
+}
+
+func (b *BlockTermStateBase) Clone() BlockTermState {
+	return &BlockTermStateBase{
+		OrdTermState:     *b.OrdTermState.Clone(),
+		DocFreq:          b.DocFreq,
+		TotalTermFreq:    b.TotalTermFreq,
+		TermBlockOrd:     b.TermBlockOrd,
+		BlockFilePointer: b.BlockFilePointer,
+	}
 }
 
 func (b *BlockTermStateBase) SetDocFreq(DocFreq int) {

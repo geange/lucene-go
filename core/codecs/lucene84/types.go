@@ -14,6 +14,10 @@ import (
 	types2 "github.com/geange/lucene-go/core/types"
 )
 
+var (
+	_ types.BlockTermState = &IntBlockTermState{}
+)
+
 type IntBlockTermState struct {
 	types.BlockTermStateBase
 
@@ -33,7 +37,7 @@ func NewIntBlockTermState() *IntBlockTermState {
 	}
 }
 
-func (s *IntBlockTermState) Clone() *IntBlockTermState {
+func (s *IntBlockTermState) Clone() types.BlockTermState {
 	state := &IntBlockTermState{
 		BlockTermStateBase: types.BlockTermStateBase{},
 		DocStartFP:         0,

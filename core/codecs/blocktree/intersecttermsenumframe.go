@@ -3,12 +3,12 @@ package blocktree
 import (
 	"context"
 	"io"
-	"regexp"
 
 	"github.com/geange/lucene-go/core/codecs/types"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util/array"
+	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/fst"
 )
 
@@ -45,6 +45,7 @@ type IntersectTermsEnumFrame struct {
 	isLeafBlock          bool // True if all entries are terms
 	numFollowFloorBlocks int
 	nextFloorLabel       int
+	transition           *automaton.Transition
 	transitionIndex      int
 	transitionCount      int
 	arc                  *fst.Arc
@@ -56,7 +57,6 @@ type IntersectTermsEnumFrame struct {
 	suffix               int
 	ite                  *IntersectTermsEnum
 	version              int
-	regexp               *regexp.Regexp
 }
 
 func NewIntersectTermsEnumFrame(ite *IntersectTermsEnum, ord int) (*IntersectTermsEnumFrame, error) {
@@ -95,7 +95,7 @@ func (i *IntersectTermsEnumFrame) loadNextFloorBlock(ctx context.Context) error 
 		}
 		i.fp = i.fpOrig + (int64(fp) >> 1)
 		i.numFollowFloorBlocks--
-		if i.numFollowFloorBlocks != 0 {
+		if i.numFollowFloorBlocks != 0 && i.nextFloorLabel <= i.transition.Min {
 			label, err := i.floorDataReader.ReadByte()
 			if err != nil {
 				return err
@@ -109,6 +109,23 @@ func (i *IntersectTermsEnumFrame) loadNextFloorBlock(ctx context.Context) error 
 		}
 	}
 	return i.load(ctx, nil)
+}
+
+func (i *IntersectTermsEnumFrame) SetState(state int) {
+	i.state = state
+	i.transitionIndex = 0
+	i.transitionCount = i.ite.automaton.GetNumTransitionsWithState(state)
+	if i.transitionCount != 0 {
+		i.ite.automaton.InitTransition(state, i.transition)
+		i.ite.automaton.GetNextTransition(i.transition)
+	} else {
+
+		// Must set min to -1 so the "label < min" check never falsely triggers:
+		i.transition.Min = -1
+
+		// Must set max to -1 so we immediately realize we need to step to the next transition and then pop this frame:
+		i.transition.Max = -1
+	}
 }
 
 func (i *IntersectTermsEnumFrame) load(ctx context.Context, frameIndexData []byte) error {
@@ -128,18 +145,42 @@ func (i *IntersectTermsEnumFrame) load(ctx context.Context, frameIndexData []byt
 			}
 			i.numFollowFloorBlocks = int(numFollowFloorBlocks)
 
-			_, err = i.floorDataReader.ReadByte()
+			nextFloorLabel, err := i.floorDataReader.ReadByte()
 			if err != nil {
 				return err
 			}
-			//i.nextFloorLabel = int(nextFloorLabel)
+			i.nextFloorLabel = int(nextFloorLabel)
+
+			// If current state is not accept, and has transitions, we must process
+			// first block in case it has empty suffix:
+			if i.ite.runAutomaton.IsAccept(i.state) == false && i.transitionCount != 0 {
+				// Maybe skip floor blocks:
+				if numFollowFloorBlocks != 0 && int(nextFloorLabel) <= i.transition.Min {
+					n, err := i.floorDataReader.ReadUvarint(ctx)
+					if err != nil {
+						return err
+					}
+
+					i.fp = i.fpOrig + int64(n>>1)
+					numFollowFloorBlocks--
+					if numFollowFloorBlocks != 0 {
+						nextFloorLabel, err = i.floorDataReader.ReadByte()
+						if err != nil {
+							return err
+						}
+						i.nextFloorLabel = int(nextFloorLabel)
+					} else {
+						i.nextFloorLabel = 256
+					}
+				}
+			}
 		}
 	}
 
-	_, err := i.ite.in.Seek(i.fp, io.SeekStart)
-	if err != nil {
+	if _, err := i.ite.in.Seek(i.fp, io.SeekStart); err != nil {
 		return err
 	}
+
 	code, err := i.ite.in.ReadUvarint(ctx)
 	if err != nil {
 		return err
@@ -365,4 +406,50 @@ func (i *IntersectTermsEnumFrame) DecodeMetaData(ctx context.Context) error {
 	i.termState.SetTermBlockOrd(i.metaDataUpto)
 
 	return nil
+}
+
+/*
+ public boolean next() {
+    if (isLeafBlock) {
+      nextLeaf();
+      return false;
+    } else {
+      return nextNonLeaf();
+    }
+  }
+*/
+
+func (i *IntersectTermsEnumFrame) Next(ctx context.Context) (bool, error) {
+	if i.isLeafBlock {
+		err := i.NextLeaf(ctx)
+		return false, err
+	} else {
+		return i.NextNonLeaf(ctx)
+	}
+}
+
+func (i *IntersectTermsEnumFrame) NextNonLeaf(ctx context.Context) (bool, error) {
+	i.nextEnt++
+	code, err := i.suffixLengthsReader.ReadUvarint(ctx)
+	if err != nil {
+		return false, err
+	}
+	suffix := code >> 1
+	i.startBytePos = i.suffixesReader.GetPosition()
+	if err := i.suffixesReader.SkipBytes(ctx, int(suffix)); err != nil {
+		return false, err
+	}
+	if (code & 1) == 0 {
+		// A normal term
+		i.termState.SetTermBlockOrd(i.termState.GetTermBlockOrd() + 1)
+		return false, nil
+	} else {
+		// A sub-block; make sub-FP absolute:
+		size, err := i.suffixLengthsReader.ReadUvarint(ctx)
+		if err != nil {
+			return false, err
+		}
+		i.lastSubFP = i.fp - int64(size)
+		return true, nil
+	}
 }

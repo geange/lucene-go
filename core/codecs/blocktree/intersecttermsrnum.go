@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/geange/lucene-go/core/util/array"
 
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/array"
+	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/fst"
 )
 
@@ -17,30 +18,137 @@ var _ index.TermsEnum = &IntersectTermsEnum{}
 type IntersectTermsEnum struct {
 	*coreIndex.BaseTermsEnum
 
-	in             store.IndexInput
-	fstOutputs     *fst.Outputs[[]byte]
-	stack          []*IntersectTermsEnumFrame
-	arcs           *fst.Arc
-	commonSuffix   []byte
-	currentFrame   *IntersectTermsEnumFrame
-	term           []byte
-	fstReader      fst.BytesReader
-	fr             *FieldReader
-	savedStartTerm []byte
+	in                store.IndexInput
+	fstOutputs        fst.Outputs[[]byte]
+	stack             []*IntersectTermsEnumFrame
+	arcs              []*fst.Arc
+	runAutomaton      *automaton.RunAutomaton
+	automaton         *automaton.Automaton
+	commonSuffix      []byte
+	currentFrame      *IntersectTermsEnumFrame
+	currentTransition *automaton.Transition
+	term              []byte
+	fstReader         fst.BytesReader
+	fr                *FieldReader
+	savedStartTerm    []byte
 }
 
 func (i *IntersectTermsEnum) Next(ctx context.Context) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	term, err := i.next(ctx)
+	if err != nil {
+		if errors.Is(err, ErrNoMoreTerms) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return term, nil
 }
 
-func (i *IntersectTermsEnum) popPushNext() (bool, error) {
+func (i *IntersectTermsEnum) next(ctx context.Context) ([]byte, error) {
+	isSubBlock, err := i.popPushNext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+nextTerm:
+	for {
+		var state int
+		var lastState int
+		// NOTE: suffix == 0 can only happen on the first term in a block, when
+		// there is a term exactly matching a prefix in the index.  If we
+		// could somehow re-org the code so we only checked this case immediately
+		// after pushing a frame...
+		if i.currentFrame.suffix != 0 {
+			suffixBytes := i.currentFrame.suffixBytes
+
+			// This is the first byte of the suffix of the term we are now on:
+			label := int(suffixBytes[i.currentFrame.startBytePos])
+
+			if label < i.currentTransition.Min {
+				// Common case: we are scanning terms in this block to "catch up" to
+				// current transition in the automaton:
+				minTrans := i.currentTransition.Min
+				for i.currentFrame.nextEnt < i.currentFrame.entCount {
+					isSubBlock, err = i.currentFrame.Next(ctx)
+					if err != nil {
+						return nil, err
+					}
+					if int(suffixBytes[i.currentFrame.startBytePos]) >= minTrans {
+						continue nextTerm
+					}
+				}
+
+				// End of frame:
+				isSubBlock, err = i.popPushNext(ctx)
+				if err != nil {
+					return nil, err
+				}
+				continue nextTerm
+			}
+		} else {
+			state = i.currentFrame.state
+			lastState = i.currentFrame.lastState
+		}
+
+		if isSubBlock {
+			// Match!  Recurse:
+			i.copyTerm()
+			currentFrame, err := i.pushFrame(ctx, state)
+			if err != nil {
+				return nil, err
+			}
+			i.currentFrame = currentFrame
+			i.currentTransition = currentFrame.transition
+			currentFrame.lastState = lastState
+		} else if i.runAutomaton.IsAccept(state) {
+			i.copyTerm()
+			return i.term, nil
+		} else {
+			// This term is a prefix of a term accepted by the automaton, but is not itself accepted
+		}
+		isSubBlock, err = i.popPushNext(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+}
+
+func (i *IntersectTermsEnum) copyTerm() {
+	size := i.currentFrame.prefix + i.currentFrame.suffix
+	array.Grow(i.term, size)
+	i.term = i.term[:size]
+}
+
+var ErrNoMoreTerms = errors.New("no more terms")
+
+func (i *IntersectTermsEnum) popPushNext(ctx context.Context) (bool, error) {
 	// Pop finished frames
-	panic("")
+	for i.currentFrame.nextEnt == i.currentFrame.entCount {
+		if !i.currentFrame.isLastInFloor {
+			// Advance to next floor block
+			if err := i.currentFrame.loadNextFloorBlock(ctx); err != nil {
+				return false, err
+			}
+			break
+		} else {
+			if i.currentFrame.ord == 0 {
+				return false, ErrNoMoreTerms
+			}
+			//lastFP := i.currentFrame.fpOrig
+			i.currentFrame = i.stack[i.currentFrame.ord-1]
+			i.currentTransition = i.currentFrame.transition
+		}
+	}
+
+	return i.currentFrame.Next(ctx)
 }
 
 func (i *IntersectTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.SeekStatus, error) {
 	return 0, errors.New("unsupported operation exception")
+}
+
+func (i *IntersectTermsEnum) SeekExact(ctx context.Context, text []byte) (bool, error) {
+	return false, errors.New("unsupported operation exception")
 }
 
 func (i *IntersectTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error {
@@ -158,4 +266,85 @@ func (i *IntersectTermsEnum) seekToStartTerm(ctx context.Context, target []byte)
 		}
 	}
 	return nil
+}
+
+func (i *IntersectTermsEnum) TermState() (index.TermState, error) {
+	if err := i.currentFrame.DecodeMetaData(context.Background()); err != nil {
+		return nil, err
+	}
+	return i.currentFrame.termState.Clone().(index.TermState), nil
+}
+
+func (i *IntersectTermsEnum) getFrame(ord int) (*IntersectTermsEnumFrame, error) {
+	if ord >= len(i.stack) {
+		frame, err := NewIntersectTermsEnumFrame(i, len(i.stack))
+		if err != nil {
+			return nil, err
+		}
+		i.stack = append(i.stack, frame)
+	}
+	return i.stack[ord], nil
+}
+
+func (i *IntersectTermsEnum) getArc(ord int) *fst.Arc {
+	if ord >= len(i.arcs) {
+		i.arcs = append(i.arcs, &fst.Arc{})
+	}
+	return i.arcs[ord]
+}
+
+func (i *IntersectTermsEnum) pushFrame(ctx context.Context, state int) (*IntersectTermsEnumFrame, error) {
+	ord := 0
+	if i.currentFrame != nil {
+		ord = i.currentFrame.ord + 1
+	}
+	f, err := i.getFrame(ord)
+	if err != nil {
+		return nil, err
+	}
+
+	f.fp = i.currentFrame.lastSubFP
+	f.fpOrig = i.currentFrame.lastSubFP
+	f.prefix = i.currentFrame.prefix + i.currentFrame.suffix
+	f.SetState(state)
+
+	// Walk the arc through the index -- we only
+	// "bother" with this so we can get the floor data
+	// from the index and skip floor blocks when
+	// possible:
+
+	arc := i.currentFrame.arc
+	idx := i.currentFrame.prefix
+	output := fst.ByteSequenceOutput(i.currentFrame.outputPrefix)
+	for idx < f.prefix {
+		target := i.term[idx]
+		// TODO: we could be more efficient for the next()
+		// case by using current arc as starting point,
+		// passed to findTargetArc
+		arc, _, err = i.fr.index.FindTargetArc(ctx, int(target), i.fstReader, arc, i.getArc(1+idx))
+		if err != nil {
+			return nil, err
+		}
+
+		//assert arc != null;
+		res, err := (output).Add(arc.Output())
+		if err != nil {
+			return nil, err
+		}
+		output = res.(fst.ByteSequenceOutput)
+		idx++
+	}
+
+	f.arc = arc
+	f.outputPrefix = output
+
+	frameIndexData, err := output.Add(arc.NextFinalOutput())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.load(ctx, frameIndexData.(fst.ByteSequenceOutput)); err != nil {
+		return nil, err
+	}
+	return f, nil
 }
