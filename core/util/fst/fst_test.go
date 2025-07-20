@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/geange/lucene-go/core/store"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 func TestNewFstV1(t *testing.T) {
@@ -24,8 +25,7 @@ func TestNewFstV1(t *testing.T) {
 	dataInput := store.NewByteArrayDataInput(dataBytes)
 
 	ctx := context.Background()
-	manager := NewBoxManager[int64]()
-	_, err := NewFstV1(ctx, manager, metaInput, dataInput)
+	_, err := NewFstV1[int64](ctx, NewPositiveIntOutputs(), metaInput, dataInput)
 	assert.Nil(t, err)
 }
 
@@ -45,16 +45,15 @@ func TestReadFirstTarget(t *testing.T) {
 	dataInput := store.NewByteArrayDataInput(dataBytes)
 
 	ctx := context.Background()
-	manager := NewBoxManager[int64]()
-	fst, err := NewFstV1(ctx, manager, metaInput, dataInput)
+	fst, err := NewFstV1(ctx, NewPositiveIntOutputs(), metaInput, dataInput)
 	assert.Nil(t, err)
 
-	follow := &Arc{}
+	follow := &Arc[int64]{}
 	follow, err = fst.GetFirstArc(follow)
 	assert.Nil(t, err)
 
 	reader := newReverseBytesReader(dataBytes)
-	arc := &Arc{}
+	arc := &Arc[int64]{}
 	follow, err = fst.ReadFirstTargetArc(ctx, reader, follow, arc)
 	assert.Nil(t, err)
 	assert.Equal(t, int('m'), arc.Label())
@@ -84,17 +83,16 @@ func TestReadNextArc(t *testing.T) {
 	dataInput := store.NewByteArrayDataInput(dataBytes)
 
 	ctx := context.Background()
-	manager := NewBoxManager[int64]()
-	fst, err := NewFstV1(ctx, manager, metaInput, dataInput)
+	fst, err := NewFstV1(ctx, NewPositiveIntOutputs(), metaInput, dataInput)
 	assert.Nil(t, err)
 
-	follow := &Arc{}
+	follow := &Arc[int64]{}
 	follow, err = fst.GetFirstArc(follow)
 	assert.Nil(t, err)
 
 	reader := newReverseBytesReader(dataBytes)
 
-	arc := &Arc{}
+	arc := &Arc[int64]{}
 
 	follow, err = fst.ReadFirstTargetArc(ctx, reader, follow, arc)
 	assert.Nil(t, err)
@@ -139,17 +137,16 @@ func TestFindTargetArc(t *testing.T) {
 	dataInput := store.NewByteArrayDataInput(dataBytes)
 
 	ctx := context.Background()
-	manager := NewBoxManager[int64]()
-	fst, err := NewFstV1(ctx, manager, metaInput, dataInput)
+	fst, err := NewFstV1(ctx, NewPositiveIntOutputs(), metaInput, dataInput)
 	assert.Nil(t, err)
 
-	follow := &Arc{}
+	follow := &Arc[int64]{}
 	follow, err = fst.GetFirstArc(follow)
 	assert.Nil(t, err)
 
 	reader := newReverseBytesReader(dataBytes)
 
-	arc := &Arc{}
+	arc := &Arc[int64]{}
 	targetArc, found, err := fst.FindTargetArc(ctx, int('p'), reader, follow, arc)
 	assert.Nil(t, err)
 	assert.True(t, found)

@@ -6,14 +6,15 @@ import (
 	"math"
 	"testing"
 
-	"github.com/geange/lucene-go/core/store"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 func TestNewBuilderWriteDiffDataOutput(t *testing.T) {
 	ctx := context.Background()
 
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -47,7 +48,7 @@ func TestNewBuilderWriteDiffDataOutput(t *testing.T) {
 	}
 
 	for _, item := range items {
-		err := builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err := builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
@@ -92,7 +93,7 @@ func TestNewBuilderWithOptions(t *testing.T) {
 		WithBytesPageBits(15),
 	}
 
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64](), options...)
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs(), options...)
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -126,7 +127,7 @@ func TestNewBuilderWithOptions(t *testing.T) {
 	}
 
 	for _, item := range items {
-		err := builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err := builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
@@ -158,7 +159,7 @@ func TestNewBuilderWithOptions(t *testing.T) {
 func TestNewBuilderWriteSameDataOutput(t *testing.T) {
 	ctx := context.Background()
 
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -192,7 +193,7 @@ func TestNewBuilderWriteSameDataOutput(t *testing.T) {
 	}
 
 	for _, item := range items {
-		err := builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err := builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
@@ -218,7 +219,7 @@ func TestNewBuilderWriteSameDataOutput(t *testing.T) {
 func TestNewBuilderWithBYTE1(t *testing.T) {
 	ctx := context.Background()
 
-	builder, err := NewBuilder(BYTE4, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE4, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -252,7 +253,7 @@ func TestNewBuilderWithBYTE1(t *testing.T) {
 	}
 
 	for _, item := range items {
-		err := builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err := builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
@@ -264,19 +265,19 @@ func TestNewBuilderWithBYTE1(t *testing.T) {
 	err = fst.Save(ctx, output, output)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnum[int](fst)
+	fstEnum, err := NewIntsFSTEnum(fst)
 	assert.Nil(t, err)
 
 	next, ok, err := fstEnum.SeekExact(context.TODO(), str2Ints("top"))
 	assert.Nil(t, err)
 	assert.True(t, ok)
-	assert.Equal(t, int64(55), next.GetOutput().(*IntBox[int64]).value)
+	assert.Equal(t, int64(55), next.GetOutput())
 }
 
 func TestNewBuilderAddWithString(t *testing.T) {
 	ctx := context.Background()
 
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -310,12 +311,14 @@ func TestNewBuilderAddWithString(t *testing.T) {
 	}
 
 	for _, item := range items {
-		err := builder.AddStr(ctx, item.key, NewIntBox[int64](item.value))
+		err := builder.AddStr(ctx, item.key, item.value)
 		assert.Nil(t, err)
 	}
 
 	fst, err := builder.Finish(ctx)
-	assert.Nil(t, err)
+	if !assert.Nil(t, err) {
+		t.FailNow()
+	}
 
 	metaOutput := store.NewBufferDataOutput()
 	dataOutput := store.NewBufferDataOutput()

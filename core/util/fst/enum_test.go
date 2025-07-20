@@ -8,7 +8,7 @@ import (
 )
 
 func TestBytesEnumDoNext(t *testing.T) {
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	writeItems := []struct {
@@ -42,26 +42,36 @@ func TestBytesEnumDoNext(t *testing.T) {
 	}
 	ctx := context.Background()
 	for _, item := range writeItems {
-		err = builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err = builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
 	fst, err := builder.Finish(ctx)
-	assert.Nil(t, err)
+	if !assert.Nil(t, err) {
+		t.FailNow()
+	}
 
-	fstEnum, err := NewEnum[byte](fst)
-	assert.Nil(t, err)
+	fstEnum, err := NewBytesFSTEnum(fst)
+	if !assert.Nil(t, err) {
+		t.FailNow()
+	}
 
 	for _, item := range writeItems {
 		next, err := fstEnum.Next(context.TODO())
-		assert.Nil(t, err)
-		assert.Equal(t, item.key, string(next.GetInput()))
-		assert.Equal(t, item.value, next.GetOutput().(*IntBox[int64]).Value())
+		if !assert.Nil(t, err) {
+			t.FailNow()
+		}
+		if !assert.Equal(t, item.key, string(next.GetInput())) {
+			t.FailNow()
+		}
+		if !assert.Equal(t, item.value, next.GetOutput()) {
+			t.FailNow()
+		}
 	}
 }
 
 func TestBytesEnumSeekExact(t *testing.T) {
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	writeItems := []struct {
@@ -95,14 +105,14 @@ func TestBytesEnumSeekExact(t *testing.T) {
 	}
 	ctx := context.Background()
 	for _, item := range writeItems {
-		err = builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err = builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnum[byte](fst)
+	fstEnum, err := NewBytesFSTEnum(fst)
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -142,13 +152,13 @@ func TestBytesEnumSeekExact(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, item.exist, ok)
 		if item.exist {
-			assert.Equal(t, item.value, next.GetOutput().(*IntBox[int64]).Value())
+			assert.Equal(t, item.value, next.GetOutput())
 		}
 	}
 }
 
 func TestBytesEnumSeekExactArcsForBinarySearch(t *testing.T) {
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	writeItems := []struct {
@@ -207,14 +217,14 @@ func TestBytesEnumSeekExactArcsForBinarySearch(t *testing.T) {
 	}
 	ctx := context.Background()
 	for _, item := range writeItems {
-		err = builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err = builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnum[byte](fst)
+	fstEnum, err := NewBytesFSTEnum(fst)
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -239,13 +249,13 @@ func TestBytesEnumSeekExactArcsForBinarySearch(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, item.exist, ok)
 		if item.exist {
-			assert.Equal(t, item.value, next.GetOutput().(*IntBox[int64]).Value())
+			assert.Equal(t, item.value, next.GetOutput())
 		}
 	}
 }
 
 func TestBytesEnumSeekCeil(t *testing.T) {
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	writeItems := []struct {
@@ -279,14 +289,14 @@ func TestBytesEnumSeekCeil(t *testing.T) {
 	}
 	ctx := context.Background()
 	for _, item := range writeItems {
-		err = builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err = builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnum[byte](fst)
+	fstEnum, err := NewBytesFSTEnum(fst)
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -314,13 +324,13 @@ func TestBytesEnumSeekCeil(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, item.exist, ok)
 		if item.exist {
-			assert.Equal(t, item.value, next.GetOutput().(*IntBox[int64]).Value())
+			assert.Equal(t, item.value, next.GetOutput())
 		}
 	}
 }
 
 func TestBytesEnumSeekFloor(t *testing.T) {
-	builder, err := NewBuilder(BYTE1, NewBoxManager[int64]())
+	builder, err := NewBuilder[int64](BYTE1, NewPositiveIntOutputs())
 	assert.Nil(t, err)
 
 	writeItems := []struct {
@@ -354,14 +364,14 @@ func TestBytesEnumSeekFloor(t *testing.T) {
 	}
 	ctx := context.Background()
 	for _, item := range writeItems {
-		err = builder.Add(ctx, []rune(item.key), NewIntBox[int64](item.value))
+		err = builder.Add(ctx, []rune(item.key), item.value)
 		assert.Nil(t, err)
 	}
 
 	fst, err := builder.Finish(ctx)
 	assert.Nil(t, err)
 
-	fstEnum, err := NewEnum[byte](fst)
+	fstEnum, err := NewBytesFSTEnum(fst)
 	assert.Nil(t, err)
 
 	items := []struct {
@@ -389,7 +399,7 @@ func TestBytesEnumSeekFloor(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, item.exist, ok)
 		if item.exist {
-			assert.Equal(t, item.value, next.GetOutput().(*IntBox[int64]).Value())
+			assert.Equal(t, item.value, next.GetOutput())
 		}
 	}
 }

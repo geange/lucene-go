@@ -2,7 +2,7 @@ package fst
 
 import "context"
 
-func binarySearch(ctx context.Context, fst *FST, arc *Arc, targetLabel int) (int, error) {
+func binarySearch[T any](ctx context.Context, fst *FST[T], arc *Arc[T], targetLabel int) (int, error) {
 	in, err := fst.GetBytesReader()
 	if err != nil {
 		return 0, err

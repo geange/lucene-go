@@ -15,7 +15,7 @@ import (
 // 返回是否应使用固定长度的弧扩展给定节点。节点将根据其深度（距根节点的距离）和弧数进行扩展。
 // 具有固定长度弧的节点使用更多空间，因为它们使用固定数量的字节对所有弧进行编码，
 // 但它们允许在通过弧标签查找时对弧进行二分搜索或直接寻址（而不是线性扫描）。
-func shouldExpandNodeWithFixedLengthArcs(builder *Builder, node *UnCompiledNode) bool {
+func shouldExpandNodeWithFixedLengthArcs[T any](builder *Builder[T], node *UnCompiledNode[T]) bool {
 	// 如果不支持FixedLength返回false
 	if !builder.allowFixedLengthArcs {
 		return false
@@ -35,7 +35,7 @@ func shouldExpandNodeWithFixedLengthArcs(builder *Builder, node *UnCompiledNode)
 // 返回是否应使用直接寻址而不是二进制搜索来扩展给定节点。如果不使二分搜索字节大小过大，
 // 则优先选择直接寻址以提高性能，以便可以通过标签直接寻址弧。
 // 另请参阅：Builder.getDirectAddressingMaxOversizingFactor()
-func shouldExpandNodeWithDirectAddressing(builder *Builder, nodeIn *UnCompiledNode,
+func shouldExpandNodeWithDirectAddressing[T any](builder *Builder[T], nodeIn *UnCompiledNode[T],
 	numBytesPerArc, maxBytesPerArcWithoutLabel int64, labelRange int) bool {
 
 	// Anticipate precisely the size of the encodings.
@@ -68,8 +68,8 @@ func shouldExpandNodeWithDirectAddressing(builder *Builder, nodeIn *UnCompiledNo
 	return false
 }
 
-func writeNodeForBinarySearch(ctx context.Context, builder *Builder,
-	nodeIn *UnCompiledNode, startAddress int64, maxBytesPerArc int64) error {
+func writeNodeForBinarySearch[T any](ctx context.Context, builder *Builder[T],
+	nodeIn *UnCompiledNode[T], startAddress int64, maxBytesPerArc int64) error {
 
 	// Build the header in a buffer.
 	// It is a false/special arc which is in fact a node header with node flags followed by node metadata.
@@ -113,7 +113,7 @@ func writeNodeForBinarySearch(ctx context.Context, builder *Builder,
 	return builder.bytes.WriteBytesAt(ctx, startAddress, buffer.Bytes())
 }
 
-func writeNodeForDirectAddressing(ctx context.Context, builder *Builder, node *UnCompiledNode,
+func writeNodeForDirectAddressing[T any](ctx context.Context, builder *Builder[T], node *UnCompiledNode[T],
 	startAddress int64, maxBytesPerArcWithoutLabel int, labelRange int) error {
 
 	// Expand the arcs backwards in a buffer because we remove the labels.
@@ -194,7 +194,7 @@ func writeNodeForDirectAddressing(ctx context.Context, builder *Builder, node *U
 	return builder.bytes.WriteBytesAt(ctx, startAddress, fixedBuffer.Bytes())
 }
 
-func getPresenceBits(nodeIn *UnCompiledNode, numPresenceBytes int64) []byte {
+func getPresenceBits[T any](nodeIn *UnCompiledNode[T], numPresenceBytes int64) []byte {
 	presenceBits := 1 // The first arc is always present.
 	presenceIndex := 0
 
@@ -228,7 +228,7 @@ func getNumPresenceBytes(labelRange int) int {
 
 // Reads the presence bits of a direct-addressing node. Actually we don't read them here,
 // we just keep the pointer to the bit-table start and we skip them.
-func readPresenceBytes(ctx context.Context, in BytesReader, arc *Arc) error {
+func readPresenceBytes[T any](ctx context.Context, in BytesReader, arc *Arc[T]) error {
 	arc.bitTableStart = in.GetPosition()
 	numBytes := getNumPresenceBytes(arc.NumArcs())
 	return in.SkipBytes(ctx, numBytes)
@@ -237,12 +237,12 @@ func readPresenceBytes(ctx context.Context, in BytesReader, arc *Arc) error {
 // Follows the follow arc and reads the last arc of its target; this changes the provided
 // arc (2nd arg) in-place and returns it.
 // Returns: Returns the second argument (arc).
-func (f *FST) readLastTargetArc(ctx context.Context, in BytesReader, follow, arc *Arc) (*Arc, error) {
+func (f *FST[T]) readLastTargetArc(ctx context.Context, in BytesReader, follow, arc *Arc[T]) (*Arc[T], error) {
 	if !TargetHasArcs(follow) {
 		arc.label = END_LABEL
 		arc.target = FINAL_END_NODE
 		arc.output = follow.NextFinalOutput()
-		arc.flags = BitLastArc
+		arc.flags = BIT_LAST_ARC
 		arc.nodeFlags = arc.flags
 		return arc, nil
 	}
@@ -305,19 +305,19 @@ func (f *FST) readLastTargetArc(ctx context.Context, in BytesReader, follow, arc
 		if _, err := f.ReadLabel(ctx, in); err != nil {
 			return nil, err
 		}
-		if arc.matchFlag(BitArcHasOutput) {
-			if err := f.manager.SkipOutput(ctx, in); err != nil {
+		if arc.matchFlag(BIT_ARC_HAS_OUTPUT) {
+			if err := f.outputs.SkipOutput(ctx, in); err != nil {
 				return nil, err
 			}
 		}
-		if arc.matchFlag(BitArcHasFinalOutput) {
-			if err := f.manager.SkipFinalOutput(ctx, in); err != nil {
+		if arc.matchFlag(BIT_ARC_HAS_FINAL_OUTPUT) {
+			if err := f.outputs.SkipFinalOutput(ctx, in); err != nil {
 				return nil, err
 			}
 		}
 
-		if arc.matchFlag(BitStopNode) {
-		} else if arc.matchFlag(BitTargetNext) {
+		if arc.matchFlag(BIT_STOP_NODE) {
+		} else if arc.matchFlag(BIT_TARGET_NEXT) {
 		} else {
 			if _, err := f.readUnpackedNodeTarget(ctx, in); err != nil {
 				return nil, err
@@ -343,7 +343,7 @@ func (f *FST) readLastTargetArc(ctx context.Context, in BytesReader, follow, arc
 	return arc, nil
 }
 
-func (f *FST) readUnpackedNodeTarget(ctx context.Context, in BytesReader) (int64, error) {
+func (f *FST[T]) readUnpackedNodeTarget(ctx context.Context, in BytesReader) (int64, error) {
 	num, err := in.ReadUvarint(ctx)
 	if err != nil {
 		return 0, err
@@ -353,8 +353,8 @@ func (f *FST) readUnpackedNodeTarget(ctx context.Context, in BytesReader) (int64
 
 // Reads a present direct addressing node arc, with the provided index in the label range and
 // its corresponding presence index (which is the count of presence bits before it).
-func (f *FST) readArcByDirectAddressing(ctx context.Context, arc *Arc, in BytesReader,
-	rangeIndex, presenceIndex int) (*Arc, error) {
+func (f *FST[T]) readArcByDirectAddressing(ctx context.Context, arc *Arc[T], in BytesReader,
+	rangeIndex, presenceIndex int) (*Arc[T], error) {
 
 	if err := in.SetPosition(arc.PosArcsStart() - int64(presenceIndex*arc.BytesPerArc())); err != nil {
 		return nil, err
@@ -374,7 +374,7 @@ func (f *FST) readArcByDirectAddressing(ctx context.Context, arc *Arc, in BytesR
 // Reads an arc.
 // Precondition: The arc flags byte has already been read and set;
 // the given BytesReader is positioned just after the arc flags byte.
-func (f *FST) readArc(ctx context.Context, in BytesReader, arc *Arc) (*Arc, error) {
+func (f *FST[T]) readArc(ctx context.Context, in BytesReader, arc *Arc[T]) (*Arc[T], error) {
 	if arc.NodeFlags() == ArcsForDirectAddressing {
 		arc.label = arc.FirstLabel() + arc.ArcIdx()
 	} else {
@@ -385,38 +385,38 @@ func (f *FST) readArc(ctx context.Context, in BytesReader, arc *Arc) (*Arc, erro
 		arc.label = label
 	}
 
-	if arc.matchFlag(BitArcHasOutput) {
-		output := f.manager.New()
-		if err := f.manager.Read(ctx, in, output); err != nil {
+	if arc.matchFlag(BIT_ARC_HAS_OUTPUT) {
+		output, err := f.outputs.Read(ctx, in)
+		if err != nil {
 			return nil, err
 		}
 		arc.output = output
 	} else {
-		arc.output = f.manager.EmptyOutput()
+		arc.output = f.outputs.GetNoOutput()
 	}
 
-	if arc.matchFlag(BitArcHasFinalOutput) {
-		output := f.manager.New()
-		if err := f.manager.ReadFinalOutput(ctx, in, output); err != nil {
+	if arc.matchFlag(BIT_ARC_HAS_FINAL_OUTPUT) {
+		output, err := f.outputs.ReadFinalOutput(ctx, in)
+		if err != nil {
 			return nil, err
 		}
 		arc.nextFinalOutput = output
 	} else {
-		arc.nextFinalOutput = f.manager.EmptyOutput()
+		arc.nextFinalOutput = f.outputs.GetNoOutput()
 	}
 
-	if arc.matchFlag(BitStopNode) {
-		if arc.matchFlag(BitFinalArc) {
+	if arc.matchFlag(BIT_STOP_NODE) {
+		if arc.matchFlag(BIT_FINAL_ARC) {
 			arc.target = FINAL_END_NODE
 		} else {
 			arc.target = NON_FINAL_END_NODE
 		}
 		arc.nextArc = in.GetPosition() // Only useful for list.
-	} else if arc.matchFlag(BitTargetNext) {
+	} else if arc.matchFlag(BIT_TARGET_NEXT) {
 		arc.nextArc = in.GetPosition() // Only useful for list.
 		// TODO: would be nice to make this lazy -- maybe
 		// caller doesn't need the target and is scanning arcs...
-		if !arc.matchFlag(BitLastArc) {
+		if !arc.matchFlag(BIT_LAST_ARC) {
 			if arc.BytesPerArc() == 0 {
 				// must scan
 				if err := f.seekToNextNode(ctx, in); err != nil {
@@ -451,13 +451,13 @@ func (f *FST) readArc(ctx context.Context, in BytesReader, arc *Arc) (*Arc, erro
 	return arc, nil
 }
 
-func readEndArc(follow, arc *Arc) *Arc {
+func readEndArc[T any](follow, arc *Arc[T]) *Arc[T] {
 	if !follow.IsFinal() {
 		return nil
 	}
 
 	if follow.Target() <= 0 {
-		arc.flags = BitLastArc
+		arc.flags = BIT_LAST_ARC
 	} else {
 		arc.flags = 0
 		// NOTE: nextArc is a node (not an address!) in this case:
@@ -468,7 +468,7 @@ func readEndArc(follow, arc *Arc) *Arc {
 	return arc
 }
 
-func (f *FST) seekToNextNode(ctx context.Context, in BytesReader) error {
+func (f *FST[T]) seekToNextNode(ctx context.Context, in BytesReader) error {
 	for {
 		flags, err := in.ReadByte()
 		if err != nil {
@@ -479,25 +479,25 @@ func (f *FST) seekToNextNode(ctx context.Context, in BytesReader) error {
 			return err
 		}
 
-		if flag(int(flags), BitArcHasOutput) {
-			if err := f.manager.SkipOutput(ctx, in); err != nil {
+		if flag(int(flags), BIT_ARC_HAS_OUTPUT) {
+			if err := f.outputs.SkipOutput(ctx, in); err != nil {
 				return err
 			}
 		}
 
-		if flag(int(flags), BitArcHasFinalOutput) {
-			if err := f.manager.SkipFinalOutput(ctx, in); err != nil {
+		if flag(int(flags), BIT_ARC_HAS_FINAL_OUTPUT) {
+			if err := f.outputs.SkipFinalOutput(ctx, in); err != nil {
 				return err
 			}
 		}
 
-		if !flag(int(flags), BitStopNode) && !flag(int(flags), BitTargetNext) {
+		if !flag(int(flags), BIT_STOP_NODE) && !flag(int(flags), BIT_TARGET_NEXT) {
 			if _, err := f.readUnpackedNodeTarget(ctx, in); err != nil {
 				return err
 			}
 		}
 
-		if flag(int(flags), BitLastArc) {
+		if flag(int(flags), BIT_LAST_ARC) {
 			return nil
 		}
 	}

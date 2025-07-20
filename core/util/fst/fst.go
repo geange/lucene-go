@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/codecs"
@@ -12,14 +13,15 @@ import (
 	"github.com/geange/lucene-go/core/util/array"
 )
 
-type FST struct {
+type FST[T any] struct {
 	inputType InputType
 
 	// if non-null, this FST accepts the empty string and
 	// produces this output
-	emptyOutput Output
+	emptyOutput  T
+	onceSetEmpty sync.Once
 
-	hasEmptyOutput bool
+	//hasEmptyOutput bool
 
 	// A BytesStore, used during building, or during reading when the FST is very large (more than 1 GB).
 	// If the FST is less than 1 GB then bytesArray is set instead.
@@ -27,38 +29,39 @@ type FST struct {
 
 	fstStore  Store
 	startNode int64
-	manager   OutputManager
+	outputs   Outputs[T]
+	//manager   OutputManager[T]
 }
 
-func NewFST(inputType InputType, outputM OutputManager, bytesPageBits int) *FST {
-	return &FST{
-		inputType:      inputType,
-		emptyOutput:    outputM.EmptyOutput(),
-		hasEmptyOutput: false,
-		bytes:          NewByteStore(bytesPageBits),
-		fstStore:       nil,
-		startNode:      -1,
-		manager:        outputM,
+func NewFST[T any](inputType InputType, outputs Outputs[T], bytesPageBits int) *FST[T] {
+	return &FST[T]{
+		inputType: inputType,
+		//emptyOutput:    T{},
+		//hasEmptyOutput: false,
+		bytes:     NewByteStore(bytesPageBits),
+		fstStore:  nil,
+		startNode: -1,
+		outputs:   outputs,
 	}
 }
 
 // NewFstV1 Load a previously saved FST.
-func NewFstV1(ctx context.Context, manager OutputManager, metaIn, in store.DataInput) (*FST, error) {
+func NewFstV1[T any](ctx context.Context, outputs Outputs[T], metaIn, in store.DataInput) (*FST[T], error) {
 	heapStore, err := NewOnHeapStore(DEFAULT_MAX_BLOCK_BITS)
 	if err != nil {
 		return nil, err
 	}
-	return NewFstV2(ctx, manager, heapStore, metaIn, in)
+	return NewFstV2(ctx, outputs, heapStore, metaIn, in)
 }
 
 // NewFstV2
 // Load a previously saved FST; maxBlockBits allows you to control the size of
 // the byte[] pages used to hold the FST bytes.
-func NewFstV2(ctx context.Context, manager OutputManager, fstStore Store, metaIn, in store.DataInput) (*FST, error) {
-	fst := &FST{
+func NewFstV2[T any](ctx context.Context, outputs Outputs[T], fstStore Store, metaIn, in store.DataInput) (*FST[T], error) {
+	fst := &FST[T]{
 		bytes:    nil,
 		fstStore: fstStore,
-		manager:  manager,
+		outputs:  outputs,
 	}
 
 	// NOTE: only reads formats VERSION_START up to VERSION_CURRENT; we don't have
@@ -99,13 +102,14 @@ func NewFstV2(ctx context.Context, manager OutputManager, fstStore Store, metaIn
 				return nil, err
 			}
 		}
-		output := manager.New()
-		if err := manager.ReadFinalOutput(ctx, reader, output); err != nil {
+
+		output, err := outputs.ReadFinalOutput(ctx, reader)
+		if err != nil {
 			return nil, err
 		}
 		fst.emptyOutput = output
 	} else {
-		fst.emptyOutput = manager.EmptyOutput()
+		fst.emptyOutput = *new(T)
 	}
 	t, err := metaIn.ReadByte()
 	if err != nil {
@@ -142,22 +146,19 @@ func NewFstV2(ctx context.Context, manager OutputManager, fstStore Store, metaIn
 	return fst, nil
 }
 
-func (f *FST) SetEmptyOutput(output Output) error {
-	if f.hasEmptyOutput {
-		emptyOutput, err := f.emptyOutput.Merge(output)
-		if err != nil {
-			return err
+func (f *FST[T]) SetEmptyOutput(output T) error {
+	var err error
+	var emptyOutput T
+	f.onceSetEmpty.Do(func() {
+		emptyOutput, err = f.outputs.Merge(f.emptyOutput, output)
+		if err == nil {
+			f.emptyOutput = emptyOutput
 		}
-		f.emptyOutput = emptyOutput
-		return nil
-	}
-
-	f.emptyOutput = output
-	f.hasEmptyOutput = true
-	return nil
+	})
+	return err
 }
 
-func (f *FST) Save(ctx context.Context, metaOut store.DataOutput, out store.DataOutput) error {
+func (f *FST[T]) Save(ctx context.Context, metaOut store.DataOutput, out store.DataOutput) error {
 	if f.startNode == -1 {
 		return errors.New("call finish first")
 	}
@@ -168,7 +169,7 @@ func (f *FST) Save(ctx context.Context, metaOut store.DataOutput, out store.Data
 
 	// TODO: really we should encode this as an arc, arriving
 	// to the root node, instead of special casing here:
-	if !f.emptyOutput.IsNoOutput() {
+	if !f.outputs.IsNoOutput(f.emptyOutput) {
 		// Accepts empty string
 		if err := metaOut.WriteByte(1); err != nil {
 			return err
@@ -176,7 +177,7 @@ func (f *FST) Save(ctx context.Context, metaOut store.DataOutput, out store.Data
 
 		// Serialize empty-string output:
 		ros := store.NewBufferDataOutput()
-		if err := f.manager.WriteFinalOutput(ctx, ros, f.emptyOutput); err != nil {
+		if err := f.outputs.WriteFinalOutput(ctx, f.emptyOutput, ros); err != nil {
 			return err
 		}
 
@@ -237,7 +238,7 @@ func (f *FST) Save(ctx context.Context, metaOut store.DataOutput, out store.Data
 	return f.fstStore.WriteTo(ctx, out)
 }
 
-func (f *FST) SaveToFile(ctx context.Context, path string) error {
+func (f *FST[T]) SaveToFile(ctx context.Context, path string) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return err
@@ -247,7 +248,7 @@ func (f *FST) SaveToFile(ctx context.Context, path string) error {
 }
 
 // NewFSTFromFile Reads an automaton from a file.
-func NewFSTFromFile(ctx context.Context, path string, outputs OutputManager) (*FST, error) {
+func NewFSTFromFile[T any](ctx context.Context, path string, outputs Outputs[T]) (*FST[T], error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -260,7 +261,7 @@ func NewFSTFromFile(ctx context.Context, path string, outputs OutputManager) (*F
 	return NewFstV2(ctx, outputs, fstStore, in, in)
 }
 
-func (f *FST) writeLabel(ctx context.Context, out store.DataOutput, v int) error {
+func (f *FST[T]) writeLabel(ctx context.Context, out store.DataOutput, v int) error {
 	switch f.inputType {
 	case BYTE1:
 		return out.WriteByte(byte(v))
@@ -272,7 +273,7 @@ func (f *FST) writeLabel(ctx context.Context, out store.DataOutput, v int) error
 }
 
 // ReadLabel Reads one BYTE1/2/4 label from the provided DataInput.
-func (f *FST) ReadLabel(ctx context.Context, in store.DataInput) (int, error) {
+func (f *FST[T]) ReadLabel(ctx context.Context, in store.DataInput) (int, error) {
 	var v int
 	switch f.inputType {
 	case BYTE1:
@@ -299,14 +300,14 @@ func (f *FST) ReadLabel(ctx context.Context, in store.DataInput) (int, error) {
 }
 
 // TargetHasArcs returns true if the node at this address has any outgoing arcs
-func TargetHasArcs(arc *Arc) bool {
+func TargetHasArcs[T any](arc *Arc[T]) bool {
 	return arc.Target() > 0
 }
 
 // AddNode
 // serializes new node by appending its bytes to the end
 // of the current byte[]
-func (f *FST) AddNode(ctx context.Context, builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
+func (f *FST[T]) AddNode(ctx context.Context, builder *Builder[T], nodeIn *UnCompiledNode[T]) (int64, error) {
 
 	if nodeIn.NumArcs() == 0 {
 		if nodeIn.IsFinal {
@@ -343,31 +344,31 @@ func (f *FST) AddNode(ctx context.Context, builder *Builder, nodeIn *UnCompiledN
 		flags := 0
 
 		if arcIdx == lastArc {
-			flags += BitLastArc
+			flags += BIT_LAST_ARC
 		}
 
 		if builder.lastFrozenNode == target.node && !doFixedLengthArcs {
 			// TODO: for better perf (but more RAM used) we
 			// could avoid this except when arc is "near" the
 			// last arc:
-			flags += BitTargetNext
+			flags += BIT_TARGET_NEXT
 		}
 
 		if arc.IsFinal {
-			flags += BitFinalArc
-			if !arc.NextFinalOutput.IsNoOutput() {
-				flags += BitArcHasFinalOutput
+			flags += BIT_FINAL_ARC
+			if !f.outputs.IsNoOutput(arc.NextFinalOutput) {
+				flags += BIT_ARC_HAS_FINAL_OUTPUT
 			}
 		}
 
 		targetHasArcs := target.node > 0
 
 		if !targetHasArcs {
-			flags += BitStopNode
+			flags += BIT_STOP_NODE
 		}
 
-		if !arc.Output.IsNoOutput() {
-			flags += BitArcHasOutput
+		if !f.outputs.IsNoOutput(arc.Output) {
+			flags += BIT_ARC_HAS_OUTPUT
 		}
 
 		if err := builder.bytes.WriteByte(byte(flags)); err != nil {
@@ -381,19 +382,19 @@ func (f *FST) AddNode(ctx context.Context, builder *Builder, nodeIn *UnCompiledN
 
 		numLabelBytes := builder.bytes.GetPosition() - labelStart
 
-		if !arc.Output.IsNoOutput() {
-			if err := f.manager.Write(ctx, builder.bytes, arc.Output); err != nil {
+		if !f.outputs.IsNoOutput(arc.Output) {
+			if err := f.outputs.Write(ctx, arc.Output, builder.bytes); err != nil {
 				return 0, err
 			}
 		}
 
-		if !arc.NextFinalOutput.IsNoOutput() {
-			if err := f.manager.WriteFinalOutput(ctx, builder.bytes, arc.NextFinalOutput); err != nil {
+		if !f.outputs.IsNoOutput(arc.NextFinalOutput) {
+			if err := f.outputs.WriteFinalOutput(ctx, arc.NextFinalOutput, builder.bytes); err != nil {
 				return 0, err
 			}
 		}
 
-		if targetHasArcs && (flags&BitTargetNext) == 0 {
+		if targetHasArcs && (flags&BIT_TARGET_NEXT) == 0 {
 			if err := builder.bytes.WriteUvarint(ctx, uint64(target.node)); err != nil {
 				return 0, err
 			}
@@ -445,20 +446,22 @@ func (f *FST) AddNode(ctx context.Context, builder *Builder, nodeIn *UnCompiledN
 }
 
 // GetFirstArc Fills virtual 'start' arc, ie, an empty incoming arc to the FST's start node
-func (f *FST) GetFirstArc(arc *Arc) (*Arc, error) {
-	if !f.emptyOutput.IsNoOutput() {
-		arc.flags = BitFinalArc | BitLastArc
+func (f *FST[T]) GetFirstArc(arc *Arc[T]) (*Arc[T], error) {
+	NoOutput := f.outputs.GetNoOutput()
+
+	if !f.outputs.IsNoOutput(f.emptyOutput) {
+		arc.flags = BIT_FINAL_ARC | BIT_LAST_ARC
 		arc.nextFinalOutput = f.emptyOutput
-		if !f.emptyOutput.IsNoOutput() {
-			arc.flags = arc.Flags() | BitArcHasFinalOutput
+		if !f.outputs.IsNoOutput(f.emptyOutput) {
+			arc.flags = arc.Flags() | BIT_ARC_HAS_FINAL_OUTPUT
 		}
 	} else {
-		arc.flags = BitLastArc
-		arc.nextFinalOutput = f.manager.EmptyOutput()
+		arc.flags = BIT_LAST_ARC
+		arc.nextFinalOutput = NoOutput
 	}
-	arc.output = f.manager.EmptyOutput()
+	arc.output = NoOutput
 
-	// If there are no nodes, ie, the Fst only accepts the
+	// If there are no nodes, ie, the FST only accepts the
 	// empty string, then startNode is 0
 	arc.target = f.startNode
 	return arc, nil
@@ -468,7 +471,7 @@ func (f *FST) GetFirstArc(arc *Arc) (*Arc, error) {
 // Follow the follow arc and read the first arc of its target; this changes
 // the provided arc (3rd arg) in-place and returns it.
 // Returns: Returns the second argument (arc).
-func (f *FST) ReadFirstTargetArc(ctx context.Context, in BytesReader, follow *Arc, arc *Arc) (*Arc, error) {
+func (f *FST[T]) ReadFirstTargetArc(ctx context.Context, in BytesReader, follow *Arc[T], arc *Arc[T]) (*Arc[T], error) {
 	if !follow.IsFinal() {
 		return f.ReadFirstRealTargetArc(ctx, follow.Target(), in, arc)
 	}
@@ -476,9 +479,9 @@ func (f *FST) ReadFirstTargetArc(ctx context.Context, in BytesReader, follow *Ar
 	// Insert "fake" final first arc:
 	arc.label = END_LABEL
 	arc.output = follow.NextFinalOutput()
-	arc.flags = BitFinalArc
+	arc.flags = BIT_FINAL_ARC
 	if follow.Target() <= 0 {
-		arc.flags |= BitLastArc
+		arc.flags |= BIT_LAST_ARC
 	} else {
 		// NOTE: nextArc is a node (not an address!) in this case:
 		arc.nextArc = follow.Target()
@@ -488,7 +491,7 @@ func (f *FST) ReadFirstTargetArc(ctx context.Context, in BytesReader, follow *Ar
 	return arc, nil
 }
 
-func (f *FST) ReadFirstRealTargetArc(ctx context.Context, nodeAddress int64, in BytesReader, arc *Arc) (*Arc, error) {
+func (f *FST[T]) ReadFirstRealTargetArc(ctx context.Context, nodeAddress int64, in BytesReader, arc *Arc[T]) (*Arc[T], error) {
 	if err := in.SetPosition(nodeAddress); err != nil {
 		return nil, err
 	}
@@ -538,7 +541,7 @@ func (f *FST) ReadFirstRealTargetArc(ctx context.Context, nodeAddress int64, in 
 }
 
 // ReadNextArc In-place read; returns the arc.
-func (f *FST) ReadNextArc(ctx context.Context, arc *Arc, in BytesReader) (*Arc, error) {
+func (f *FST[T]) ReadNextArc(ctx context.Context, arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	if arc.Label() == END_LABEL {
 		// This was a fake inserted "final" arc
 		if arc.NextArc() <= 0 {
@@ -550,7 +553,7 @@ func (f *FST) ReadNextArc(ctx context.Context, arc *Arc, in BytesReader) (*Arc, 
 }
 
 // Peeks at next arc's label; does not alter arc. Do not call this if arc.isLast()!
-func (f *FST) readNextArcLabel(ctx context.Context, arc *Arc, in BytesReader) (int, error) {
+func (f *FST[T]) readNextArcLabel(ctx context.Context, arc *Arc[T], in BytesReader) (int, error) {
 	if arc.Label() == END_LABEL {
 		// Next arc is the first arc of a node.
 		// Position to read the first arc label.
@@ -612,7 +615,7 @@ func (f *FST) readNextArcLabel(ctx context.Context, arc *Arc, in BytesReader) (i
 	return f.ReadLabel(ctx, in)
 }
 
-func (f *FST) ReadArcByIndex(ctx context.Context, in BytesReader, idx int, arc *Arc) (*Arc, error) {
+func (f *FST[T]) ReadArcByIndex(ctx context.Context, in BytesReader, idx int, arc *Arc[T]) (*Arc[T], error) {
 	if err := in.SetPosition(arc.PosArcsStart() - int64(idx*arc.BytesPerArc())); err != nil {
 		return nil, err
 	}
@@ -630,7 +633,7 @@ func (f *FST) ReadArcByIndex(ctx context.Context, in BytesReader, idx int, arc *
 // ReadArcByDirectAddressing Reads a present direct addressing node arc, with the provided index in the label range.
 // rangeIndex: The index of the arc in the label range. It must be present.
 // The real arc offset is computed based on the presence bits of the direct addressing node.
-func (f *FST) ReadArcByDirectAddressing(ctx context.Context, in BytesReader, rangeIndex int, arc *Arc) (*Arc, error) {
+func (f *FST[T]) ReadArcByDirectAddressing(ctx context.Context, in BytesReader, rangeIndex int, arc *Arc[T]) (*Arc[T], error) {
 	presenceIndex, err := CountBitsUpTo(rangeIndex, arc, in)
 	if err != nil {
 		return nil, err
@@ -641,7 +644,7 @@ func (f *FST) ReadArcByDirectAddressing(ctx context.Context, in BytesReader, ran
 // ReadLastArcByDirectAddressing Reads the last arc of a direct addressing node.
 // This method is equivalent to call readArcByDirectAddressing(Fst.Arc, Fst.BytesReader, int)
 // with rangeIndex equal to arc.numArcs() - 1, but it is faster.
-func (f *FST) ReadLastArcByDirectAddressing(ctx context.Context, arc *Arc, in BytesReader) (*Arc, error) {
+func (f *FST[T]) ReadLastArcByDirectAddressing(ctx context.Context, arc *Arc[T], in BytesReader) (*Arc[T], error) {
 	presenceIndex, err := CountBits(arc, in)
 	if err != nil {
 		return nil, err
@@ -652,7 +655,7 @@ func (f *FST) ReadLastArcByDirectAddressing(ctx context.Context, arc *Arc, in By
 }
 
 // ReadNextRealArc Never returns null, but you should never call this if arc.isLast() is true.
-func (f *FST) ReadNextRealArc(ctx context.Context, in BytesReader, arc *Arc) (*Arc, error) {
+func (f *FST[T]) ReadNextRealArc(ctx context.Context, in BytesReader, arc *Arc[T]) (*Arc[T], error) {
 	switch arc.NodeFlags() {
 	case ArcsForBinarySearch:
 		arc.arcIdx++
@@ -694,12 +697,12 @@ func (f *FST) ReadNextRealArc(ctx context.Context, in BytesReader, arc *Arc) (*A
 // FindTargetArc Finds an arc leaving the incoming arc, replacing the arc in place.
 // This returns null if the arc was not found, else the incoming arc.
 // 查找follow后满足label=${labelToMatch}的Arc
-func (f *FST) FindTargetArc(ctx context.Context, labelToMatch int, in BytesReader, follow, arc *Arc) (*Arc, bool, error) {
+func (f *FST[T]) FindTargetArc(ctx context.Context, labelToMatch int, in BytesReader, follow, arc *Arc[T]) (*Arc[T], bool, error) {
 
 	if labelToMatch == END_LABEL {
 		if follow.IsFinal() {
 			if follow.Target() <= 0 {
-				arc.flags = BitLastArc
+				arc.flags = BIT_LAST_ARC
 			} else {
 				arc.flags = 0
 				// NOTE: nextArc is a node (not an address!) in this case:
@@ -833,13 +836,13 @@ func (f *FST) FindTargetArc(ctx context.Context, labelToMatch int, in BytesReade
 	}
 }
 
-func (f *FST) FindTarget(ctx context.Context, labelToMatch int, current *Arc, in BytesReader) (*Arc, bool, error) {
-	targetArc := &Arc{}
+func (f *FST[T]) FindTarget(ctx context.Context, labelToMatch int, current *Arc[T], in BytesReader) (*Arc[T], bool, error) {
+	targetArc := &Arc[T]{}
 
 	if labelToMatch == END_LABEL {
 		if current.IsFinal() {
 			if current.Target() <= 0 {
-				targetArc.flags = BitLastArc
+				targetArc.flags = BIT_LAST_ARC
 			} else {
 				targetArc.flags = 0
 				// NOTE: nextArc is a node (not an address!) in this case:
@@ -979,19 +982,19 @@ func (f *FST) FindTarget(ctx context.Context, labelToMatch int, current *Arc, in
 }
 
 // GetBytesReader Returns a Fst.BytesReader for this FST, positioned at position 0.
-func (f *FST) GetBytesReader() (BytesReader, error) {
+func (f *FST[T]) GetBytesReader() (BytesReader, error) {
 	if f.fstStore != nil {
 		return f.fstStore.GetReverseBytesReader()
 	}
 	return f.bytes.GetReverseReader()
 }
 
-func (f *FST) Finish(newStartNode int64) error {
+func (f *FST[T]) Finish(newStartNode int64) error {
 	// TODO: assert newStartNode <= bytes.getPosition();
 	if f.startNode != -1 {
 		return errors.New("already finished")
 	}
-	if newStartNode == FINAL_END_NODE && !f.emptyOutput.IsNoOutput() {
+	if newStartNode == FINAL_END_NODE && !f.outputs.IsNoOutput(f.emptyOutput) {
 		newStartNode = 0
 	}
 	f.startNode = newStartNode
