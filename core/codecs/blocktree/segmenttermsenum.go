@@ -3,6 +3,7 @@ package blocktree
 import (
 	"bytes"
 	"context"
+
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"

@@ -48,7 +48,7 @@ type IntersectTermsEnumFrame struct {
 	transition           *automaton.Transition
 	transitionIndex      int
 	transitionCount      int
-	arc                  *fst.Arc
+	arc                  *fst.Arc[[]byte]
 	termState            types.BlockTermState
 	bytes                []byte // metadata buffer
 	bytesReader          *store.ByteArrayDataInput

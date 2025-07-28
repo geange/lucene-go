@@ -21,7 +21,7 @@ type IntersectTermsEnum struct {
 	in                store.IndexInput
 	fstOutputs        fst.Outputs[[]byte]
 	stack             []*IntersectTermsEnumFrame
-	arcs              []*fst.Arc
+	arcs              []*fst.Arc[[]byte]
 	runAutomaton      *automaton.RunAutomaton
 	automaton         *automaton.Automaton
 	commonSuffix      []byte
@@ -286,9 +286,9 @@ func (i *IntersectTermsEnum) getFrame(ord int) (*IntersectTermsEnumFrame, error)
 	return i.stack[ord], nil
 }
 
-func (i *IntersectTermsEnum) getArc(ord int) *fst.Arc {
+func (i *IntersectTermsEnum) getArc(ord int) *fst.Arc[[]byte] {
 	if ord >= len(i.arcs) {
-		i.arcs = append(i.arcs, &fst.Arc{})
+		i.arcs = append(i.arcs, new(fst.Arc[[]byte]))
 	}
 	return i.arcs[ord]
 }

@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestByteStoreCopyTo(t *testing.T) {

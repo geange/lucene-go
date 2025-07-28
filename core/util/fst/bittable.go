@@ -7,7 +7,7 @@ import (
 )
 
 // IsBitSet See BitTableUtil.IsBitSet(int, Fst.BytesReader).
-func IsBitSet(ctx context.Context, bitIndex int, arc *Arc, in BytesReader) (bool, error) {
+func IsBitSet[T any](ctx context.Context, bitIndex int, arc *Arc[T], in BytesReader) (bool, error) {
 	if err := in.SetPosition(arc.bitTableStart); err != nil {
 		return false, err
 	}
@@ -16,7 +16,7 @@ func IsBitSet(ctx context.Context, bitIndex int, arc *Arc, in BytesReader) (bool
 
 // CountBits See BitTableUtil.countBits(int, Fst.BytesReader).
 // The count of bit set is the number of arcs of a direct addressing node.
-func CountBits(arc *Arc, in BytesReader) (int, error) {
+func CountBits[T any](arc *Arc[T], in BytesReader) (int, error) {
 	if err := in.SetPosition(arc.bitTableStart); err != nil {
 		return 0, err
 	}
@@ -26,7 +26,7 @@ func CountBits(arc *Arc, in BytesReader) (int, error) {
 }
 
 // CountBitsUpTo See BitTableUtil.countBitsUpTo(int, Fst.BytesReader).
-func CountBitsUpTo(bitIndex int, arc *Arc, in BytesReader) (int, error) {
+func CountBitsUpTo[T any](bitIndex int, arc *Arc[T], in BytesReader) (int, error) {
 	if err := in.SetPosition(arc.bitTableStart); err != nil {
 		return 0, err
 	}
@@ -34,7 +34,7 @@ func CountBitsUpTo(bitIndex int, arc *Arc, in BytesReader) (int, error) {
 }
 
 // NextBitSet See BitTableUtil.NextBitSet(int, int, Fst.BytesReader).
-func NextBitSet(ctx context.Context, bitIndex int, arc *Arc, in BytesReader) (int, error) {
+func NextBitSet[T any](ctx context.Context, bitIndex int, arc *Arc[T], in BytesReader) (int, error) {
 	if err := in.SetPosition(arc.bitTableStart); err != nil {
 		return 0, err
 	}
@@ -44,7 +44,7 @@ func NextBitSet(ctx context.Context, bitIndex int, arc *Arc, in BytesReader) (in
 }
 
 // PreviousBitSet See BitTableUtil.previousBitSet(int, Fst.BytesReader).
-func PreviousBitSet(bitIndex int, arc *Arc, in BytesReader) (int, error) {
+func PreviousBitSet[T any](bitIndex int, arc *Arc[T], in BytesReader) (int, error) {
 	if err := in.SetPosition(arc.bitTableStart); err != nil {
 		return 0, err
 	}

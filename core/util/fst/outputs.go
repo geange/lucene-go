@@ -22,32 +22,36 @@ type Outputs[T any] interface {
 	// Add Eg add("foo", "bar") -> "foobar"
 	Add(prefix, output T) (T, error)
 
+	Merge(first, second T) (T, error)
+
 	// Write Encode an output value into a DataOutput.
-	Write(output T, out store.DataOutput) error
+	Write(ctx context.Context, output T, out store.DataOutput) error
 
 	// WriteFinalOutput Encode an final node output value into a DataOutput.
 	// By default this just calls write(Object, DataOutput).
-	WriteFinalOutput(output T, out store.DataOutput) error
+	WriteFinalOutput(ctx context.Context, output T, out store.DataOutput) error
 
 	// Read Decode an output value previously written with write(Object, DataOutput).
-	Read(in store.DataInput) (T, error)
+	Read(ctx context.Context, in store.DataInput) (T, error)
 
 	// SkipOutput Skip the output; defaults to just calling read and discarding the result.
-	SkipOutput(in store.DataInput) error
+	SkipOutput(ctx context.Context, in store.DataInput) error
 
 	// ReadFinalOutput Decode an output value previously written with writeFinalOutput(Object, DataOutput).
 	// By default this just calls read(DataInput).
-	ReadFinalOutput(in store.DataInput) (T, error)
+	ReadFinalOutput(ctx context.Context, in store.DataInput) (T, error)
 
 	// SkipFinalOutput Skip the output previously written with writeFinalOutput;
 	// defaults to just calling readFinalOutput and discarding the result.
-	SkipFinalOutput(in store.DataInput) error
+	SkipFinalOutput(ctx context.Context, in store.DataInput) error
 
 	IsNoOutput(v T) bool
 
 	GetNoOutput() T
 
-	Merge(first, second T) (T, error)
+	Equal(a, b T) bool
+
+	Hash(v T) int64
 }
 
 type Output interface {
@@ -60,15 +64,15 @@ type Output interface {
 	Hash() int64
 }
 
-type OutputManager interface {
-	OutputBuilder
+type OutputManager[T any] interface {
+	OutputBuilder[T]
 	OutputReader
 	OutputWriter
 }
 
-type OutputBuilder interface {
-	EmptyOutput() Output
-	New() Output
+type OutputBuilder[T any] interface {
+	EmptyOutput() T
+	New() T
 }
 
 type OutputReader interface {
@@ -371,100 +375,4 @@ func (r *PostingOutput) Hash() int64 {
 
 func hashInt64(value int64) int64 {
 	return value ^ (value >> 32)
-}
-
-var _ OutputManager = &PostingOutputManager{}
-
-type PostingOutputManager struct {
-	emptyOutput Output
-}
-
-func NewPostingOutputManager() *PostingOutputManager {
-	return &PostingOutputManager{}
-}
-
-func (p *PostingOutputManager) EmptyOutput() Output {
-	if p.emptyOutput == nil {
-		p.emptyOutput = p.New()
-	}
-	return p.emptyOutput
-}
-
-func (p *PostingOutputManager) New() Output {
-	return &PostingOutput{}
-}
-
-func (p *PostingOutputManager) check(v any) (*PostingOutput, error) {
-	output, ok := v.(*PostingOutput)
-	if !ok {
-		return nil, errors.New("not *PostingOutput")
-	}
-	return output, nil
-}
-
-func (p *PostingOutputManager) Read(ctx context.Context, in store.DataInput, v any) error {
-	output, err := p.check(v)
-	if err != nil {
-		return err
-	}
-	if num, err := in.ReadUvarint(ctx); err != nil {
-		return err
-	} else {
-		output.LastDocsStart = int64(num)
-	}
-
-	if num, err := in.ReadUvarint(ctx); err != nil {
-		return err
-	} else {
-		output.SkipPointer = int64(num)
-	}
-
-	if num, err := in.ReadUvarint(ctx); err != nil {
-		return err
-	} else {
-		output.DocFreq = int64(num)
-	}
-
-	if num, err := in.ReadUvarint(ctx); err != nil {
-		return err
-	} else {
-		output.TotalTermFreq = int64(num)
-	}
-	return nil
-}
-
-func (p *PostingOutputManager) SkipOutput(ctx context.Context, in store.DataInput) error {
-	return p.Read(ctx, in, &PostingOutput{})
-}
-
-func (p *PostingOutputManager) ReadFinalOutput(ctx context.Context, in store.DataInput, v any) error {
-	return p.Read(ctx, in, v)
-}
-
-func (p *PostingOutputManager) SkipFinalOutput(ctx context.Context, in store.DataInput) error {
-	return p.SkipOutput(ctx, in)
-}
-
-func (p *PostingOutputManager) Write(ctx context.Context, out store.DataOutput, v any) error {
-	output, err := p.check(v)
-	if err != nil {
-		return err
-	}
-	if err := out.WriteUvarint(ctx, uint64(output.LastDocsStart)); err != nil {
-		return err
-	}
-	if err := out.WriteUvarint(ctx, uint64(output.SkipPointer)); err != nil {
-		return err
-	}
-	if err := out.WriteUvarint(ctx, uint64(output.DocFreq)); err != nil {
-		return err
-	}
-	if err := out.WriteUvarint(ctx, uint64(output.TotalTermFreq)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (p *PostingOutputManager) WriteFinalOutput(ctx context.Context, out store.DataOutput, v any) error {
-	return p.Write(ctx, out, v)
 }

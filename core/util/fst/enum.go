@@ -2,19 +2,9 @@ package fst
 
 import (
 	"context"
-	"slices"
-)
 
-// enum Can next() and advance() through the terms in an FST
-type enum struct {
-	fst          *FST
-	arcs         []*Arc   //
-	output       []Output // outputs are cumulative
-	noOutput     Output
-	fstReader    BytesReader
-	upto         int
-	targetLength int
-}
+	"github.com/geange/lucene-go/core/util/array"
+)
 
 type LabelManager interface {
 	GetTargetLabel(upto int) int
@@ -23,26 +13,26 @@ type LabelManager interface {
 	Grow()
 }
 
-func newEnum(fst *FST) (*enum, error) {
+func newFSTEnum[T any](fst *FST[T]) (*FSTEnum[T], error) {
 	reader, err := fst.GetBytesReader()
 	if err != nil {
 		return nil, err
 	}
 
-	noOutput := fst.manager.EmptyOutput()
+	noOutput := fst.outputs.GetNoOutput()
 
-	enum := &enum{
+	enum := &FSTEnum[T]{
 		fst:       fst,
 		fstReader: reader,
 		noOutput:  noOutput,
-		arcs:      make([]*Arc, 10),
-		output:    make([]Output, 10),
+		arcs:      make([]*Arc[T], 10),
+		output:    make([]T, 10),
 	}
 
 	enum.output[0] = noOutput
 
 	for i := range enum.arcs {
-		enum.arcs[i] = &Arc{}
+		enum.arcs[i] = &Arc[T]{}
 	}
 
 	if _, err := fst.GetFirstArc(enum.getArc(0)); err != nil {
@@ -52,24 +42,25 @@ func newEnum(fst *FST) (*enum, error) {
 	return enum, nil
 }
 
-func (r *enum) GetUpTo() int {
+func (r *FSTEnum[T]) GetUpTo() int {
 	return r.upto
 }
 
-func (r *enum) GetOutput(idx int) Output {
+func (r *FSTEnum[T]) GetOutput(idx int) T {
 	return r.output[idx]
 }
 
-func (r *enum) SetTargetLength(size int) {
+func (r *FSTEnum[T]) SetTargetLength(size int) {
 	r.targetLength = size
 }
 
 // Rewinds enum state to match the shared prefix between current term and target term
 // 倒回枚举状态，以匹配当前term和目标term之间的共享前缀
-func (r *enum) rewindPrefix(ctx context.Context, manager LabelManager) error {
+func (r *FSTEnum[T]) rewindPrefix(ctx context.Context, manager FSTEnumLabel) error {
 	if r.upto == 0 {
 		r.upto = 1
-		if _, err := r.fst.ReadFirstTargetArc(ctx, r.fstReader, r.getArc(0), r.getArc(1)); err != nil {
+		if _, err := r.fst.ReadFirstTargetArc(ctx,
+			r.fstReader, r.getArc(0), r.getArc(1)); err != nil {
 			return err
 		}
 	}
@@ -107,7 +98,7 @@ func (r *enum) rewindPrefix(ctx context.Context, manager LabelManager) error {
 	return nil
 }
 
-func (r *enum) DoNext(ctx context.Context, lm LabelManager) error {
+func (r *FSTEnum[T]) DoNext(ctx context.Context, lm FSTEnumLabel) error {
 	if r.upto == 0 {
 		r.upto = 1
 		follow := r.getArc(0)
@@ -133,7 +124,7 @@ func (r *enum) DoNext(ctx context.Context, lm LabelManager) error {
 
 // DoSeekCeil
 // Seeks to smallest term that's >= target.
-func (r *enum) DoSeekCeil(ctx context.Context, lm LabelManager) error {
+func (r *FSTEnum[T]) DoSeekCeil(ctx context.Context, lm FSTEnumLabel) error {
 
 	// TODO: possibly caller could/should provide common
 	// prefix length?  ie this work may be redundant if
@@ -183,7 +174,7 @@ func (r *enum) DoSeekCeil(ctx context.Context, lm LabelManager) error {
 
 // DoSeekFloor
 // Seeks to largest term that's <= target.
-func (r *enum) DoSeekFloor(ctx context.Context, lm LabelManager) error {
+func (r *FSTEnum[T]) DoSeekFloor(ctx context.Context, lm FSTEnumLabel) error {
 	// TODO: possibly caller could/should provide common
 	// prefix length?  ie this work may be redundant if
 	// caller is in fact intersecting against its own
@@ -232,7 +223,7 @@ func (r *enum) DoSeekFloor(ctx context.Context, lm LabelManager) error {
 }
 
 // DoSeekExact Seeks to exactly target term.
-func (r *enum) DoSeekExact(ctx context.Context, lm LabelManager) (bool, error) {
+func (r *FSTEnum[T]) DoSeekExact(ctx context.Context, lm FSTEnumLabel) (bool, error) {
 	// TODO: possibly caller could/should provide common
 	// prefix length?  ie this work may be redundant if
 	// caller is in fact intersecting against its own
@@ -266,7 +257,7 @@ func (r *enum) DoSeekExact(ctx context.Context, lm LabelManager) (bool, error) {
 		}
 
 		// Match -- recurse:
-		r.output[r.upto], err = r.output[r.upto-1].Add(nextArc.Output())
+		r.output[r.upto], err = r.fst.outputs.Add(r.output[r.upto-1], nextArc.Output())
 		if err != nil {
 			return false, err
 		}
@@ -275,10 +266,7 @@ func (r *enum) DoSeekExact(ctx context.Context, lm LabelManager) (bool, error) {
 			return true, nil
 		}
 
-		if err = lm.SetCurrentLabel(targetLabel); err != nil {
-			return false, err
-		}
-
+		lm.SetCurrentLabel(r.upto, targetLabel)
 		r.incr(lm)
 
 		targetLabel = lm.GetTargetLabel(r.upto)
@@ -287,7 +275,8 @@ func (r *enum) DoSeekExact(ctx context.Context, lm LabelManager) (bool, error) {
 	}
 }
 
-func (r *enum) doSeekCeilArrayDirectAddressing(ctx context.Context, targetLabel int, in BytesReader, lm LabelManager, arc *Arc) (*Arc, error) {
+func (r *FSTEnum[T]) doSeekCeilArrayDirectAddressing(ctx context.Context,
+	targetLabel int, in BytesReader, lm FSTEnumLabel, arc *Arc[T]) (*Arc[T], error) {
 
 	// The array is addressed directly by label, with presence bits to compute the actual arc offset.
 
@@ -324,13 +313,11 @@ func (r *enum) doSeekCeilArrayDirectAddressing(ctx context.Context, targetLabel 
 			return nil, err
 		}
 		// found -- copy pasta from below
-		r.output[r.upto], err = r.output[r.upto-1].Add(arc.Output())
+		r.output[r.upto], err = r.fst.outputs.Add(r.output[r.upto-1], arc.Output())
 		if targetLabel == END_LABEL {
 			return nil, nil
 		}
-		if err := lm.SetCurrentLabel(arc.Label()); err != nil {
-			return nil, err
-		}
+		lm.SetCurrentLabel(r.upto, arc.Label())
 		r.incr(lm)
 		return r.fst.ReadFirstTargetArc(ctx, r.fstReader, arc, r.getArc(r.upto))
 	}
@@ -350,7 +337,8 @@ func (r *enum) doSeekCeilArrayDirectAddressing(ctx context.Context, targetLabel 
 	return nil, nil
 }
 
-func (r *enum) doSeekCeilArrayPacked(ctx context.Context, targetLabel int, in BytesReader, lm LabelManager, arc *Arc) (*Arc, error) {
+func (r *FSTEnum[T]) doSeekCeilArrayPacked(ctx context.Context,
+	targetLabel int, in BytesReader, lm FSTEnumLabel, arc *Arc[T]) (*Arc[T], error) {
 	// The array is packed -- use binary search to find the target.
 	idx, err := binarySearch(ctx, r.fst, arc, targetLabel)
 	if err != nil {
@@ -364,13 +352,11 @@ func (r *enum) doSeekCeilArrayPacked(ctx context.Context, targetLabel int, in By
 		}
 		//assert arc.arcIdx() == idx;
 		//assert arc.label() == targetLabel: "arc.label=" + arc.label() + " vs targetLabel=" + targetLabel + " mid=" + idx;
-		r.output[r.upto], err = r.output[r.upto-1].Add(arc.Output())
+		r.output[r.upto], err = r.fst.outputs.Add(r.output[r.upto-1], arc.Output())
 		if targetLabel == END_LABEL {
 			return nil, err
 		}
-		if err := lm.SetCurrentLabel(arc.Label()); err != nil {
-			return nil, err
-		}
+		lm.SetCurrentLabel(r.upto, arc.Label())
 		r.incr(lm)
 		return r.fst.ReadFirstTargetArc(ctx, r.fstReader, arc, r.getArc(r.upto))
 	}
@@ -414,11 +400,12 @@ func (r *enum) doSeekCeilArrayPacked(ctx context.Context, targetLabel int, in By
 	}
 }
 
-func (r *enum) doSeekCeilList(ctx context.Context, arc *Arc, lm LabelManager, targetLabel int) (*Arc, error) {
+func (r *FSTEnum[T]) doSeekCeilList(ctx context.Context,
+	arc *Arc[T], lm FSTEnumLabel, targetLabel int) (*Arc[T], error) {
 	// Arcs are not array'd -- must do linear scan:
 	if arc.Label() == targetLabel {
 		// recurse
-		output, err := r.output[r.upto-1].Add(arc.Output())
+		output, err := r.fst.outputs.Add(r.output[r.upto-1], arc.Output())
 		if err != nil {
 			return nil, err
 		}
@@ -428,9 +415,7 @@ func (r *enum) doSeekCeilList(ctx context.Context, arc *Arc, lm LabelManager, ta
 			return nil, nil
 		}
 
-		if err := lm.SetCurrentLabel(arc.Label()); err != nil {
-			return nil, err
-		}
+		lm.SetCurrentLabel(r.upto, arc.Label())
 		r.incr(lm)
 		return r.fst.ReadFirstTargetArc(ctx, r.fstReader, arc, r.getArc(r.upto))
 	}
@@ -472,7 +457,8 @@ func (r *enum) doSeekCeilList(ctx context.Context, arc *Arc, lm LabelManager, ta
 	return arc, nil
 }
 
-func (r *enum) doSeekFloorArrayDirectAddressing(ctx context.Context, targetLabel int, in BytesReader, lm LabelManager, arc *Arc) (*Arc, error) {
+func (r *FSTEnum[T]) doSeekFloorArrayDirectAddressing(ctx context.Context,
+	targetLabel int, in BytesReader, lm FSTEnumLabel, arc *Arc[T]) (*Arc[T], error) {
 	// The array is addressed directly by label, with presence bits to compute the actual arc offset.
 
 	targetIndex := targetLabel - arc.FirstLabel()
@@ -499,7 +485,7 @@ func (r *enum) doSeekFloorArrayDirectAddressing(ctx context.Context, targetLabel
 			return nil, err
 		}
 		// found -- copy pasta from below
-		output, err := r.output[r.upto-1].Add(arc.Output())
+		output, err := r.fst.outputs.Add(r.output[r.upto-1], arc.Output())
 		if err != nil {
 			return nil, err
 		}
@@ -509,9 +495,7 @@ func (r *enum) doSeekFloorArrayDirectAddressing(ctx context.Context, targetLabel
 			return nil, nil
 		}
 
-		if err := lm.SetCurrentLabel(arc.Label()); err != nil {
-			return nil, err
-		}
+		lm.SetCurrentLabel(r.upto, arc.Label())
 		r.incr(lm)
 		return r.fst.ReadFirstTargetArc(ctx, r.fstReader, arc, r.getArc(r.upto))
 	}
@@ -534,7 +518,9 @@ func (r *enum) doSeekFloorArrayDirectAddressing(ctx context.Context, targetLabel
 // Backtracks until it finds a node which first arc is before our target label.`
 // Then on the node, finds the arc just before the targetLabel.
 // return null to continue the seek floor recursion loop.
-func (r *enum) backtrackToFloorArc(ctx context.Context, targetLabel int, in BytesReader, lm LabelManager, arc *Arc) (*Arc, error) {
+func (r *FSTEnum[T]) backtrackToFloorArc(ctx context.Context,
+	targetLabel int, in BytesReader, lm FSTEnumLabel, arc *Arc[T]) (*Arc[T], error) {
+
 	for {
 		// First, walk backwards until we find a node which first arc is before our target label.
 		follow := r.getArc(r.upto - 1)
@@ -589,7 +575,9 @@ func (r *enum) backtrackToFloorArc(ctx context.Context, targetLabel int, in Byte
 // Skips the first arc, finds next floor arc; or none if the floor arc is the first arc itself
 // (in this case it has already been read).
 // Precondition: the given arc is the first arc of the node.
-func (r *enum) findNextFloorArcDirectAddressing(ctx context.Context, arc *Arc, targetLabel int, in BytesReader) error {
+func (r *FSTEnum[T]) findNextFloorArcDirectAddressing(ctx context.Context,
+	arc *Arc[T], targetLabel int, in BytesReader) error {
+
 	if arc.NumArcs() <= 1 {
 		return nil
 	}
@@ -617,7 +605,7 @@ func (r *enum) findNextFloorArcDirectAddressing(ctx context.Context, arc *Arc, t
 }
 
 // Same as findNextFloorArcDirectAddressing for binary search node.
-func (r *enum) findNextFloorArcBinarySearch(ctx context.Context, arc *Arc, targetLabel int, in BytesReader) error {
+func (r *FSTEnum[T]) findNextFloorArcBinarySearch(ctx context.Context, arc *Arc[T], targetLabel int, in BytesReader) error {
 	if arc.NumArcs() > 1 {
 		idx, err := binarySearch(ctx, r.fst, arc, targetLabel)
 		if err != nil {
@@ -637,7 +625,8 @@ func (r *enum) findNextFloorArcBinarySearch(ctx context.Context, arc *Arc, targe
 	return nil
 }
 
-func (r *enum) doSeekFloorArrayPacked(ctx context.Context, targetLabel int, in BytesReader, lm LabelManager, arc *Arc) (*Arc, error) {
+func (r *FSTEnum[T]) doSeekFloorArrayPacked(ctx context.Context,
+	targetLabel int, in BytesReader, lm FSTEnumLabel, arc *Arc[T]) (*Arc[T], error) {
 	// Arcs are fixed array -- use binary search to find the target.
 	idx, err := binarySearch(ctx, r.fst, arc, targetLabel)
 	if err != nil {
@@ -651,7 +640,7 @@ func (r *enum) doSeekFloorArrayPacked(ctx context.Context, targetLabel int, in B
 			return nil, err
 		}
 
-		output, err := r.output[r.upto-1].Add(arc.Output())
+		output, err := r.fst.outputs.Add(r.output[r.upto-1], arc.Output())
 		if err != nil {
 			return nil, err
 		}
@@ -661,9 +650,7 @@ func (r *enum) doSeekFloorArrayPacked(ctx context.Context, targetLabel int, in B
 			return nil, nil
 		}
 
-		if err := lm.SetCurrentLabel(arc.Label()); err != nil {
-			return nil, err
-		}
+		lm.SetCurrentLabel(r.upto, arc.Label())
 
 		r.incr(lm)
 		return r.fst.ReadFirstTargetArc(ctx, r.fstReader, arc, r.getArc(r.upto))
@@ -684,10 +671,11 @@ func (r *enum) doSeekFloorArrayPacked(ctx context.Context, targetLabel int, in B
 	}
 }
 
-func (r *enum) doSeekFloorList(ctx context.Context, arc *Arc, lm LabelManager, targetLabel int) (*Arc, error) {
+func (r *FSTEnum[T]) doSeekFloorList(ctx context.Context,
+	arc *Arc[T], lm FSTEnumLabel, targetLabel int) (*Arc[T], error) {
 	if arc.Label() == targetLabel {
 		// Match -- recurse
-		output, err := r.output[r.upto-1].Add(arc.Output())
+		output, err := r.fst.outputs.Add(r.output[r.upto-1], arc.Output())
 		if err != nil {
 			return nil, err
 		}
@@ -697,9 +685,7 @@ func (r *enum) doSeekFloorList(ctx context.Context, arc *Arc, lm LabelManager, t
 			return nil, nil
 		}
 
-		if err := lm.SetCurrentLabel(arc.Label()); err != nil {
-			return nil, err
-		}
+		lm.SetCurrentLabel(r.upto, arc.Label())
 
 		r.incr(lm)
 		return r.fst.ReadFirstTargetArc(ctx, r.fstReader, arc, r.getArc(r.upto))
@@ -764,12 +750,12 @@ func (r *enum) doSeekFloorList(ctx context.Context, arc *Arc, lm LabelManager, t
 
 // Appends current arc, and then recurses from its target,
 // appending first arc all the way to the final node
-func (r *enum) pushFirst(ctx context.Context, lm LabelManager) error {
+func (r *FSTEnum[T]) pushFirst(ctx context.Context, lm FSTEnumLabel) error {
 
 	arc := r.arcs[r.upto]
 
 	for {
-		output, err := r.output[r.upto-1].Add(arc.Output())
+		output, err := r.fst.outputs.Add(r.output[r.upto-1], arc.Output())
 		if err != nil {
 			return err
 		}
@@ -780,9 +766,7 @@ func (r *enum) pushFirst(ctx context.Context, lm LabelManager) error {
 			break
 		}
 
-		if err := lm.SetCurrentLabel(arc.Label()); err != nil {
-			return err
-		}
+		lm.SetCurrentLabel(r.upto, arc.Label())
 		r.incr(lm)
 
 		nextArc := r.getArc(r.upto)
@@ -796,15 +780,13 @@ func (r *enum) pushFirst(ctx context.Context, lm LabelManager) error {
 
 // Recurse from current arc, appending last arc all the
 // way to the first final node
-func (r *enum) pushLast(ctx context.Context, lm LabelManager) error {
+func (r *FSTEnum[T]) pushLast(ctx context.Context, lm FSTEnumLabel) error {
 	arc := r.arcs[r.upto]
 
 	for {
-		if err := lm.SetCurrentLabel(arc.Label()); err != nil {
-			return err
-		}
+		lm.SetCurrentLabel(r.upto, arc.Label())
 
-		output, err := r.output[r.upto-1].Add(arc.Output())
+		output, err := r.fst.outputs.Add(r.output[r.upto-1], arc.Output())
 		if err != nil {
 			return err
 		}
@@ -825,153 +807,30 @@ func (r *enum) pushLast(ctx context.Context, lm LabelManager) error {
 	return nil
 }
 
-func (r *enum) getArc(idx int) *Arc {
+func (r *FSTEnum[T]) getArc(idx int) *Arc[T] {
 	if r.arcs[idx] == nil {
-		r.arcs[idx] = &Arc{}
+		r.arcs[idx] = &Arc[T]{}
 	}
 	return r.arcs[idx]
 }
 
-func (r *enum) incr(lm LabelManager) {
+func (r *FSTEnum[T]) incr(lm FSTEnumLabel) {
 	r.upto++
-	lm.Grow()
-	r.arcs = slices.Grow(r.arcs, r.upto+1)
-	r.output = slices.Grow(r.output, r.upto+1)
-}
-
-type AbsEnum interface {
-	GetUpTo() int
-	GetOutput(idx int) Output
-	SetTargetLength(size int)
-	DoNext(ctx context.Context, lm LabelManager) error
-	DoSeekCeil(ctx context.Context, lm LabelManager) error
-	DoSeekFloor(ctx context.Context, lm LabelManager) error
-	DoSeekExact(ctx context.Context, lm LabelManager) (bool, error)
-}
-
-// Enum
-// Enumerates all input (BytesRef) + output pairs in an FST.
-// lucene.experimental
-type Enum[T byte | int] struct {
-	enum    AbsEnum
-	result  *KV[T]
-	current []T
-	target  []T
+	lm.Grow(r.upto)
+	r.arcs = array.Grow(r.arcs, r.upto+1)
+	r.output = array.Grow(r.output, r.upto+1)
 }
 
 // KV Holds a single input (BytesRef) + output pair.
-type KV[T byte | int] struct {
+type KV[T any] struct {
 	input  []T
-	output Output
+	output T
 }
 
 func (i *KV[T]) GetInput() []T {
 	return i.input
 }
 
-func (i *KV[T]) GetOutput() Output {
+func (i *KV[T]) GetOutput() T {
 	return i.output
-}
-
-func NewEnum[T int | byte](fst *FST) (*Enum[T], error) {
-	fstEnum, err := newEnum(fst)
-	if err != nil {
-		return nil, err
-	}
-
-	refEnum := &Enum[T]{
-		enum:    fstEnum,
-		current: make([]T, 10),
-		result:  new(KV[T]),
-	}
-	return refEnum, nil
-}
-
-func (b *Enum[T]) Current() *KV[T] {
-	return b.result
-}
-
-func (b *Enum[T]) Next(ctx context.Context) (*KV[T], error) {
-	if err := b.enum.DoNext(ctx, b); err != nil {
-		return nil, err
-	}
-
-	return b.setResult(), nil
-}
-
-// SeekCeil Seeks to smallest term that's >= target.
-func (b *Enum[T]) SeekCeil(ctx context.Context, target []T) (*KV[T], bool, error) {
-	b.target = target
-	b.enum.SetTargetLength(len(target))
-
-	if err := b.enum.DoSeekCeil(ctx, b); err != nil {
-		return nil, false, err
-	}
-
-	output := b.setResult()
-	if output == nil {
-		return nil, false, nil
-	}
-	return output, true, nil
-}
-
-// SeekFloor Seeks to biggest term that's <= target.
-func (b *Enum[T]) SeekFloor(ctx context.Context, target []T) (*KV[T], bool, error) {
-	b.target = target
-	b.enum.SetTargetLength(len(target))
-	if err := b.enum.DoSeekFloor(ctx, b); err != nil {
-		return nil, false, err
-	}
-
-	output := b.setResult()
-	if output == nil {
-		return nil, false, nil
-	}
-	return output, true, nil
-}
-
-// SeekExact Seeks to exactly this term, returning null if the term doesn't exist.
-// This is faster than using seekFloor or seekCeil because it short-circuits as soon the match is not found.
-func (b *Enum[T]) SeekExact(ctx context.Context, target []T) (*KV[T], bool, error) {
-	b.target = target
-	b.enum.SetTargetLength(len(b.target))
-
-	ok, err := b.enum.DoSeekExact(ctx, b)
-	if err != nil {
-		return nil, false, err
-	}
-	if ok {
-		return b.setResult(), true, nil
-	}
-	return nil, false, nil
-}
-
-func (b *Enum[T]) setResult() *KV[T] {
-	if b.enum.GetUpTo() == 0 {
-		return nil
-	}
-	b.result.input = b.current[1:b.enum.GetUpTo()]
-	b.result.output = b.enum.GetOutput(b.enum.GetUpTo())
-	return b.result
-}
-
-func (b *Enum[T]) GetTargetLabel(upto int) int {
-	if upto-1 == len(b.target) {
-		return END_LABEL
-	} else {
-		return int(b.target[upto-1])
-	}
-}
-
-func (b *Enum[T]) GetCurrentLabel(upto int) int {
-	return int(b.current[upto])
-}
-
-func (b *Enum[T]) SetCurrentLabel(label int) error {
-	b.current[b.enum.GetUpTo()] = T(label)
-	return nil
-}
-
-func (b *Enum[T]) Grow() {
-	b.current = slices.Grow(b.current, b.enum.GetUpTo()+1)
 }

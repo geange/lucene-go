@@ -6,8 +6,9 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/geange/lucene-go/core/store"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 func TestReverseBytesReader(t *testing.T) {
