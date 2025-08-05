@@ -298,13 +298,12 @@ func (s *SegmentTermsEnumFrame) nextLeaf(ctx context.Context) error {
 	s.suffix = int(suffix)
 
 	s.startBytePos = s.suffixesReader.GetPosition()
-	bs := make([]byte, s.prefix+s.suffix)
 
-	if _, err = s.suffixesReader.Read(bs[s.prefix:s.suffix]); err != nil {
+	s.ste.term = array.Grow(s.ste.term, s.prefix+s.suffix)
+	s.ste.term = s.ste.term[:s.prefix+s.suffix]
+	if _, err = s.suffixesReader.Read(s.ste.term[s.prefix:s.suffix]); err != nil {
 		return err
 	}
-	s.ste.term.Reset()
-	s.ste.term.Write(bs)
 
 	s.ste.termExists = true
 	return nil
@@ -343,5 +342,8 @@ func (s *SegmentTermsEnumFrame) scanToTermNonLeaf(target []byte, exactOnly bool)
 }
 
 func (s *SegmentTermsEnumFrame) fillTerm() {
-
+	termLength := s.prefix + s.suffix
+	s.ste.term = array.Grow(s.ste.term, termLength)
+	s.ste.term = s.ste.term[:termLength]
+	copy(s.ste.term[s.prefix:], s.suffixBytes[s.startBytePos:s.startBytePos+s.suffix])
 }

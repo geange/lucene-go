@@ -1,8 +1,8 @@
 package blocktree
 
 import (
-	"bytes"
 	"context"
+	"errors"
 
 	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
@@ -41,7 +41,7 @@ type SegmentTermsEnum struct {
 	// assert only:
 	eof bool
 
-	term      *bytes.Buffer
+	term      []byte
 	fstReader fst.BytesReader
 
 	arcs []*fst.Arc[[]byte]
@@ -63,33 +63,43 @@ func (s *SegmentTermsEnum) SeekExactByOrd(ctx context.Context, ord int64) error 
 }
 
 func (s *SegmentTermsEnum) Term() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.term, nil
 }
 
 func (s *SegmentTermsEnum) Ord() (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	return 0, errors.New("unsupported operation")
 }
 
 func (s *SegmentTermsEnum) DocFreq() (int, error) {
-	//TODO implement me
-	panic("implement me")
+	err := s.currentFrame.decodeMetaData()
+	if err != nil {
+		return 0, err
+	}
+	return s.currentFrame.state.GetDocFreq(), nil
 }
 
 func (s *SegmentTermsEnum) TotalTermFreq() (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	err := s.currentFrame.decodeMetaData()
+	if err != nil {
+		return 0, err
+	}
+	return int64(s.currentFrame.state.GetTotalTermFreq()), nil
 }
 
 func (s *SegmentTermsEnum) Postings(reuse index.PostingsEnum, flags int) (index.PostingsEnum, error) {
-	//TODO implement me
-	panic("implement me")
+	err := s.currentFrame.decodeMetaData()
+	if err != nil {
+		return nil, err
+	}
+	return s.fr.parent.postingsReader.Postings(context.Background(), s.fr.fieldInfo, s.currentFrame.state, reuse, flags)
 }
 
 func (s *SegmentTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
-	//TODO implement me
-	panic("implement me")
+	err := s.currentFrame.decodeMetaData()
+	if err != nil {
+		return nil, err
+	}
+	return s.fr.parent.postingsReader.Impacts(context.Background(), s.fr.fieldInfo, s.currentFrame.state, flags)
 }
 
 func (s *SegmentTermsEnum) initIndexInput() {
