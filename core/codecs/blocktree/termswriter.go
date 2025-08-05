@@ -116,8 +116,8 @@ var _ pendingEntry = &pendingBlock{}
 type pendingBlock struct {
 	prefix        []byte
 	fp            int64
-	index         *fst.FST
-	subIndices    []*fst.FST
+	index         *fst.FST[[]byte]
+	subIndices    []*fst.FST[[]byte]
 	hasTerms      bool
 	isFloor       bool
 	floorLeadByte int

@@ -22,7 +22,7 @@ type FieldReader struct {
 	minTerm          []byte
 	maxTerm          []byte
 	parent           *TermsReader
-	index            *fst.FST
+	index            *fst.FST[[]byte]
 }
 
 func (f *FieldReader) Iterator() (index.TermsEnum, error) {

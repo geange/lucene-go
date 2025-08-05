@@ -44,7 +44,7 @@ type SegmentTermsEnum struct {
 	term      *bytes.Buffer
 	fstReader fst.BytesReader
 
-	arcs []*fst.Arc
+	arcs []*fst.Arc[[]byte]
 }
 
 func (s *SegmentTermsEnum) Next(ctx context.Context) ([]byte, error) {

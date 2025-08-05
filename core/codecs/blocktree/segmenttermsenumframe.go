@@ -17,7 +17,7 @@ type SegmentTermsEnumFrame struct {
 	hasTermsOrig bool
 	isFloor      bool
 
-	arc *fst.Arc
+	arc *fst.Arc[[]byte]
 
 	//static boolean DEBUG = BlockTreeTermsWriter.DEBUG;
 

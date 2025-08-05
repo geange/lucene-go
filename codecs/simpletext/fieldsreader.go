@@ -165,7 +165,7 @@ func (s *FieldsReader) newFieldsReaderTerm(ctx context.Context, field string, te
 }
 
 func (s *FieldsReader) loadTerms(ctx context.Context, term *simpleTextTerms) error {
-	fstCompiler, err := fst.NewBuilder[*fst.PostingOutput](fst.BYTE1, fst.NewPostingOutputManager())
+	fstCompiler, err := fst.NewBuilder[*fst.PostingOutput](fst.BYTE1, fst.NewPostingOutputs())
 	if err != nil {
 		return err
 	}

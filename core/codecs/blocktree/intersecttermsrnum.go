@@ -315,7 +315,7 @@ func (i *IntersectTermsEnum) pushFrame(ctx context.Context, state int) (*Interse
 
 	arc := i.currentFrame.arc
 	idx := i.currentFrame.prefix
-	output := fst.ByteSequenceOutput(i.currentFrame.outputPrefix)
+	output := i.currentFrame.outputPrefix
 	for idx < f.prefix {
 		target := i.term[idx]
 		// TODO: we could be more efficient for the next()
@@ -327,23 +327,22 @@ func (i *IntersectTermsEnum) pushFrame(ctx context.Context, state int) (*Interse
 		}
 
 		//assert arc != null;
-		res, err := (output).Add(arc.Output())
+		output, err = i.fstOutputs.Add(i.currentFrame.outputPrefix, arc.Output())
 		if err != nil {
 			return nil, err
 		}
-		output = res.(fst.ByteSequenceOutput)
 		idx++
 	}
 
 	f.arc = arc
 	f.outputPrefix = output
 
-	frameIndexData, err := output.Add(arc.NextFinalOutput())
+	frameIndexData, err := i.fstOutputs.Add(output, arc.NextFinalOutput())
 	if err != nil {
 		return nil, err
 	}
 
-	if err := f.load(ctx, frameIndexData.(fst.ByteSequenceOutput)); err != nil {
+	if err := f.load(ctx, frameIndexData); err != nil {
 		return nil, err
 	}
 	return f, nil

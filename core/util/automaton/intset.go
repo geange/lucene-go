@@ -65,7 +65,15 @@ func (f *FrozenIntSet) Equals(other Hashable) bool {
 	if !ok {
 		return false
 	}
-	return is.Hash() == f.Hash()
+
+	switch fis := other.(type) {
+	case *FrozenIntSet:
+		return is.Hash() == f.Hash() &&
+			slices.Equal(f.GetArray(), fis.GetArray()) &&
+			f.state == fis.state
+	}
+
+	return is.Hash() == f.Hash() && slices.Equal(f.GetArray(), is.GetArray())
 }
 
 func NewFrozenIntSet(values []int, hashCode uint64, state int) *FrozenIntSet {

@@ -129,8 +129,8 @@ func (p *PostingOutputs) SkipFinalOutput(ctx context.Context, in store.DataInput
 	return p.SkipOutput(ctx, in)
 }
 
-func (p *PostingOutputs) GetNoOutput() **PostingOutput {
-	return &p.noOutput
+func (p *PostingOutputs) GetNoOutput() *PostingOutput {
+	return p.noOutput
 }
 
 func (p *PostingOutputs) Merge(first, second *PostingOutput) (*PostingOutput, error) {
@@ -156,4 +156,14 @@ func (p *PostingOutputs) Equal(a, b *PostingOutput) bool {
 func (p *PostingOutputs) Hash(v *PostingOutput) int64 {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (p *PostingOutputs) IsNoOutput(v *PostingOutput) bool {
+	if v == nil {
+		return true
+	}
+	return v.LastDocsStart == 0 &&
+		v.SkipPointer == 0 &&
+		v.TotalTermFreq == 0 &&
+		v.DocFreq == 0
 }
