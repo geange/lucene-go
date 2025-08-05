@@ -91,3 +91,9 @@ func (s *SegmentTermsEnum) Impacts(flags int) (index.ImpactsEnum, error) {
 	//TODO implement me
 	panic("implement me")
 }
+
+func (s *SegmentTermsEnum) initIndexInput() {
+	if s.in == nil {
+		s.in = s.fr.parent.termsIn.Clone().(store.IndexInput)
+	}
+}
