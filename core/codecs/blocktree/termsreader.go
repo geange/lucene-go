@@ -7,6 +7,7 @@ import (
 	"github.com/geange/lucene-go/core/codecs/types"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util/fst"
 )
 
 const (
@@ -79,3 +80,7 @@ func (t *TermsReader) GetMergeInstance() index.FieldsProducer {
 	//TODO implement me
 	panic("implement me")
 }
+
+var (
+	FST_OUTPUTS = fst.NewByteSequenceOutputs()
+)

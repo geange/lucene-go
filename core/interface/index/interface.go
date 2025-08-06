@@ -880,8 +880,10 @@ type CacheHelper interface {
 type SeekStatus int
 
 const (
+	SEEK_STATUS_UNDEFINED SeekStatus = iota
+
 	// SEEK_STATUS_END The term was not found, and the end of iteration was hit.
-	SEEK_STATUS_END = iota
+	SEEK_STATUS_END
 
 	// SEEK_STATUS_FOUND The precise term was found.
 	SEEK_STATUS_FOUND

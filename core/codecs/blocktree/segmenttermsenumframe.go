@@ -1,14 +1,18 @@
 package blocktree
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/geange/lucene-go/core/codecs/types"
+	"github.com/geange/lucene-go/core/document"
 	coreIndex "github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util/array"
 	"github.com/geange/lucene-go/core/util/fst"
+	"golang.org/x/exp/slog"
 )
 
 type SegmentTermsEnumFrame struct {
@@ -39,7 +43,7 @@ type SegmentTermsEnumFrame struct {
 	statsReader             *store.ByteArrayDataInput
 
 	floorData       []byte
-	floorDataReader store.ByteArrayDataInput
+	floorDataReader *store.ByteArrayDataInput
 
 	// Length of prefix shared by all terms in this block
 	prefix int
@@ -74,7 +78,7 @@ type SegmentTermsEnumFrame struct {
 
 	// metadata buffer
 	bytes       []byte
-	bytesReader store.ByteArrayDataInput
+	bytesReader *store.ByteArrayDataInput
 
 	ste     *SegmentTermsEnum
 	version int
@@ -83,6 +87,36 @@ type SegmentTermsEnumFrame struct {
 	suffix       int
 	subCode      int64
 	//compressionAlg CompressionAlgorithm
+}
+
+func NewSegmentTermsEnumFrame(ste *SegmentTermsEnum, ord int) (*SegmentTermsEnumFrame, error) {
+	this := &SegmentTermsEnumFrame{
+		suffixBytes:     make([]byte, 128),
+		suffixesReader:  store.NewByteArrayDataInput(nil),
+		statBytes:       make([]byte, 64),
+		statsReader:     store.NewByteArrayDataInput(nil),
+		floorData:       make([]byte, 32),
+		floorDataReader: store.NewByteArrayDataInput(nil),
+		bytes:           make([]byte, 32),
+		bytesReader:     store.NewByteArrayDataInput(nil),
+	}
+	this.ste = ste
+	this.ord = ord
+	state, err := ste.fr.parent.postingsReader.NewTermState()
+	if err != nil {
+		return nil, err
+	}
+	this.state = state
+	this.state.SetTotalTermFreq(-1)
+	this.version = ste.fr.parent.version
+	if this.version >= VERSION_COMPRESSED_SUFFIXES {
+		this.suffixLengthBytes = make([]byte, 32)
+		this.suffixLengthsReader = store.NewByteArrayDataInput(nil)
+	} else {
+		this.suffixLengthBytes = nil
+		this.suffixLengthsReader = this.suffixesReader
+	}
+	return this, nil
 }
 
 func (s *SegmentTermsEnumFrame) setFloorData(ctx context.Context, in *store.ByteArrayDataInput, source []byte) error {
@@ -310,35 +344,471 @@ func (s *SegmentTermsEnumFrame) nextLeaf(ctx context.Context) error {
 }
 
 func (s *SegmentTermsEnumFrame) nextNonLeaf(ctx context.Context) (bool, error) {
-	panic("implement me")
+	for {
+		if s.nextEnt == s.entCount {
+			//assert arc == null || (isFloor && isLastInFloor == false): "isFloor=" + isFloor + " isLastInFloor=" + isLastInFloor;
+			if err := s.loadNextFloorBlock(ctx); err != nil {
+				return false, err
+			}
+			if s.isLeafBlock {
+				if err := s.nextLeaf(ctx); err != nil {
+					return false, err
+				}
+				return false, nil
+			} else {
+				continue
+			}
+		}
+
+		//assert nextEnt != -1 && nextEnt < entCount: "nextEnt=" + nextEnt + " entCount=" + entCount + " fp=" + fp;
+		s.nextEnt++
+		code, err := s.suffixLengthsReader.ReadUvarint(ctx)
+		if err != nil {
+			return false, err
+		}
+		s.suffix = int(code >> 1)
+		s.startBytePos = s.suffixesReader.GetPosition()
+		termSize := s.prefix + s.suffix
+		s.ste.term = array.Grow(s.ste.term, termSize)
+		s.ste.term = s.ste.term[:termSize]
+		if _, err := s.suffixesReader.Read(s.ste.term); err != nil {
+			return false, err
+		}
+		if (code & 1) == 0 {
+			// A normal term
+			s.ste.termExists = true
+			s.subCode = 0
+			s.state.AddTermBlockOrd(1)
+			return false, nil
+		} else {
+			// A sub-block; make sub-FP absolute:
+			s.ste.termExists = false
+			subCode, err := s.suffixLengthsReader.ReadUvarint(ctx)
+			if err != nil {
+				return false, err
+			}
+			s.subCode = int64(subCode)
+			s.lastSubFP = s.fp - s.subCode
+			//if (DEBUG) {
+			//System.out.println("    lastSubFP=" + lastSubFP);
+			//}
+			return true, nil
+		}
+	}
 }
 
-func (s *SegmentTermsEnumFrame) scanToFloorFrame(target []byte) error {
-	panic("implement me")
+func (s *SegmentTermsEnumFrame) scanToFloorFrame(ctx context.Context, target []byte) error {
+	if !s.isFloor || len(target) <= s.prefix {
+		slog.Debug("scanToFloorFrame skip", "isFloor", s.isFloor, "target.length", len(target), "prefix", s.prefix)
+		return nil
+	}
+
+	targetLabel := target[s.prefix]
+
+	slog.Debug("scanToFloorFrame", "fpOrig", s.fpOrig,
+		"targetLabel", fmt.Sprintf("%x", targetLabel),
+		"nextFloorLabel", fmt.Sprintf("%x", s.nextFloorLabel),
+		"numFollowFloorBlocks", s.numFollowFloorBlocks)
+
+	if int(targetLabel) < s.nextFloorLabel {
+		slog.Debug("already on correct block")
+		return nil
+	}
+
+	newFP := s.fpOrig
+	for {
+		code, err := s.floorDataReader.ReadUvarint(ctx)
+		if err != nil {
+			return err
+		}
+		newFP = s.fpOrig + int64(code>>1)
+		s.hasTerms = (code & 1) != 0
+
+		slog.Debug("loop print",
+			"label", fmt.Sprintf("%X", s.nextFloorLabel), "fp", newFP,
+			"hasTerms", s.hasTerms, "numFollowFloor", s.numFollowFloorBlocks)
+
+		s.isLastInFloor = s.numFollowFloorBlocks == 1
+		s.numFollowFloorBlocks--
+
+		if s.isLastInFloor {
+			s.nextFloorLabel = 256
+
+			slog.Debug("stop!", "nextFloorLabel", fmt.Sprintf("%X", s.nextFloorLabel))
+			break
+		} else {
+			nextFloorLabel, err := s.floorDataReader.ReadByte()
+			if err != nil {
+				return err
+			}
+			s.nextFloorLabel = int(nextFloorLabel)
+			if targetLabel < nextFloorLabel {
+				slog.Debug("stop!", "nextFloorLabel", fmt.Sprintf("%X", s.nextFloorLabel))
+				break
+			}
+		}
+	}
+
+	if newFP != s.fp {
+		slog.Debug("force switch to", "fp", newFP, "oldFP", s.fp)
+		s.nextEnt = -1
+		s.fp = newFP
+	} else {
+		slog.Debug("stay on same", "fp", newFP)
+	}
+	return nil
 }
 
-func (s *SegmentTermsEnumFrame) decodeMetaData() error {
-	panic("implement me")
+func (s *SegmentTermsEnumFrame) decodeMetaData(ctx context.Context) error {
+	// lazily catch up on metadata decode:
+	limit := s.getTermBlockOrd()
+	absolute := s.metaDataUpto == 0
+
+	// TODO: better API would be "jump straight to term=N"???
+	for s.metaDataUpto < limit {
+		// TODO: we could make "tiers" of metadata, ie,
+		// decode docFreq/totalTF but don't decode postings
+		// metadata; this way caller could get
+		// docFreq/totalTF w/o paying decode cost for
+		// postings
+
+		// TODO: if docFreq were bulk decoded we could
+		// just skipN here:
+
+		if s.version >= VERSION_COMPRESSED_SUFFIXES {
+			if s.statsSingletonRunLength > 0 {
+				s.state.SetDocFreq(1)
+				s.state.SetTotalTermFreq(1)
+				s.statsSingletonRunLength--
+			} else {
+				token, err := s.statsReader.ReadUvarint(ctx)
+				if err != nil {
+					return err
+				}
+				if (token & 1) == 1 {
+					s.state.SetDocFreq(1)
+					s.state.SetTotalTermFreq(1)
+					s.statsSingletonRunLength = int(token >> 1)
+				} else {
+					s.state.SetDocFreq(int(token >> 1))
+					if s.ste.fr.fieldInfo.GetIndexOptions() == document.INDEX_OPTIONS_DOCS {
+						s.state.SetTotalTermFreq(s.state.GetDocFreq())
+					} else {
+						freq, err := s.statsReader.ReadUvarint(ctx)
+						if err != nil {
+							return err
+						}
+						s.state.SetTotalTermFreq(s.state.GetDocFreq() + int(freq))
+					}
+				}
+			}
+		} else {
+			docFreq, err := s.statsReader.ReadUvarint(ctx)
+			if err != nil {
+				return err
+			}
+
+			s.state.SetDocFreq(int(docFreq))
+			if s.ste.fr.fieldInfo.GetIndexOptions() == document.INDEX_OPTIONS_DOCS {
+				s.state.SetTotalTermFreq(s.state.GetDocFreq()) // all postings have freq=1
+			} else {
+				n, err := s.statsReader.ReadUvarint(ctx)
+				if err != nil {
+					return err
+				}
+				s.state.SetTotalTermFreq(s.state.GetDocFreq() + int(n))
+			}
+		}
+
+		// metadata
+		err := s.ste.fr.parent.postingsReader.DecodeTerm(ctx, s.bytesReader, s.ste.fr.fieldInfo, s.state, absolute)
+		if err != nil {
+			return err
+		}
+
+		s.metaDataUpto++
+		absolute = false
+	}
+	s.state.SetTermBlockOrd(s.metaDataUpto)
+	return nil
 }
 
-func (s *SegmentTermsEnumFrame) prefixMatches(target []byte) error {
-	panic("implement me")
+func (s *SegmentTermsEnumFrame) prefixMatches(target []byte) bool {
+	return bytes.HasSuffix(target, s.ste.term[:s.prefix])
 }
 
-func (s *SegmentTermsEnumFrame) scanToSubBlock(subFP int64) error {
-	panic("implement me")
+// Scans to sub-block that has this target fp; only
+// called by next(); NOTE: does not set
+// startBytePos/suffix as a side effect
+func (s *SegmentTermsEnumFrame) scanToSubBlock(ctx context.Context, subFP int64) error {
+	slog.Debug("scanToSubBlock", "fp", s.fp, "subFP", subFP, "entCount", s.entCount, "lastSubFP", s.lastSubFP)
+	//assert nextEnt == 0;
+	if s.lastSubFP == subFP {
+		//if (DEBUG) System.out.println("    already positioned");
+		return nil
+	}
+	//assert subFP < fp : "fp=" + fp + " subFP=" + subFP;
+	targetSubCode := s.fp - subFP
+	//if (DEBUG) System.out.println("    targetSubCode=" + targetSubCode);
+	for {
+		//assert nextEnt < entCount;
+		s.nextEnt++
+		code, err := s.suffixLengthsReader.ReadUvarint(ctx)
+		if err != nil {
+			return err
+		}
+		if err := s.suffixesReader.SkipBytes(ctx, int(code>>1)); err != nil {
+			return err
+		}
+		if (code & 1) != 0 {
+			subCode, err := s.suffixLengthsReader.ReadUvarint(ctx)
+			if err != nil {
+				return err
+			}
+			if targetSubCode == int64(subCode) {
+				//if (DEBUG) System.out.println("        match!");
+				s.lastSubFP = subFP
+				return nil
+			}
+		} else {
+			s.state.AddTermBlockOrd(1)
+		}
+	}
 }
 
-func (s *SegmentTermsEnumFrame) scanToTerm(target []byte, exactOnly bool) (coreIndex.SeekStatus, error) {
-	panic("implement me")
+func (s *SegmentTermsEnumFrame) scanToTerm(ctx context.Context, target []byte, exactOnly bool) (coreIndex.SeekStatus, error) {
+	if s.isLeafBlock {
+		return s.scanToTermLeaf(ctx, target, exactOnly)
+	}
+	return s.scanToTermNonLeaf(ctx, target, exactOnly)
 }
 
-func (s *SegmentTermsEnumFrame) scanToTermLeaf(target []byte, exactOnly bool) (coreIndex.SeekStatus, error) {
-	panic("implement me")
+func (s *SegmentTermsEnumFrame) scanToTermLeaf(ctx context.Context, target []byte, exactOnly bool) (coreIndex.SeekStatus, error) {
+	// if (DEBUG) System.out.println("    scanToTermLeaf: block fp=" + fp + " prefix=" + prefix + " nextEnt=" + nextEnt + " (of " + entCount + ") target=" + brToString(target) + " term=" + brToString(term));
+
+	//assert nextEnt != -1;
+
+	s.ste.termExists = true
+	s.subCode = 0
+
+	if s.nextEnt == s.entCount {
+		if exactOnly {
+			s.fillTerm()
+		}
+		return coreIndex.SEEK_STATUS_END, nil
+	}
+
+	//assert prefixMatches(target);
+
+	// TODO: binary search when all terms have the same length, which is common for ID fields,
+	// which are also the most sensitive to lookup performance?
+	// Loop over each entry (term or sub-block) in this block:
+	for {
+		s.nextEnt++
+
+		suffix, err := s.suffixLengthsReader.ReadUvarint(ctx)
+		if err != nil {
+			return coreIndex.SEEK_STATUS_UNDEFINED, err
+		}
+
+		s.suffix = int(suffix)
+
+		// if (DEBUG) {
+		//   BytesRef suffixBytesRef = new BytesRef();
+		//   suffixBytesRef.bytes = suffixBytes;
+		//   suffixBytesRef.offset = suffixesReader.getPosition();
+		//   suffixBytesRef.length = suffix;
+		//   System.out.println("      cycle: term " + (nextEnt-1) + " (of " + entCount + ") suffix=" + brToString(suffixBytesRef));
+		// }
+
+		s.startBytePos = s.suffixesReader.GetPosition()
+		if err := s.suffixesReader.SkipBytes(ctx, s.suffix); err != nil {
+			return coreIndex.SEEK_STATUS_UNDEFINED, err
+		}
+
+		// Loop over bytes in the suffix, comparing to the target
+		cmp := bytes.Compare(s.suffixBytes[s.startBytePos:s.startBytePos+s.suffix], target)
+
+		if cmp < 0 {
+			// Current entry is still before the target;
+			// keep scanning
+		} else if cmp > 0 {
+			// Done!  Current entry is after target --
+			// return NOT_FOUND:
+			s.fillTerm()
+
+			//if (DEBUG) System.out.println("        not found");
+			return coreIndex.SEEK_STATUS_NOT_FOUND, nil
+		} else {
+			// Exact match!
+
+			// This cannot be a sub-block because we
+			// would have followed the index to this
+			// sub-block from the start:
+
+			//assert ste.termExists;
+			s.fillTerm()
+			//if (DEBUG) System.out.println("        found!");
+			return coreIndex.SEEK_STATUS_FOUND, nil
+		}
+
+		if s.nextEnt < s.entCount {
+			break
+		}
+	}
+
+	// It is possible (and OK) that terms index pointed us
+	// at this block, but, we scanned the entire block and
+	// did not find the term to position to.  This happens
+	// when the target is after the last term in the block
+	// (but, before the next term in the index).  EG
+	// target could be foozzz, and terms index pointed us
+	// to the foo* block, but the last term in this block
+	// was fooz (and, eg, first term in the next block will
+	// bee fop).
+	//if (DEBUG) System.out.println("      block end");
+	if exactOnly {
+		s.fillTerm()
+	}
+
+	// TODO: not consistent that in the
+	// not-exact case we don't next() into the next
+	// frame here
+	return coreIndex.SEEK_STATUS_END, nil
 }
 
-func (s *SegmentTermsEnumFrame) scanToTermNonLeaf(target []byte, exactOnly bool) (coreIndex.SeekStatus, error) {
-	panic("implement me")
+func (s *SegmentTermsEnumFrame) scanToTermNonLeaf(ctx context.Context, target []byte, exactOnly bool) (coreIndex.SeekStatus, error) {
+	//if (DEBUG) System.out.println("    scanToTermNonLeaf: block fp=" + fp + " prefix=" + prefix + " nextEnt=" + nextEnt + " (of " + entCount + ") target=" + brToString(target) + " term=" + brToString(target));
+
+	//assert nextEnt != -1;
+
+	if s.nextEnt == s.entCount {
+		if exactOnly {
+			s.fillTerm()
+			s.ste.termExists = s.subCode == 0
+		}
+		return coreIndex.SEEK_STATUS_END, nil
+	}
+
+	//assert prefixMatches(target);
+
+	// Loop over each entry (term or sub-block) in this block:
+	for s.nextEnt < s.entCount {
+
+		s.nextEnt++
+
+		code, err := s.suffixLengthsReader.ReadUvarint(ctx)
+		if err != nil {
+			return coreIndex.SEEK_STATUS_UNDEFINED, err
+		}
+		s.suffix = int(code >> 1)
+
+		//if (DEBUG) {
+		//  BytesRef suffixBytesRef = new BytesRef();
+		//  suffixBytesRef.bytes = suffixBytes;
+		//  suffixBytesRef.offset = suffixesReader.getPosition();
+		//  suffixBytesRef.length = suffix;
+		//  System.out.println("      cycle: " + ((code&1)==1 ? "sub-block" : "term") + " " + (nextEnt-1) + " (of " + entCount + ") suffix=" + brToString(suffixBytesRef));
+		//}
+
+		termLen := s.prefix + s.suffix
+		s.startBytePos = s.suffixesReader.GetPosition()
+		if err := s.suffixesReader.SkipBytes(ctx, s.suffix); err != nil {
+			return coreIndex.SEEK_STATUS_UNDEFINED, err
+		}
+		s.ste.termExists = (code & 1) == 0
+		if s.ste.termExists {
+			s.state.AddTermBlockOrd(1)
+			s.subCode = 0
+		} else {
+			subCode, err := s.suffixLengthsReader.ReadUvarint(ctx)
+			if err != nil {
+				return coreIndex.SEEK_STATUS_UNDEFINED, err
+			}
+			s.subCode = int64(subCode)
+			s.lastSubFP = s.fp - s.subCode
+		}
+
+		cmp := bytes.Compare(s.suffixBytes[s.startBytePos:s.startBytePos+s.suffix], target)
+
+		if cmp < 0 {
+			// Current entry is still before the target;
+			// keep scanning
+		} else if cmp > 0 {
+			// Done!  Current entry is after target --
+			// return NOT_FOUND:
+			s.fillTerm()
+
+			//if (DEBUG) System.out.println("        maybe done exactOnly=" + exactOnly + " ste.termExists=" + ste.termExists);
+
+			if !exactOnly && !s.ste.termExists {
+				//System.out.println("  now pushFrame");
+				// TODO this
+				// We are on a sub-block, and caller wants
+				// us to position to the next term after
+				// the target, so we must recurse into the
+				// sub-frame(s):
+				currentFrame, err := s.ste.pushFrame(ctx, nil, s.ste.currentFrame.lastSubFP, termLen)
+				if err != nil {
+					return coreIndex.SEEK_STATUS_UNDEFINED, err
+				}
+				s.ste.currentFrame = currentFrame
+				if err := s.ste.currentFrame.loadBlock(ctx); err != nil {
+					return coreIndex.SEEK_STATUS_UNDEFINED, err
+				}
+				for {
+					ok, err := s.ste.currentFrame.next(ctx)
+					if err != nil {
+						return coreIndex.SEEK_STATUS_UNDEFINED, err
+					}
+					if !ok {
+						break
+					}
+					frame, err := s.ste.pushFrame(ctx, nil, s.ste.currentFrame.lastSubFP, len(s.ste.term))
+					if err != nil {
+						return coreIndex.SEEK_STATUS_UNDEFINED, err
+					}
+					s.ste.currentFrame = frame
+					if err := s.ste.currentFrame.loadBlock(ctx); err != nil {
+						return coreIndex.SEEK_STATUS_UNDEFINED, err
+					}
+				}
+			}
+
+			//if (DEBUG) System.out.println("        not found");
+			return coreIndex.SEEK_STATUS_NOT_FOUND, nil
+		} else {
+			// Exact match!
+
+			// This cannot be a sub-block because we
+			// would have followed the index to this
+			// sub-block from the start:
+
+			//assert ste.termExists;
+			s.fillTerm()
+			//if (DEBUG) System.out.println("        found!");
+			return coreIndex.SEEK_STATUS_FOUND, nil
+		}
+	}
+
+	// It is possible (and OK) that terms index pointed us
+	// at this block, but, we scanned the entire block and
+	// did not find the term to position to.  This happens
+	// when the target is after the last term in the block
+	// (but, before the next term in the index).  EG
+	// target could be foozzz, and terms index pointed us
+	// to the foo* block, but the last term in this block
+	// was fooz (and, eg, first term in the next block will
+	// bee fop).
+	//if (DEBUG) System.out.println("      block end");
+	if exactOnly {
+		s.fillTerm()
+	}
+
+	// TODO: not consistent that in the
+	// not-exact case we don't next() into the next
+	// frame here
+	return coreIndex.SEEK_STATUS_END, nil
 }
 
 func (s *SegmentTermsEnumFrame) fillTerm() {

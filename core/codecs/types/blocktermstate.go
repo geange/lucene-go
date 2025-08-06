@@ -13,6 +13,7 @@ type BlockTermState interface {
 	SetTotalTermFreq(TotalTermFreq int)
 	GetTotalTermFreq() int
 	SetTermBlockOrd(TermBlockOrd int)
+	AddTermBlockOrd(ord int)
 	GetTermBlockOrd() int
 	SetBlockFilePointer(BlockFilePointer int64)
 	GetBlockFilePointer() int64
@@ -58,6 +59,10 @@ func (b *BlockTermStateBase) GetTotalTermFreq() int {
 
 func (b *BlockTermStateBase) SetTermBlockOrd(TermBlockOrd int) {
 	b.TermBlockOrd = TermBlockOrd
+}
+
+func (b *BlockTermStateBase) AddTermBlockOrd(ord int) {
+	b.TermBlockOrd += ord
 }
 
 func (b *BlockTermStateBase) GetTermBlockOrd() int {
