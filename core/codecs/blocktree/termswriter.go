@@ -91,8 +91,43 @@ func (t *TermsWriter) Close() error {
 }
 
 func (t *TermsWriter) Write(ctx context.Context, fields coreIndex.Fields, norms coreIndex.NormsProducer) error {
-	//TODO implement me
-	panic("implement me")
+	//var lastField string
+	for field := range fields.Iterator() {
+		//assert lastField == null || lastField.compareTo(field) < 0;
+		//lastField = field
+
+		//if (DEBUG) System.out.println("\nBTTW.write seg=" + segment + " field=" + field);
+		terms, _ := fields.Terms(field)
+		if terms == nil {
+			continue
+		}
+
+		termsEnum, err := terms.Iterator()
+		if err != nil {
+			return err
+		}
+		tw := newTermsWriter(t.fieldInfos.FieldInfo(field))
+		for {
+			term, err := termsEnum.Next(ctx)
+			//if (DEBUG) System.out.println("BTTW: next term " + term);
+
+			if err != nil {
+				break
+			}
+
+			//if (DEBUG) System.out.println("write field=" + fieldInfo.name + " term=" + brToString(term));
+			if err := tw.Write(ctx, term, termsEnum, norms); err != nil {
+				return err
+			}
+		}
+
+		if err := tw.Finish(); err != nil {
+			return err
+		}
+
+		//if (DEBUG) System.out.println("\nBTTW.write done seg=" + segment + " field=" + field);
+	}
+	return nil
 }
 
 type pendingEntry interface {
@@ -195,4 +230,20 @@ type termsWriter struct {
 
 	firstPendingTerm pendingTerm
 	lastPendingTerm  pendingTerm
+}
+
+func (w *termsWriter) Write(ctx context.Context, term []byte,
+	enum coreIndex.TermsEnum, norms coreIndex.NormsProducer) error {
+
+	panic("")
+}
+
+func (w *termsWriter) Finish() error {
+	panic("")
+}
+
+func newTermsWriter(fieldInfo *document.FieldInfo) *termsWriter {
+	return &termsWriter{
+		fieldInfo: fieldInfo,
+	}
 }
