@@ -8,11 +8,22 @@ import (
 	"github.com/geange/lucene-go/core/util/compress"
 )
 
+var (
+	NO_COMPRESSION  = &noCompression{}
+	LOWERCASE_ASCII = &lowercaseAscii{}
+	LZ4             = &lz4Algorithm{}
+)
+
 type CompressionAlgorithm interface {
+	Code() int
 	Read(ctx context.Context, in store.DataInput, bs []byte) error
 }
 
 type noCompression struct {
+}
+
+func (*noCompression) Code() int {
+	return 0
 }
 
 func (n *noCompression) Read(ctx context.Context, in store.DataInput, out []byte) error {
@@ -23,14 +34,22 @@ func (n *noCompression) Read(ctx context.Context, in store.DataInput, out []byte
 type lowercaseAscii struct {
 }
 
+func (*lowercaseAscii) Code() int {
+	return 1
+}
+
 func (*lowercaseAscii) Read(ctx context.Context, in store.DataInput, out []byte) error {
 	return compress.LowercaseAsciiCompression.Decompress(ctx, in, out)
 }
 
-type lz4 struct {
+type lz4Algorithm struct {
 }
 
-func (*lz4) Read(ctx context.Context, in store.DataInput, out []byte) error {
+func (*lz4Algorithm) Code() int {
+	return 2
+}
+
+func (*lz4Algorithm) Read(ctx context.Context, in store.DataInput, out []byte) error {
 	return compress.LZ4Compression.Decompress(in, out)
 }
 
@@ -41,7 +60,7 @@ func ByCode(code int) (CompressionAlgorithm, error) {
 	case 1:
 		return &lowercaseAscii{}, nil
 	case 2:
-		return &lz4{}, nil
+		return &lz4Algorithm{}, nil
 	default:
 		return nil, errors.New("unsupported compression")
 	}

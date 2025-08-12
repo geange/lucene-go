@@ -69,3 +69,7 @@ func (f *RAMFile) Iterator() iter.Seq[byte] {
 		}
 	}
 }
+
+func (f *RAMFile) SetLength(size int64) {
+	f.size.Store(size)
+}

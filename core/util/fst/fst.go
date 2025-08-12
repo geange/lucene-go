@@ -1000,3 +1000,11 @@ func (f *FST[T]) Finish(newStartNode int64) error {
 	f.startNode = newStartNode
 	return f.bytes.Finish()
 }
+
+func (f *FST[T]) NumBytes() int {
+	return int(f.bytes.GetPosition())
+}
+
+func (f *FST[T]) GetEmptyOutput() T {
+	return f.emptyOutput
+}

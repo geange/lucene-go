@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"slices"
 	"sort"
 
 	"github.com/samber/lo"
@@ -298,8 +299,7 @@ func (t *TermsReader) Iterator() iter.Seq[string] {
 }
 
 func (t *TermsReader) Names() []string {
-	//TODO implement me
-	panic("implement me")
+	return slices.Clone(t.fieldList)
 }
 
 func (t *TermsReader) Terms(field string) (index.Terms, error) {
