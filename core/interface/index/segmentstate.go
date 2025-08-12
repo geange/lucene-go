@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/bits-and-blooms/bitset"
+
 	"github.com/geange/lucene-go/core/store"
 )
 
@@ -67,6 +68,18 @@ func NewSegmentWriteState(directory store.Directory, segmentInfo SegmentInfo, fi
 	}
 }
 
+func NewSegmentWriteStateWithState(state *SegmentWriteState, segmentSuffix string) *SegmentWriteState {
+	return &SegmentWriteState{
+		Directory:       state.Directory,
+		SegmentInfo:     state.SegmentInfo,
+		FieldInfos:      state.FieldInfos,
+		SegmentSuffix:   segmentSuffix,
+		SegUpdates:      state.SegUpdates,
+		DelCountOnFlush: state.DelCountOnFlush,
+		LiveDocs:        state.LiveDocs,
+	}
+}
+
 // SegmentReadState
 // Holder class for common parameters used during read.
 // lucene.experimental
@@ -100,5 +113,15 @@ func NewSegmentReadState(dir store.Directory, info SegmentInfo,
 		FieldInfos:    fieldInfos,
 		Context:       ioContext,
 		SegmentSuffix: segmentSuffix,
+	}
+}
+
+func NewSegmentReadStateWithState(other *SegmentReadState, newSegmentSuffix string) *SegmentReadState {
+	return &SegmentReadState{
+		Directory:     other.Directory,
+		SegmentInfo:   other.SegmentInfo,
+		FieldInfos:    other.FieldInfos,
+		Context:       other.Context,
+		SegmentSuffix: newSegmentSuffix,
 	}
 }

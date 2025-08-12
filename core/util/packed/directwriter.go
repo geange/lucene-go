@@ -2,9 +2,10 @@ package packed
 
 import (
 	"errors"
+	"math"
+
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util/packed/common"
-	"math"
 )
 
 // DirectWriter
@@ -94,6 +95,10 @@ func (d *DirectWriter) Finish() error {
 	}
 	d.finished = true
 	return nil
+}
+
+func DirectWriterGetInstance(output store.DataOutput, numValues int, bitsPerValue int) (*DirectWriter, error) {
+	return NewDirectWriter(output, numValues, bitsPerValue)
 }
 
 // GetInstance

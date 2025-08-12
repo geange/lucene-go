@@ -112,7 +112,7 @@ func (s *skipReader) init(mtx *coreIndex.MultiLevelSkipListReaderContext) {
 }
 
 func (s *skipReader) SkipTo(ctx context.Context, target int, mtx *coreIndex.MultiLevelSkipListReaderContext) (int, error) {
-	return mtx.SkipToWithSPI(ctx, target, s)
+	return mtx.SkipTo(ctx, target, s)
 }
 
 var _ index.Impacts = &innerImpacts{}
@@ -153,8 +153,7 @@ func (s *skipReader) ReadSkipData(ctx context.Context, level int, skipStream sto
 		content := s.scratch.Bytes()
 
 		if bytes.Equal(content, FIELDS_END) {
-			err := utils.CheckFooter(input)
-			if err != nil {
+			if err := utils.CheckSimpleTextFooter(input); err != nil {
 				return 0, err
 			}
 			break

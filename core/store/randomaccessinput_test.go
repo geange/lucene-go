@@ -7,7 +7,7 @@ import (
 )
 
 func TestRandomAccessIndexInput(t *testing.T) {
-	output := NewBytesInput([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
+	output := NewByteArrayDataInput([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
 	defer output.Close()
 
 	access := &randomAccessIndexInput{in: output}

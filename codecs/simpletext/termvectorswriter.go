@@ -164,3 +164,8 @@ func (s *TermVectorsWriter) Finish(ctx context.Context, fis index.FieldInfos, nu
 	}
 	return utils.WriteChecksum(s.out)
 }
+
+func (s *TermVectorsWriter) AddProx(numProx int, positions, offsets store.DataInput) error {
+	//TODO implement me
+	panic("implement me")
+}

@@ -3,9 +3,10 @@ package bkd
 import (
 	"context"
 	"encoding/binary"
+	"io"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
-	"io"
 )
 
 var _ PointReader = &OfflinePointReader{}
@@ -87,7 +88,7 @@ func (r *OfflinePointReader) Close() error {
 	if r.countLeft == 0 && r.checked == false {
 		if in, ok := r.in.(store.ChecksumIndexInput); ok {
 			r.checked = true
-			if err := utils.CheckFooter(in); err != nil {
+			if err := utils.CheckSimpleTextFooter(in); err != nil {
 				return err
 			}
 		}

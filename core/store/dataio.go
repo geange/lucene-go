@@ -5,8 +5,9 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/geange/lucene-go/core/util/zigzag"
 	"io"
+
+	"github.com/geange/lucene-go/core/util/zigzag"
 )
 
 const (
@@ -78,6 +79,8 @@ type DataInput interface {
 	ReadSetOfStrings(ctx context.Context) (map[string]struct{}, error)
 
 	SkipBytes(ctx context.Context, numBytes int) error
+
+	ReadLELongs(ctx context.Context, dst []uint64) error
 }
 
 type CloneReader interface {
@@ -152,9 +155,12 @@ func (d *BaseDataInput) ReadUvarint(context.Context) (uint64, error) {
 	return num, err
 }
 
-func (d *BaseDataInput) ReadZInt32(context.Context) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+func (d *BaseDataInput) ReadZInt32(ctx context.Context) (int64, error) {
+	num, err := d.ReadUvarint(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return zigzag.Decode(num), nil
 }
 
 func (d *BaseDataInput) ReadUint64(context.Context) (uint64, error) {
@@ -258,6 +264,17 @@ func (d *BaseDataInput) SkipBytes(ctx context.Context, numBytes int) error {
 			return err
 		}
 		skipped += step
+	}
+	return nil
+}
+
+func (d *BaseDataInput) ReadLELongs(ctx context.Context, dst []uint64) error {
+	bs := make([]byte, 8)
+	for i := range dst {
+		if _, err := d.reader.Read(bs); err != nil {
+			return nil
+		}
+		dst[i] = binary.LittleEndian.Uint64(bs)
 	}
 	return nil
 }

@@ -2,11 +2,13 @@ package packed
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/store"
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 func TestBlockPackedWriter(t *testing.T) {
@@ -41,7 +43,7 @@ func testBlockPackedWriter(t *testing.T, blockShift int, valueCount int, direct 
 	assert.Nil(t, err)
 
 	bs := output.Bytes()
-	input := store.NewBytesInput(bs)
+	input := store.NewByteArrayDataInput(bs)
 
 	reader, err := NewBlockPackedReader(ctx, input, VERSION_CURRENT, blockSize, n, direct)
 	assert.Nil(t, err)
@@ -103,7 +105,7 @@ func TestBlockPackedReaderIterator(t *testing.T) {
 				assert.Nil(t, err)
 
 				bs := output.Bytes()
-				input := store.NewBytesInput(bs)
+				input := store.NewByteArrayDataInput(bs)
 
 				iterator := NewBlockPackedReaderIterator(input, VERSION_CURRENT, blockSize, n)
 
@@ -142,7 +144,7 @@ func TestBlockPackedReaderIterator(t *testing.T) {
 				assert.Nil(t, err)
 
 				bs := output.Bytes()
-				input := store.NewBytesInput(bs)
+				input := store.NewByteArrayDataInput(bs)
 
 				iterator := NewBlockPackedReaderIterator(input, VERSION_CURRENT, blockSize, n)
 
@@ -180,7 +182,7 @@ func testBlockPackedReaderIteratorNext(t *testing.T, blockShift int, valueCount 
 	assert.Nil(t, err)
 
 	bs := output.Bytes()
-	input := store.NewBytesInput(bs)
+	input := store.NewByteArrayDataInput(bs)
 
 	iterator := NewBlockPackedReaderIterator(input, VERSION_CURRENT, blockSize, n)
 
@@ -216,7 +218,7 @@ func testBlockPackedReaderIteratorSkip(t *testing.T, blockShift int, valueCount 
 	assert.Nil(t, err)
 
 	bs := output.Bytes()
-	input := store.NewBytesInput(bs)
+	input := store.NewByteArrayDataInput(bs)
 
 	iterator := NewBlockPackedReaderIterator(input, VERSION_CURRENT, blockSize, n)
 
@@ -258,7 +260,7 @@ func testBlockPackedReaderIteratorNextSlices(t *testing.T, blockShift int, value
 	assert.Nil(t, err)
 
 	bs := output.Bytes()
-	input := store.NewBytesInput(bs)
+	input := store.NewByteArrayDataInput(bs)
 
 	iterator := NewBlockPackedReaderIterator(input, VERSION_CURRENT, blockSize, n)
 

@@ -5,13 +5,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"iter"
 	"slices"
 
 	"golang.org/x/exp/maps"
 
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
-	"github.com/geange/lucene-go/core/util/automaton"
 	"github.com/geange/lucene-go/core/util/bytesref"
 	"github.com/geange/lucene-go/core/util/ints"
 )
@@ -35,6 +35,16 @@ func NewFreqProxFields(fieldList []*FreqProxTermsWriterPerField) *FreqProxFields
 
 func (f *FreqProxFields) Names() []string {
 	return maps.Keys(f.fields)
+}
+
+func (f *FreqProxFields) Iterator() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, field := range f.fields {
+			if !yield(field.getFieldName()) {
+				return
+			}
+		}
+	}
 }
 
 func (f *FreqProxFields) Terms(field string) (index.Terms, error) {
@@ -63,11 +73,6 @@ func (f *FreqProxTerms) Iterator() (index.TermsEnum, error) {
 	termsEnum := NewFreqProxTermsEnum(f.terms)
 	termsEnum.reset()
 	return termsEnum, nil
-}
-
-func (f *FreqProxTerms) Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (f *FreqProxTerms) Size() (int, error) {

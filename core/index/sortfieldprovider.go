@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -32,33 +33,29 @@ var (
 	sortFieldProviderPool = make(map[string]index.SortFieldProvider)
 )
 
-//type SortFieldProviderInstance struct {
-//	values map[string]SortFieldProvider
-//}
-//
-//func (s *SortFieldProviderInstance) Register(name string, provider SortFieldProvider) {
-//	s.values[name] = provider
-//}
-//
-//// GetCodecByName Looks up a SortFieldProvider by name
-//func (s *SortFieldProviderInstance) GetCodecByName(name string) (SortFieldProvider, bool) {
-//	provider, ok := s.values[name]
-//	return provider, ok
-//}
-//
-//func (s *SortFieldProviderInstance) MustForName(name string) SortFieldProvider {
-//	return s.values[name]
-//}
-//
-//func (s *SortFieldProviderInstance) Write(sf SortField, out store.DataOutput) error {
-//	sorter := sf.GetIndexSorter()
-//	if sorter != nil {
-//		return fmt.Errorf("cannot serialize sort field: %s", sf.String())
+//	type SortFieldProviderInstance struct {
+//		values map[string]SortFieldProvider
 //	}
 //
-//	provider, ok := s.GetCodecByName(sorter.GetProviderName())
-//	if !ok {
-//		return fmt.Errorf("provider(%s) not found", sorter.GetProviderName())
+//	func (s *SortFieldProviderInstance) Register(name string, provider SortFieldProvider) {
+//		s.values[name] = provider
 //	}
-//	return provider.WriteSortField(sf, out)
-//}
+//
+// // GetCodecByName Looks up a SortFieldProvider by name
+//
+//	func (s *SortFieldProviderInstance) GetCodecByName(name string) (SortFieldProvider, bool) {
+//		provider, ok := s.values[name]
+//		return provider, ok
+//	}
+//
+//	func (s *SortFieldProviderInstance) MustForName(name string) SortFieldProvider {
+//		return s.values[name]
+//	}
+func SortFieldProviderWrite(ctx context.Context, sf index.SortField, out store.DataOutput) error {
+	sorter := sf.GetIndexSorter()
+	if sorter == nil {
+		return fmt.Errorf("cannot serialize sort field: %s", sf.String())
+	}
+	provider := GetSortFieldProviderByName(sorter.GetProviderName())
+	return provider.WriteSortField(ctx, sf, out)
+}

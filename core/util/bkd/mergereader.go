@@ -3,6 +3,7 @@ package bkd
 import (
 	"context"
 	"errors"
+
 	"github.com/geange/lucene-go/core/types"
 )
 

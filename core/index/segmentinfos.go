@@ -9,6 +9,7 @@ import (
 
 	"github.com/geange/lucene-go/codecs/utils"
 	codecUtil "github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/codecs"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
@@ -401,7 +402,7 @@ func (s *SegmentInfos) writeIndexOutput(ctx context.Context, out store.IndexOutp
 	if err := out.WriteMapOfStrings(ctx, s.userData); err != nil {
 		return err
 	}
-	return codecUtil.WriteFooter(out)
+	return codecUtil.WriteFooter(nil, out)
 }
 
 func (s *SegmentInfos) writeDir(ctx context.Context, directory store.Directory) error {
@@ -519,7 +520,7 @@ func ReadCommitFromChecksumIndexInput(ctx context.Context, directory store.Direc
 		return nil, errors.New("indexFormat Too Old Exception")
 	}
 
-	format, err = utils.CheckHeaderNoMagic(ctx, input, "segments", VERSION_70, VERSION_CURRENT)
+	format, err = codecs.CheckHeaderNoMagic(ctx, input, "segments", VERSION_70, VERSION_CURRENT)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +530,7 @@ func ReadCommitFromChecksumIndexInput(ctx context.Context, directory store.Direc
 		return nil, err
 	}
 
-	if _, err = utils.CheckIndexHeaderSuffix(input, strconv.FormatInt(generation, 36)); err != nil {
+	if _, err = codecs.CheckIndexHeaderSuffix(input, strconv.FormatInt(generation, 36)); err != nil {
 		return nil, err
 	}
 

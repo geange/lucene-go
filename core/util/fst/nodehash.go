@@ -7,18 +7,18 @@ import (
 )
 
 // NodeHash Used to dedup states (lookup already-frozen states)
-type NodeHash struct {
+type NodeHash[T any] struct {
 	table      map[int]int64
-	fst        *FST
-	scratchArc *Arc
+	fst        *FST[T]
+	scratchArc *Arc[T]
 	in         BytesReader
 }
 
-func NewNodeHash(fst *FST, in BytesReader) *NodeHash {
-	return &NodeHash{
+func NewNodeHash[T any](fst *FST[T], in BytesReader) *NodeHash[T] {
+	return &NodeHash[T]{
 		table:      make(map[int]int64),
 		fst:        fst,
-		scratchArc: &Arc{},
+		scratchArc: &Arc[T]{},
 		in:         in,
 	}
 }
@@ -28,7 +28,7 @@ const (
 )
 
 // 计算从当前节点起，后续的节点是否相同
-func (n *NodeHash) nodesEqual(ctx context.Context, node *UnCompiledNode, address int64) bool {
+func (n *NodeHash[T]) nodesEqual(ctx context.Context, node *UnCompiledNode[T], address int64) bool {
 	if _, err := n.fst.ReadFirstRealTargetArc(ctx, address, n.in, n.scratchArc); err != nil {
 		return false
 	}
@@ -56,9 +56,9 @@ func (n *NodeHash) nodesEqual(ctx context.Context, node *UnCompiledNode, address
 
 	for i, arc := range node.Arcs {
 		if arc.Label != n.scratchArc.Label() ||
-			!arc.Output.Equal(n.scratchArc.output) ||
+			!n.fst.outputs.Equal(arc.Output, n.scratchArc.output) ||
 			arc.Target.(*CompiledNode).node != n.scratchArc.Target() ||
-			!arc.NextFinalOutput.Equal(n.scratchArc.NextFinalOutput()) ||
+			!n.fst.outputs.Equal(arc.NextFinalOutput, n.scratchArc.NextFinalOutput()) ||
 			arc.IsFinal != n.scratchArc.IsFinal() {
 
 			return false
@@ -81,7 +81,7 @@ func (n *NodeHash) nodesEqual(ctx context.Context, node *UnCompiledNode, address
 
 // hash code for an unfrozen node.
 // This must be identical to the frozen case (below)!!
-func (n *NodeHash) hash(node *UnCompiledNode) (int64, error) {
+func (n *NodeHash[T]) hash(node *UnCompiledNode[T]) (int64, error) {
 	h := int64(0)
 	// TODO: maybe if number of arcs is high we can safely subsample?
 
@@ -96,8 +96,8 @@ func (n *NodeHash) hash(node *UnCompiledNode) (int64, error) {
 		nodeValue := target.node
 
 		h = PRIME*h + (nodeValue ^ (nodeValue >> 32))
-		h = PRIME*h + arc.Output.Hash()
-		h = PRIME*h + arc.NextFinalOutput.Hash()
+		h = PRIME*h + n.fst.outputs.Hash(arc.Output)
+		h = PRIME*h + n.fst.outputs.Hash(arc.NextFinalOutput)
 		if arc.IsFinal {
 			h += 17
 		}
@@ -105,7 +105,7 @@ func (n *NodeHash) hash(node *UnCompiledNode) (int64, error) {
 	return h, nil
 }
 
-func (n *NodeHash) hashFrozenNode(ctx context.Context, node int64) (int64, error) {
+func (n *NodeHash[T]) hashFrozenNode(ctx context.Context, node int64) (int64, error) {
 	h := int64(0)
 	if _, err := n.fst.ReadFirstRealTargetArc(ctx, node, n.in, n.scratchArc); err != nil {
 		return 0, err
@@ -114,8 +114,8 @@ func (n *NodeHash) hashFrozenNode(ctx context.Context, node int64) (int64, error
 	for {
 		h = PRIME*h + int64(n.scratchArc.Label())
 		h = PRIME*h + (n.scratchArc.Target() ^ (n.scratchArc.Target() >> 32))
-		h = PRIME*h + n.scratchArc.Output().Hash()
-		h = PRIME*h + n.scratchArc.NextFinalOutput().Hash()
+		h = PRIME*h + n.fst.outputs.Hash(n.scratchArc.Output())
+		h = PRIME*h + n.fst.outputs.Hash(n.scratchArc.NextFinalOutput())
 
 		if n.scratchArc.IsFinal() {
 			h += 17
@@ -132,7 +132,7 @@ func (n *NodeHash) hashFrozenNode(ctx context.Context, node int64) (int64, error
 	return h, nil
 }
 
-func (n *NodeHash) Add(ctx context.Context, builder *Builder, nodeIn *UnCompiledNode) (int64, error) {
+func (n *NodeHash[T]) Add(ctx context.Context, builder *Builder[T], nodeIn *UnCompiledNode[T]) (int64, error) {
 	h, err := n.hash(nodeIn)
 	if err != nil {
 		return 0, err
@@ -172,7 +172,7 @@ func (n *NodeHash) Add(ctx context.Context, builder *Builder, nodeIn *UnCompiled
 }
 
 // called only by rehash
-func (n *NodeHash) addNew(ctx context.Context, address int64) error {
+func (n *NodeHash[T]) addNew(ctx context.Context, address int64) error {
 	v, err := n.hashFrozenNode(ctx, address)
 	if err != nil {
 		return err

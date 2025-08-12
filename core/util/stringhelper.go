@@ -2,10 +2,12 @@ package util
 
 import (
 	"errors"
-	"github.com/geange/lucene-go/core/util/array"
-	"golang.org/x/exp/rand"
 	"math/big"
 	"sync"
+
+	"golang.org/x/exp/rand"
+
+	"github.com/geange/lucene-go/core/util/array"
 )
 
 func BytesDifference(priorTerm, currentTerm []byte) (int, error) {

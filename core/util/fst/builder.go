@@ -5,7 +5,8 @@ import (
 	"context"
 	"encoding/binary"
 	"math"
-	"slices"
+
+	"github.com/geange/lucene-go/core/util/array"
 )
 
 // Builder
@@ -22,10 +23,10 @@ import (
 // now possible, however they cannot be packed.
 //
 // lucene.experimental
-type Builder struct {
-	dedupHash *NodeHash
-	fst       *FST
-	noOutput  Output
+type Builder[T any] struct {
+	dedupHash *NodeHash[T]
+	fst       *FST[T]
+	noOutput  T
 
 	// simplistic pruning: we prune node (and all following
 	// nodes) if less than this number of terms go through it:
@@ -49,14 +50,14 @@ type Builder struct {
 	// left this as an array:
 	// current "frontier"
 	// 注意：将其切换到 ArrayList 会导致 980 万个维基百科术语的构建性能损失约 6%；所以我们将其保留为数组
-	frontier []*UnCompiledNode
+	frontier []*UnCompiledNode[T]
 
-	// Used for the BitTargetNext optimization (whereby
+	// Used for the BIT_TARGET_NEXT optimization (whereby
 	// instead of storing the address of the target node for
 	// a given arc, we mark a single bit noting that the next
 	// node in the byte[] is the target node):
 	//
-	// 用于 BitTargetNext 优化（我们不是存储给定弧的目标节点的地址，
+	// 用于 BIT_TARGET_NEXT 优化（我们不是存储给定弧的目标节点的地址，
 	// 而是标记一个位，指出 byte[] 中的下一个节点是目标节点）
 	lastFrozenNode int64
 
@@ -78,7 +79,7 @@ type Builder struct {
 // NewBuilder Instantiates an FST/FSA builder without any pruning.
 // A shortcut to Builder(Fst.INPUT_TYPE, int, int, boolean, boolean, int, Output, boolean, int)
 // with pruning options turned off.
-func NewBuilder(inputType InputType, manager OutputManager, options ...BuilderOption) (*Builder, error) {
+func NewBuilder[T any](inputType InputType, outputs Outputs[T], options ...BuilderOption) (*Builder[T], error) {
 	opt := &builderOption{
 		minSuffixCount1:          0,
 		minSuffixCount2:          0,
@@ -93,7 +94,7 @@ func NewBuilder(inputType InputType, manager OutputManager, options ...BuilderOp
 		fn(opt)
 	}
 
-	return newBuilder(inputType, manager, opt.minSuffixCount1, opt.minSuffixCount2, opt.doShareSuffix,
+	return newBuilder(inputType, outputs, opt.minSuffixCount1, opt.minSuffixCount2, opt.doShareSuffix,
 		opt.doShareNonSingletonNodes, opt.shareMaxTailLength,
 		opt.allowFixedLengthArcs, opt.bytesPageBits)
 }
@@ -165,20 +166,20 @@ func WithBytesPageBits(bytesPageBits int) BuilderOption {
 // output: The output type for each input sequence. Applies only if building an FST. For FSA, use NoOutputs.getSingleton() and NoOutputs.getNoOutput() as the singleton output object.
 // allowFixedLengthArcs: Pass false to disable the fixed length arc optimization (binary search or direct addressing) while building the FST; this will make the resulting FST smaller but slower to traverse.
 // bytesPageBits: How many bits wide to make each byte[] block in the BytesStore; if you know the FST will be large then make this larger. For example 15 bits = 32768 byte pages.
-func newBuilder(inputType InputType, outputManager OutputManager, minSuffixCount1, minSuffixCount2 int,
+func newBuilder[T any](inputType InputType, outputs Outputs[T], minSuffixCount1, minSuffixCount2 int,
 	doShareSuffix, doShareNonSingletonNodes bool, shareMaxTailLength int,
-	allowFixedLengthArcs bool, bytesPageBits int) (*Builder, error) {
+	allowFixedLengthArcs bool, bytesPageBits int) (*Builder[T], error) {
 
-	builder := &Builder{
+	builder := &Builder[T]{
 		minSuffixCount1:          minSuffixCount1,
 		minSuffixCount2:          minSuffixCount2,
 		doShareNonSingletonNodes: doShareNonSingletonNodes,
 		shareMaxTailLength:       shareMaxTailLength,
 		allowFixedLengthArcs:     allowFixedLengthArcs,
-		fst:                      NewFST(inputType, outputManager, bytesPageBits),
-		frontier:                 make([]*UnCompiledNode, 0, 10),
+		fst:                      NewFST(inputType, outputs, bytesPageBits),
+		frontier:                 make([]*UnCompiledNode[T], 0, 10),
 		fixedLengthArcsBuffer:    NewBuffer(),
-		noOutput:                 outputManager.EmptyOutput(),
+		noOutput:                 outputs.GetNoOutput(),
 	}
 
 	builder.bytes = builder.fst.bytes
@@ -210,29 +211,29 @@ func newBuilder(inputType InputType, outputManager OutputManager, minSuffixCount
 // Setting this factor to a negative value (e.g. -1) effectively disables direct addressing,
 // only binary search nodes will be created.
 // DIRECT_ADDRESSING_MAX_OVERSIZING_FACTOR
-func (b *Builder) SetDirectAddressingMaxOversizingFactor(factor float64) *Builder {
+func (b *Builder[T]) SetDirectAddressingMaxOversizingFactor(factor float64) *Builder[T] {
 	b.directAddressingMaxOversizingFactor = factor
 	return b
 }
 
-func (b *Builder) GetDirectAddressingMaxOversizingFactor() float64 {
+func (b *Builder[T]) GetDirectAddressingMaxOversizingFactor() float64 {
 	return b.directAddressingMaxOversizingFactor
 }
 
-func (b *Builder) GetTermCount() int {
+func (b *Builder[T]) GetTermCount() int {
 	return b.frontier[0].InputCount
 }
 
-func (b *Builder) GetNodeCount() int {
+func (b *Builder[T]) GetNodeCount() int {
 	// 1+ in order to count the -1 implicit final node
 	return b.nodeCount + 1
 }
 
-func (b *Builder) GetArcCount() int {
+func (b *Builder[T]) GetArcCount() int {
 	return b.arcCount
 }
 
-func (b *Builder) compileNode(ctx context.Context, nodeIn *UnCompiledNode, tailLength int) (*CompiledNode, error) {
+func (b *Builder[T]) compileNode(ctx context.Context, nodeIn *UnCompiledNode[T], tailLength int) (*CompiledNode, error) {
 	var node int64
 	var err error
 	bytesPosStart := b.bytes.GetPosition()
@@ -276,7 +277,7 @@ func (b *Builder) compileNode(ctx context.Context, nodeIn *UnCompiledNode, tailL
 
 // 尾部冻结
 // prefixLenPlus1: 相同的前缀长度
-func (b *Builder) freezeTail(ctx context.Context, prefixLenPlus1 int) error {
+func (b *Builder[T]) freezeTail(ctx context.Context, prefixLenPlus1 int) error {
 	downTo := max(1, prefixLenPlus1)
 
 	// idx := len(b.lastInput) 因为 b.frontier 长度比 b.lastInput 多一位
@@ -330,8 +331,8 @@ func (b *Builder) freezeTail(ctx context.Context, prefixLenPlus1 int) error {
 			(b.minSuffixCount2 == 1 && node.InputCount == 1 && idx > 1) {
 
 			// drop all arcs
-			for arcIdx := 0; arcIdx < int(node.NumArcs()); arcIdx++ {
-				target, ok := node.Arcs[arcIdx].Target.(*UnCompiledNode)
+			for arcIdx := 0; arcIdx < node.NumArcs(); arcIdx++ {
+				target, ok := node.Arcs[arcIdx].Target.(*UnCompiledNode[T])
 				if ok {
 					target.Clear()
 				} else {
@@ -403,11 +404,11 @@ func (b *Builder) freezeTail(ctx context.Context, prefixLenPlus1 int) error {
 //
 // 添加input/output。提供的input必须要先进行排序。如果输入相同的input+不同的output，output需要实现merge方法。
 
-func (b *Builder) AddStr(ctx context.Context, input string, output Output) error {
+func (b *Builder[T]) AddStr(ctx context.Context, input string, output T) error {
 	return b.Add(ctx, []rune(input), output)
 }
 
-func (b *Builder) Add(ctx context.Context, input []rune, output Output) error {
+func (b *Builder[T]) Add(ctx context.Context, input []rune, output T) error {
 	newInput := make([]int, len(input))
 	for i, v := range input {
 		newInput[i] = int(v)
@@ -415,10 +416,8 @@ func (b *Builder) Add(ctx context.Context, input []rune, output Output) error {
 	return b.AddInts(ctx, newInput, output)
 }
 
-func (b *Builder) AddInts(ctx context.Context, input []int, output Output) error {
-	if output == nil {
-		output = b.noOutput
-	} else if output.IsNoOutput() {
+func (b *Builder[T]) AddInts(ctx context.Context, input []int, output T) error {
+	if b.fst.outputs.IsNoOutput(output) {
 		output = b.noOutput
 	}
 
@@ -456,7 +455,7 @@ func (b *Builder) AddInts(ctx context.Context, input []int, output Output) error
 	if len(b.frontier) < inputLenPlus1 {
 		frontierSize := len(b.frontier)
 
-		b.frontier = slices.Grow(b.frontier, inputLenPlus1)
+		b.frontier = array.Grow(b.frontier, inputLenPlus1)
 
 		for i := frontierSize; i < inputLenPlus1; i++ {
 			b.frontier[i] = NewUnCompiledNode(b, i)
@@ -482,7 +481,8 @@ func (b *Builder) AddInts(ctx context.Context, input []int, output Output) error
 
 	var err error
 
-	// push conflicting output forward, only as far as needed
+	// push conflicting outputs forward, only as far as
+	// needed
 	// 仅根据需要将冲突的输出向前推进
 	for idx := 1; idx < prefixLenPlus1; idx++ {
 		node := b.frontier[idx]
@@ -490,16 +490,17 @@ func (b *Builder) AddInts(ctx context.Context, input []int, output Output) error
 
 		lastOutput := parentNode.GetLastOutput()
 
-		var commonOutputPrefix Output
-		var wordSuffix Output
+		var commonOutputPrefix T
+		var wordSuffix T
 
-		if !lastOutput.IsNoOutput() {
-			commonOutputPrefix, err = output.Common(lastOutput)
+		if !b.fst.outputs.IsNoOutput(lastOutput) {
+
+			commonOutputPrefix, err = b.fst.outputs.Common(output, lastOutput)
 			if err != nil {
 				return err
 			}
 
-			wordSuffix, err = lastOutput.Sub(commonOutputPrefix)
+			wordSuffix, err = b.fst.outputs.Subtract(lastOutput, commonOutputPrefix)
 			if err != nil {
 				return err
 			}
@@ -513,16 +514,13 @@ func (b *Builder) AddInts(ctx context.Context, input []int, output Output) error
 			}
 		}
 
-		output, err = output.Sub(commonOutputPrefix)
-		if err != nil {
-			return err
-		}
+		output, err = b.fst.outputs.Subtract(output, commonOutputPrefix)
 	}
 
 	if len(b.lastInput) == len(input) && prefixLenPlus1 == 1+len(input) {
 		// same input more than 1 time in a row, mapping to
 		// multiple output
-		mergeOutput, err := lastNode.Output.Merge(output)
+		mergeOutput, err := b.fst.outputs.Merge(lastNode.Output, output)
 		if err != nil {
 			return err
 		}
@@ -542,7 +540,7 @@ func (b *Builder) AddInts(ctx context.Context, input []int, output Output) error
 }
 
 // Finish Returns final FST. NOTE: this will return null if nothing is accepted by the FST.
-func (b *Builder) Finish(ctx context.Context) (*FST, error) {
+func (b *Builder[T]) Finish(ctx context.Context) (*FST[T], error) {
 
 	root := b.frontier[0]
 
@@ -552,7 +550,7 @@ func (b *Builder) Finish(ctx context.Context) (*FST, error) {
 	}
 
 	if root.InputCount < b.minSuffixCount1 || root.InputCount < b.minSuffixCount2 || root.NumArcs() == 0 {
-		if b.fst.emptyOutput.IsNoOutput() {
+		if b.fst.outputs.IsNoOutput(b.fst.emptyOutput) {
 			return nil, nil
 		}
 
@@ -580,12 +578,12 @@ func (b *Builder) Finish(ctx context.Context) (*FST, error) {
 	return b.fst, nil
 }
 
-func (b *Builder) compileAllTargets(ctx context.Context, node *UnCompiledNode, tailLength int) error {
+func (b *Builder[T]) compileAllTargets(ctx context.Context, node *UnCompiledNode[T], tailLength int) error {
 	for arcIdx := 0; arcIdx < node.NumArcs(); arcIdx++ {
 		arc := node.Arcs[arcIdx]
 		if !arc.Target.IsCompiled() {
 			// not yet compiled
-			n := arc.Target.(*UnCompiledNode)
+			n := arc.Target.(*UnCompiledNode[T])
 			if n.NumArcs() == 0 {
 				//System.out.println("seg=" + segment + "        FORCE final arc=" + (char) arc.label);
 				arc.IsFinal, n.IsFinal = true, true

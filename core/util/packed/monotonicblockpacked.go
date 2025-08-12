@@ -78,7 +78,7 @@ func NewMonotonicBlockPackedReader(ctx context.Context, in store.IndexInput,
 					return nil, err
 				}
 			} else {
-				readerNoHeader, err := getReaderNoHeader(ctx, in, FormatPacked, packedIntsVersion, size, int(bitsPerValue))
+				readerNoHeader, err := GetReaderNoHeader(ctx, in, FormatPacked, packedIntsVersion, size, int(bitsPerValue))
 				if err != nil {
 					return nil, err
 				}

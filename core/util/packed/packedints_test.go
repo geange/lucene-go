@@ -80,7 +80,7 @@ func TestEndPointer(t *testing.T) {
 
 	formats := []Format{FormatPacked, FormatPackedSingleBlock}
 
-	in := store.NewBytesInput(out.Bytes())
+	in := store.NewByteArrayDataInput(out.Bytes())
 
 	for version := VERSION_START; version <= VERSION_CURRENT; version++ {
 		for bpv := 11; bpv <= 64; bpv++ {
@@ -103,7 +103,7 @@ func TestEndPointer(t *testing.T) {
 				// test reader
 				_, err = in.Seek(0, io.SeekStart)
 				assert.Nil(t, err)
-				reader, err := getReaderNoHeader(context.TODO(), in, format, version, valueCount, bpv)
+				reader, err := GetReaderNoHeader(context.TODO(), in, format, version, valueCount, bpv)
 				_, err = reader.Get(valueCount - 1)
 				assert.Nil(t, err)
 				assert.EqualValuesf(t, byteCount, in.GetFilePointer(), "valueCount=%d,bpv=%d", valueCount, bpv)

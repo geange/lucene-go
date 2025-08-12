@@ -179,7 +179,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		if err != nil {
 			return nil, err
 		}
-		output := store.NewBytesInput(toBytes)
+		output := store.NewByteArrayDataInput(toBytes)
 		field, err := coreIndex.GetSortFieldProviderByName(provider).ReadSortField(nil, output)
 		if err != nil {
 			return nil, err
@@ -192,7 +192,7 @@ func (s *SegmentInfoFormat) Read(ctx context.Context, dir store.Directory,
 		indexSort = coreIndex.NewSort(sortField)
 	}
 
-	if err := utils.CheckFooter(input); err != nil {
+	if err := utils.CheckSimpleTextFooter(input); err != nil {
 		return nil, err
 	}
 

@@ -29,51 +29,52 @@ import (
 //
 //	While this class takes care of writing the different skip levels,
 //	subclasses must define the actual format of the skip data.
-type MultiLevelSkipListWriter interface {
-	// WriteSkipData
-	// Subclasses must implement the actual skip data encoding in this method.
-	// Params: 	level – the level skip data shall be writing for
-	//			skipBuffer – the skip buffer to write to
-	WriteSkipData(level int, skipBuffer store.IndexOutput) error
 
-	// Init Allocates internal skip buffers.
-	Init()
-
-	// ResetSkip
-	// Creates new buffers or empties the existing ones
-	ResetSkip()
-
-	// BufferSkip
-	// Writes the current skip data to the buffers. The current document frequency
-	// determines the max level is skip data is to be written to.
-	// Params: 	df – the current document frequency
-	// Throws: 	IOException – If an I/O error occurs
-	BufferSkip(df int) error
-
-	// WriteSkip
-	// Writes the buffered skip lists to the given output.
-	// Params: 	output – the IndexOutput the skip lists shall be written to
-	// Returns: the pointer the skip list starts
-	WriteSkip(output store.IndexOutput) (int64, error)
-
-	// WriteLevelLength
-	// Writes the length of a level to the given output.
-	// Params: 	levelLength – the length of a level
-	//			output – the IndexOutput the length shall be written to
-	WriteLevelLength(levelLength int64, output store.IndexOutput) error
-
-	// WriteChildPointer
-	// Writes the child pointer of a block to the given output.
-	// Params: 	childPointer – block of higher level point to the lower level
-	//			skipBuffer – the skip buffer to write to
-	WriteChildPointer(childPointer int64, skipBuffer store.DataOutput) error
-}
+//type MultiLevelSkipListWriter interface {
+//	// WriteSkipData
+//	// Subclasses must implement the actual skip data encoding in this method.
+//	// Params: 	level – the level skip data shall be writing for
+//	//			skipBuffer – the skip buffer to write to
+//	WriteSkipData(level int, skipBuffer store.IndexOutput) error
+//
+//	// Init Allocates internal skip buffers.
+//	Init()
+//
+//	// ResetSkip
+//	// Creates new buffers or empties the existing ones
+//	ResetSkip()
+//
+//	// BufferSkip
+//	// Writes the current skip data to the buffers. The current document frequency
+//	// determines the max level is skip data is to be written to.
+//	// Params: 	df – the current document frequency
+//	// Throws: 	IOException – If an I/O error occurs
+//	BufferSkip(df int) error
+//
+//	// WriteSkip
+//	// Writes the buffered skip lists to the given output.
+//	// Params: 	output – the IndexOutput the skip lists shall be written to
+//	// Returns: the pointer the skip list starts
+//	WriteSkip(output store.IndexOutput) (int64, error)
+//
+//	// WriteLevelLength
+//	// Writes the length of a level to the given output.
+//	// Params: 	levelLength – the length of a level
+//	//			output – the IndexOutput the length shall be written to
+//	WriteLevelLength(levelLength int64, output store.IndexOutput) error
+//
+//	// WriteChildPointer
+//	// Writes the child pointer of a block to the given output.
+//	// Params: 	childPointer – block of higher level point to the lower level
+//	//			skipBuffer – the skip buffer to write to
+//	WriteChildPointer(childPointer int64, skipBuffer store.DataOutput) error
+//}
 
 type MultiLevelSkipListWriterContext struct {
 	NumberOfSkipLevels int
 	SkipInterval       int
 	SkipMultiplier     int
-	SkipBuffer         []*store.BufferOutput
+	SkipBuffer         []*store.BufferDataOutput
 }
 
 func NewMultiLevelSkipListWriterContext(skipInterval, skipMultiplier, maxSkipLevels, df int) *MultiLevelSkipListWriterContext {

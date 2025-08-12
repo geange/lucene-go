@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/geange/lucene-go/core/store"
 	"io"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 // Store Abstraction for reading/writing bytes necessary for FST.

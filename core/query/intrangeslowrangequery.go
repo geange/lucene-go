@@ -15,19 +15,19 @@ type IntRangeSlowRangeQuery struct {
 	maxs  []int32
 }
 
-func NewIntRangeSlowRangeQuery(field string, mins, maxs []int32, queryType QueryType) (*IntRangeSlowRangeQuery, error) {
-	packedValues, err := encodeIntRanges(mins, maxs)
+func NewIntRangeSlowRangeQuery(field string, minNums, maxNums []int32, queryType QueryType) (*IntRangeSlowRangeQuery, error) {
+	packedValues, err := encodeIntRanges(minNums, maxNums)
 	if err != nil {
 		return nil, err
 	}
 
-	rangeQuery := NewBinaryRangeFieldRangeQuery(field, packedValues, document.INTEGER_BYTES, len(mins), queryType)
+	rangeQuery := NewBinaryRangeFieldRangeQuery(field, packedValues, document.INTEGER_BYTES, len(minNums), queryType)
 
 	return &IntRangeSlowRangeQuery{
 		BinaryRangeFieldRangeQuery: rangeQuery,
-		mins:                       mins,
+		mins:                       minNums,
 		field:                      field,
-		maxs:                       maxs,
+		maxs:                       maxNums,
 	}, nil
 }
 

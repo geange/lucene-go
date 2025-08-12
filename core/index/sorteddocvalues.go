@@ -5,7 +5,6 @@ import (
 
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/types"
-	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 type SortedDocValuesDefaultConfig struct {
@@ -65,11 +64,6 @@ func (r *BaseSortedDocValues) LookupTerm(key []byte) (int, error) {
 	}
 
 	return -(low + 1), nil // key not found.
-}
-
-func (r *BaseSortedDocValues) Intersect(automaton *automaton.CompiledAutomaton) (index.TermsEnum, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 var _ DocValuesWriter = &SortedDocValuesWriter{}

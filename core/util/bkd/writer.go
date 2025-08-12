@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
-
 	"slices"
 	"sort"
 	"sync/atomic"
 
 	"github.com/bits-and-blooms/bitset"
+
+	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/structure"
@@ -75,7 +76,7 @@ type Writer struct {
 	maxDoc              int
 
 	// Reused when writing leaf blocks
-	scratchOut *store.BufferOutput
+	scratchOut *store.BufferDataOutput
 }
 
 func NewWriter(maxDoc int, tempDir store.Directory, tempFileNamePrefix string,
@@ -383,9 +384,10 @@ func (w *writeField1DimVisitor) Grow(count int) {
 	return
 }
 
+// Merge
 // More efficient bulk-add for incoming BKDReaders. This does a merge sort of the already sorted values and currently only works when numDims==1. This returns -1 if all documents containing dimensional values were deleted.
-func (w *Writer) merge(metaOut, indexOut, dataOut store.IndexOutput,
-	docMaps []types.DocMap, readers []*Reader) (Runnable, error) {
+func (w *Writer) Merge(ctx context.Context, metaOut, indexOut, dataOut store.IndexOutput,
+	docMaps []index.MergeStateDocMap, readers []*Reader) (Runnable, error) {
 
 	panic("")
 }

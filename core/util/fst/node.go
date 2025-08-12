@@ -28,7 +28,7 @@ func (r *CompiledNode) Code() int64 {
 	return r.node
 }
 
-var _ Node = &UnCompiledNode{}
+//var _ Node = &UnCompiledNode[]{}
 
 // UnCompiledNode
 // TODO:
@@ -36,47 +36,47 @@ var _ Node = &UnCompiledNode{}
 // node, maybe we should use -1 arc to mean "end" (like
 // we do when reading the FST).  Would simplify much
 // code here...
-type UnCompiledNode struct {
-	Arcs       []*PendingArc
-	Output     Output
+type UnCompiledNode[T any] struct {
+	Arcs       []*PendingArc[T]
+	Output     T
 	IsFinal    bool
 	InputCount int
 	Depth      int // This node's depth, starting from the automaton root.
-	builder    *Builder
+	builder    *Builder[T]
 }
 
 // PendingArc
 // Expert: holds a pending (seen but not yet serialized) arc.
-type PendingArc struct {
+type PendingArc[T any] struct {
 	Label           int
 	Target          Node
 	IsFinal         bool
-	Output          Output
-	NextFinalOutput Output
+	Output          T
+	NextFinalOutput T
 }
 
-func (u *UnCompiledNode) NumArcs() int {
+func (u *UnCompiledNode[T]) NumArcs() int {
 	return len(u.Arcs)
 }
 
-func NewUnCompiledNode(builder *Builder, depth int) *UnCompiledNode {
-	return &UnCompiledNode{
+func NewUnCompiledNode[T any](builder *Builder[T], depth int) *UnCompiledNode[T] {
+	return &UnCompiledNode[T]{
 		builder: builder,
-		Arcs:    make([]*PendingArc, 0),
+		Arcs:    make([]*PendingArc[T], 0),
 		Output:  builder.noOutput,
 		Depth:   depth,
 	}
 }
 
-func (u *UnCompiledNode) IsCompiled() bool {
+func (u *UnCompiledNode[T]) IsCompiled() bool {
 	return false
 }
 
-func (u *UnCompiledNode) Code() int64 {
+func (u *UnCompiledNode[T]) Code() int64 {
 	return -1
 }
 
-func (u *UnCompiledNode) Clear() {
+func (u *UnCompiledNode[T]) Clear() {
 	u.Arcs = u.Arcs[:0]
 	u.IsFinal = false
 	u.Output = u.builder.noOutput
@@ -86,16 +86,16 @@ func (u *UnCompiledNode) Clear() {
 	// for nodes on the frontier (even when reused).
 }
 
-func (u *UnCompiledNode) GetLastOutput() Output {
+func (u *UnCompiledNode[T]) GetLastOutput() T {
 	return u.lastArc().Output
 }
 
-func (u *UnCompiledNode) lastArc() *PendingArc {
+func (u *UnCompiledNode[T]) lastArc() *PendingArc[T] {
 	return u.Arcs[len(u.Arcs)-1]
 }
 
-func (u *UnCompiledNode) AddArc(label int, target Node) {
-	u.Arcs = append(u.Arcs, &PendingArc{
+func (u *UnCompiledNode[T]) AddArc(label int, target Node) {
+	u.Arcs = append(u.Arcs, &PendingArc[T]{
 		Label:           label,
 		Target:          target,
 		Output:          u.builder.noOutput,
@@ -105,7 +105,7 @@ func (u *UnCompiledNode) AddArc(label int, target Node) {
 }
 
 // DeleteLast 移除目标arc
-func (u *UnCompiledNode) DeleteLast(ctx context.Context, label int, target Node) error {
+func (u *UnCompiledNode[T]) DeleteLast(ctx context.Context, label int, target Node) error {
 	if len(u.Arcs) <= 0 {
 		return errors.New("arcs size is 0")
 	}
@@ -124,7 +124,7 @@ func (u *UnCompiledNode) DeleteLast(ctx context.Context, label int, target Node)
 }
 
 // SetLastOutput 设置最后arc的output对象
-func (u *UnCompiledNode) SetLastOutput(ctx context.Context, label int, newOutput Output) error {
+func (u *UnCompiledNode[T]) SetLastOutput(ctx context.Context, label int, newOutput T) error {
 	if len(u.Arcs) <= 0 {
 		return errors.New("arcs size is 0")
 	}
@@ -137,7 +137,7 @@ func (u *UnCompiledNode) SetLastOutput(ctx context.Context, label int, newOutput
 }
 
 // ReplaceLast 替换最后的arc的内部数据
-func (u *UnCompiledNode) ReplaceLast(labelToMatch int, target Node, nextFinalOutput Output, isFinal bool) error {
+func (u *UnCompiledNode[T]) ReplaceLast(labelToMatch int, target Node, nextFinalOutput T, isFinal bool) error {
 	if len(u.Arcs) <= 0 {
 		return fmt.Errorf("arcs size is 0")
 	}
@@ -154,9 +154,9 @@ func (u *UnCompiledNode) ReplaceLast(labelToMatch int, target Node, nextFinalOut
 
 // PrependOutput pushes an output prefix forward onto all arcs
 // 所有的边都增加一个output前缀
-func (u *UnCompiledNode) PrependOutput(outputPrefix Output) error {
-	for i := range u.Arcs {
-		output, err := outputPrefix.Add(u.Arcs[i].Output)
+func (u *UnCompiledNode[T]) PrependOutput(outputPrefix T) error {
+	for i, arc := range u.Arcs {
+		output, err := u.builder.fst.outputs.Add(outputPrefix, arc.Output)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func (u *UnCompiledNode) PrependOutput(outputPrefix Output) error {
 	}
 
 	if u.IsFinal {
-		output, err := outputPrefix.Add(u.Output)
+		output, err := u.builder.fst.outputs.Add(outputPrefix, u.Output)
 		if err != nil {
 			return err
 		}

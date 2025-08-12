@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"iter"
 	"strings"
 
 	"github.com/geange/lucene-go/core/document"
@@ -11,7 +12,6 @@ import (
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/attribute"
-	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 type LeafMetaData interface {
@@ -37,6 +37,7 @@ func TermCompare(a, b Term) int {
 // internal/experimental API (see FieldsProducer), although it is also used to expose the set of term
 // vectors per document.
 type Fields interface {
+	Iterator() iter.Seq[string]
 
 	// DVFUIterator
 	// Returns an iterator that will step through all fields names. This will not return null.
@@ -69,7 +70,7 @@ type Terms interface {
 	// This is an expert low-level API and will only work for NORMAL compiled automata. To handle any compiled
 	// automata you should instead use CompiledAutomaton.getTermsEnum instead.
 	// NOTE: the returned TermsEnum cannot seek
-	Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error)
+	//Intersect(compiled *automaton.CompiledAutomaton, startTerm []byte) (TermsEnum, error)
 
 	// Size
 	// Returns the number of terms for this field, or -1 if this measure isn't stored by the codec.
@@ -433,7 +434,7 @@ type SortedDocValues interface {
 
 	// Intersect
 	// Returns a TermsEnum over the values, filtered by a CompiledAutomaton The enum supports TermsEnum.ord().
-	Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error)
+	//Intersect(automaton *automaton.CompiledAutomaton) (TermsEnum, error)
 }
 
 // SortedNumericDocValues A list of per-document numeric values, sorted according to Long.CompareFn(long, long).
@@ -516,10 +517,12 @@ type TermsEnum interface {
 	// NOTE: the returned iterator may return deleted documents, so deleted documents have to be checked on top of the PostingsEnum.
 	// Params: 	reuse – pass a prior PostingsEnum for possible reuse
 	// 			flags – specifies which optional per-document values you require; see PostingsEnum.FREQS
+	// TODO: add context
 	Postings(reuse PostingsEnum, flags int) (PostingsEnum, error)
 
 	// Impacts Return a ImpactsEnum.
 	// See Also: postings(PostingsEnum, int)
+	// TODO: add context
 	Impacts(flags int) (ImpactsEnum, error)
 
 	// TermState Expert: Returns the TermsEnums internal state to position the TermsEnum without re-seeking the
@@ -535,6 +538,8 @@ type TermsEnum interface {
 type Impact interface {
 	GetFreq() int
 	GetNorm() int64
+	SetFreq(freq int)
+	SetNorm(norm int64)
 }
 
 // Impacts
@@ -595,6 +600,9 @@ type FieldInfos interface {
 	HasDocValues() bool
 	HasVectors() bool
 	HasPointValues() bool
+	HasProx() bool
+	HasPayloads() bool
+	HasOffsets() bool
 }
 
 // SortedSetDocValues A multi-valued version of SortedDocValues.
@@ -872,8 +880,10 @@ type CacheHelper interface {
 type SeekStatus int
 
 const (
+	SEEK_STATUS_UNDEFINED SeekStatus = iota
+
 	// SEEK_STATUS_END The term was not found, and the end of iteration was hit.
-	SEEK_STATUS_END = iota
+	SEEK_STATUS_END
 
 	// SEEK_STATUS_FOUND The precise term was found.
 	SEEK_STATUS_FOUND

@@ -86,6 +86,10 @@ func (s *SegmentInfo) GetID() []byte {
 	return slices.Clone(s.id)
 }
 
+func (s *SegmentInfo) GetId() []byte {
+	return slices.Clone(s.id)
+}
+
 func (s *SegmentInfo) Name() string {
 	return s.name
 }

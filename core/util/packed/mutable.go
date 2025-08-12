@@ -89,7 +89,7 @@ func (m *mutable) Clear() {
 }
 
 func (m *mutable) Save(ctx context.Context, out store.DataOutput) error {
-	writer := getWriterNoHeader(out, m.GetFormat(), m.spi.Size(), m.spi.GetBitsPerValue(), DEFAULT_BUFFER_SIZE)
+	writer := GetWriterNoHeader(out, m.GetFormat(), m.spi.Size(), m.spi.GetBitsPerValue(), DEFAULT_BUFFER_SIZE)
 	if err := writer.WriteHeader(ctx); err != nil {
 		return err
 	}

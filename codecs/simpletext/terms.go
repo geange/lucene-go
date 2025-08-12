@@ -26,7 +26,7 @@ type textTerms struct {
 	sumTotalTermFreq int64
 	sumDocFreq       int64
 	docCount         int
-	fst              *fst.FST
+	fst              *fst.FST[*fst.PostingOutput]
 	termCount        int
 	scratch          *bytes.Buffer
 }
@@ -49,7 +49,7 @@ func (s *FieldsReader) newSimpleTextTerms(field string, termsStart int64, maxDoc
 }
 
 func (s *textTerms) loadTerms(ctx context.Context) error {
-	fstCompiler, err := fst.NewBuilder(fst.BYTE1, fst.NewPostingOutputManager())
+	fstCompiler, err := fst.NewBuilder(fst.BYTE1, fst.NewPostingOutputs())
 	if err != nil {
 		return err
 	}

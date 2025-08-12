@@ -6,100 +6,104 @@ import (
 )
 
 var (
-	_ IndexOutput = &BufferOutput{}
+	_ IndexOutput = &BufferDataOutput{}
 )
 
-type BufferOutput struct {
+type BufferDataOutput struct {
 	*BaseDataOutput
 
 	buf *bytes.Buffer
 }
 
-func (b *BufferOutput) Close() error {
+func (b *BufferDataOutput) Close() error {
 	b.buf.Reset()
 	return nil
 }
 
-func (b *BufferOutput) GetName() string {
+func (b *BufferDataOutput) GetName() string {
 	return ""
 }
 
-func (b *BufferOutput) GetFilePointer() int64 {
+func (b *BufferDataOutput) GetFilePointer() int64 {
 	return int64(b.buf.Len())
 }
 
-func (b *BufferOutput) GetChecksum() (uint32, error) {
+func (b *BufferDataOutput) GetChecksum() (uint32, error) {
 	return 0, errors.New("todo")
 }
 
-func NewBufferDataOutput() *BufferOutput {
+func NewBufferDataOutput() *BufferDataOutput {
 	buf := new(bytes.Buffer)
-	return &BufferOutput{
+	return &BufferDataOutput{
 		BaseDataOutput: NewBaseDataOutput(buf),
 		buf:            buf,
 	}
 }
 
-func (b *BufferOutput) Write(p []byte) (n int, err error) {
+func (b *BufferDataOutput) Write(p []byte) (n int, err error) {
 	return b.writer.Write(p)
 }
 
-func (b *BufferOutput) CopyTo(output DataOutput) error {
+func (b *BufferDataOutput) CopyTo(output DataOutput) error {
 	if _, err := output.Write(b.buf.Bytes()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (b *BufferOutput) Bytes() []byte {
+func (b *BufferDataOutput) Bytes() []byte {
 	return b.buf.Bytes()
 }
 
-func (b *BufferOutput) Reset() {
+func (b *BufferDataOutput) Reset() {
 	b.buf.Reset()
 }
 
-var _ IndexInput = &BufferInput{}
+func (b *BufferDataOutput) Size() int {
+	return b.buf.Len()
+}
 
-type BufferInput struct {
+var _ IndexInput = &BufferDataInput{}
+
+type BufferDataInput struct {
 	*BaseDataInput
 
 	buf *bytes.Buffer
 }
 
-func (b *BufferInput) Seek(offset int64, whence int) (int64, error) {
+func (b *BufferDataInput) Seek(offset int64, whence int) (int64, error) {
 	return -1, errors.New("unsupported func")
 }
 
-func (b *BufferInput) GetFilePointer() int64 {
+func (b *BufferDataInput) GetFilePointer() int64 {
 	return int64(b.buf.Len())
 }
 
-func (b *BufferInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
+func (b *BufferDataInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
 	return nil, errors.New("unsupported func")
 }
 
-func (b *BufferInput) Length() int64 {
+func (b *BufferDataInput) Length() int64 {
 	return int64(b.buf.Len())
 }
 
-func (b *BufferInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
+func (b *BufferDataInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
 	return nil, errors.New("unsupported RandomAccessSlice")
 }
 
-func NewBufferDataInput(buf *bytes.Buffer) *BufferInput {
-	input := &BufferInput{
+func NewBufferDataInput(buf *bytes.Buffer) *BufferDataInput {
+	input := &BufferDataInput{
 		buf: buf,
 	}
 	input.BaseDataInput = NewBaseDataInput(input)
 	return input
 }
 
-func (b *BufferInput) Read(p []byte) (n int, err error) {
+func (b *BufferDataInput) Read(p []byte) (n int, err error) {
 	return b.buf.Read(p)
 }
 
-func (b *BufferInput) Clone() CloneReader {
+func (b *BufferDataInput) Clone() CloneReader {
 	newBuf := new(bytes.Buffer)
 	newBuf.Write(b.buf.Bytes())
 	return NewBufferDataInput(newBuf)

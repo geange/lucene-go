@@ -33,3 +33,10 @@ func Mismatch(a, b []byte) int {
 	}
 	return size
 }
+
+func Fill[T any](arr []T, value T) []T {
+	for i := range arr {
+		arr[i] = value
+	}
+	return arr
+}

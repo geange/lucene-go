@@ -88,3 +88,58 @@ func (s *RAMOutputStream) GetFilePointer() int64 {
 func (s *RAMOutputStream) GetChecksum() (uint32, error) {
 	return s.crc.Sum32(), nil
 }
+
+func (s *RAMOutputStream) WriteTo(bytes []byte) {
+	s.flush()
+	end := int(s.file.GetLength())
+	pos := 0
+	buffer := 0
+	bytesUpto := 0
+	for pos < end {
+		length := RAM_BUFFER_SIZE
+		nextPos := pos + length
+		if nextPos > end { // at the last buffer
+			length = end - pos
+		}
+
+		buff, _ := s.file.GetBuffer(buffer)
+		copy(buff[:length], bytes[bytesUpto:])
+		buffer++
+
+		bytesUpto += length
+		pos = nextPos
+	}
+}
+
+func (s *RAMOutputStream) WriteToDataOutput(out DataOutput) error {
+	s.flush()
+	end := int(s.file.GetLength())
+	pos := 0
+	buffer := 0
+	bytesUpto := 0
+	for pos < end {
+		length := RAM_BUFFER_SIZE
+		nextPos := pos + length
+		if nextPos > end { // at the last buffer
+			length = end - pos
+		}
+
+		buff, _ := s.file.GetBuffer(buffer)
+		if _, err := out.Write(buff[:length]); err != nil {
+			return err
+		}
+		buffer++
+
+		bytesUpto += length
+		pos = nextPos
+	}
+	return nil
+}
+
+func (s *RAMOutputStream) Reset() {
+	s.buffer.Reset()
+	s.file.SetLength(0)
+	if s.crc != nil {
+		s.crc.Reset()
+	}
+}

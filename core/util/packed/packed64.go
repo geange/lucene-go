@@ -289,7 +289,7 @@ func (p *Packed64) Clear() {
 }
 
 func (p *Packed64) Save(ctx context.Context, out store.DataOutput) error {
-	writer := getWriterNoHeader(out, p.GetFormat(), p.Size(), p.GetBitsPerValue(), DEFAULT_BUFFER_SIZE)
+	writer := GetWriterNoHeader(out, p.GetFormat(), p.Size(), p.GetBitsPerValue(), DEFAULT_BUFFER_SIZE)
 	err := writer.WriteHeader(ctx)
 	if err != nil {
 		return err

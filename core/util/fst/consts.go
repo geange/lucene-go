@@ -3,17 +3,17 @@ package fst
 type InputType int
 
 const (
-	BitFinalArc          = 1 << 0
-	BitLastArc           = 1 << 1
-	BitTargetNext        = 1 << 2
-	BitStopNode          = 1 << 3
-	BitArcHasOutput      = 1 << 4 // This flag is set if the arc has an output.
-	BitArcHasFinalOutput = 1 << 5
+	BIT_FINAL_ARC            = 1 << 0
+	BIT_LAST_ARC             = 1 << 1
+	BIT_TARGET_NEXT          = 1 << 2
+	BIT_STOP_NODE            = 1 << 3
+	BIT_ARC_HAS_OUTPUT       = 1 << 4 // This flag is set if the arc has an output.
+	BIT_ARC_HAS_FINAL_OUTPUT = 1 << 5
 
 	// ArcsForBinarySearch
 	// value of the arc flags to declare a node with fixed length arcs designed for binary search.
 	// We use this as a marker because this one flag is illegal by itself.
-	ArcsForBinarySearch = BitArcHasFinalOutput
+	ArcsForBinarySearch = BIT_ARC_HAS_FINAL_OUTPUT
 
 	// ArcsForDirectAddressing
 	// value of the arc flags to declare a node with fixed length arcs and bit table designed for direct addressing.

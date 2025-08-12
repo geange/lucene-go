@@ -3,11 +3,12 @@ package packed
 import (
 	"context"
 	"errors"
+	"io"
+	"math"
+
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util/zigzag"
-	"io"
-	"math"
 )
 
 var _ types.LongValues = &BlockPackedReader{}
@@ -73,7 +74,7 @@ func NewBlockPackedReader(ctx context.Context, in store.IndexInput,
 					return nil, err
 				}
 			} else {
-				subReader, err := getReaderNoHeader(ctx, in, FormatPacked, packedIntsVersion, size, bitsPerValue)
+				subReader, err := GetReaderNoHeader(ctx, in, FormatPacked, packedIntsVersion, size, bitsPerValue)
 				if err != nil {
 					return nil, err
 				}

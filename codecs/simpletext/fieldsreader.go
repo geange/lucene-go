@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"iter"
 	"strconv"
 
 	"github.com/geange/gods-generic/maps/treemap"
@@ -34,21 +35,32 @@ func (s *FieldsReader) Names() []string {
 	return s.fields.Keys()
 }
 
+func (s *FieldsReader) Iterator() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range s.fields.Keys() {
+			if !yield(key) {
+				return
+			}
+		}
+	}
+}
+
 func (s *FieldsReader) Terms(field string) (index.Terms, error) {
 	v, ok := s.termsCache[field]
-	if !ok {
-		fp, ok := s.fields.Get(field)
-		if !ok {
-			return nil, nil
-		}
-		terms, err := s.newFieldsReaderTerm(context.Background(), field, fp, s.maxDoc)
-		if err != nil {
-			return nil, err
-		}
-		s.termsCache[field] = terms
-		return terms, nil
+	if ok {
+		return v, nil
 	}
-	return v, nil
+
+	fp, ok := s.fields.Get(field)
+	if !ok {
+		return nil, nil
+	}
+	terms, err := s.newFieldsReaderTerm(context.Background(), field, fp, s.maxDoc)
+	if err != nil {
+		return nil, err
+	}
+	s.termsCache[field] = terms
+	return terms, nil
 }
 
 func (s *FieldsReader) Size() int {
@@ -129,7 +141,7 @@ type simpleTextTerms struct {
 	sumTotalTermFreq int64
 	sumDocFreq       int64
 	docCount         int
-	fst              *fst.FST
+	fst              *fst.FST[*fst.PostingOutput]
 	termCount        int
 	scratch          *bytes.Buffer
 }
@@ -153,7 +165,7 @@ func (s *FieldsReader) newFieldsReaderTerm(ctx context.Context, field string, te
 }
 
 func (s *FieldsReader) loadTerms(ctx context.Context, term *simpleTextTerms) error {
-	fstCompiler, err := fst.NewBuilder(fst.BYTE1, fst.NewPostingOutputManager())
+	fstCompiler, err := fst.NewBuilder[*fst.PostingOutput](fst.BYTE1, fst.NewPostingOutputs())
 	if err != nil {
 		return err
 	}
@@ -284,11 +296,11 @@ type simpleTextTermsEnum struct {
 	docsStart     int64
 	skipPointer   int64
 	ended         bool
-	fstEnum       *fst.Enum[byte]
+	fstEnum       *fst.BytesFSTEnum[*fst.PostingOutput]
 }
 
-func (s *FieldsReader) newSimpleTextTermsEnum(fstInstance *fst.FST, indexOptions document.IndexOptions) (*simpleTextTermsEnum, error) {
-	fstEnum, err := fst.NewEnum[byte](fstInstance)
+func (s *FieldsReader) newSimpleTextTermsEnum(fstInstance *fst.FST[*fst.PostingOutput], indexOptions document.IndexOptions) (*simpleTextTermsEnum, error) {
+	fstEnum, err := fst.NewBytesFSTEnum[*fst.PostingOutput](fstInstance)
 	if err != nil {
 		return nil, err
 	}
@@ -313,14 +325,12 @@ func (t *simpleTextTermsEnum) SeekExact(ctx context.Context, text []byte) (bool,
 	}
 
 	if result != nil {
-		output := result.GetOutput()
+		posting := result.GetOutput()
 
-		if posting, ok := output.(*fst.PostingOutput); ok {
-			t.docsStart = posting.LastDocsStart
-			t.skipPointer = posting.SkipPointer
-			t.docFreq = int(posting.DocFreq)
-			t.totalTermFreq = posting.TotalTermFreq
-		}
+		t.docsStart = posting.LastDocsStart
+		t.skipPointer = posting.SkipPointer
+		t.docFreq = int(posting.DocFreq)
+		t.totalTermFreq = posting.TotalTermFreq
 
 		return true, nil
 	}
@@ -333,14 +343,11 @@ func (t *simpleTextTermsEnum) Next(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 	if result != nil {
-		output := result.GetOutput()
-
-		if posting, ok := output.(*fst.PostingOutput); ok {
-			t.docsStart = posting.LastDocsStart
-			t.skipPointer = posting.SkipPointer
-			t.docFreq = int(posting.DocFreq)
-			t.totalTermFreq = posting.TotalTermFreq
-		}
+		posting := result.GetOutput()
+		t.docsStart = posting.LastDocsStart
+		t.skipPointer = posting.SkipPointer
+		t.docFreq = int(posting.DocFreq)
+		t.totalTermFreq = posting.TotalTermFreq
 
 		return result.GetInput(), nil
 	} else {
@@ -358,14 +365,12 @@ func (t *simpleTextTermsEnum) SeekCeil(ctx context.Context, text []byte) (index.
 		return index.SEEK_STATUS_END, nil
 	}
 
-	output := result.GetOutput()
+	posting := result.GetOutput()
 
-	if posting, ok := output.(*fst.PostingOutput); ok {
-		t.docsStart = posting.LastDocsStart
-		t.skipPointer = posting.SkipPointer
-		t.docFreq = int(posting.DocFreq)
-		t.totalTermFreq = posting.TotalTermFreq
-	}
+	t.docsStart = posting.LastDocsStart
+	t.skipPointer = posting.SkipPointer
+	t.docFreq = int(posting.DocFreq)
+	t.totalTermFreq = posting.TotalTermFreq
 
 	if bytes.Equal(result.GetInput(), text) {
 		return index.SEEK_STATUS_FOUND, nil

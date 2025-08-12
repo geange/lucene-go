@@ -7,7 +7,6 @@ import (
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/types"
 	"github.com/geange/lucene-go/core/util"
-	"github.com/geange/lucene-go/core/util/automaton"
 )
 
 type ScoreDoc interface {
@@ -339,7 +338,7 @@ type QueryVisitor interface {
 	// query: the leaf query
 	// field: the field queried against
 	// automaton: a supplier for an automaton defining which terms match
-	ConsumeTermsMatching(query Query, field string, automaton func() *automaton.ByteRunAutomaton)
+	//ConsumeTermsMatching(query Query, field string, automaton func() *automaton.ByteRunAutomaton)
 
 	// VisitLeaf
 	// Called by leaf queries that do not match on terms

@@ -2,9 +2,11 @@ package bkd
 
 import (
 	"context"
+
+	"github.com/samber/lo"
+
 	"github.com/geange/lucene-go/codecs/utils"
 	"github.com/geange/lucene-go/core/store"
-	"github.com/samber/lo"
 )
 
 // 写入索引的

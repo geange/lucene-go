@@ -912,7 +912,7 @@ func (s *DocValuesReader) CheckIntegrity() error {
 					"footer does not start at expected position current=%d vs expected=%d",
 					input.GetFilePointer(), footerStartPos)
 			}
-			if err := utils.CheckFooter(input); err != nil {
+			if err := utils.CheckSimpleTextFooter(input); err != nil {
 				return err
 			}
 			break

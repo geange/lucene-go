@@ -21,5 +21,7 @@ type Transition struct {
 }
 
 func NewTransition() *Transition {
-	return &Transition{}
+	return &Transition{
+		TransitionUpto: -1,
+	}
 }

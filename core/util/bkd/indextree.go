@@ -2,9 +2,10 @@ package bkd
 
 import (
 	"context"
-	"github.com/geange/lucene-go/core/store"
 	"io"
 	"slices"
+
+	"github.com/geange/lucene-go/core/store"
 )
 
 // IndexTree

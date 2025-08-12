@@ -5,17 +5,36 @@ import (
 	"io"
 )
 
-var _ IndexInput = &BytesInput{}
+var _ IndexInput = &ByteArrayDataInput{}
 
-// BytesInput DataInput backed by a byte array. WARNING: This class omits all low-level checks.
-type BytesInput struct {
+// ByteArrayDataInput DataInput backed by a byte array. WARNING: This class omits all low-level checks.
+type ByteArrayDataInput struct {
 	*BaseDataInput
 
 	bs  []byte
 	pos int
 }
 
-func (b *BytesInput) Seek(offset int64, whence int) (int64, error) {
+func NewByteArrayDataInput(bs []byte) *ByteArrayDataInput {
+	input := &ByteArrayDataInput{
+		bs:  bs,
+		pos: 0,
+	}
+
+	input.BaseDataInput = NewBaseDataInput(input)
+	return input
+}
+
+func (b *ByteArrayDataInput) Reset(bs []byte) {
+	b.buff = bs
+	b.pos = 0
+}
+
+func (b *ByteArrayDataInput) GetPosition() int {
+	return b.pos
+}
+
+func (b *ByteArrayDataInput) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 		b.pos = int(offset)
@@ -27,35 +46,25 @@ func (b *BytesInput) Seek(offset int64, whence int) (int64, error) {
 	return int64(b.pos), nil
 }
 
-func (b *BytesInput) GetFilePointer() int64 {
+func (b *ByteArrayDataInput) GetFilePointer() int64 {
 	return int64(b.pos)
 }
 
-func (b *BytesInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
+func (b *ByteArrayDataInput) Slice(sliceDescription string, offset, length int64) (IndexInput, error) {
 	bs := b.bs[offset : offset+length]
-	return NewBytesInput(bs), nil
+	return NewByteArrayDataInput(bs), nil
 }
 
-func (b *BytesInput) Length() int64 {
+func (b *ByteArrayDataInput) Length() int64 {
 	return int64(len(b.bs))
 }
 
-func (b *BytesInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
+func (b *ByteArrayDataInput) RandomAccessSlice(offset int64, length int64) (RandomAccessInput, error) {
 	bs := b.bs[offset : offset+length]
-	return &randomAccessIndexInput{in: NewBytesInput(bs)}, nil
+	return &randomAccessIndexInput{in: NewByteArrayDataInput(bs)}, nil
 }
 
-func NewBytesInput(bs []byte) *BytesInput {
-	input := &BytesInput{
-		bs:  bs,
-		pos: 0,
-	}
-
-	input.BaseDataInput = NewBaseDataInput(input)
-	return input
-}
-
-func (b *BytesInput) Read(p []byte) (n int, err error) {
+func (b *ByteArrayDataInput) Read(p []byte) (n int, err error) {
 	less := len(b.bs) - b.pos
 
 	copySize := len(p)
@@ -69,8 +78,8 @@ func (b *BytesInput) Read(p []byte) (n int, err error) {
 	return copySize, nil
 }
 
-func (b *BytesInput) Clone() CloneReader {
-	input := &BytesInput{
+func (b *ByteArrayDataInput) Clone() CloneReader {
+	input := &ByteArrayDataInput{
 		bs:  b.bs,
 		pos: b.pos,
 	}
@@ -79,23 +88,32 @@ func (b *BytesInput) Clone() CloneReader {
 	return input
 }
 
-var _ DataOutput = &BytesOutput{}
+func (b *ByteArrayDataInput) Rewind() {
+	b.pos = 0
+}
 
-// BytesOutput DataOutput backed by a byte array. WARNING: This class omits most low-level checks, so be sure to test heavily with assertions enabled.
-type BytesOutput struct {
+func (b *ByteArrayDataInput) SetPosition(pos int) {
+	b.pos = pos
+}
+
+var _ DataOutput = &ByteArrayDataOutput{}
+
+// ByteArrayDataOutput DataOutput backed by a byte array.
+// WARNING: This class omits most low-level checks, so be sure to test heavily with assertions enabled.
+type ByteArrayDataOutput struct {
 	*BaseDataOutput
 
 	bytes []byte
 	pos   int
 }
 
-func NewBytesDataOutput(bytes []byte) *BytesOutput {
-	output := &BytesOutput{bytes: bytes}
+func NewByteArrayDataOutput(bytes []byte) *ByteArrayDataOutput {
+	output := &ByteArrayDataOutput{bytes: bytes}
 	output.BaseDataOutput = NewBaseDataOutput(output)
 	return output
 }
 
-func (r *BytesOutput) Write(b []byte) (int, error) {
+func (r *ByteArrayDataOutput) Write(b []byte) (int, error) {
 	if r.pos+len(b) > len(r.bytes) {
 		return 0, errors.New("input data too long")
 	}
@@ -105,11 +123,11 @@ func (r *BytesOutput) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func (r *BytesOutput) Reset(bytes []byte) error {
+func (r *ByteArrayDataOutput) Reset(bytes []byte) error {
 	return r.ResetAt(bytes, 0, len(bytes))
 }
 
-func (r *BytesOutput) ResetAt(bytes []byte, offset, size int) error {
+func (r *ByteArrayDataOutput) ResetAt(bytes []byte, offset, size int) error {
 	if offset >= len(bytes) {
 		return errors.New("offset over len(bytes)")
 	}
@@ -119,6 +137,6 @@ func (r *BytesOutput) ResetAt(bytes []byte, offset, size int) error {
 	return nil
 }
 
-func (r *BytesOutput) GetPosition() int {
+func (r *ByteArrayDataOutput) GetPosition() int {
 	return r.pos
 }

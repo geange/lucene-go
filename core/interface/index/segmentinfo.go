@@ -7,6 +7,7 @@ import (
 
 type SegmentInfo interface {
 	GetID() []byte
+	GetId() []byte
 	Name() string
 	Dir() store.Directory
 	Files() map[string]struct{}

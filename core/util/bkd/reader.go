@@ -8,7 +8,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/geange/lucene-go/codecs/utils"
+	"github.com/geange/lucene-go/core/codecs"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
 )
@@ -39,7 +39,7 @@ type Reader struct {
 // Caller must pre-seek the provided IndexInput to the index location that BKDWriter.finish returned.
 // BKD tree is always stored off-heap.
 func NewReader(ctx context.Context, metaIn, indexIn, dataIn store.IndexInput) (*Reader, error) {
-	version, err := utils.CheckHeader(ctx, metaIn, CODEC_NAME, VERSION_START, VERSION_CURRENT)
+	version, err := codecs.CheckHeader(ctx, metaIn, CODEC_NAME, VERSION_START, VERSION_CURRENT)
 	if err != nil {
 		return nil, err
 	}

@@ -55,7 +55,7 @@ func NewPointsReader(ctx context.Context, readState *index.SegmentReadState) (*P
 		}
 		fieldToFileOffset[fieldName] = fp
 	}
-	if err := utils.CheckFooter(input); err != nil {
+	if err := utils.CheckSimpleTextFooter(input); err != nil {
 		return nil, err
 	}
 
