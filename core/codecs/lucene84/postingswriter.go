@@ -63,6 +63,10 @@ type PostingsWriter struct {
 	competitiveFreqNormAccumulator coreIndex.CompetitiveImpactAccumulator
 }
 
+func NewPostingsWriter(ctx context.Context, state *index.SegmentWriteState) (*PostingsWriter, error) {
+	panic("")
+}
+
 func (p *PostingsWriter) Close() error {
 	ctx := context.Background()
 	if p.docOut != nil {

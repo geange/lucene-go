@@ -3,6 +3,7 @@ package lucene84
 import (
 	"context"
 
+	"github.com/geange/lucene-go/core/codecs/blocktree"
 	"github.com/geange/lucene-go/core/interface/index"
 )
 
@@ -40,11 +41,17 @@ func (p *PostingsFormat) GetName() string {
 }
 
 func (p *PostingsFormat) FieldsConsumer(ctx context.Context, state *index.SegmentWriteState) (index.FieldsConsumer, error) {
-	//TODO implement me
-	panic("implement me")
+	postingsWriter, err := NewPostingsWriter(ctx, state)
+	if err != nil {
+		return nil, err
+	}
+	return blocktree.NewTermsWriter(ctx, state, postingsWriter, p.minTermBlockSize, p.maxTermBlockSize)
 }
 
 func (p *PostingsFormat) FieldsProducer(ctx context.Context, state *index.SegmentReadState) (index.FieldsProducer, error) {
-	//TODO implement me
-	panic("implement me")
+	postingsReader, err := NewPostingsReader(ctx, state)
+	if err != nil {
+		return nil, err
+	}
+	return blocktree.NewTermsReader(ctx, postingsReader, state)
 }
