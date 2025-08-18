@@ -35,3 +35,7 @@ func (i *IndexedDISI) Cost() int64 {
 	//TODO implement me
 	panic("implement me")
 }
+
+func (i *IndexedDISI) AdvanceExact(ctx context.Context, target int) (bool, error) {
+	panic("implement me")
+}
