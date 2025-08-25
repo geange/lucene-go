@@ -471,3 +471,7 @@ func (m *MethodALL) AdvanceExactWithinBlock(ctx context.Context, disi *IndexedDI
 	disi.index = target - disi.gap
 	return true, nil
 }
+
+func WriteBitSet(ctx context.Context, it types.DocIdSetIterator, out store.IndexOutput, denseRankPower byte) (uint16, error) {
+	panic("")
+}
