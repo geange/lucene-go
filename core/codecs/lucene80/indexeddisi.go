@@ -3,14 +3,14 @@ package lucene80
 import (
 	"context"
 	"errors"
-	"github.com/bits-and-blooms/bitset"
-	"github.com/geange/lucene-go/core/util/array"
 	"io"
 	"iter"
 	"math/bits"
 
+	"github.com/bits-and-blooms/bitset"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/types"
+	"github.com/geange/lucene-go/core/util/array"
 )
 
 // jump-table time/space trade-offs to consider:
