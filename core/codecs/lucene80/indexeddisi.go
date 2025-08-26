@@ -3,7 +3,10 @@ package lucene80
 import (
 	"context"
 	"errors"
+	"github.com/bits-and-blooms/bitset"
+	"github.com/geange/lucene-go/core/util/array"
 	"io"
+	"iter"
 	"math/bits"
 
 	"github.com/geange/lucene-go/core/store"
@@ -441,7 +444,7 @@ func rankSkip(ctx context.Context, disi *IndexedDISI, targetInBlock int) error {
 
 	// Position the counting logic just after the rank point
 	rankAlignedWordIndex := rankIndex << disi.denseRankPower >> 6
-	if _, err := disi.slice.Seek(disi.denseBitmapOffset+rankAlignedWordIndex*8, io.SeekStart); err != nil {
+	if _, err := disi.slice.Seek(disi.denseBitmapOffset+int64(rankAlignedWordIndex)*8, io.SeekStart); err != nil {
 		return err
 	}
 	rankWord, err := disi.slice.ReadUint64(ctx)
@@ -472,6 +475,175 @@ func (m *MethodALL) AdvanceExactWithinBlock(ctx context.Context, disi *IndexedDI
 	return true, nil
 }
 
-func WriteBitSet(ctx context.Context, it types.DocIdSetIterator, out store.IndexOutput, denseRankPower byte) (uint16, error) {
-	panic("")
+func WriteBitSet(ctx context.Context, it types.DocIdSetIterator, out store.IndexOutput, denseRankPower int8) (uint16, error) {
+	origo := out.GetFilePointer() // All jumps are relative to the origo
+	if (denseRankPower < 7 || denseRankPower > 15) && denseRankPower != -1 {
+		return 0, errors.New("acceptable values for denseRankPower are 7-15")
+	}
+	totalCardinality := 0
+	blockCardinality := 0
+	buffer := bitset.New(1 << 16)
+	jumps := make([]int32, array.Oversize(1, 4*2))
+	prevBlock := -1
+	jumpBlockIndex := 0
+
+	for {
+		doc, err := it.NextDoc(ctx)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return 0, err
+		}
+
+		block := doc >> 16
+		if prevBlock != -1 && block != prevBlock {
+			// Track offset+index from previous block up to current
+			jumps = addJumps(jumps, out.GetFilePointer()-origo, totalCardinality, jumpBlockIndex, prevBlock+1)
+			jumpBlockIndex = prevBlock + 1
+			// Flush block
+			if err := flush(ctx, prevBlock, buffer, blockCardinality, denseRankPower, out); err != nil {
+				return 0, err
+			}
+			// Reset for next block
+			buffer.Clear(buffer.Len())
+			totalCardinality += blockCardinality
+			blockCardinality = 0
+		}
+		buffer.Set(uint(doc & 0xFFFF))
+		blockCardinality++
+		prevBlock = block
+	}
+	if blockCardinality > 0 {
+		jumps = addJumps(jumps, out.GetFilePointer()-origo, totalCardinality, jumpBlockIndex, prevBlock+1)
+		totalCardinality += blockCardinality
+		if err := flush(ctx, prevBlock, buffer, blockCardinality, denseRankPower, out); err != nil {
+			return 0, err
+		}
+		buffer.Clear(buffer.Len())
+		prevBlock++
+	}
+
+	lastBlock := prevBlock
+	if prevBlock == -1 {
+		lastBlock = 0
+	}
+	// There will always be at least 1 block (NO_MORE_DOCS)
+	// Last entry is a SPARSE with blockIndex == 32767 and the single entry 65535, which becomes the docID NO_MORE_DOCS
+	// To avoid creating 65K jump-table entries, only a single entry is created pointing to the offset of the
+	// NO_MORE_DOCS block, with the jumpBlockIndex set to the logical EMPTY block after all real blocks.
+	jumps = addJumps(jumps, out.GetFilePointer()-origo, totalCardinality, lastBlock, lastBlock+1)
+	NO_MORE_DOCS := int32(-1)
+	buffer.Set(uint(uint32(NO_MORE_DOCS) & 0xFFFF))
+	if err := flush(ctx, int(uint32(NO_MORE_DOCS)>>16), buffer, 1, denseRankPower, out); err != nil {
+		return 0, err
+	}
+	// offset+index jump-table stored at the end
+	return flushBlockJumps(ctx, jumps, lastBlock+1, out, origo)
+}
+
+func bitsetIterator(b *bitset.BitSet) iter.Seq[uint] {
+	size := b.Len()
+
+	i := uint(0)
+	ok := false
+
+	return func(yield func(uint) bool) {
+		for {
+			if i >= size {
+				break
+			}
+
+			i, ok = b.NextSet(i)
+			if !ok {
+				break
+			}
+
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
+func flushBlockJumps(ctx context.Context,
+	jumps []int32, blockCount int, out store.IndexOutput, origo int64) (uint16, error) {
+	if blockCount == 2 { // Jumps with a single real entry + NO_MORE_DOCS is just wasted space so we ignore that
+		blockCount = 0
+	}
+	for i := 0; i < blockCount; i++ {
+		// index
+		if err := out.WriteUint32(ctx, uint32(jumps[i*2])); err != nil {
+			return 0, err
+		}
+		// offset
+		if err := out.WriteUint32(ctx, uint32(jumps[i*2+1])); err != nil {
+			return 0, err
+		}
+	}
+	// As there are at most 32k blocks, the count is a short
+	// The jumpTableOffset will be at lastPos - (blockCount * Long.BYTES)
+	return uint16(blockCount), nil
+}
+
+func addJumps(jumps []int32, offset int64, index int, startBlock int, endBlock int) []int32 {
+	jumps = array.Grow(jumps, (endBlock+1)*2)
+	for b := startBlock; b < endBlock; b++ {
+		jumps[b*2] = int32(index)
+		jumps[b*2+1] = int32(offset)
+	}
+	return jumps
+}
+
+func flush(ctx context.Context, block int, buffer *bitset.BitSet,
+	cardinality int, denseRankPower int8, out store.IndexOutput) error {
+
+	if err := out.WriteUint16(ctx, uint16(block)); err != nil {
+		return err
+	}
+
+	if err := out.WriteUint16(ctx, uint16(cardinality-1)); err != nil {
+		return err
+	}
+	if cardinality > MAX_ARRAY_LENGTH {
+		if cardinality != 65536 { // all docs are set
+			if denseRankPower != -1 {
+				rank := createRank(buffer, denseRankPower)
+				if _, err := out.Write(rank); err != nil {
+					return err
+				}
+			}
+
+			for word := range bitsetIterator(buffer) {
+				if err := out.WriteUint64(ctx, uint64(word)); err != nil {
+					return err
+				}
+			}
+
+		}
+		return nil
+	}
+	for word := range bitsetIterator(buffer) {
+		if err := out.WriteUint16(ctx, uint16(word)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createRank(buffer *bitset.BitSet, denseRankPower int8) []byte {
+	longsPerRank := 1 << (denseRankPower - 6)
+	rankMark := longsPerRank - 1
+	rankIndexShift := denseRankPower - 7 // 6 for the long (2^6) + 1 for 2 bytes/entry
+	rank := make([]byte, DENSE_BLOCK_LONGS>>rankIndexShift)
+	words := buffer.Words()
+	bitCount := 0
+	for word := 0; word < DENSE_BLOCK_LONGS; word++ {
+		if (word & rankMark) == 0 { // Every longsPerRank longs
+			rank[word>>rankIndexShift] = (byte)(bitCount >> 8)
+			rank[(word>>rankIndexShift)+1] = (byte)(bitCount & 0xFF)
+		}
+		bitCount += bits.OnesCount64(words[word])
+	}
+	return rank
 }

@@ -6,9 +6,11 @@ import (
 	"io"
 	"math"
 
+	"github.com/geange/lucene-go/core/codecs"
 	"github.com/geange/lucene-go/core/document"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
+	"github.com/geange/lucene-go/core/util"
 )
 
 var _ index.NormsConsumer = &NormsConsumer{}
@@ -21,12 +23,58 @@ type NormsConsumer struct {
 
 func NewNormsConsumer(ctx context.Context, state *index.SegmentWriteState,
 	dataCodec, dataExtension, metaCodec, metaExtension string) (*NormsConsumer, error) {
-	panic("")
+
+	dataName := store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, dataExtension)
+	data, err := state.Directory.CreateOutput(ctx, dataName)
+	if err != nil {
+		return nil, err
+	}
+	if err := codecs.WriteIndexHeader(ctx, data, dataCodec, NORMS_VERSION_CURRENT,
+		state.SegmentInfo.GetId(), state.SegmentSuffix); err != nil {
+		return nil, err
+	}
+	metaName := store.SegmentFileName(state.SegmentInfo.Name(), state.SegmentSuffix, metaExtension)
+	meta, err := state.Directory.CreateOutput(ctx, metaName)
+	if err != nil {
+		return nil, err
+	}
+	if err := codecs.WriteIndexHeader(ctx, meta, metaCodec, NORMS_VERSION_CURRENT,
+		state.SegmentInfo.GetId(), state.SegmentSuffix); err != nil {
+		return nil, err
+	}
+	maxDoc, err := state.SegmentInfo.MaxDoc()
+	if err != nil {
+		return nil, err
+	}
+	return &NormsConsumer{
+		data:   data,
+		meta:   meta,
+		maxDoc: maxDoc,
+	}, nil
 }
 
 func (n *NormsConsumer) Close() error {
-	//TODO implement me
-	panic("implement me")
+	ctx := context.Background()
+
+	if n.meta != nil {
+		endFlag := int32(-1)
+		// write EOF marker
+		if err := n.meta.WriteUint32(ctx, uint32(endFlag)); err != nil {
+			return err
+		}
+
+		// write checksum
+		if err := codecs.WriteFooter(ctx, n.meta); err != nil {
+			return err
+		}
+	}
+	if n.data != nil {
+		// write checksum
+		if err := codecs.WriteFooter(ctx, n.data); err != nil {
+			return err
+		}
+	}
+	return util.Close(n.meta, n.data)
 }
 
 func (n *NormsConsumer) AddNormsField(ctx context.Context, field *document.FieldInfo, normsProducer index.NormsProducer) error {
@@ -38,8 +86,7 @@ func (n *NormsConsumer) AddNormsField(ctx context.Context, field *document.Field
 	minV := int64(math.MinInt32)
 	maxV := int64(math.MaxInt32)
 	for {
-		_, err := values.NextDoc(ctx)
-		if err != nil {
+		if _, err := values.NextDoc(ctx); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
@@ -51,17 +98,19 @@ func (n *NormsConsumer) AddNormsField(ctx context.Context, field *document.Field
 		if err != nil {
 			return err
 		}
-		minV = min(min, v)
-		maxV = max(max, v)
+		minV = min(minV, v)
+		maxV = max(maxV, v)
 	}
 
 	if err := n.meta.WriteUint32(ctx, uint32(field.Number())); err != nil {
 		return err
 	}
 
-	if numDocsWithValue == 0 {
+	switch numDocsWithValue {
+	case 0:
 		// docsWithFieldOffset
-		if err := n.meta.WriteUint64(ctx, uint64(int64(-2))); err != nil {
+		docsWithFieldOffset := int64(-2)
+		if err := n.meta.WriteUint64(ctx, uint64(docsWithFieldOffset)); err != nil {
 			return err
 		}
 
@@ -71,17 +120,20 @@ func (n *NormsConsumer) AddNormsField(ctx context.Context, field *document.Field
 		}
 
 		// jumpTableEntryCount
-		if err := n.meta.WriteUint16(ctx, uint16(int16(-1))); err != nil {
+		jumpTableEntryCount := int64(-1)
+		if err := n.meta.WriteUint16(ctx, uint16(jumpTableEntryCount)); err != nil {
 			return err
 		}
 
 		// denseRankPower
-		if err := n.meta.WriteByte(uint8(int8(-1))); err != nil {
+		denseRankPower := int8(-1)
+		if err := n.meta.WriteByte(uint8(denseRankPower)); err != nil {
 			return err
 		}
-	} else if numDocsWithValue == n.maxDoc {
+	case n.maxDoc:
 		// docsWithFieldOffset
-		if err := n.meta.WriteUint64(ctx, uint64(int64(-1))); err != nil {
+		docsWithFieldOffset := int64(-1)
+		if err := n.meta.WriteUint64(ctx, uint64(docsWithFieldOffset)); err != nil {
 			return err
 		}
 
@@ -91,15 +143,17 @@ func (n *NormsConsumer) AddNormsField(ctx context.Context, field *document.Field
 		}
 
 		// jumpTableEntryCount
-		if err := n.meta.WriteUint16(ctx, uint16(int16(-1))); err != nil {
+		jumpTableEntryCount := int64(-1)
+		if err := n.meta.WriteUint16(ctx, uint16(jumpTableEntryCount)); err != nil {
 			return err
 		}
 
 		// denseRankPower
-		if err := n.meta.WriteByte(uint8(int8(-1))); err != nil {
+		denseRankPower := int8(-1)
+		if err := n.meta.WriteByte(uint8(denseRankPower)); err != nil {
 			return err
 		}
-	} else {
+	default:
 		offset := n.data.GetFilePointer()
 
 		// docsWithFieldOffset
