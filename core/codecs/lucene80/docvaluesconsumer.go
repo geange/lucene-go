@@ -74,15 +74,21 @@ func (d *DocValuesConsumer) NewCompressedBinaryBlockWriter(ctx context.Context) 
 	if err := codecs.WriteHeader(ctx, tempBinaryOffsets, DV_META_CODEC+"FilePointers", DV_VERSION_CURRENT); err != nil {
 		return nil, err
 	}
-	blockAddressesStart := d.data.GetFilePointer()
-	writer := lz4.NewWriter(d.data)
 
 	return &CompressedBinaryBlockWriter{
 		consumer:            d,
-		lz4writer:           writer,
+		lz4writer:           lz4.NewWriter(d.data),
 		tempBinaryOffsets:   tempBinaryOffsets,
-		blockAddressesStart: blockAddressesStart,
+		blockAddressesStart: d.data.GetFilePointer(),
 	}, nil
+}
+
+func (d *DocValuesConsumer) addTermsDict(ctx context.Context, values index.SortedSetDocValues) error {
+	panic("implement me")
+}
+
+func (d *DocValuesConsumer) compressAndGetTermsDictBlockLength(ctx context.Context, bufferedOutput *store.ByteArrayDataOutput, writer *lz4.Writer) error {
+	panic("implement me")
 }
 
 type CompressedBinaryBlockWriter struct {
