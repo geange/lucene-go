@@ -160,18 +160,44 @@ func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.Fie
 	maxV := minMax.max
 
 	if numDocsWithValue == 0 { // meta[-2, 0]: No documents with values
-		store.WriteInt64(ctx, d.meta, -2) // docsWithFieldOffset
-		d.meta.WriteUint64(ctx, 0)        // docsWithFieldLength
-		d.meta.WriteUint16(ctx, -1)       // jumpTableEntryCount
-		d.meta.WriteByte(-1)              // denseRankPower
+		// docsWithFieldOffset
+		if err := store.WriteInt64(ctx, d.meta, -2); err != nil {
+			return nil, err
+		}
+		// docsWithFieldLength
+		if err := store.WriteInt64(ctx, d.meta, 0); err != nil {
+			return nil, err
+		}
+		// jumpTableEntryCount
+		if err := store.WriteInt64(ctx, d.meta, -1); err != nil {
+			return nil, err
+		}
+		// denseRankPower
+		if err := store.WriteInt8(d.meta, -1); err != nil {
+			return nil, err
+		}
 	} else if numDocsWithValue == int64(d.maxDoc) { // meta[-1, 0]: All documents has values
-		d.meta.WriteUint64(ctx, -1) // docsWithFieldOffset
-		d.meta.WriteUint64(ctx, 0)  // docsWithFieldLength
-		d.meta.WriteUint16(ctx, -1) // jumpTableEntryCount
-		d.meta.WriteByte(-1)        // denseRankPower
+		// docsWithFieldOffset
+		if err := store.WriteInt64(ctx, d.meta, -1); err != nil {
+			return nil, err
+		}
+		// docsWithFieldLength
+		if err := store.WriteInt64(ctx, d.meta, 0); err != nil {
+			return nil, err
+		}
+		// jumpTableEntryCount
+		if err := store.WriteInt16(ctx, d.meta, -1); err != nil {
+			return nil, err
+		}
+		// denseRankPower
+		if err := store.WriteInt8(d.meta, -1); err != nil {
+			return nil, err
+		}
 	} else { // meta[data.offset, data.length]: IndexedDISI structure for documents with values
 		offset := d.data.GetFilePointer()
-		d.meta.WriteUint64(ctx, uint64(offset)) // docsWithFieldOffset
+		if err := d.meta.WriteUint64(ctx, uint64(offset)); err != nil {
+			return nil, err
+		} // docsWithFieldOffset
 		values, err = valuesProducer.GetSortedNumeric(ctx, field)
 		if err != nil {
 			return nil, err
@@ -181,18 +207,30 @@ func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.Fie
 		if err != nil {
 			return nil, err
 		}
-		d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-offset)) // docsWithFieldLength
-		d.meta.WriteUint16(ctx, jumpTableEntryCount)
-		d.meta.WriteByte(DEFAULT_DENSE_RANK_POWER)
+		// docsWithFieldLength
+		if err := d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-offset)); err != nil {
+			return nil, err
+		}
+		if err := d.meta.WriteUint16(ctx, jumpTableEntryCount); err != nil {
+			return nil, err
+		}
+		if err := d.meta.WriteByte(DEFAULT_DENSE_RANK_POWER); err != nil {
+			return nil, err
+		}
 	}
 
-	d.meta.WriteUint64(ctx, uint64(numValues))
+	if err := d.meta.WriteUint64(ctx, uint64(numValues)); err != nil {
+		return nil, err
+	}
 	var numBitsPerValue int
 	doBlocks := false
 	var encode map[int64]int
 	if minV >= maxV { // meta[-1]: All values are 0
 		numBitsPerValue = 0
-		d.meta.WriteUint32(ctx, -1) // tablesize
+		// tablesize
+		if err := d.meta.WriteUint32(ctx, -1); err != nil {
+			return nil, err
+		}
 	} else {
 		if uniqueValues != nil && len(uniqueValues) > 1 &&
 			packed.UnsignedBitsRequired(uint64(len(uniqueValues)-1)) <
@@ -200,9 +238,15 @@ func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.Fie
 			numBitsPerValue = packed.UnsignedBitsRequired(uint64(len(uniqueValues) - 1))
 			sortedUniqueValues := lo.Keys(uniqueValues)
 			slices.Sort(sortedUniqueValues)
-			d.meta.WriteUint32(ctx, uint32(len(sortedUniqueValues))) // tablesize
+			// tablesize
+			if err := d.meta.WriteUint32(ctx, uint32(len(sortedUniqueValues))); err != nil {
+				return nil, err
+			}
 			for _, v := range sortedUniqueValues {
-				d.meta.WriteUint64(ctx, uint64(v)) // table[] entry
+				// table[] entry
+				if err := d.meta.WriteUint64(ctx, uint64(v)); err != nil {
+					return nil, err
+				}
 			}
 			encode = make(map[int64]int)
 
@@ -218,46 +262,114 @@ func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.Fie
 			doBlocks = minMax.spaceInBits > 0 && float64(blockMinMax.spaceInBits)/float64(minMax.spaceInBits) <= 0.9
 			if doBlocks {
 				numBitsPerValue = 0xFF
-				d.meta.WriteUint32(ctx, -2-DV_NUMERIC_BLOCK_SHIFT) // tablesize
+				// tablesize
+				if err := d.meta.WriteUint32(ctx, -2-DV_NUMERIC_BLOCK_SHIFT); err != nil {
+					return nil, err
+				}
 			} else {
 				numBitsPerValue = packed.UnsignedBitsRequired(uint64((maxV - minV) / gcd))
 				if gcd == 1 && minV > 0 && packed.UnsignedBitsRequired(uint64(maxV)) == packed.UnsignedBitsRequired(uint64(maxV-minV)) {
 					minV = 0
 				}
-				d.meta.WriteUint32(ctx, -1) // tablesize
+				// tablesize
+				if err := d.meta.WriteUint32(ctx, -1); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
 
-	d.meta.WriteByte(byte(numBitsPerValue))
-	d.meta.WriteUint64(ctx, uint64(minV))
-	d.meta.WriteUint64(ctx, uint64(gcd))
+	if err := d.meta.WriteByte(byte(numBitsPerValue)); err != nil {
+		return nil, err
+	}
+	if err := d.meta.WriteUint64(ctx, uint64(minV)); err != nil {
+		return nil, err
+	}
+	if err := d.meta.WriteUint64(ctx, uint64(gcd)); err != nil {
+		return nil, err
+	}
 	startOffset := d.data.GetFilePointer()
-	d.meta.WriteUint64(ctx, uint64(startOffset)) // valueOffset
+	// valueOffset
+	if err := d.meta.WriteUint64(ctx, uint64(startOffset)); err != nil {
+		return nil, err
+	}
 	jumpTableOffset := int64(-1)
 	if doBlocks {
 		numeric, err := valuesProducer.GetSortedNumeric(ctx, field)
 		if err != nil {
 			return nil, err
 		}
-		jumpTableOffset, err = d.writeValuesMultipleBlocks(numeric, gcd)
+		jumpTableOffset, err = d.writeValuesMultipleBlocks(ctx, numeric, gcd)
 	} else if numBitsPerValue != 0 {
 		numeric, err := valuesProducer.GetSortedNumeric(ctx, field)
 		if err != nil {
 			return nil, err
 		}
-		d.writeValuesSingleBlock(numeric, numValues, numBitsPerValue, minV, gcd, encode)
+		if err := d.writeValuesSingleBlock(ctx, numeric, numValues, numBitsPerValue, minV, gcd, encode); err != nil {
+			return nil, err
+		}
 	}
-	d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-startOffset)) // valuesLength
-	d.meta.WriteUint64(ctx, uint64(jumpTableOffset))
+	// valuesLength
+	if err := d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-startOffset)); err != nil {
+		return nil, err
+	}
+	if err := d.meta.WriteUint64(ctx, uint64(jumpTableOffset)); err != nil {
+		return nil, err
+	}
 	return []int64{numDocsWithValue, numValues}, nil
 }
 
-func (d *DocValuesConsumer) writeValuesMultipleBlocks(values index.SortedNumericDocValues, gcd int64) (int64, error) {
+func (d *DocValuesConsumer) writeValuesMultipleBlocks(ctx context.Context,
+	values index.SortedNumericDocValues, gcd int64) (int64, error) {
 	panic("")
 }
 
-func (d *DocValuesConsumer) writeValuesSingleBlock(values index.SortedNumericDocValues, numValues int64, numBitsPerValue int,
+func (d *DocValuesConsumer) writeBlock(ctx context.Context,
+	values []int64, gcd int64, buffer *store.BufferDataOutput) error {
+	minv, maxv := values[0], values[0]
+	for _, n := range values {
+		minv = min(minv, n)
+		maxv = max(maxv, n)
+	}
+
+	if minv == maxv {
+		if err := d.data.WriteByte(0); err != nil {
+			return err
+		}
+		if err := d.data.WriteUint64(ctx, uint64(minv)); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	bitsPerValue := packed.UnsignedBitsRequired(uint64((maxv - minv) / gcd))
+	buffer.Reset()
+	w, err := packed.DirectWriterGetInstance(buffer, len(values), bitsPerValue)
+	if err != nil {
+		return err
+	}
+	for _, n := range values {
+		if err := w.Add(uint64((n - minv) / gcd)); err != nil {
+			return err
+		}
+	}
+	if err := w.Finish(); err != nil {
+		return err
+	}
+	if err := d.data.WriteByte(byte(bitsPerValue)); err != nil {
+		return err
+	}
+	if err := d.data.WriteUint64(ctx, uint64(minv)); err != nil {
+		return err
+	}
+	if err := d.data.WriteUint32(ctx, uint32(buffer.Size())); err != nil {
+		return err
+	}
+	return buffer.CopyTo(d.data)
+}
+
+func (d *DocValuesConsumer) writeValuesSingleBlock(ctx context.Context,
+	values index.SortedNumericDocValues, numValues int64, numBitsPerValue int,
 	minV int64, gcd int64, encode map[int64]int) error {
 
 	panic("")
@@ -287,28 +399,33 @@ func newMinMaxTracker() *MinMaxTracker {
 	return &MinMaxTracker{}
 }
 
-func (d *DocValuesConsumer) AddBinaryField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (d *DocValuesConsumer) AddBinaryField(ctx context.Context,
+	field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *DocValuesConsumer) AddSortedField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (d *DocValuesConsumer) AddSortedField(ctx context.Context,
+	field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *DocValuesConsumer) AddSortedNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (d *DocValuesConsumer) AddSortedNumericField(ctx context.Context,
+	field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *DocValuesConsumer) AddSortedSetField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+func (d *DocValuesConsumer) AddSortedSetField(ctx context.Context,
+	field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
 	//TODO implement me
 	panic("implement me")
 }
 
 func (d *DocValuesConsumer) NewCompressedBinaryBlockWriter(ctx context.Context) (*CompressedBinaryBlockWriter, error) {
-	tempBinaryOffsets, err := d.state.Directory.CreateTempOutput(ctx, d.state.SegmentInfo.Name(), "binary_pointers")
+	tempBinaryOffsets, err := d.state.Directory.CreateTempOutput(ctx,
+		d.state.SegmentInfo.Name(), "binary_pointers")
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +445,8 @@ func (d *DocValuesConsumer) addTermsDict(ctx context.Context, values index.Sorte
 	panic("implement me")
 }
 
-func (d *DocValuesConsumer) compressAndGetTermsDictBlockLength(ctx context.Context, bufferedOutput *store.ByteArrayDataOutput, writer *lz4.Writer) error {
+func (d *DocValuesConsumer) compressAndGetTermsDictBlockLength(ctx context.Context,
+	bufferedOutput *store.ByteArrayDataOutput, writer *lz4.Writer) error {
 	panic("implement me")
 }
 

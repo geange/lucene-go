@@ -492,3 +492,7 @@ func WriteInt32(ctx context.Context, w DataOutput, v int32) error {
 func WriteInt16(ctx context.Context, w DataOutput, v int16) error {
 	return w.WriteUint16(ctx, uint16(v))
 }
+
+func WriteInt8(w DataOutput, v int8) error {
+	return w.WriteByte(uint8(v))
+}
