@@ -3,22 +3,29 @@ package lucene80
 import (
 	"context"
 	"errors"
+	"io"
+	"math"
+	"math/big"
+	"slices"
+
+	"github.com/pierrec/lz4/v4"
+	"github.com/samber/lo"
 
 	"github.com/geange/lucene-go/core/codecs"
 	"github.com/geange/lucene-go/core/document"
+	coreIndex "github.com/geange/lucene-go/core/index"
 	"github.com/geange/lucene-go/core/interface/index"
 	"github.com/geange/lucene-go/core/store"
 	"github.com/geange/lucene-go/core/util"
 	"github.com/geange/lucene-go/core/util/packed"
-	"github.com/pierrec/lz4/v4"
 )
 
 var _ index.DocValuesConsumer = &DocValuesConsumer{}
 
 type DocValuesConsumer struct {
-	mode *DocValuesConsumerMode
-
-	data, meta      store.IndexOutput
+	mode            *DocValuesConsumerMode
+	data            store.IndexOutput
+	meta            store.IndexOutput
 	maxDoc          int
 	state           *index.SegmentWriteState
 	termsDictBuffer []byte
@@ -37,13 +44,247 @@ func NewDocValuesConsumer(ctx context.Context, state *index.SegmentWriteState,
 }
 
 func (d *DocValuesConsumer) Close() error {
-	//TODO implement me
-	panic("implement me")
+	ctx := context.Background()
+
+	eof := int32(-1)
+
+	if d.meta != nil {
+		// write EOF marker
+		if err := d.meta.WriteUint32(ctx, uint32(eof)); err != nil {
+			return err
+		}
+		// write checksum
+		if err := codecs.WriteFooter(ctx, d.meta); err != nil {
+			return err
+		}
+	}
+
+	if d.data != nil {
+		// write checksum
+		if err := codecs.WriteFooter(ctx, d.data); err != nil {
+			return err
+		}
+	}
+
+	return util.Close(d.data, d.meta)
 }
 
 func (d *DocValuesConsumer) AddNumericField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
-	//TODO implement me
-	panic("implement me")
+	if err := d.meta.WriteUint32(ctx, uint32(field.Number())); err != nil {
+		return err
+	}
+	if err := d.meta.WriteByte(DV_NUMERIC); err != nil {
+		return err
+	}
+
+	producer := &coreIndex.EmptyDocValuesProducer{
+		FnGetSortedNumeric: func(ctx context.Context, field *document.FieldInfo) (index.SortedNumericDocValues, error) {
+			values, err := valuesProducer.GetNumeric(ctx, field)
+			if err != nil {
+				return nil, err
+			}
+			return coreIndex.NewSingletonSortedNumericDocValues(values), nil
+		},
+	}
+
+	_, err := d.writeValues(ctx, field, producer)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) ([]int64, error) {
+	values, err := valuesProducer.GetSortedNumeric(ctx, field)
+	if err != nil {
+		return nil, err
+	}
+	numDocsWithValue := int64(0)
+	minMax := newMinMaxTracker()
+	blockMinMax := newMinMaxTracker()
+	gcd := int64(0)
+	uniqueValues := make(map[int64]struct{})
+
+	for {
+		_, err = values.NextDoc(ctx)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
+		}
+
+		count := values.DocValueCount()
+		for i := 0; i < count; i++ {
+			v, err := values.NextValue()
+			if err != nil {
+				return nil, err
+			}
+
+			if gcd != 1 {
+				if v < math.MinInt64/2 || v > math.MaxInt64/2 {
+					// in that case v - minValue might overflow and make the GCD computation return
+					// wrong results. Since these extreme values are unlikely, we just discard
+					// GCD computation for them
+					gcd = 1
+				} else if minMax.numValues != 0 { // minValue needs to be set first
+
+					gcd = GCD(gcd, v-minMax.min)
+				}
+			}
+
+			minMax.update(v)
+			blockMinMax.update(v)
+			if blockMinMax.numValues == DV_NUMERIC_BLOCK_SIZE {
+				blockMinMax.nextBlock()
+			}
+
+			if uniqueValues != nil {
+				uniqueValues[v] = struct{}{}
+
+				if len(uniqueValues) > 256 {
+					uniqueValues = nil
+				}
+			}
+
+		}
+
+		numDocsWithValue++
+	}
+
+	minMax.finish()
+	blockMinMax.finish()
+
+	numValues := minMax.numValues
+	minV := minMax.min
+	maxV := minMax.max
+
+	if numDocsWithValue == 0 { // meta[-2, 0]: No documents with values
+		store.WriteInt64(ctx, d.meta, -2) // docsWithFieldOffset
+		d.meta.WriteUint64(ctx, 0)        // docsWithFieldLength
+		d.meta.WriteUint16(ctx, -1)       // jumpTableEntryCount
+		d.meta.WriteByte(-1)              // denseRankPower
+	} else if numDocsWithValue == int64(d.maxDoc) { // meta[-1, 0]: All documents has values
+		d.meta.WriteUint64(ctx, -1) // docsWithFieldOffset
+		d.meta.WriteUint64(ctx, 0)  // docsWithFieldLength
+		d.meta.WriteUint16(ctx, -1) // jumpTableEntryCount
+		d.meta.WriteByte(-1)        // denseRankPower
+	} else { // meta[data.offset, data.length]: IndexedDISI structure for documents with values
+		offset := d.data.GetFilePointer()
+		d.meta.WriteUint64(ctx, uint64(offset)) // docsWithFieldOffset
+		values, err = valuesProducer.GetSortedNumeric(ctx, field)
+		if err != nil {
+			return nil, err
+		}
+
+		jumpTableEntryCount, err := WriteBitSet(ctx, values, d.data, DEFAULT_DENSE_RANK_POWER)
+		if err != nil {
+			return nil, err
+		}
+		d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-offset)) // docsWithFieldLength
+		d.meta.WriteUint16(ctx, jumpTableEntryCount)
+		d.meta.WriteByte(DEFAULT_DENSE_RANK_POWER)
+	}
+
+	d.meta.WriteUint64(ctx, uint64(numValues))
+	var numBitsPerValue int
+	doBlocks := false
+	var encode map[int64]int
+	if minV >= maxV { // meta[-1]: All values are 0
+		numBitsPerValue = 0
+		d.meta.WriteUint32(ctx, -1) // tablesize
+	} else {
+		if uniqueValues != nil && len(uniqueValues) > 1 &&
+			packed.UnsignedBitsRequired(uint64(len(uniqueValues)-1)) <
+				packed.UnsignedBitsRequired(uint64((maxV-minV)/gcd)) {
+			numBitsPerValue = packed.UnsignedBitsRequired(uint64(len(uniqueValues) - 1))
+			sortedUniqueValues := lo.Keys(uniqueValues)
+			slices.Sort(sortedUniqueValues)
+			d.meta.WriteUint32(ctx, uint32(len(sortedUniqueValues))) // tablesize
+			for _, v := range sortedUniqueValues {
+				d.meta.WriteUint64(ctx, uint64(v)) // table[] entry
+			}
+			encode = make(map[int64]int)
+
+			for i, value := range sortedUniqueValues {
+				encode[value] = i
+			}
+
+			minV = 0
+			gcd = 1
+		} else {
+			uniqueValues = nil
+			// we do blocks if that appears to save 10+% storage
+			doBlocks = minMax.spaceInBits > 0 && float64(blockMinMax.spaceInBits)/float64(minMax.spaceInBits) <= 0.9
+			if doBlocks {
+				numBitsPerValue = 0xFF
+				d.meta.WriteUint32(ctx, -2-DV_NUMERIC_BLOCK_SHIFT) // tablesize
+			} else {
+				numBitsPerValue = packed.UnsignedBitsRequired(uint64((maxV - minV) / gcd))
+				if gcd == 1 && minV > 0 && packed.UnsignedBitsRequired(uint64(maxV)) == packed.UnsignedBitsRequired(uint64(maxV-minV)) {
+					minV = 0
+				}
+				d.meta.WriteUint32(ctx, -1) // tablesize
+			}
+		}
+	}
+
+	d.meta.WriteByte(byte(numBitsPerValue))
+	d.meta.WriteUint64(ctx, uint64(minV))
+	d.meta.WriteUint64(ctx, uint64(gcd))
+	startOffset := d.data.GetFilePointer()
+	d.meta.WriteUint64(ctx, uint64(startOffset)) // valueOffset
+	jumpTableOffset := int64(-1)
+	if doBlocks {
+		numeric, err := valuesProducer.GetSortedNumeric(ctx, field)
+		if err != nil {
+			return nil, err
+		}
+		jumpTableOffset, err = d.writeValuesMultipleBlocks(numeric, gcd)
+	} else if numBitsPerValue != 0 {
+		numeric, err := valuesProducer.GetSortedNumeric(ctx, field)
+		if err != nil {
+			return nil, err
+		}
+		d.writeValuesSingleBlock(numeric, numValues, numBitsPerValue, minV, gcd, encode)
+	}
+	d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-startOffset)) // valuesLength
+	d.meta.WriteUint64(ctx, uint64(jumpTableOffset))
+	return []int64{numDocsWithValue, numValues}, nil
+}
+
+func (d *DocValuesConsumer) writeValuesMultipleBlocks(values index.SortedNumericDocValues, gcd int64) (int64, error) {
+	panic("")
+}
+
+func (d *DocValuesConsumer) writeValuesSingleBlock(values index.SortedNumericDocValues, numValues int64, numBitsPerValue int,
+	minV int64, gcd int64, encode map[int64]int) error {
+
+	panic("")
+}
+
+func GCD(a, b int64) int64 {
+	return new(big.Int).GCD(nil, nil, big.NewInt(a), big.NewInt(b)).Int64()
+}
+
+type MinMaxTracker struct {
+	min, max, numValues, spaceInBits int64
+}
+
+func (t MinMaxTracker) update(v int64) {
+
+}
+
+func (t MinMaxTracker) nextBlock() {
+
+}
+
+func (t MinMaxTracker) finish() {
+
+}
+
+func newMinMaxTracker() *MinMaxTracker {
+	return &MinMaxTracker{}
 }
 
 func (d *DocValuesConsumer) AddBinaryField(ctx context.Context, field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {

@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/geange/gods-generic/lists/arraylist"
+
 	"github.com/geange/lucene-go/core/store"
 )
 

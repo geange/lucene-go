@@ -480,3 +480,15 @@ func (d *BaseDataOutput) WriteSetOfStrings(ctx context.Context, values map[strin
 	}
 	return nil
 }
+
+func WriteInt64(ctx context.Context, w DataOutput, v int64) error {
+	return w.WriteUint64(ctx, uint64(v))
+}
+
+func WriteInt32(ctx context.Context, w DataOutput, v int32) error {
+	return w.WriteUint32(ctx, uint32(v))
+}
+
+func WriteInt16(ctx context.Context, w DataOutput, v int16) error {
+	return w.WriteUint16(ctx, uint16(v))
+}
