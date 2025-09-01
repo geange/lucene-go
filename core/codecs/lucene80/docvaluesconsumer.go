@@ -321,7 +321,55 @@ func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.Fie
 
 func (d *DocValuesConsumer) writeValuesMultipleBlocks(ctx context.Context,
 	values index.SortedNumericDocValues, gcd int64) (int64, error) {
-	panic("")
+
+	offsets := make([]int64, 0)
+	buffer := make([]int64, 0, DV_NUMERIC_BLOCK_SIZE)
+	encodeBuffer := store.NewBufferDataOutput()
+	for {
+		_, err := values.NextDoc(ctx)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return 0, err
+		}
+		count := values.DocValueCount()
+		for i := 0; i < count; i++ {
+			value, err := values.NextValue()
+			if err != nil {
+				return 0, err
+			}
+			buffer = append(buffer, value)
+
+			if len(buffer) == DV_NUMERIC_BLOCK_SIZE {
+				offsets = append(offsets, d.data.GetFilePointer())
+				if err := d.writeBlock(ctx, buffer[:DV_NUMERIC_BLOCK_SIZE], gcd, encodeBuffer); err != nil {
+					return 0, err
+				}
+				buffer = buffer[:0]
+			}
+		}
+	}
+	if len(buffer) > 0 {
+		offsets = append(offsets, d.data.GetFilePointer())
+		if err := d.writeBlock(ctx, buffer, gcd, encodeBuffer); err != nil {
+			return 0, err
+		}
+	}
+
+	// All blocks has been written. Flush the offset jump-table
+	offsetsOrigo := d.data.GetFilePointer()
+
+	for _, offset := range offsets {
+		if err := d.data.WriteUvarint(ctx, uint64(offset)); err != nil {
+			return 0, err
+		}
+	}
+
+	if err := d.data.WriteUvarint(ctx, uint64(offsetsOrigo)); err != nil {
+		return 0, err
+	}
+	return offsetsOrigo, nil
 }
 
 func (d *DocValuesConsumer) writeBlock(ctx context.Context,
