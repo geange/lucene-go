@@ -23,7 +23,7 @@ import (
 var _ index.DocValuesConsumer = &DocValuesConsumer{}
 
 type DocValuesConsumer struct {
-	mode            *DocValuesConsumerMode
+	mode            DocValuesConsumerMode
 	data            store.IndexOutput
 	meta            store.IndexOutput
 	maxDoc          int
@@ -33,9 +33,22 @@ type DocValuesConsumer struct {
 
 type DocValuesConsumerMode byte
 
+func (m DocValuesConsumerMode) Name() string {
+	switch m {
+	case BEST_SPEED:
+		return "BEST_SPEED"
+	case BEST_COMPRESSION:
+		return "BEST_COMPRESSION"
+	default:
+		return ""
+	}
+}
+
 const (
 	BEST_SPEED = DocValuesConsumerMode(iota)
 	BEST_COMPRESSION
+
+	DV_MODE_KEY = "Lucene80DocValuesFormat.mode"
 )
 
 func NewDocValuesConsumer(ctx context.Context, state *index.SegmentWriteState,
@@ -420,7 +433,40 @@ func (d *DocValuesConsumer) writeValuesSingleBlock(ctx context.Context,
 	values index.SortedNumericDocValues, numValues int64, numBitsPerValue int,
 	minV int64, gcd int64, encode map[int64]int) error {
 
-	panic("")
+	writer, err := packed.DirectWriterGetInstance(d.data, int(numValues), numBitsPerValue)
+	if err != nil {
+		return err
+	}
+
+	for {
+		_, err = values.NextDoc(ctx)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return err
+		}
+
+		count := values.DocValueCount()
+
+		for i := 0; i < count; i++ {
+			v, err := values.NextValue()
+			if err != nil {
+				return err
+			}
+			if encode == nil {
+				if err := writer.Add(uint64((v - minV) / gcd)); err != nil {
+					return err
+				}
+			} else {
+				if err := writer.Add(uint64(encode[v])); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	err = writer.Finish()
+	return err
 }
 
 func GCD(a, b int64) int64 {
@@ -449,8 +495,30 @@ func newMinMaxTracker() *MinMaxTracker {
 
 func (d *DocValuesConsumer) AddBinaryField(ctx context.Context,
 	field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
-	//TODO implement me
-	panic("implement me")
+
+	field.PutAttribute(DV_MODE_KEY, d.mode.Name())
+	if err := d.meta.WriteUint32(ctx, uint32(field.Number())); err != nil {
+		return err
+	}
+	if err := d.meta.WriteByte(DV_BINARY); err != nil {
+		return err
+	}
+
+	switch d.mode {
+	case BEST_SPEED:
+		if err := d.doAddUncompressedBinaryField(ctx, field, valuesProducer); err != nil {
+			return err
+		}
+		break
+	case BEST_COMPRESSION:
+		if err := d.doAddCompressedBinaryField(ctx, field, valuesProducer); err != nil {
+			return err
+		}
+		break
+	default:
+		return errors.New("")
+	}
+	return nil
 }
 
 func (d *DocValuesConsumer) AddSortedField(ctx context.Context,
@@ -496,6 +564,169 @@ func (d *DocValuesConsumer) addTermsDict(ctx context.Context, values index.Sorte
 func (d *DocValuesConsumer) compressAndGetTermsDictBlockLength(ctx context.Context,
 	bufferedOutput *store.ByteArrayDataOutput, writer *lz4.Writer) error {
 	panic("implement me")
+}
+
+func (d *DocValuesConsumer) doAddUncompressedBinaryField(ctx context.Context,
+	field *document.FieldInfo, valuesProducer index.DocValuesProducer) error {
+
+	values, err := valuesProducer.GetBinary(ctx, field)
+	if err != nil {
+		return err
+	}
+	start := d.data.GetFilePointer()
+	// dataOffset
+	if err := d.meta.WriteUint64(ctx, uint64(start)); err != nil {
+		return err
+	}
+	numDocsWithField := 0
+	minLength := math.MaxInt32
+	maxLength := 0
+	for {
+		_, err := values.NextDoc(ctx)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return err
+		}
+
+		numDocsWithField++
+		v, err := values.BinaryValue()
+		if err != nil {
+			return err
+		}
+		length := len(v)
+		if _, err := d.data.Write(v); err != nil {
+			return err
+		}
+		minLength = min(length, minLength)
+		maxLength = max(length, maxLength)
+	}
+
+	// dataLength
+	if err := d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-start)); err != nil {
+		return err
+	}
+
+	if numDocsWithField == 0 {
+		// docsWithFieldOffset
+		if err := store.WriteInt64(ctx, d.meta, -1); err != nil {
+			return err
+		}
+		// docsWithFieldLength
+		if err := store.WriteInt64(ctx, d.meta, 0); err != nil {
+			return err
+		}
+		// jumpTableEntryCount
+		if err := store.WriteInt16(ctx, d.meta, -1); err != nil {
+			return err
+		}
+		// denseRankPower
+		if err := store.WriteInt8(d.meta, -1); err != nil {
+			return err
+		}
+	} else if numDocsWithField == d.maxDoc {
+		// docsWithFieldOffset
+		if err := store.WriteInt64(ctx, d.meta, -1); err != nil {
+			return err
+		}
+		// docsWithFieldLength
+		if err := store.WriteInt64(ctx, d.meta, 0); err != nil {
+			return err
+		}
+		// jumpTableEntryCount
+		if err := store.WriteInt16(ctx, d.meta, -1); err != nil {
+			return err
+		}
+		// denseRankPower
+		if err := store.WriteInt8(d.meta, -1); err != nil {
+			return err
+		}
+	} else {
+		offset := d.data.GetFilePointer()
+		// docsWithFieldOffset
+		if err := d.meta.WriteUint64(ctx, uint64(offset)); err != nil {
+			return err
+		}
+		values, err = valuesProducer.GetBinary(ctx, field)
+		jumpTableEntryCount, err := WriteBitSet(ctx, values, d.data, DEFAULT_DENSE_RANK_POWER)
+		if err != nil {
+			return err
+		}
+		// docsWithFieldLength
+		if err := d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-offset)); err != nil {
+			return err
+		}
+		if err := d.meta.WriteUint16(ctx, jumpTableEntryCount); err != nil {
+			return err
+		}
+		if err := d.meta.WriteByte(DEFAULT_DENSE_RANK_POWER); err != nil {
+			return err
+		}
+	}
+
+	if err := d.meta.WriteUint32(ctx, uint32(numDocsWithField)); err != nil {
+		return err
+	}
+	if err := d.meta.WriteUint32(ctx, uint32(minLength)); err != nil {
+		return err
+	}
+	if err := d.meta.WriteUint32(ctx, uint32(maxLength)); err != nil {
+		return err
+	}
+	if maxLength > minLength {
+		start = d.data.GetFilePointer()
+		if err := d.meta.WriteUint64(ctx, uint64(start)); err != nil {
+			return err
+		}
+		if err := d.meta.WriteUvarint(ctx, DV_DIRECT_MONOTONIC_BLOCK_SHIFT); err != nil {
+			return err
+		}
+
+		writer, err := packed.DirectMonotonicWriterGetInstance(d.meta, d.data, int64(numDocsWithField+1), DV_DIRECT_MONOTONIC_BLOCK_SHIFT)
+		if err != nil {
+			return err
+		}
+		addr := int64(0)
+		if err := writer.Add(addr); err != nil {
+			return err
+		}
+		values, err = valuesProducer.GetBinary(ctx, field)
+		if err != nil {
+			return err
+		}
+		for {
+			if _, err = values.NextDoc(ctx); err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				return err
+			}
+
+			binaryValue, err := values.BinaryValue()
+			if err != nil {
+				return err
+			}
+
+			addr += int64(len(binaryValue))
+			if err := writer.Add(addr); err != nil {
+				return err
+			}
+		}
+
+		if err := writer.Finish(); err != nil {
+			return err
+		}
+		if err := d.meta.WriteUint64(ctx, uint64(d.data.GetFilePointer()-start)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DocValuesConsumer) doAddCompressedBinaryField(ctx context.Context,
+	field *document.FieldInfo, producer index.DocValuesProducer) error {
+	panic("")
 }
 
 type CompressedBinaryBlockWriter struct {
