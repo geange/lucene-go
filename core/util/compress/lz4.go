@@ -109,3 +109,24 @@ func (f *FastCompressionHashTable) Get(off int) (int, error) {
 func (f *FastCompressionHashTable) Previous(off int) int {
 	return -1
 }
+
+var _ HashTable = &HighCompressionHashTable{}
+
+type HighCompressionHashTable struct {
+}
+
+func (f *HighCompressionHashTable) Reset(bs []byte) error {
+	panic("")
+}
+
+func (f *HighCompressionHashTable) InitDictionary(dictLen int) {
+
+}
+
+func (f *HighCompressionHashTable) Get(off int) (int, error) {
+	panic("")
+}
+
+func (f *HighCompressionHashTable) Previous(off int) int {
+	panic("")
+}
