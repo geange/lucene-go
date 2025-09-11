@@ -6,8 +6,9 @@ const (
 	MEMORY_USAGE       = 14
 	MIN_MATCH          = 4       // minimum length of a match
 	MAX_DISTANCE       = 1 << 16 // maximum distance of a reference
-	LAST_LITERALS      = 5       // the last 5 bytes must be encoded as literals
-	HASH_LOG_HC        = 15      // log size of the dictionary for compressHC
+	MASK               = MAX_DISTANCE - 1
+	LAST_LITERALS      = 5  // the last 5 bytes must be encoded as literals
+	HASH_LOG_HC        = 15 // log size of the dictionary for compressHC
 	HASH_TABLE_SIZE_HC = 1 << HASH_LOG_HC
 )
 
@@ -25,5 +26,5 @@ func readInt(buf []byte, i int) int32 {
 }
 
 func commonBytes(b []byte, o1, o2, limit int) int {
-	return array.Mismatch(b[o1:o1+limit], b[o2:o2+limit])
+	return array.Mismatch(b[o1:limit], b[o2:limit])
 }
