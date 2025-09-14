@@ -241,13 +241,12 @@ func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.Fie
 	if minV >= maxV { // meta[-1]: All values are 0
 		numBitsPerValue = 0
 		// tablesize
-		if err := d.meta.WriteUint32(ctx, -1); err != nil {
+		if err := store.WriteInt32(ctx, d.meta, -1); err != nil {
 			return nil, err
 		}
 	} else {
-		if uniqueValues != nil && len(uniqueValues) > 1 &&
-			packed.UnsignedBitsRequired(uint64(len(uniqueValues)-1)) <
-				packed.UnsignedBitsRequired(uint64((maxV-minV)/gcd)) {
+		if len(uniqueValues) > 1 &&
+			packed.UnsignedBitsRequired(uint64(len(uniqueValues)-1)) < packed.UnsignedBitsRequired(uint64((maxV-minV)/gcd)) {
 			numBitsPerValue = packed.UnsignedBitsRequired(uint64(len(uniqueValues) - 1))
 			sortedUniqueValues := lo.Keys(uniqueValues)
 			slices.Sort(sortedUniqueValues)
@@ -276,7 +275,7 @@ func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.Fie
 			if doBlocks {
 				numBitsPerValue = 0xFF
 				// tablesize
-				if err := d.meta.WriteUint32(ctx, -2-DV_NUMERIC_BLOCK_SHIFT); err != nil {
+				if err := store.WriteInt32(ctx, d.meta, -2-DV_NUMERIC_BLOCK_SHIFT); err != nil {
 					return nil, err
 				}
 			} else {
@@ -285,7 +284,7 @@ func (d *DocValuesConsumer) writeValues(ctx context.Context, field *document.Fie
 					minV = 0
 				}
 				// tablesize
-				if err := d.meta.WriteUint32(ctx, -1); err != nil {
+				if err := store.WriteInt32(ctx, d.meta, -1); err != nil {
 					return nil, err
 				}
 			}
@@ -509,12 +508,10 @@ func (d *DocValuesConsumer) AddBinaryField(ctx context.Context,
 		if err := d.doAddUncompressedBinaryField(ctx, field, valuesProducer); err != nil {
 			return err
 		}
-		break
 	case BEST_COMPRESSION:
 		if err := d.doAddCompressedBinaryField(ctx, field, valuesProducer); err != nil {
 			return err
 		}
-		break
 	default:
 		return errors.New("")
 	}
