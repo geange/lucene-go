@@ -6,7 +6,6 @@ var _ HashTable = &HighCompressionHashTable{}
 
 type HighCompressionHashTable struct {
 	bytes      []byte
-	base       int
 	next       int
 	end        int
 	hashTable  []int
@@ -29,12 +28,12 @@ func NewHighCompressionHashTable() *HighCompressionHashTable {
 func (h *HighCompressionHashTable) Reset(bs []byte) error {
 
 	m16 := uint16(0xFFFF)
-	if h.end-h.base < len(h.chainTable) {
+	if h.end < len(h.chainTable) {
 		// The last call to compress was done on less than 64kB, let's not reset
 		// the hashTable and only reset the relevant parts of the chainTable.
 		// This helps avoid slowing down calling compress() many times on short
 		// inputs.
-		startOffset := h.base & MASK
+		startOffset := 0
 		endOffset := 0
 		if h.end != 0 {
 			endOffset = (h.end-1)&MASK + 1
@@ -54,15 +53,14 @@ func (h *HighCompressionHashTable) Reset(bs []byte) error {
 	}
 
 	h.bytes = bs
-	h.base = 0
-	h.next = 9
+	h.next = 0
 	h.end = len(bs)
 	return nil
 }
 
 func (h *HighCompressionHashTable) InitDictionary(dictLen int) {
 	for i := 0; i < dictLen; i++ {
-		h.addHash(h.base + i)
+		h.addHash(i)
 	}
 	h.next += dictLen
 }
@@ -82,7 +80,7 @@ func (t *HighCompressionHashTable) Get(off int) (int, error) {
 		return -1, nil
 	}
 
-	min := max(t.base, off-MAX_DISTANCE+1)
+	min := off - MAX_DISTANCE + 1
 	for ref >= min && t.attempts < MAX_ATTEMPTS {
 		if readInt(t.bytes, ref) == v {
 			return ref, nil
@@ -96,7 +94,7 @@ func (t *HighCompressionHashTable) Get(off int) (int, error) {
 func (h *HighCompressionHashTable) Previous(off int) int {
 	v := readInt(h.bytes, off)
 	ref := off - int(uint16(h.chainTable[off&MASK])&0xFFFF)
-	for ref >= h.base && h.attempts < MAX_ATTEMPTS {
+	for ref >= 0 && h.attempts < MAX_ATTEMPTS {
 		if readInt(h.bytes, ref) == v {
 			return ref
 		}

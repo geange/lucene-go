@@ -1,8 +1,9 @@
 package standard
 
 import (
-	"github.com/geange/lucene-go/core/analysis"
 	"io"
+
+	"github.com/geange/lucene-go/core/analysis"
 )
 
 var _ analysis.Analyzer = &Analyzer{}
